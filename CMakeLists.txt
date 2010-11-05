@@ -11,7 +11,7 @@ if(NOT CMAKE_BUILD_TYPE)
 endif(NOT CMAKE_BUILD_TYPE)
 
 set(
-  Eigen_INCLUDE_DIR "${cuncuno_SOURCE_DIR}/../eigen/Eigen"
+  Eigen_INCLUDE_DIR "${cuncuno_SOURCE_DIR}/../eigen"
   CACHE STRING "The directory for Eigen header files."
 )
 
@@ -29,4 +29,5 @@ endif(CMAKE_COMPILER_IS_GNUCC)
 
 subdirs(
   src
+  test
 )

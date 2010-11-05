@@ -1,5 +1,7 @@
-#include <Eigen>
-
 namespace cuncuno {
+
+struct Tree {
+  //
+};
 
 }
