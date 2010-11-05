@@ -22,6 +22,12 @@
         #define cuncunoModExport
 #endif
 
+#include <Eigen/Dense>
+#include <vector>
+
+using namespace Eigen;
+using namespace std;
+
 namespace cuncuno {
 
 // TODO C++ here.
