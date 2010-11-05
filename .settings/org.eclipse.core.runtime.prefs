@@ -1,0 +1,4 @@
+#Fri Nov 05 13:28:57 CDT 2010
+content-types/enabled=true
+content-types/org.eclipse.cdt.core.cxxHeader/file-names=Eigen,Core,Dense,Array,Cholesky,Eigen2Support,Eigenvalues,Geometry,Householder,Jacobi,LU,QR,QtAlignedMalloc,Sparse,StdDeque,StdList,StdVector,SVD
+eclipse.preferences.version=1
