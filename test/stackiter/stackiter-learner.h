@@ -11,6 +11,8 @@
 using namespace cuncuno;
 using namespace std;
 
+namespace stackiter {
+
 enum ItemType {
   Block,
   Tool,
@@ -18,6 +20,7 @@ enum ItemType {
 
 struct Item {
   int id;
+  ItemType type;
 };
 
 struct State {
@@ -63,5 +66,9 @@ private:
   vector<Item> items;
 
 };
+
+}
+
+using namespace stackiter;
 
 #endif

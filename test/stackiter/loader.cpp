@@ -1,5 +1,7 @@
 #include "stackiter-learner.h"
 
+namespace stackiter {
+
 void Loader::handleDestroy(stringstream* tokens) {
   int id;
   *tokens >> id;
@@ -36,6 +38,20 @@ void Loader::handleItem(stringstream* tokens) {
   indexes[item.id] = items.size() - 1;
 }
 
+void Loader::handleType(stringstream* tokens) {
+  int id;
+  string type;
+  *tokens >> id;
+  *tokens >> type;
+  // TODO Validate id.
+  Item& item = items[indexes[id]];
+  if (type == "block") {
+    item.type = stackiter::Block;
+  } else if (type == "tool") {
+    item.type = Tool;
+  }
+}
+
 void Loader::load(const string& name) {
   cout << "Loading " << name << endl;
   ifstream in(name.c_str());
@@ -52,7 +68,11 @@ void Loader::load(const string& name) {
       handleDestroy(&tokens);
     } else if (command == "item") {
       handleItem(&tokens);
+    } else if (command == "type") {
+      handleType(&tokens);
     }
   }
   cout << "Items at end: " << items.size() << endl;
+}
+
 }
