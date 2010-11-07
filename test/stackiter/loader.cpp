@@ -3,6 +3,7 @@
 namespace stackiter {
 
 Loader::Loader() {
+  handlers["alive"] = &Loader::handleAlive;
   handlers["color"] = &Loader::handleColor;
   handlers["destroy"] = &Loader::handleDestroy;
   handlers["extent"] = &Loader::handleExtent;
@@ -11,12 +12,21 @@ Loader::Loader() {
   handlers["posvel"] = &Loader::handleVelocity;
   handlers["rot"] = &Loader::handleAngle;
   handlers["rotvel"] = &Loader::handleAngularVelocity;
+  handlers["time"] = &Loader::handleTime;
   handlers["type"] = &Loader::handleType;
 }
 
 Item& Loader::getItem(stringstream& tokens) {
   // TODO Any validation?
   return state.items[indexes[handleId(tokens)]];
+}
+
+void Loader::handleAlive(stringstream& tokens) {
+  Item& item = getItem(tokens);
+  // TODO Does this really work from strings?
+  string alive;
+  tokens >> alive;
+  item.alive = alive == "true";
 }
 
 void Loader::handleAngle(stringstream& tokens) {
@@ -97,6 +107,20 @@ void Loader::handleLocation(stringstream& tokens) {
   tokens >> item.location(1);
 }
 
+void Loader::handleTime(stringstream& tokens) {
+  string type;
+  tokens >> type;
+  if (type == "sim") {
+    pushState();
+    // Just eat the number of steps for now. Maybe I'll care more about it
+    // later.
+    int steps;
+    tokens >> steps;
+    // I pretend the sim time (in seconds) is what matters here.
+    tokens >> state.time;
+  }
+}
+
 void Loader::handleType(stringstream& tokens) {
   Item& item = getItem(tokens);
   string type;
@@ -133,7 +157,15 @@ void Loader::load(const string& name) {
       (this->*handler)(tokens);
     }
   }
+  // Record the end state.
+  pushState();
   cout << "Items at end: " << state.items.size() << endl;
+  cout << "Total states: " << states.size() << endl;
+}
+
+void Loader::pushState() {
+  // Save a copy of the current state.
+  states.push_back(state);
 }
 
 }

@@ -16,6 +16,7 @@ using namespace std;
 namespace stackiter {
 
 enum ItemType {
+  None,
   Block,
   Tool,
   Tray,
@@ -24,6 +25,8 @@ enum ItemType {
 };
 
 struct Item {
+
+  Item();
 
   bool alive;
 
@@ -142,6 +145,8 @@ private:
 
   void handleVelocity(stringstream& tokens);
 
+  void pushState();
+
   vector<int> indexes;
 
   /**
@@ -150,6 +155,14 @@ private:
   map<string, LoaderHandler> handlers;
 
   State state;
+
+  /**
+   * The full list of states in the file.
+   *
+   * TODO Should this be a pointer, optionally passed in, so it can outlast
+   * TODO the loader?
+   */
+  vector<State> states;
 
 };
 
