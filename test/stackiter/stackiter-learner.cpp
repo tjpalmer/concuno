@@ -1,5 +1,7 @@
 #include "stackiter-learner.h"
 
+using namespace stackiter;
+
 int main(int argc, char** argv) {
   try {
     if (argc < 2) {
