@@ -1,4 +1,5 @@
-#include "stackiter-learner.h"
+#include <cstring>
+#include "state.h"
 
 namespace stackiter {
 
@@ -11,11 +12,11 @@ Item::Item():
   id(-1),
   type(None)
 {
-  // TODO Other than setting the option, any way to zero with constructor?
-  color.setZero();
-  extent.setZero();
-  location.setZero();
-  velocity.setZero();
+  // TODO Any way to zero with constructor?
+  memset(color, 0, sizeof(color));
+  memset(extent, 0, sizeof(extent));
+  memset(location, 0, sizeof(location));
+  memset(velocity, 0, sizeof(velocity));
 }
 
 }

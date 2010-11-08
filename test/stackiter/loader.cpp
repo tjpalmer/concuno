@@ -45,9 +45,9 @@ void Loader::handleColor(stringstream& tokens) {
   Item& item = getItem(tokens);
   // TODO Use HSV colorspace to begin with?
   // TODO Verify we haven't run out?
-  tokens >> item.color(0);
-  tokens >> item.color(1);
-  tokens >> item.color(2);
+  tokens >> item.color[0];
+  tokens >> item.color[1];
+  tokens >> item.color[2];
   // Ignore opacity, the 4th value. It's bogus for now.
 }
 
@@ -75,8 +75,8 @@ void Loader::handleDestroy(stringstream& tokens) {
 
 void Loader::handleExtent(stringstream& tokens) {
   Item& item = getItem(tokens);
-  tokens >> item.extent(0);
-  tokens >> item.extent(1);
+  tokens >> item.extent[0];
+  tokens >> item.extent[1];
 }
 
 int Loader::handleId(stringstream& tokens) {
@@ -103,8 +103,8 @@ void Loader::handleItem(stringstream& tokens) {
 
 void Loader::handleLocation(stringstream& tokens) {
   Item& item = getItem(tokens);
-  tokens >> item.location(0);
-  tokens >> item.location(1);
+  tokens >> item.location[0];
+  tokens >> item.location[1];
 }
 
 void Loader::handleTime(stringstream& tokens) {
@@ -135,8 +135,8 @@ void Loader::handleType(stringstream& tokens) {
 
 void Loader::handleVelocity(stringstream& tokens) {
   Item& item = getItem(tokens);
-  tokens >> item.velocity(0);
-  tokens >> item.velocity(1);
+  tokens >> item.velocity[0];
+  tokens >> item.velocity[1];
 }
 
 void Loader::load(const string& name) {

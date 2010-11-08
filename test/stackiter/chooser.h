@@ -7,9 +7,9 @@ namespace stackiter {
 
 struct Chooser {
   void chooseDropWhereLandOnOtherTrue(
-    const vector<const State>& states,
-    vector<const State&> pos,
-    vector<const State&> neg
+    const vector<State>& states,
+    vector<State*>& pos,
+    vector<State*>& neg
   );
 };
 

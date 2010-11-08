@@ -19,6 +19,14 @@ struct Loader {
 
   void load(const string& name);
 
+  /**
+   * The full list of states in the file.
+   *
+   * TODO Should this be a pointer, optionally passed in, so it can outlast
+   * TODO the loader?
+   */
+  vector<State> states;
+
 private:
 
   Item& getItem(stringstream& tokens);
@@ -61,14 +69,6 @@ private:
   map<string, LoaderHandler> handlers;
 
   State state;
-
-  /**
-   * The full list of states in the file.
-   *
-   * TODO Should this be a pointer, optionally passed in, so it can outlast
-   * TODO the loader?
-   */
-  vector<State> states;
 
 };
 
