@@ -5,21 +5,42 @@ using namespace std;
 namespace stackiter {
 
 void Chooser::chooseDropWhereLandOnOtherTrue(
-  const vector<State>& states, vector<State*>& pos, vector<State*>& neg
+  const vector<State>& states,
+  vector<const State*>& pos,
+  vector<const State*>& neg
 ) {
-  bool formerHadGrasp = false;
+  bool formerHadGrasp(false);
+  int graspedId(-1);
+  const State* ungraspState(0);
+  vector<const Item*> graspedItems;
   for (
-    vector<State>::const_iterator s = states.begin();
+    vector<State>::const_iterator s(states.begin());
     s != states.end();
     s++
   ) {
-    const State& state = *s;
-    bool hasGrasp = findGraspedItems(state);
-    //if (formerHadGrasp && )
+    const State& state(*s);
+    if (ungraspState) {
+      // TODO Look for stable state.
+      // TODO Only unset state once that's found.
+      ungraspState = 0;
+    } else {
+      bool hasGrasp(findGraspedItems(state, &graspedItems));
+      if (hasGrasp) {
+        // TODO Deal with sets of grasped items? This would easily fail if more
+        // TODO than one.
+        graspedId = graspedItems[0]->id;
+        graspedItems.clear();
+      } else if (formerHadGrasp) {
+        ungraspState = &state;
+      }
+      formerHadGrasp = hasGrasp;
+    }
   }
 }
 
-bool Chooser::findGraspedItems(const State& state, vector<Item*>* items) {
+bool Chooser::findGraspedItems(
+  const State& state, vector<const Item*>* items
+) {
   bool anyGrasped = false;
   for (
     vector<Item>::const_iterator i = state.items.begin();

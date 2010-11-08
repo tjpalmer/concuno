@@ -17,11 +17,11 @@ struct Chooser {
    */
   void chooseDropWhereLandOnOtherTrue(
     const std::vector<State>& states,
-    std::vector<State*>& pos,
-    std::vector<State*>& neg
+    std::vector<const State*>& pos,
+    std::vector<const State*>& neg
   );
 
-  void findGraspedItems(const State& state, std::vector<Item*>& items=0);
+  bool findGraspedItems(const State& state, std::vector<const Item*>* items=0);
 
 };
 
