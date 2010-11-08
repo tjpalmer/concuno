@@ -3,8 +3,6 @@
 
 #include <vector>
 
-using namespace std;
-
 namespace stackiter {
 
 enum ItemType {
@@ -54,7 +52,7 @@ struct Item {
 
 struct State {
 
-  vector<Item> items;
+  std::vector<Item> items;
 
   /**
    * Simulation time, actually.

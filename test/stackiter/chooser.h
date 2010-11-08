@@ -5,12 +5,24 @@
 
 namespace stackiter {
 
+/**
+ * Various helper functions for sifting out data for testing cuncuno.
+ */
 struct Chooser {
+
+  /**
+   * Pick out states where blocks are dropped. Then choose positives where the
+   * block dropped lands on another block (or at least doesn't land flat on
+   * the ground).
+   */
   void chooseDropWhereLandOnOtherTrue(
-    const vector<State>& states,
-    vector<State*>& pos,
-    vector<State*>& neg
+    const std::vector<State>& states,
+    std::vector<State*>& pos,
+    std::vector<State*>& neg
   );
+
+  void findGraspedItems(const State& state, std::vector<Item*>& items=0);
+
 };
 
 }

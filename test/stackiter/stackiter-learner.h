@@ -7,6 +7,4 @@
 #include "loader.h"
 #include "state.h"
 
-using namespace cuncuno;
-
 #endif

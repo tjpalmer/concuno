@@ -1,5 +1,7 @@
 #include "loader.h"
 
+using namespace std;
+
 namespace stackiter {
 
 Loader::Loader() {
@@ -7,9 +9,11 @@ Loader::Loader() {
   handlers["color"] = &Loader::handleColor;
   handlers["destroy"] = &Loader::handleDestroy;
   handlers["extent"] = &Loader::handleExtent;
+  handlers["grasp"] = &Loader::handleGrasp;
   handlers["item"] = &Loader::handleItem;
   handlers["pos"] = &Loader::handleLocation;
   handlers["posvel"] = &Loader::handleVelocity;
+  handlers["release"] = &Loader::handleRelease;
   handlers["rot"] = &Loader::handleAngle;
   handlers["rotvel"] = &Loader::handleAngularVelocity;
   handlers["time"] = &Loader::handleTime;
@@ -88,6 +92,14 @@ int Loader::handleId(stringstream& tokens) {
   return id;
 }
 
+void Loader::handleGrasp(stringstream& tokens) {
+  Item& tool = getItem(tokens);
+  Item& item = getItem(tokens);
+  // TODO Parse and use the relative grasp location?
+  tool.grasping = true;
+  item.grasped = true;
+}
+
 void Loader::handleItem(stringstream& tokens) {
   Item item;
   item.id = handleId(tokens);
@@ -105,6 +117,13 @@ void Loader::handleLocation(stringstream& tokens) {
   Item& item = getItem(tokens);
   tokens >> item.location[0];
   tokens >> item.location[1];
+}
+
+void Loader::handleRelease(stringstream& tokens) {
+  Item& tool = getItem(tokens);
+  Item& item = getItem(tokens);
+  tool.grasping = false;
+  item.grasped = false;
 }
 
 void Loader::handleTime(stringstream& tokens) {
