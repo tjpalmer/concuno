@@ -11,9 +11,8 @@ int main(int argc, char** argv) {
     Loader loader;
     loader.load(argv[1]);
     Chooser chooser;
-    vector<const State*> pos;
-    vector<const State*> neg;
-    chooser.chooseDropWhereLandOnOtherTrue(loader.states, pos, neg);
+    vector<BooleanItemSample> samples;
+    chooser.chooseDropWhereLandOnOtherTrue(loader.states, samples);
   } catch (const char* message) {
     cout << message << endl;
   }

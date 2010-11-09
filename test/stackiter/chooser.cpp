@@ -5,29 +5,34 @@ using namespace std;
 namespace stackiter {
 
 void Chooser::chooseDropWhereLandOnOtherTrue(
-  const vector<State>& states,
-  vector<const State*>& pos,
-  vector<const State*>& neg
+  const vector<State>& states, vector<BooleanItemSample>& samples
 ) {
   bool formerHadGrasp(false);
   int graspedId(-1);
   const State* ungraspState(0);
   vector<const Item*> graspedItems;
   for (
-    vector<State>::const_iterator s(states.begin());
-    s != states.end();
-    s++
+    vector<State>::const_iterator s(states.begin()); s != states.end(); s++
   ) {
     const State& state(*s);
     if (ungraspState) {
-      // TODO Look for stable state.
+      // Look for stable state.
+      // TODO If state.cleared, then skip this ungrasp.
+      const Item* item(state.findItem(graspedId));
+      if (!item) {
+        // It fell away. This is a negative state.
+      } else if (true) {//norm(item.velocity, sizeof(item.velocity)) < 0.005) {
+        // See if it is on other blocks.
+      }
       // TODO Only unset state once that's found.
       ungraspState = 0;
     } else {
       bool hasGrasp(findGraspedItems(state, &graspedItems));
       if (hasGrasp) {
-        // TODO Deal with sets of grasped items? This would easily fail if more
-        // TODO than one.
+        // TODO Deal with sets of grasped items? This would easily fail if
+        // TODO more than one.
+        // TODO What if more than one ungrasp occurs at the same state and
+        // TODO each has a different result?
         graspedId = graspedItems[0]->id;
         graspedItems.clear();
       } else if (formerHadGrasp) {

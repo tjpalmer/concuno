@@ -52,6 +52,12 @@ struct Item {
 
 struct State {
 
+  State();
+
+  const Item* findItem(int id) const;
+
+  bool cleared;
+
   std::vector<Item> items;
 
   /**

@@ -22,15 +22,35 @@
         #define cuncunoModExport
 #endif
 
-#include <Eigen/Dense>
 #include <vector>
-
-using namespace Eigen;
-using namespace std;
 
 namespace cuncuno {
 
 // TODO C++ here.
+
+/**
+ * Represents a data sample for training or testing.
+ *
+ * Ideally, this will support both classification and multidimensional
+ * regression.
+ */
+template<typename Entity, typename Value>
+struct Sample {
+
+  /**
+   * TODO Some kind of argument identification among the entities in the bag.
+   * TODO SMRF calls that h-pinning.
+   */
+  std::vector<Entity> entities;
+
+  /**
+   * TODO We need to be able to associate this with some kind of entity
+   * TODO attribute. Sometimes, though, disconnected values will also be of
+   * TODO use.
+   */
+  Value value;
+
+};
 
 }
 
