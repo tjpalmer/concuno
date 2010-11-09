@@ -31,6 +31,10 @@ struct Chooser {
 
 };
 
+bool onGround(const Item& item);
+
+double norm(const double* values, size_t count);
+
 }
 
 #endif

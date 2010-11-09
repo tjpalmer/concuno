@@ -1,4 +1,6 @@
 #include "chooser.h"
+#include <cmath>
+#include <iostream>
 
 using namespace std;
 
@@ -16,16 +18,32 @@ void Chooser::chooseDropWhereLandOnOtherTrue(
   ) {
     const State& state(*s);
     if (ungraspState) {
+      if (state.cleared) {
+        // The world was cleared before the block settled. Just move on with
+        // life.
+        continue;
+      }
       // Look for stable state.
-      // TODO If state.cleared, then skip this ungrasp.
+      bool done(false);
+      bool value;
       const Item* item(state.findItem(graspedId));
       if (!item) {
         // It fell away. This is a negative state.
-      } else if (true) {//norm(item.velocity, sizeof(item.velocity)) < 0.005) {
-        // See if it is on other blocks.
+        done = true;
+        value = false;
+      } else if (norm(item->velocity, 2) < 0.005) {
+        // Settled down. See if it is above the ground.
+        done = true;
+        // TODO Check for height.
+        value = false;
       }
-      // TODO Only unset state once that's found.
-      ungraspState = 0;
+      if (done) {
+        ungraspState = 0;
+        // TODO How to allocate in place in the vector?
+        samples.push_back(BooleanItemSample());
+        BooleanItemSample& sample(samples.back());
+        sample.value = value;
+      }
     } else {
       bool hasGrasp(findGraspedItems(state, &graspedItems));
       if (hasGrasp) {
@@ -48,11 +66,11 @@ bool Chooser::findGraspedItems(
 ) {
   bool anyGrasped = false;
   for (
-    vector<Item>::const_iterator i = state.items.begin();
+    vector<Item>::const_iterator i(state.items.begin());
     i != state.items.end();
     i++
   ) {
-    const Item& item = *i;
+    const Item& item(*i);
     if (item.grasped) {
       anyGrasped = true;
       if (items) {
@@ -61,6 +79,15 @@ bool Chooser::findGraspedItems(
     }
   }
   return anyGrasped;
+}
+
+double norm(const double* values, size_t count) {
+  double total(0);
+  for (size_t v(0); v < count; v++) {
+    double value(values[v]);
+    total += value * value;
+  }
+  return sqrt(total);
 }
 
 }

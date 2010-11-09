@@ -6,6 +6,7 @@ namespace stackiter {
 
 Loader::Loader() {
   handlers["alive"] = &Loader::handleAlive;
+  handlers["clear"] = &Loader::handleClear;
   handlers["color"] = &Loader::handleColor;
   handlers["destroy"] = &Loader::handleDestroy;
   handlers["extent"] = &Loader::handleExtent;
@@ -43,6 +44,10 @@ void Loader::handleAngularVelocity(stringstream& tokens) {
   Item& item = getItem(tokens);
   // TODO Angular velocity is in rats. Convert to radians or not?
   tokens >> item.angularVelocity;
+}
+
+void Loader::handleClear(stringstream& tokens) {
+  state.cleared = true;
 }
 
 void Loader::handleColor(stringstream& tokens) {
@@ -131,6 +136,8 @@ void Loader::handleTime(stringstream& tokens) {
   tokens >> type;
   if (type == "sim") {
     pushState();
+    // TODO Some general 'reset' function?
+    state.cleared = false;
     // Just eat the number of steps for now. Maybe I'll care more about it
     // later.
     int steps;
@@ -178,8 +185,6 @@ void Loader::load(const string& name) {
   }
   // Record the end state.
   pushState();
-  cout << "Items at end: " << state.items.size() << endl;
-  cout << "Total states: " << states.size() << endl;
 }
 
 void Loader::pushState() {

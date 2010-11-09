@@ -37,6 +37,8 @@ private:
 
   void handleAngularVelocity(std::stringstream& tokens);
 
+  void handleClear(std::stringstream& tokens);
+
   void handleColor(std::stringstream& tokens);
 
   void handleDestroy(std::stringstream& tokens);
