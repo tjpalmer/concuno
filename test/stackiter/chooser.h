@@ -31,7 +31,6 @@ struct Chooser {
 
 };
 
-// TODO onGround
 bool onGround(const Item& item);
 
 double norm(const double* values, size_t count);

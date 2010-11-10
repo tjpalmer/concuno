@@ -31,11 +31,10 @@ void Chooser::chooseDropWhereLandOnOtherTrue(
         // It fell away. This is a negative state.
         done = true;
         value = false;
-      } else if (norm(item->velocity, 2) < 0.005) {
+      } else if (norm(item->velocity, 2) < 0.01) {
         // Settled down. See if it is above the ground.
         done = true;
-        // TODO Check for height.
-        value = false;
+        value = !onGround(*item);
       }
       if (done) {
         ungraspState = 0;
@@ -89,5 +88,20 @@ double norm(const double* values, size_t count) {
   }
   return sqrt(total);
 }
+
+bool onGround(const Item& item) {
+  double angle(item.angle);
+  int dim;
+  // Angles go from -1 to 1.
+  if ((-0.25 < angle && angle < 0.25) || (angle < -0.75 || angle > 0.75)) {
+    // Upright.
+    dim = 1;
+  } else {
+    // Sideways.
+    dim = 0;
+  }
+  return abs(item.extent[dim] - item.location[1]) < 0.01;
+}
+
 
 }
