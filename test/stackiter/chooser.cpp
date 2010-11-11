@@ -91,7 +91,7 @@ double norm(const double* values, size_t count) {
 }
 
 bool onGround(const Item& item) {
-  double angle(item.angle);
+  double angle(item.orientation);
   int dim;
   // Angles go from -1 to 1.
   if ((-0.25 < angle && angle < 0.25) || (angle < -0.75 || angle > 0.75)) {

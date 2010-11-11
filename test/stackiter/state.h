@@ -1,6 +1,7 @@
 #ifndef stackiter_learner_state_h
 #define stackiter_learner_state_h
 
+#include <cuncuno.h>
 #include <vector>
 
 namespace stackiter {
@@ -14,19 +15,11 @@ enum ItemType {
   World,
 };
 
-struct Item {
+struct Item: cuncuno::Entity2D {
 
   Item();
 
   bool alive;
-
-  double angle;
-
-  double angularVelocity;
-
-  double color[3];
-
-  double extent[2];
 
   /**
    * Only ever true for blocks.
@@ -39,14 +32,6 @@ struct Item {
    * Only ever true for tools.
    */
   bool grasping;
-
-  int id;
-
-  double location[2];
-
-  ItemType type;
-
-  double velocity[2];
 
 };
 

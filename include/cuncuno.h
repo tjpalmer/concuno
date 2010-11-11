@@ -28,6 +28,69 @@ namespace cuncuno {
 
 // TODO C++ here.
 
+typedef int EntityType;
+
+struct Entity {
+
+  Entity();
+
+  int id;
+
+  EntityType type;
+
+};
+
+struct Entity2D: Entity {
+
+  Entity2D();
+
+  double color[3];
+
+  /**
+   * Half sizes, or radii in a sense.
+   */
+  double extent[2];
+
+  double location[2];
+
+  /**
+   * Just the angle of rotation.
+   */
+  double orientation;
+
+  double orientationVelocity;
+
+  double velocity[2];
+
+};
+
+struct Entity3D: Entity {
+
+  Entity3D();
+
+  double color[3];
+
+  /**
+   * Half sizes, or radii in a sense.
+   */
+  double extent[3];
+
+  double location[3];
+
+  /**
+   * As a quaternion, or use axis-angle? If axis-angle, normalize to 3 vals?
+   */
+  double orientation[4];
+
+  /**
+   * As a quaternion, or use axis-angle? If axis-angle, normalize to 3 vals?
+   */
+  double orientationVelocity[4];
+
+  double velocity[3];
+
+};
+
 /**
  * Represents a data sample for training or testing.
  *

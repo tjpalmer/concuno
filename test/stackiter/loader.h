@@ -33,9 +33,9 @@ private:
 
   void handleAlive(std::stringstream& tokens);
 
-  void handleAngle(std::stringstream& tokens);
+  void handleOrientation(std::stringstream& tokens);
 
-  void handleAngularVelocity(std::stringstream& tokens);
+  void handleOrientationVelocity(std::stringstream& tokens);
 
   void handleClear(std::stringstream& tokens);
 

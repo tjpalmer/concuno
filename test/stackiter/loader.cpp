@@ -15,8 +15,8 @@ Loader::Loader() {
   handlers["pos"] = &Loader::handleLocation;
   handlers["posvel"] = &Loader::handleVelocity;
   handlers["release"] = &Loader::handleRelease;
-  handlers["rot"] = &Loader::handleAngle;
-  handlers["rotvel"] = &Loader::handleAngularVelocity;
+  handlers["rot"] = &Loader::handleOrientation;
+  handlers["rotvel"] = &Loader::handleOrientationVelocity;
   handlers["time"] = &Loader::handleTime;
   handlers["type"] = &Loader::handleType;
 }
@@ -32,18 +32,6 @@ void Loader::handleAlive(stringstream& tokens) {
   string alive;
   tokens >> alive;
   item.alive = alive == "true";
-}
-
-void Loader::handleAngle(stringstream& tokens) {
-  Item& item = getItem(tokens);
-  // TODO Angle is in rats. Convert to radians or not?
-  tokens >> item.angle;
-}
-
-void Loader::handleAngularVelocity(stringstream& tokens) {
-  Item& item = getItem(tokens);
-  // TODO Angular velocity is in rats. Convert to radians or not?
-  tokens >> item.angularVelocity;
 }
 
 void Loader::handleClear(stringstream& tokens) {
@@ -63,11 +51,11 @@ void Loader::handleColor(stringstream& tokens) {
 void Loader::handleDestroy(stringstream& tokens) {
   int id = handleId(tokens);
   int index = indexes[id];
-  if (index == -1) {
+  if (!index) {
     throw "double destroy";
   }
   // Remove the destroyed item.
-  indexes[id] = -1;
+  indexes[id] = 0;
   state.items.erase(state.items.begin() + index);
   // Reduce the index of successive items.
   for (
@@ -91,8 +79,8 @@ void Loader::handleExtent(stringstream& tokens) {
 int Loader::handleId(stringstream& tokens) {
   int id;
   tokens >> id;
-  if (id < 0) {
-    throw "negative id";
+  if (id <= 0) {
+    throw "nonpositive id";
   }
   return id;
 }
@@ -112,8 +100,8 @@ void Loader::handleItem(stringstream& tokens) {
   // TODO Evil data copy here. Do I care?
   state.items.push_back(item);
   while (indexes.size() < static_cast<size_t>(item.id + 1)) {
-    // TODO Or can I make an allocator creating -1 by default for resize?
-    indexes.push_back(-1);
+    // TODO Or is it 0 by default for resize?
+    indexes.push_back(0);
   }
   indexes[item.id] = state.items.size() - 1;
 }
@@ -122,6 +110,18 @@ void Loader::handleLocation(stringstream& tokens) {
   Item& item = getItem(tokens);
   tokens >> item.location[0];
   tokens >> item.location[1];
+}
+
+void Loader::handleOrientation(stringstream& tokens) {
+  Item& item = getItem(tokens);
+  // TODO Angle is in rats. Convert to radians or not?
+  tokens >> item.orientation;
+}
+
+void Loader::handleOrientationVelocity(stringstream& tokens) {
+  Item& item = getItem(tokens);
+  // TODO Angular velocity is in rats. Convert to radians or not?
+  tokens >> item.orientationVelocity;
 }
 
 void Loader::handleRelease(stringstream& tokens) {

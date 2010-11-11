@@ -1,4 +1,5 @@
 add_library(cuncuno SHARED
+  entity.cpp
 	tree.cpp
 )
 
