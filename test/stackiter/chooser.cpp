@@ -41,6 +41,7 @@ void Chooser::chooseDropWhereLandOnOtherTrue(
         // TODO How to allocate in place in the vector?
         samples.push_back(BooleanItemSample());
         BooleanItemSample& sample(samples.back());
+        placeLiveItems(state.items, sample.entities);
         sample.value = value;
       }
     } else {
@@ -103,5 +104,13 @@ bool onGround(const Item& item) {
   return abs(item.extent[dim] - item.location[1]) < 0.01;
 }
 
+void placeLiveItems(const vector<Item>& items, vector<const Item*>& entities) {
+  for (vector<Item>::const_iterator i = items.begin(); i != items.end(); i++) {
+    const Item& item = *i;
+    if (item.alive) {
+      entities.push_back(&item);
+    }
+  }
+}
 
 }

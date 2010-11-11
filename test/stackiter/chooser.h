@@ -35,6 +35,13 @@ bool onGround(const Item& item);
 
 double norm(const double* values, size_t count);
 
+/**
+ * Place pointers to alive items into the entities vector.
+ */
+void placeLiveItems(
+  const std::vector<Item>& items, std::vector<const Item*>& entities
+);
+
 }
 
 #endif

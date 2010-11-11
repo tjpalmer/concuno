@@ -16,17 +16,22 @@ int main(int argc, char** argv) {
     cout << "Items at end: " << loader.states.back().items.size() << endl;
     cout << "Total states: " << loader.states.size() << endl;
     cout << "Chosen states: " << samples.size() << endl;
-    int totalPos = 0;
+    int totalPos(0);
+    double totalItems(0);
     for (
-      vector<BooleanItemSample>::iterator s = samples.begin();
+      vector<BooleanItemSample>::iterator s(samples.begin());
       s != samples.end();
       s++
     ) {
       if (s->value) {
         totalPos++;
       }
+      totalItems += s->entities.size();
     }
     cout << "Positives: " << totalPos << endl;
+    cout
+      << "Mean items in chosen states: " << (totalItems/samples.size()) << endl
+    ;
   } catch (const char* message) {
     cout << message << endl;
   }
