@@ -160,6 +160,13 @@ struct Sample {
 
 typedef Sample<bool> BoolSample;
 
+/**
+ * TODO What kind of return type?
+ * TODO What should this be named?
+ * TODO How to provide a schema?
+ */
+void learn(const std::vector<BoolSample>& samples);
+
 }
 
 #ifdef __cplusplus

@@ -31,6 +31,7 @@ int main(int argc, char** argv) {
     cout
       << "Mean items in chosen states: " << (totalItems/samples.size()) << endl
     ;
+    learn(samples);
   } catch (const char* message) {
     cout << message << endl;
   }
