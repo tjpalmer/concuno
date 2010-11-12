@@ -11,6 +11,11 @@ namespace cuncuno {
  */
 struct Entity2D: Entity {
 
+  /**
+   * Adds the standard schema entries for Entity2D.
+   */
+  static void pushSchema(Schema& schema);
+
   Entity2D();
 
   Float color[3];

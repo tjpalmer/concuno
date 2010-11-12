@@ -33,11 +33,32 @@ struct Sample {
 typedef Sample<bool> BoolSample;
 
 /**
- * TODO What kind of return type?
- * TODO What should this be named?
+ * Allows setting learning parameters. The learn function can then be called on
+ * multiple data sets.
+ *
  * TODO How to provide a schema?
  */
-void learn(const std::vector<BoolSample>& samples);
+template<typename Value>
+struct Learner {
+
+  Schema schema;
+
+};
+
+/**
+ * Allows setting learning parameters. The learn function can then be called on
+ * multiple data sets.
+ *
+ * TODO How to provide a schema?
+ */
+struct BoolLearner: Learner<bool> {
+
+  /**
+   * TODO What kind of return type?
+   */
+  void learn(const std::vector<BoolSample>& samples);
+
+};
 
 }
 

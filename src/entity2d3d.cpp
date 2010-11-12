@@ -13,7 +13,7 @@ struct Location2DAttribute: FloatAttribute {
     const Entity2D* e2d = reinterpret_cast<const Entity2D*>(entity);
     memcpy(values, e2d->location, sizeof(e2d->location));
   }
-  virtual void name(string& buffer) {
+  virtual void name(string& buffer) const {
     buffer = "Location2D";
   }
 };
@@ -23,6 +23,10 @@ Entity2D::Entity2D(): orientation(0), orientationVelocity(0) {
   memset(extent, 0, sizeof(extent));
   memset(location, 0, sizeof(location));
   memset(velocity, 0, sizeof(velocity));
+}
+
+void Entity2D::pushSchema(Schema& schema) {
+  schema.floatAttributes.push_back(new Location2DAttribute);
 }
 
 Entity3D::Entity3D() {
