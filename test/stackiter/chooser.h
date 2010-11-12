@@ -6,8 +6,6 @@
 
 namespace stackiter {
 
-typedef cuncuno::Sample<const Item*, bool> BooleanItemSample;
-
 /**
  * Various helper functions for sifting out data for testing cuncuno.
  */
@@ -19,7 +17,7 @@ struct Chooser {
    * the ground).
    */
   void chooseDropWhereLandOnOtherTrue(
-    const std::vector<State>& states, std::vector<BooleanItemSample>& samples
+    const std::vector<State>& states, std::vector<cuncuno::BoolSample>& samples
   );
 
   /**
@@ -39,7 +37,7 @@ double norm(const double* values, size_t count);
  * Place pointers to alive items into the entities vector.
  */
 void placeLiveItems(
-  const std::vector<Item>& items, std::vector<const Item*>& entities
+  const std::vector<Item>& items, std::vector<const cuncuno::Entity*>& entities
 );
 
 }

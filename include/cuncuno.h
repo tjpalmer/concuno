@@ -140,14 +140,14 @@ struct Entity3D: Entity {
  * Ideally, this will support both classification and multidimensional
  * regression.
  */
-template<typename Entity, typename Value>
+template<typename Value>
 struct Sample {
 
   /**
    * TODO Some kind of argument identification among the entities in the bag.
    * TODO SMRF calls that h-pinning.
    */
-  std::vector<Entity> entities;
+  std::vector<const Entity*> entities;
 
   /**
    * TODO We need to be able to associate this with some kind of entity
@@ -157,6 +157,8 @@ struct Sample {
   Value value;
 
 };
+
+typedef Sample<bool> BoolSample;
 
 }
 

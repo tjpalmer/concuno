@@ -2,12 +2,13 @@
 #include <cmath>
 #include <iostream>
 
+using namespace cuncuno;
 using namespace std;
 
 namespace stackiter {
 
 void Chooser::chooseDropWhereLandOnOtherTrue(
-  const vector<State>& states, vector<BooleanItemSample>& samples
+  const vector<State>& states, vector<BoolSample>& samples
 ) {
   bool formerHadGrasp(false);
   int graspedId(-1);
@@ -39,8 +40,8 @@ void Chooser::chooseDropWhereLandOnOtherTrue(
       if (done) {
         ungraspState = 0;
         // TODO How to allocate in place in the vector?
-        samples.push_back(BooleanItemSample());
-        BooleanItemSample& sample(samples.back());
+        samples.push_back(BoolSample());
+        BoolSample& sample(samples.back());
         placeLiveItems(state.items, sample.entities);
         sample.value = value;
       }
@@ -104,7 +105,9 @@ bool onGround(const Item& item) {
   return abs(item.extent[dim] - item.location[1]) < 0.01;
 }
 
-void placeLiveItems(const vector<Item>& items, vector<const Item*>& entities) {
+void placeLiveItems(
+  const vector<Item>& items, vector<const Entity*>& entities
+) {
   for (vector<Item>::const_iterator i = items.begin(); i != items.end(); i++) {
     const Item& item = *i;
     if (item.alive) {

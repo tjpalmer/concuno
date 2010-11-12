@@ -1,5 +1,6 @@
 #include "stackiter-learner.h"
 
+using namespace cuncuno;
 using namespace stackiter;
 using namespace std;
 
@@ -11,7 +12,7 @@ int main(int argc, char** argv) {
     Loader loader;
     loader.load(argv[1]);
     Chooser chooser;
-    vector<BooleanItemSample> samples;
+    vector<BoolSample> samples;
     chooser.chooseDropWhereLandOnOtherTrue(loader.states, samples);
     cout << "Items at end: " << loader.states.back().items.size() << endl;
     cout << "Total states: " << loader.states.size() << endl;
@@ -19,9 +20,7 @@ int main(int argc, char** argv) {
     int totalPos(0);
     double totalItems(0);
     for (
-      vector<BooleanItemSample>::iterator s(samples.begin());
-      s != samples.end();
-      s++
+      vector<BoolSample>::iterator s(samples.begin()); s != samples.end(); s++
     ) {
       if (s->value) {
         totalPos++;
