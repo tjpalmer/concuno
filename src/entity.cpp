@@ -5,7 +5,20 @@ using namespace std;
 
 namespace cuncuno {
 
-Entity::Entity(): id(0), type(0) {}
+struct Location2DAttribute: FloatAttribute {
+  virtual size_t count() const {
+    return 2;
+  }
+  virtual void get(const Entity* entity, Float* values) const {
+    const Entity2D* e2d = reinterpret_cast<const Entity2D*>(entity);
+    memcpy(values, e2d->location, sizeof(e2d->location));
+  }
+  virtual void name(string& buffer) {
+    buffer = "Location2D";
+  }
+};
+
+Entity::Entity(): id(0), typeId(0) {}
 
 Entity2D::Entity2D(): orientation(0), orientationVelocity(0) {
   memset(color, 0, sizeof(color));

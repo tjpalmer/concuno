@@ -153,9 +153,9 @@ void Loader::handleType(stringstream& tokens) {
   tokens >> type;
   // TODO Validate id.
   if (type == "block") {
-    item.type = stackiter::Block;
+    item.typeId = stackiter::Block;
   } else if (type == "tool") {
-    item.type = Tool;
+    item.typeId = Tool;
   }
 }
 

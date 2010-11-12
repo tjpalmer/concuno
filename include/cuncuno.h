@@ -22,45 +22,88 @@
         #define cuncunoModExport
 #endif
 
+#include <string>
 #include <vector>
 
 namespace cuncuno {
 
 // TODO C++ here.
 
-typedef int EntityType;
+typedef int Category;
+
+typedef double Float;
+
+typedef int Id;
+
+typedef int TypeId;
 
 struct Entity {
 
   Entity();
 
-  int id;
+  Id id;
 
-  EntityType type;
+  TypeId typeId;
 
+};
+
+template<typename Value>
+struct Metric {
+
+  virtual void difference(Value* a, Value* b, Value* diff, size_t count);
+
+  virtual Float distance(Value* a, Value* b, size_t count);
+
+};
+
+template<typename Value>
+struct Attribute {
+
+  virtual size_t count(const Entity* entity) const = 0;
+
+  virtual void get(const Entity* entity, Value* values) const = 0;
+
+  virtual void name(std::string& buffer) const = 0;
+
+};
+
+/**
+ * TODO How to identify at runtime vs. ordinal?
+ */
+typedef Attribute<Category> CategoryAttribute;
+
+typedef Attribute<Float> FloatAttribute;
+
+/**
+ * TODO Or rename EntityType to TypeId and this to Type?
+ */
+struct Schema {
+  Id id;
+  std::vector<CategoryAttribute*> categoryAttributes;
+  std::vector<FloatAttribute*> floatAttributes;
 };
 
 struct Entity2D: Entity {
 
   Entity2D();
 
-  double color[3];
+  Float color[3];
 
   /**
    * Half sizes, or radii in a sense.
    */
-  double extent[2];
+  Float extent[2];
 
-  double location[2];
+  Float location[2];
 
   /**
    * Just the angle of rotation.
    */
-  double orientation;
+  Float orientation;
 
-  double orientationVelocity;
+  Float orientationVelocity;
 
-  double velocity[2];
+  Float velocity[2];
 
 };
 
@@ -68,26 +111,26 @@ struct Entity3D: Entity {
 
   Entity3D();
 
-  double color[3];
+  Float color[3];
 
   /**
    * Half sizes, or radii in a sense.
    */
-  double extent[3];
+  Float extent[3];
 
-  double location[3];
-
-  /**
-   * As a quaternion, or use axis-angle? If axis-angle, normalize to 3 vals?
-   */
-  double orientation[4];
+  Float location[3];
 
   /**
    * As a quaternion, or use axis-angle? If axis-angle, normalize to 3 vals?
    */
-  double orientationVelocity[4];
+  Float orientation[4];
 
-  double velocity[3];
+  /**
+   * As a quaternion, or use axis-angle? If axis-angle, normalize to 3 vals?
+   */
+  Float orientationVelocity[4];
+
+  Float velocity[3];
 
 };
 
