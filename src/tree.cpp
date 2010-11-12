@@ -1,7 +1,9 @@
+#include "tree.h"
+
+using namespace std;
+
 namespace cuncuno {
 
-struct Tree {
-  //
-};
+// Um, TODO.
 
 }
