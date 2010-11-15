@@ -3,6 +3,7 @@
 
 // TODO Provide a C interface???
 
+#include "cuncuno/context.h"
 #include "cuncuno/entity.h"
 #include "cuncuno/entity2d3d.h"
 #include "cuncuno/export.h"

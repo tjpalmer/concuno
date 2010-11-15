@@ -1,6 +1,7 @@
 #ifndef cuncuno_learner_h
 #define cuncuno_learner_h
 
+#include "context.h"
 #include "entity.h"
 #include <vector>
 
@@ -39,7 +40,9 @@ typedef Sample<bool> BoolSample;
  * TODO How to provide a schema?
  */
 template<typename Value>
-struct Learner {
+struct Learner: Worker {
+
+  Learner();
 
   Schema schema;
 

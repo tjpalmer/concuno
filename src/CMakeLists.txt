@@ -4,6 +4,7 @@ include_directories(
 )
 
 add_library(cuncuno SHARED
+  context.cpp
   entity.cpp
   entity2d3d.cpp
   learner.cpp

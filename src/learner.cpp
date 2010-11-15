@@ -1,6 +1,6 @@
 #include <Eigen/Dense>
-#include <iostream>
 #include "learner.h"
+#include <sstream>
 
 using namespace Eigen;
 using namespace std;
@@ -57,13 +57,22 @@ void BoolLearner::learn(const vector<BoolSample>& samples) {
           values2D(index,1) = buffer2D[1];
         }
       }
-      //cout << values2D << endl;
+      // A bit of logging status. TODO Are there easier ways than all this?
+      stringstream message;
       string name;
       attribute.name(name);
-      cout << name << " values loaded: " << values2D.rows() << endl;
+      //cout << values2D << endl;
+      message << name << " values loaded: " << values2D.rows() << endl;
+      log(message.str());
     }
   }
 
 }
+
+template<typename Value>
+Learner<Value>::Learner(): Worker("Learner") {}
+
+template<>
+Learner<bool>::Learner(): Worker("Learner<bool>") {}
 
 }
