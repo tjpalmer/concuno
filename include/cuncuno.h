@@ -8,5 +8,6 @@
 #include "cuncuno/entity2d3d.h"
 #include "cuncuno/export.h"
 #include "cuncuno/learner.h"
+#include "cuncuno/tree.h"
 
 #endif
