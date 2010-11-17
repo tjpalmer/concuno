@@ -25,6 +25,22 @@ struct Entity {
 
 };
 
+struct Value {
+
+  enum Type {
+    FloatType,
+    IntType,
+  };
+
+private:
+
+  struct {
+    Type type: 4;
+    int value: 28;
+  } info;
+
+};
+
 template<typename Value>
 struct Metric {
 
@@ -34,6 +50,10 @@ struct Metric {
 
 };
 
+/**
+ * Provides values from entities. Attributes might be abstract or composite,
+ * and entities might be composite, too.
+ */
 template<typename Value>
 struct Attribute {
 

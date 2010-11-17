@@ -2,6 +2,7 @@
 #define cuncuno_tree_h
 
 #include "entity.h"
+#include "distrib.h"
 
 namespace cuncuno {
 
@@ -45,10 +46,58 @@ struct Node {
 
 };
 
-struct QuestionNode: Node {
+/**
+ * Determines truth or falsehood on bindings for some abstract criterion.
+ *
+ * Indicate which types of entities are supported?
+ *
+ * Note: In SMRF, question nodes have models. Models have PDFs, and PDFs have
+ * thresholds. In a sense, a threshold just turns a
+ */
+template<typename Value>
+struct PredicateNode: Node {
+
+  /**
+   * Returns whether or not the entity matches this predicate. The entity could
+   * be composite.
+   *
+   * Errors, if any, will be thrown.
+   */
+  bool classify(const Entity* entity);
+
+  /**
+   * This is the same as the one-arg classify, except that error conditions are
+   * provided via the error parameter instead of being thrown.
+   *
+   * TODO Provide an enum for tri-state bools?
+   */
+  bool classify(const Entity* entity, bool& error);
+
+  /**
+   * Allows extracting values from entities.
+   */
+  Attribute<Value>* attribute;
+
+  /**
+   * Determines a probability of some value matching a concept. Extracted
+   * attribute values are checked here.
+   */
+  Pdf<Value>* pdf;
+
+  /**
+   * The threshold should be a probability that the entity matches the local
+   * concept for this question. This could be chosen to maximize some objective.
+   *
+   * TODO Alternatively normalize PDFs such that the threshold is always 0.5.
+   */
+  Float threshold;
+
+};
+
+struct FloatPredicateNode: Node {
   // TODO Model which has mapping and pdf which has threshold.
   // TODO In the abstract, attribute is also a mapping function.
-  // TODO Attribute<Value>* attribute;
+  FloatAttribute* attribute;
   // TODO Metric<Value>* metric; // TODO Or tie this to attribute???
   // TODO Float threshold;
 };
