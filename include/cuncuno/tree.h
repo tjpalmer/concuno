@@ -13,8 +13,7 @@ struct VarNode;
  */
 struct BindingPair {
 
-  // TODO Can references work with virtuals?
-  Entity* entity;
+  Any* entity;
 
   VarNode& var;
 
@@ -63,7 +62,7 @@ struct PredicateNode: Node {
    *
    * Errors, if any, will be thrown.
    */
-  bool classify(const Entity* entity);
+  bool classify(const Any& entity);
 
   /**
    * This is the same as the one-arg classify, except that error conditions are
@@ -71,18 +70,18 @@ struct PredicateNode: Node {
    *
    * TODO Provide an enum for tri-state bools?
    */
-  bool classify(const Entity* entity, bool& error);
+  bool classify(const Any& entity, bool& error);
 
   /**
    * Allows extracting values from entities.
    */
-  Attribute<Value>* attribute;
+  Attribute& attribute;
 
   /**
    * Determines a probability of some value matching a concept. Extracted
    * attribute values are checked here.
    */
-  Pdf<Value>* pdf;
+  Pdf& pdf;
 
   /**
    * The threshold should be a probability that the entity matches the local
@@ -92,14 +91,6 @@ struct PredicateNode: Node {
    */
   Float threshold;
 
-};
-
-struct FloatPredicateNode: Node {
-  // TODO Model which has mapping and pdf which has threshold.
-  // TODO In the abstract, attribute is also a mapping function.
-  FloatAttribute* attribute;
-  // TODO Metric<Value>* metric; // TODO Or tie this to attribute???
-  // TODO Float threshold;
 };
 
 struct VarNode: Node {

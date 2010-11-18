@@ -8,7 +8,7 @@ using namespace std;
 namespace stackiter {
 
 void Chooser::chooseDropWhereLandOnOtherTrue(
-  const vector<State>& states, vector<BoolSample>& samples
+  const vector<State>& states, vector<Sample>& samples
 ) {
   bool formerHadGrasp(false);
   int graspedId(-1);
@@ -26,24 +26,24 @@ void Chooser::chooseDropWhereLandOnOtherTrue(
       }
       // Look for stable state.
       bool done(false);
-      bool value;
+      bool label;
       const Item* item(state.findItem(graspedId));
       if (!item) {
         // It fell away. This is a negative state.
         done = true;
-        value = false;
+        label = false;
       } else if (norm(item->velocity, 2) < 0.01) {
         // Settled down. See if it is above the ground.
         done = true;
-        value = !onGround(*item);
+        label = !onGround(*item);
       }
       if (done) {
         ungraspState = 0;
         // TODO How to allocate in place in the vector?
-        samples.push_back(BoolSample());
-        BoolSample& sample(samples.back());
+        samples.push_back(Sample());
+        Sample& sample(samples.back());
         placeLiveItems(state.items, sample.entities);
-        sample.value = value;
+        sample.label = label;
       }
     } else {
       bool hasGrasp(findGraspedItems(state, &graspedItems));
@@ -106,7 +106,7 @@ bool onGround(const Item& item) {
 }
 
 void placeLiveItems(
-  const vector<Item>& items, vector<const Entity*>& entities
+  const vector<Item>& items, vector<const Any*>& entities
 ) {
   for (vector<Item>::const_iterator i = items.begin(); i != items.end(); i++) {
     const Item& item = *i;

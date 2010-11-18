@@ -5,7 +5,6 @@
 
 namespace cuncuno {
 
-template<typename Value>
 struct Pdf {};
 
 }

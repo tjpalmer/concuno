@@ -5,7 +5,7 @@ using namespace std;
 
 namespace stackiter {
 
-Item::Item(): alive(false), grasped(false), grasping(false) {}
+Item::Item(): alive(false), grasped(false), grasping(false), id(0), typeId(0) {}
 
 State::State(): cleared(false) {}
 

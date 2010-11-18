@@ -13,53 +13,40 @@ namespace cuncuno {
  * Ideally, this will support both classification and multidimensional
  * regression.
  */
-template<typename Value>
 struct Sample {
 
   /**
    * TODO Some kind of argument identification among the entities in the bag.
    * TODO SMRF calls that h-pinning.
    */
-  std::vector<const Entity*> entities;
+  std::vector<const Any*> entities;
 
   /**
    * TODO We need to be able to associate this with some kind of entity
    * TODO attribute. Sometimes, though, disconnected values will also be of
    * TODO use.
    */
-  Value value;
+  bool label;
 
 };
-
-typedef Sample<bool> BoolSample;
 
 /**
  * Allows setting learning parameters. The learn function can then be called on
  * multiple data sets.
- *
- * TODO How to provide a schema?
  */
-template<typename Value>
 struct Learner: Worker {
 
   Learner();
 
-  Schema schema;
-
-};
-
-/**
- * Allows setting learning parameters. The learn function can then be called on
- * multiple data sets.
- *
- * TODO How to provide a schema?
- */
-struct BoolLearner: Learner<bool> {
+  /**
+   * TODO Make this a const ref.
+   */
+  Type entityType;
 
   /**
    * TODO What kind of return type?
    */
-  void learn(const std::vector<BoolSample>& samples);
+  void learn(const std::vector<Sample>& samples);
 
 };
 

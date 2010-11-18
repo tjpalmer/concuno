@@ -7,87 +7,135 @@
 
 namespace cuncuno {
 
-typedef int Category;
+/**
+ * Convenience for references vs. void*.
+ */
+struct Any {};
 
+typedef unsigned char Byte;
+
+typedef size_t Count;
+
+/**
+ * Because I don't want to commit to single vs. double.
+ *
+ * TODO Support bigs, rationals, imaginaries, and so on?
+ */
 typedef double Float;
 
-typedef int Id;
+typedef int Int;
 
-typedef int TypeId;
+typedef size_t Size;
 
-struct Entity {
+typedef std::string String;
 
-  Entity();
+struct Type;
 
-  Id id;
+/**
+ * Provides values from entities. Attributes might be abstract or composite,
+ * and entities might be composite, too.
+ */
+struct Attribute: Any {
 
-  TypeId typeId;
+  Attribute(const String& name, const Type& type, Count count = 1);
+
+  /**
+   * Gets the value of the attribute for the given entity. The buffer must be
+   * large enough to store the data.
+   */
+  virtual void get(const Any& entity, void* buffer) const = 0;
+
+  /**
+   * The count, dependent on a particular entity. By default, it defers to the
+   * constant count.
+   *
+   * Note that the entity-specific count could actually be zero.
+   */
+  virtual Count getCount(const Any& entity) const;
+
+  const String name;
+
+  const Type& type;
+
+  /**
+   * To allocate large arrays efficiently, check for constant count first here.
+   *
+   * If zero, then it depends on each specific entity. Presumably you'd never
+   * want to define an always-empty attribute.
+   */
+  const Count count;
 
 };
 
-struct Value {
+struct Type: Any {
 
-  enum Type {
-    FloatType,
-    IntType,
-  };
+  static const Type& $bool();
+
+  static const Type& byte();
+
+  static const Type& $float();
+
+  static const Type& $int();
+
+  /**
+   * Simply whether the two types are at the same memory address. Deep
+   * comparison isn't worth it, and type names are risky, too.
+   */
+  bool operator ==(const Type& type) const;
+
+  String name;
+
+  /**
+   * The size of one instance of this type. All entities are expected to be
+   * fixed size for any particular type.
+   */
+  Size size;
+
+  /**
+   * These might be raw values or abstract concepts and functions.
+   *
+   * TODO Make this a map? Easy enough to iterate but also allows fast lookup.
+   */
+  std::vector<Attribute*> attributes;
+
+};
+
+struct List: Any {
+
+  List(const Type& type);
+
+  /**
+   * Deletes any buffer.
+   */
+  ~List();
+
+  Count count() const;
+
+  const Type& type;
 
 private:
 
-  struct {
-    Type type: 4;
-    int value: 28;
-  } info;
+  Count $count;
+
+  /**
+   * Being typed, we can short-circuit the need for a separate buffer for small
+   * enough types and few enough values.
+   */
+  union {
+    Any* buffer;
+    Float $float;
+    Int $int;
+  } data;
 
 };
 
 template<typename Value>
 struct Metric {
 
-  virtual void difference(Value* a, Value* b, Value* diff, size_t count);
+  virtual void difference(const Value& a, const Value& b, Value& diff);
 
-  virtual Float distance(Value* a, Value* b, size_t count);
+  virtual Float distance(const Value& a, const Value& b);
 
-};
-
-/**
- * Provides values from entities. Attributes might be abstract or composite,
- * and entities might be composite, too.
- */
-template<typename Value>
-struct Attribute {
-
-  /**
-   * All attributes of a given kind are expected to be the same size, not
-   * dependent on the specific entity. It allows matrix allocation and so on.
-   *
-   * TODO Introduce a different kind of attribute if we run across needs for
-   * TODO bags at the attribute level?
-   */
-  virtual size_t count() const = 0;
-
-  virtual void get(const Entity* entity, Value* values) const = 0;
-
-  virtual void name(std::string& buffer) const = 0;
-
-};
-
-/**
- * TODO How to identify at runtime vs. ordinal?
- */
-typedef Attribute<Category> CategoryAttribute;
-
-typedef Attribute<Float> FloatAttribute;
-
-/**
- * TODO Or rename EntityType to TypeId and this to Type?
- * TODO Could have one schema cover multiple types, ideally.
- */
-struct Schema {
-  // TODO Destructor to delete attribute pointers?
-  Id id;
-  std::vector<CategoryAttribute*> categoryAttributes;
-  std::vector<FloatAttribute*> floatAttributes;
 };
 
 }

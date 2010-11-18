@@ -20,16 +20,16 @@ int main(int argc, char** argv) {
 
     // Choose and label some samples.
     Chooser chooser;
-    vector<BoolSample> samples;
+    vector<Sample> samples;
     chooser.chooseDropWhereLandOnOtherTrue(loader.states, samples);
 
     cout << "Chosen states: " << samples.size() << endl;
     int totalPos(0);
     double totalItems(0);
     for (
-      vector<BoolSample>::iterator s(samples.begin()); s != samples.end(); s++
+      vector<Sample>::iterator s(samples.begin()); s != samples.end(); s++
     ) {
-      if (s->value) {
+      if (s->label) {
         totalPos++;
       }
       totalItems += s->entities.size();
@@ -39,8 +39,10 @@ int main(int argc, char** argv) {
       << "Mean items in chosen states: " << (totalItems/samples.size()) << endl
     ;
 
-    BoolLearner learner;
-    Entity2D::pushSchema(learner.schema);
+    Type itemType = Entity2D::type();
+    itemType.size = sizeof(Item);
+    Learner learner;
+    learner.entityType = itemType;
     learner.learn(samples);
 
   } catch (const char* message) {

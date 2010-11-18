@@ -7,18 +7,20 @@ using namespace std;
 
 namespace cuncuno {
 
-void BoolLearner::learn(const vector<BoolSample>& samples) {
+Learner::Learner(): Worker("Learner") {}
+
+void Learner::learn(const vector<Sample>& samples) {
 
   // Load
   vector<bool> labels;
   for (
-    vector<BoolSample>::const_iterator s(samples.begin());
+    vector<Sample>::const_iterator s(samples.begin());
     s != samples.end();
     s++
   ) {
-    const BoolSample& sample(*s);
+    const Sample& sample(*s);
     for (size_t e(0); e < sample.entities.size(); e++) {
-      labels.push_back(sample.value);
+      labels.push_back(sample.label);
     }
   }
 
@@ -33,25 +35,25 @@ void BoolLearner::learn(const vector<BoolSample>& samples) {
   // TODO Just one buffer large enough for all dimensions?
   Float buffer2D[2];
   for (
-    vector<FloatAttribute*>::iterator a(schema.floatAttributes.begin());
-    a != schema.floatAttributes.end();
+    vector<Attribute*>::iterator a(entityType.attributes.begin());
+    a != entityType.attributes.end();
     a++
   ) {
-    FloatAttribute& attribute(**a);
-    size_t index(0);
-    if (attribute.count() == 2) {
+    Attribute& attribute(**a);
+    if (attribute.type == Type::$float() && attribute.count == 2) {
+      size_t index(0);
       for (
-        vector<BoolSample>::const_iterator s(samples.begin());
+        vector<Sample>::const_iterator s(samples.begin());
         s != samples.end();
         s++
       ) {
-        const BoolSample& sample(*s);
+        const Sample& sample(*s);
         for (
-          vector<const Entity*>::const_iterator e(sample.entities.begin());
+          vector<const Any*>::const_iterator e(sample.entities.begin());
           e != sample.entities.end();
           e++, index++
         ) {
-          attribute.get(*e, buffer2D);
+          attribute.get(**e, buffer2D);
           // TODO There's probably some better way than two assignments.
           values2D(index,0) = buffer2D[0];
           values2D(index,1) = buffer2D[1];
@@ -59,20 +61,14 @@ void BoolLearner::learn(const vector<BoolSample>& samples) {
       }
       // A bit of logging status. TODO Are there easier ways than all this?
       stringstream message;
-      string name;
-      attribute.name(name);
       //cout << values2D << endl;
-      message << name << " values loaded: " << values2D.rows() << endl;
+      message
+        << attribute.name << " values loaded: " << values2D.rows() << endl
+      ;
       log(message.str());
     }
   }
 
 }
-
-template<typename Value>
-Learner<Value>::Learner(): Worker("Learner") {}
-
-template<>
-Learner<bool>::Learner(): Worker("Learner<bool>") {}
 
 }

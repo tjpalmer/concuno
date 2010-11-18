@@ -15,6 +15,10 @@ enum ItemType {
   World,
 };
 
+typedef int Id;
+
+typedef int TypeId;
+
 struct Item: cuncuno::Entity2D {
 
   Item();
@@ -32,6 +36,10 @@ struct Item: cuncuno::Entity2D {
    * Only ever true for tools.
    */
   bool grasping;
+
+  Id id;
+
+  TypeId typeId;
 
 };
 

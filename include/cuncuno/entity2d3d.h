@@ -9,12 +9,12 @@ namespace cuncuno {
  * An easy struct for basic 2D physical entities. Can avoid the need for
  * designing your own schema.
  */
-struct Entity2D: Entity {
+struct Entity2D: Any {
 
   /**
-   * Adds the standard schema entries for Entity2D.
+   * The standard type for Entity2D. Can be copied and expanded as needed.
    */
-  static void pushSchema(Schema& schema);
+  static const Type& type();
 
   Entity2D();
 
@@ -42,7 +42,7 @@ struct Entity2D: Entity {
  * An easy struct for basic 3D physical entities. Can avoid the need for
  * designing your own schema.
  */
-struct Entity3D: Entity {
+struct Entity3D: Any {
 
   Entity3D();
 
