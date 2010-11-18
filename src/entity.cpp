@@ -7,7 +7,7 @@ namespace cuncuno {
 Attribute::Attribute(const String& n, const Type& t, Count c):
   name(n), type(t), count(c) {}
 
-Count Attribute::getCount(const Any& entity) const {
+Count Attribute::getCount(const void* entity) const {
   return count;
 }
 

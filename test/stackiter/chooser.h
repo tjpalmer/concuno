@@ -37,7 +37,7 @@ double norm(const double* values, size_t count);
  * Place pointers to alive items into the entities vector.
  */
 void placeLiveItems(
-  const std::vector<Item>& items, std::vector<const cuncuno::Any*>& entities
+  const std::vector<Item>& items, std::vector<const void*>& entities
 );
 
 }

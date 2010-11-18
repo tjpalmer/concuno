@@ -7,11 +7,6 @@
 
 namespace cuncuno {
 
-/**
- * Convenience for references vs. void*.
- */
-struct Any {};
-
 typedef unsigned char Byte;
 
 typedef size_t Count;
@@ -35,7 +30,7 @@ struct Type;
  * Provides values from entities. Attributes might be abstract or composite,
  * and entities might be composite, too.
  */
-struct Attribute: Any {
+struct Attribute {
 
   Attribute(const String& name, const Type& type, Count count = 1);
 
@@ -43,7 +38,7 @@ struct Attribute: Any {
    * Gets the value of the attribute for the given entity. The buffer must be
    * large enough to store the data.
    */
-  virtual void get(const Any& entity, void* buffer) const = 0;
+  virtual void get(const void* entity, void* buffer) const = 0;
 
   /**
    * The count, dependent on a particular entity. By default, it defers to the
@@ -51,7 +46,7 @@ struct Attribute: Any {
    *
    * Note that the entity-specific count could actually be zero.
    */
-  virtual Count getCount(const Any& entity) const;
+  virtual Count getCount(const void* entity) const;
 
   const String name;
 
@@ -67,7 +62,7 @@ struct Attribute: Any {
 
 };
 
-struct Type: Any {
+struct Type {
 
   static const Type& $bool();
 
@@ -100,7 +95,7 @@ struct Type: Any {
 
 };
 
-struct List: Any {
+struct List {
 
   List(const Type& type);
 
@@ -122,7 +117,7 @@ private:
    * enough types and few enough values.
    */
   union {
-    Any* buffer;
+    void* buffer;
     Float $float;
     Int $int;
   } data;

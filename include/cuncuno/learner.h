@@ -19,7 +19,7 @@ struct Sample {
    * TODO Some kind of argument identification among the entities in the bag.
    * TODO SMRF calls that h-pinning.
    */
-  std::vector<const Any*> entities;
+  std::vector<const void*> entities;
 
   /**
    * TODO We need to be able to associate this with some kind of entity

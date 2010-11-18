@@ -106,7 +106,7 @@ bool onGround(const Item& item) {
 }
 
 void placeLiveItems(
-  const vector<Item>& items, vector<const Any*>& entities
+  const vector<Item>& items, vector<const void*>& entities
 ) {
   for (vector<Item>::const_iterator i = items.begin(); i != items.end(); i++) {
     const Item& item = *i;

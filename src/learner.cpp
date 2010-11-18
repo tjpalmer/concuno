@@ -49,11 +49,11 @@ void Learner::learn(const vector<Sample>& samples) {
       ) {
         const Sample& sample(*s);
         for (
-          vector<const Any*>::const_iterator e(sample.entities.begin());
+          vector<const void*>::const_iterator e(sample.entities.begin());
           e != sample.entities.end();
           e++, index++
         ) {
-          attribute.get(**e, buffer2D);
+          attribute.get(*e, buffer2D);
           // TODO There's probably some better way than two assignments.
           values2D(index,0) = buffer2D[0];
           values2D(index,1) = buffer2D[1];

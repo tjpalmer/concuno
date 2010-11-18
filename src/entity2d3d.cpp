@@ -7,8 +7,8 @@ namespace cuncuno {
 
 struct Location2DAttribute: Attribute {
   Location2DAttribute(): Attribute("Location2D", Type::$float(), 2) {}
-  virtual void get(const Any& entity, void* buffer) const {
-    const Entity2D& e2d = reinterpret_cast<const Entity2D&>(entity);
+  virtual void get(const void* entity, void* buffer) const {
+    const Entity2D& e2d = *reinterpret_cast<const Entity2D*>(entity);
     memcpy(buffer, e2d.location, sizeof(e2d.location));
   }
 };

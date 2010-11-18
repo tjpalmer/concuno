@@ -13,7 +13,7 @@ struct VarNode;
  */
 struct BindingPair {
 
-  Any* entity;
+  void* entity;
 
   VarNode& var;
 
@@ -62,7 +62,7 @@ struct PredicateNode: Node {
    *
    * Errors, if any, will be thrown.
    */
-  bool classify(const Any& entity);
+  bool classify(const void* entity);
 
   /**
    * This is the same as the one-arg classify, except that error conditions are
@@ -70,7 +70,7 @@ struct PredicateNode: Node {
    *
    * TODO Provide an enum for tri-state bools?
    */
-  bool classify(const Any& entity, bool& error);
+  bool classify(const void* entity, bool& error);
 
   /**
    * Allows extracting values from entities.
