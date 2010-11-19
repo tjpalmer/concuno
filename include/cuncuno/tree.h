@@ -2,10 +2,11 @@
 #define cuncuno_tree_h
 
 #include "entity.h"
-#include "distrib.h"
+#include "predicate.h"
 
 namespace cuncuno {
 
+struct NodeVisitor;
 struct Sample;
 
 /**
@@ -70,23 +71,21 @@ private:
  */
 struct Node {
 
-  Node(const Node* parent, Count varDepth);
+  virtual void accept(NodeVisitor& visitor, void* data) = 0;
 
-  void binding(Count index, Binding& binding) const;
-
-  Count bindingCount() const;
-
-  /**
-   * Pushes a binding as a sample reference and an array of varDepth entity
-   * pointers.
-   */
-  void bindingPush(const Binding& binding);
-
-  const Node* parent;
+  virtual Node* parent();
 
   std::vector<Node> kids;
 
-  const Count varDepth;
+};
+
+struct KidNode {
+
+  KidNode();
+
+  virtual Node* parent();
+
+  Node* $parent;
 
 };
 
@@ -95,8 +94,7 @@ struct Node {
  * binding rather than building new ones. For now, these include predicates and
  * leaves.
  */
-struct ArrivalNode: Node {
-  // TODO
+struct ArrivalNode: KidNode {
 
   /**
    * Note that these are pointers to bindings instead of bindings themselves.
@@ -105,68 +103,41 @@ struct ArrivalNode: Node {
 
 };
 
-/**
- * Determines truth or falsehood on bindings for some abstract criterion.
- *
- * Indicate which types of entities are supported?
- *
- * Note: In SMRF, question nodes have models. Models have PDFs, and PDFs have
- * thresholds. In a sense, a threshold just turns a
- */
-template<typename Value>
-struct PredicateNode: ArrivalNode {
+struct LeafNode: ArrivalNode {
 
-  /**
-   * Returns whether or not the entity matches this predicate. The entity could
-   * be composite.
-   *
-   * Errors, if any, will be thrown.
-   */
-  bool classify(const void* entity);
+  virtual void accept(NodeVisitor& visitor, void* data);
 
-  /**
-   * This is the same as the one-arg classify, except that error conditions are
-   * provided via the error parameter instead of being thrown.
-   *
-   * TODO Provide an enum for tri-state bools?
-   */
-  bool classify(const void* entity, bool& error);
-
-  /**
-   * Allows extracting values from entities.
-   */
-  Attribute& attribute;
-
-  /**
-   * Determines a probability of some value matching a concept. Extracted
-   * attribute values are checked here.
-   */
-  Pdf& pdf;
-
-  /**
-   * The threshold should be a probability that the entity matches the local
-   * concept for this question. This could be chosen to maximize some objective.
-   *
-   * TODO Alternatively normalize PDFs such that the threshold is always 0.5.
-   */
-  Float threshold;
+  Float probability;
 
 };
 
-struct VarNode: Node {
+/**
+ * Applies an attribute predicate to bound entities.
+ */
+struct PredicateNode: ArrivalNode {
 
-  std::vector<Binding> bindings;
+  virtual void accept(NodeVisitor& visitor, void* data);
+
+  AttributePredicate* predicate;
 
 };
 
 /**
  * Represents the root of the tree.
  */
-struct Tree: Node {
+struct RootNode: Node {
 
-  // Um, TODO.
-  Tree(const Type& entityType, const std::vector<Sample>& samples);
+  RootNode(const Type& entityType);
 
+  virtual void accept(NodeVisitor& visitor, void* data);
+
+  void bindingsPush(const std::vector<Sample>& samples);
+
+  /**
+   * Although just one type is supported, technically this could dispatch on
+   * subinformation. The optimization toward a single type presumes that most
+   * entities for a learning problem will have similar attributes.
+   */
   const Type& entityType;
 
   /**
@@ -174,8 +145,23 @@ struct Tree: Node {
    * an abstract tree without samples attached. Is it worth subtyping to get
    * that?
    */
-  std::vector<Binding> bindingRoots;
+  std::vector<Binding> bindings;
 
+};
+
+struct VariableNode: KidNode {
+
+  virtual void accept(NodeVisitor& visitor, void* data);
+
+  std::vector<Binding> bindings;
+
+};
+
+struct NodeVisitor {
+  virtual void visit(LeafNode& node, void* data);
+  virtual void visit(PredicateNode& node, void* data);
+  virtual void visit(VariableNode& node, void* data);
+  virtual void visit(RootNode& node, void* data);
 };
 
 }

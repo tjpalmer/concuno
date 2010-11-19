@@ -29,6 +29,8 @@ struct Type;
 /**
  * Provides values from entities. Attributes might be abstract or composite,
  * and entities might be composite, too.
+ *
+ * TODO Unify attribute with Function.
  */
 struct Attribute {
 
@@ -45,6 +47,10 @@ struct Attribute {
    * constant count.
    *
    * Note that the entity-specific count could actually be zero.
+   *
+   * TODO Would this ever require much calculation to determine? If so, allow
+   * TODO expandable output or partial evaluations for efficiency in creating
+   * TODO output buffers to match.
    */
   virtual Count getCount(const void* entity) const;
 
@@ -83,6 +89,8 @@ struct Type {
   /**
    * The size of one instance of this type. All entities are expected to be
    * fixed size for any particular type.
+   *
+   * TODO Do I really care about this???
    */
   Size size;
 

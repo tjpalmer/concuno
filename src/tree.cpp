@@ -3,6 +3,7 @@
 
 namespace cuncuno {
 
+
 /// Binding.
 
 Binding::Binding() {}
@@ -45,19 +46,57 @@ const Sample& Binding::sample() const {
 }
 
 
+/// LeafNode.
+
+void LeafNode::accept(NodeVisitor& visitor, void* data) {
+  visitor.visit(*this, data);
+}
+
+
+/// KidNode.
+
+KidNode::KidNode(): $parent(0) {}
+
+Node* KidNode::parent() {
+  return $parent;
+}
+
+
 /// Node.
 
-Node::Node(const Node* $parent, Count $varDepth):
-  parent($parent), varDepth($varDepth) {}
+Node* Node::parent() {
+  return 0;
+}
 
-Tree::Tree(const Type& $entityType, const std::vector<Sample>& samples):
-  Node(0,0), entityType($entityType)
-{
-  // Can't reserve space without some default constructor:
-  bindingRoots.reserve(samples.size());
+
+/// PredicateNode.
+
+void PredicateNode::accept(NodeVisitor& visitor, void* data) {
+  visitor.visit(*this, data);
+}
+
+
+/// RootNode.
+
+RootNode::RootNode(const Type& $entityType): entityType($entityType) {}
+
+void RootNode::accept(NodeVisitor& visitor, void* data) {
+  visitor.visit(*this, data);
+}
+
+void RootNode::bindingsPush(const std::vector<Sample>& samples) {
+  bindings.reserve(samples.size());
   for (Count s = 0; s < samples.size(); s++) {
-    bindingRoots.push_back(Binding(samples[s]));
+    bindings.push_back(Binding(samples[s]));
   }
 }
+
+
+/// VariableNode.
+
+void VariableNode::accept(NodeVisitor& visitor, void* data) {
+  visitor.visit(*this, data);
+}
+
 
 }

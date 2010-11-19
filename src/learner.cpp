@@ -10,13 +10,13 @@ namespace cuncuno {
 
 struct TreeLearner {
 
-  TreeLearner(Tree& tree);
+  TreeLearner(RootNode& tree);
 
   void findBestExpansion();
 
   Node* node;
 
-  Tree& tree;
+  RootNode& tree;
 
 };
 
@@ -25,7 +25,8 @@ Learner::Learner(): Worker("Learner") {}
 void Learner::learn(const vector<Sample>& samples) {
 
   // TODO Move the tree to being a reference parameter?
-  Tree tree(entityType, samples);
+  RootNode tree(entityType);
+  tree.bindingsPush(samples);
   TreeLearner treeLearner(tree);
   treeLearner.findBestExpansion();
 
@@ -90,7 +91,7 @@ void Learner::learn(const vector<Sample>& samples) {
 
 /// TreeLearner
 
-TreeLearner::TreeLearner(Tree& t): node(&t), tree(t) {}
+TreeLearner::TreeLearner(RootNode& t): node(&t), tree(t) {}
 
 void TreeLearner::findBestExpansion() {
   // TODO
