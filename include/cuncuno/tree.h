@@ -3,8 +3,11 @@
 
 #include "entity.h"
 #include "distrib.h"
+#include "grid.h"
 
 namespace cuncuno {
+
+struct Sample;
 
 struct VarNode;
 
@@ -24,7 +27,11 @@ struct BindingPair {
  * large numbers of vars at the present, and do we have nice keys for the vars?
  */
 struct Binding {
-  std::vector<BindingPair> pairs;
+
+  std::vector<void*> entities;
+
+  const Sample& sample;
+
 };
 
 /**
@@ -39,7 +46,15 @@ struct Binding {
  */
 struct Node {
 
+  Node(const Type& entityType);
+
   std::vector<Node> kids;
+
+  /**
+   * A VxN grid of pointers to entities, where V is the number of preceeding
+   * variable nodes, and N is the number of bindings reaching this this node.
+   */
+  Grid bindings;
 
   // TODO Pointer to parent?
 
@@ -98,8 +113,21 @@ struct VarNode: Node {
   // TODO var? (Type pointer?)
 };
 
-struct Tree {
+/**
+ * Represents the root of the tree.
+ */
+struct Tree: Node {
+
   // Um, TODO.
+  Tree(const Type& entityType, const std::vector<Sample>& samples);
+
+  /**
+   * I really don't like this here, actually. I would like to be able to have
+   * an abstract tree without samples attached. Is it worth subtyping to get
+   * that?
+   */
+  const std::vector<Sample>& samples;
+
 };
 
 }

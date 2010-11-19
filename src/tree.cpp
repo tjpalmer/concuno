@@ -4,6 +4,9 @@ using namespace std;
 
 namespace cuncuno {
 
-// Um, TODO.
+Node::Node(const Type& entityType): bindings(entityType) {}
+
+Tree::Tree(const Type& entityType, const std::vector<Sample>& s):
+  Node(entityType), samples(s) {}
 
 }

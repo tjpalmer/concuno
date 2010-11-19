@@ -1,22 +1,39 @@
 #include <Eigen/Dense>
 #include "learner.h"
 #include <sstream>
+#include "tree.h"
 
 using namespace Eigen;
 using namespace std;
 
 namespace cuncuno {
 
+struct TreeLearner {
+
+  TreeLearner(Tree& tree);
+
+  void findBestExpansion();
+
+  Node* node;
+
+  Tree& tree;
+
+};
+
 Learner::Learner(): Worker("Learner") {}
 
 void Learner::learn(const vector<Sample>& samples) {
 
-  // Load
+  // TODO Move the tree to being a reference parameter?
+  Tree tree(entityType, samples);
+  TreeLearner treeLearner(tree);
+  treeLearner.findBestExpansion();
+
+  // Load labels first. Among other things, that tells us how many entities
+  // there are.
   vector<bool> labels;
   for (
-    vector<Sample>::const_iterator s(samples.begin());
-    s != samples.end();
-    s++
+    vector<Sample>::const_iterator s(samples.begin()); s != samples.end(); s++
   ) {
     const Sample& sample(*s);
     for (size_t e(0); e < sample.entities.size(); e++) {
@@ -69,6 +86,14 @@ void Learner::learn(const vector<Sample>& samples) {
     }
   }
 
+}
+
+/// TreeLearner
+
+TreeLearner::TreeLearner(Tree& t): node(&t), tree(t) {}
+
+void TreeLearner::findBestExpansion() {
+  // TODO
 }
 
 }

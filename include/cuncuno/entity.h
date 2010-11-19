@@ -95,35 +95,6 @@ struct Type {
 
 };
 
-struct List {
-
-  List(const Type& type);
-
-  /**
-   * Deletes any buffer.
-   */
-  ~List();
-
-  Count count() const;
-
-  const Type& type;
-
-private:
-
-  Count $count;
-
-  /**
-   * Being typed, we can short-circuit the need for a separate buffer for small
-   * enough types and few enough values.
-   */
-  union {
-    void* buffer;
-    Float $float;
-    Int $int;
-  } data;
-
-};
-
 template<typename Value>
 struct Metric {
 
