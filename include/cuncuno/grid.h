@@ -39,7 +39,7 @@ private:
  */
 template<typename Item>
 struct GridOf: Grid {
-  GridOf(const Type& type);
+  GridOf(const Type& type): Grid(type) {}
 };
 
 }

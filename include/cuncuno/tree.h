@@ -3,34 +3,16 @@
 
 #include "entity.h"
 #include "distrib.h"
-#include "grid.h"
 
 namespace cuncuno {
 
 struct Sample;
 
-struct VarNode;
-
-/**
- * Binding of entity to variable.
- */
-struct BindingPair {
-
-  void* entity;
-
-  VarNode& var;
-
-};
-
-/**
- * A tuple of binding pairs. It could perhaps be a map, but we don't expect
- * large numbers of vars at the present, and do we have nice keys for the vars?
- */
 struct Binding {
 
-  std::vector<void*> entities;
+  const Sample* sample;
 
-  const Sample& sample;
+  std::vector<const void*> entities;
 
 };
 
@@ -46,17 +28,43 @@ struct Binding {
  */
 struct Node {
 
-  Node(const Type& entityType);
+  Node(const Node* parent, Count varDepth);
+
+  void binding(Count index, Binding& binding) const;
+
+  Count bindingCount() const;
+
+  /**
+   * Pushes a binding as a sample reference and an array of varDepth entity
+   * pointers.
+   */
+  void bindingPush(const Binding& binding);
+
+  const Node* parent;
 
   std::vector<Node> kids;
 
-  /**
-   * A VxN grid of pointers to entities, where V is the number of preceeding
-   * variable nodes, and N is the number of bindings reaching this this node.
-   */
-  Grid bindings;
+  const Count varDepth;
 
-  // TODO Pointer to parent?
+private:
+
+  /**
+   * Size varDepth * binding count.
+   *
+   * This and samples are split out to make storage more efficient, since these
+   * arrays can get rather large. The down side is more potential copying. I
+   * also looked at hacking a variable length struct and then making grids of
+   * those, but I felt like that was more effort and risky.
+   *
+   * Anyway, this does give fewer allocated memory blocks overall, and that
+   * seems likely to be a win.
+   */
+  std::vector<const void*> entities;
+
+  /**
+   * Size binding count.
+   */
+  std::vector<const Sample*> samples;
 
 };
 
@@ -120,6 +128,8 @@ struct Tree: Node {
 
   // Um, TODO.
   Tree(const Type& entityType, const std::vector<Sample>& samples);
+
+  const Type& entityType;
 
   /**
    * I really don't like this here, actually. I would like to be able to have

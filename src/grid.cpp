@@ -1,3 +1,4 @@
+#include <cstdlib>
 #include "grid.h"
 
 namespace cuncuno {
@@ -11,7 +12,7 @@ Grid::Grid(const Type& t): type(t) {}
 
 Grid::~Grid() {
   if (needsBuffer(*this)) {
-    delete data.buffer;
+    std::free(data.buffer);
   }
 }
 
