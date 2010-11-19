@@ -8,11 +8,53 @@ namespace cuncuno {
 
 struct Sample;
 
+/**
+ * Provides efficient point-toward-root trees of variable bindings. Allows
+ * simple homogeneous storage in nodes of decision trees.
+ */
 struct Binding {
 
-  const Sample* sample;
+  /**
+   * A dangerous constructor for convenient efficiency in collections.
+   */
+  Binding();
 
-  std::vector<const void*> entities;
+  /**
+   * Creates a binding root referencing the sample but without any actual
+   * binding.
+   */
+  Binding(const Sample& sample);
+
+  /**
+   * Creates a binding to an entity with prior bindings as given. The variable
+   * in question is unspecified. The binding needs paired with some node in a
+   * tree to make sense. We save space to avoid referencing them here.
+   */
+  Binding(const Binding& previous, const void* entity);
+
+  /**
+   * The number of entities bound to vars here.
+   */
+  Count count() const;
+
+  /**
+   * A list of the entities starting from the root towards this level. That is,
+   * the current entity is last.
+   *
+   * TODO Provide a raw pointer buffer version, too?
+   */
+  const void entities(std::vector<const void*>& buffer) const;
+
+  /**
+   * The sample from which these entities were extracted.
+   */
+  const Sample& sample() const;
+
+private:
+
+  const Binding* previous;
+
+  const void* entityOrSample;
 
 };
 
@@ -46,25 +88,20 @@ struct Node {
 
   const Count varDepth;
 
-private:
+};
+
+/**
+ * A node that is neither the root nor a var node. It references existing
+ * binding rather than building new ones. For now, these include predicates and
+ * leaves.
+ */
+struct ArrivalNode: Node {
+  // TODO
 
   /**
-   * Size varDepth * binding count.
-   *
-   * This and samples are split out to make storage more efficient, since these
-   * arrays can get rather large. The down side is more potential copying. I
-   * also looked at hacking a variable length struct and then making grids of
-   * those, but I felt like that was more effort and risky.
-   *
-   * Anyway, this does give fewer allocated memory blocks overall, and that
-   * seems likely to be a win.
+   * Note that these are pointers to bindings instead of bindings themselves.
    */
-  std::vector<const void*> entities;
-
-  /**
-   * Size binding count.
-   */
-  std::vector<const Sample*> samples;
+  std::vector<Binding*> bindings;
 
 };
 
@@ -77,7 +114,7 @@ private:
  * thresholds. In a sense, a threshold just turns a
  */
 template<typename Value>
-struct PredicateNode: Node {
+struct PredicateNode: ArrivalNode {
 
   /**
    * Returns whether or not the entity matches this predicate. The entity could
@@ -117,8 +154,9 @@ struct PredicateNode: Node {
 };
 
 struct VarNode: Node {
-  // TODO Just a placeholder? Does anything special go here? Info to say it's a
-  // TODO var? (Type pointer?)
+
+  std::vector<Binding> bindings;
+
 };
 
 /**
@@ -136,7 +174,7 @@ struct Tree: Node {
    * an abstract tree without samples attached. Is it worth subtyping to get
    * that?
    */
-  const std::vector<Sample>& samples;
+  std::vector<Binding> bindingRoots;
 
 };
 
