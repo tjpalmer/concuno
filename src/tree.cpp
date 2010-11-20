@@ -64,9 +64,25 @@ Node* KidNode::parent() {
 
 /// Node.
 
+Node::~Node() {
+  while (!kids.empty()) {
+    delete kids.back();
+    kids.pop_back();
+  }
+}
+
 Node* Node::parent() {
   return 0;
 }
+
+
+/// NodeVisitor.
+
+// Do nothing by default for all of these. That way, subtypes can ignore some.
+void NodeVisitor::visit(LeafNode& node, void* data) {}
+void NodeVisitor::visit(PredicateNode& node, void* data) {}
+void NodeVisitor::visit(VariableNode& node, void* data) {}
+void NodeVisitor::visit(RootNode& node, void* data) {}
 
 
 /// PredicateNode.

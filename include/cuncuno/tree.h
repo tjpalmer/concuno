@@ -71,11 +71,23 @@ private:
  */
 struct Node {
 
+  /**
+   * Deletes kids.
+   */
+  virtual ~Node();
+
   virtual void accept(NodeVisitor& visitor, void* data) = 0;
 
   virtual Node* parent();
 
-  std::vector<Node> kids;
+  /**
+   * Nodes are not guaranteed to be of the same size, although maybe I could do
+   * that with unions (and still keep nodes generic through templates). That's
+   * why the use of pointers here. Could have a pools of nodes of different
+   * types for efficiency, but I don't expect large numbers of kids anyway, so
+   * I doubt it's a big deal.
+   */
+  std::vector<Node*> kids;
 
 };
 
