@@ -11,8 +11,11 @@ namespace cuncuno {
 typedef Float Probability;
 
 /**
- * Actually, I want this to represent the probability that an object belongs to
- * some concept, not the probability density of a given value coming out.
+ * Represent the probability that an object belongs to some concept, not the
+ * probability density (nor mass) of a given value coming out of a distribution.
+ * This could be seen as a likelihood function. What's the likelihood of the
+ * parameter here, or in other words, whats the probability of the entity
+ * corresponding to the concept, given its values?
  *
  * TODO What's the right word for this?
  */

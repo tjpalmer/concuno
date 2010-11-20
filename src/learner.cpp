@@ -10,13 +10,13 @@ namespace cuncuno {
 
 struct TreeLearner {
 
-  TreeLearner(RootNode& tree);
+  TreeLearner(RootNode& root);
 
   void findBestExpansion();
 
   Node* node;
 
-  RootNode& tree;
+  RootNode& root;
 
 };
 
@@ -89,12 +89,16 @@ void Learner::learn(const vector<Sample>& samples) {
 
 }
 
+//struct Learner: Learner
+
+
 /// TreeLearner
 
-TreeLearner::TreeLearner(RootNode& t): node(&t), tree(t) {}
+TreeLearner::TreeLearner(RootNode& $root): node(&$root), root($root) {}
 
 void TreeLearner::findBestExpansion() {
-  // TODO
+  vector<LeafNode*> leaves;
+  root.leaves(leaves);
 }
 
 }

@@ -6,6 +6,7 @@
 
 namespace cuncuno {
 
+struct LeafNode;
 struct NodeVisitor;
 struct Sample;
 
@@ -71,12 +72,16 @@ private:
  */
 struct Node {
 
+  // TODO Copy constructor and 'operator =' to copy kids?
+
   /**
    * Deletes kids.
    */
   virtual ~Node();
 
   virtual void accept(NodeVisitor& visitor, void* data) = 0;
+
+  void leaves(std::vector<LeafNode*>& buffer);
 
   virtual Node* parent();
 

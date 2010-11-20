@@ -71,6 +71,10 @@ Node::~Node() {
   }
 }
 
+void Node::leaves(std::vector<LeafNode*>& buffer) {
+  // TODO
+}
+
 Node* Node::parent() {
   return 0;
 }
