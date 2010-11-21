@@ -104,6 +104,11 @@ void RootNode::accept(NodeVisitor& visitor, void* data) {
   visitor.visit(*this, data);
 }
 
+void RootNode::basicTree(RootNode& root) {
+  // TODO Is this it???
+  root.kids.push_back(new LeafNode);
+}
+
 void RootNode::bindingsPush(const std::vector<Sample>& samples) {
   bindings.reserve(samples.size());
   for (Count s = 0; s < samples.size(); s++) {

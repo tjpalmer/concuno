@@ -8,17 +8,34 @@ using namespace std;
 
 namespace cuncuno {
 
+
 struct TreeLearner {
 
   TreeLearner(RootNode& root);
 
   void findBestExpansion();
 
+  /**
+   * Updates the probabilities assigned to leaf nodes.
+   */
+  void updateProbabilities();
+
+  /**
+   * The current node under consideration.
+   *
+   * TODO Do we need this???
+   */
   Node* node;
 
+  /**
+   * The tree root.
+   */
   RootNode& root;
 
 };
+
+
+/// Learner.
 
 Learner::Learner(): Worker("Learner") {}
 
@@ -100,5 +117,10 @@ void TreeLearner::findBestExpansion() {
   vector<LeafNode*> leaves;
   root.leaves(leaves);
 }
+
+void TreeLearner::updateProbabilities() {
+  // TODO
+}
+
 
 }

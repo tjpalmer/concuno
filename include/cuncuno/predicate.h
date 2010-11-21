@@ -6,14 +6,6 @@
 namespace cuncuno {
 
 /**
- * TODO Move this to a separate function header?
- */
-struct Function {
-  // TODO Types and counts.
-  virtual void evaluate(const void* in, void* out) = 0;
-};
-
-/**
  * A boolean function on entities.
  *
  * TODO Make this a specialization of an abstract Function type.
@@ -26,7 +18,7 @@ struct Predicate {
    *
    * Errors, if any, will be thrown.
    */
-  virtual bool evaluate(const void* entity) const = 0;
+  virtual bool operator ()(const void* entity) const = 0;
 
   // TODO Type and count.
 
@@ -46,7 +38,7 @@ struct AttributePredicate: Predicate {
    *
    * TODO Provide an enum for tri-state bools?
    */
-  virtual bool evaluate(const void* entity) const;
+  virtual bool operator ()(const void* entity) const;
 
   /**
    * Allows extracting values from entities.

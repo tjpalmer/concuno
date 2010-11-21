@@ -27,6 +27,21 @@ typedef std::string String;
 struct Type;
 
 /**
+ * TODO Combine with attribute.
+ */
+struct Function {
+  // TODO Types and counts.
+  virtual void operator ()(const void* in, void* out) = 0;
+};
+
+/**
+ * TODO How to make this generic? With templates or at runtime? Still how?
+ * TODO I want to be able to compose functions like Difference(Location2D)
+ * TODO arbitrarily and combine attributes with functions.
+ */
+struct DifferenceFunction;
+
+/**
  * Provides values from entities. Attributes might be abstract or composite,
  * and entities might be composite, too.
  *
@@ -68,6 +83,10 @@ struct Attribute {
 
 };
 
+/**
+ * TODO Arbitrary type parameters then specialized versions filled in? Type
+ * TODO parameters would include at least sizes.
+ */
 struct Type {
 
   static const Type& $bool();

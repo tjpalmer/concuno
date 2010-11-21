@@ -9,6 +9,7 @@ add_library(cuncuno SHARED
   entity2d3d.cpp
   grid.cpp
   learner.cpp
+  predicate.cpp
   tree.cpp
 )
 

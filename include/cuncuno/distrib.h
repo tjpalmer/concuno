@@ -26,7 +26,7 @@ struct ProbabilityFunction {
   /**
    * The probability that the entity matches this concept.
    */
-  virtual Probability evaluate(const void* entity) const = 0;
+  virtual Probability operator ()(const void* entity) const = 0;
 
 };
 

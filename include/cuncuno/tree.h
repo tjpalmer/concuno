@@ -96,7 +96,7 @@ struct Node {
 
 };
 
-struct KidNode {
+struct KidNode: Node {
 
   KidNode();
 
@@ -143,6 +143,11 @@ struct PredicateNode: ArrivalNode {
  * Represents the root of the tree.
  */
 struct RootNode: Node {
+
+  /**
+   * Builds a tree with just one leaf out of the root.
+   */
+  static void basicTree(RootNode& root);
 
   RootNode(const Type& entityType);
 
