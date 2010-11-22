@@ -79,11 +79,16 @@ struct Node {
    */
   virtual ~Node();
 
-  virtual void accept(NodeVisitor& visitor, void* data) = 0;
+  virtual void accept(NodeVisitor& visitor, void* data = 0) = 0;
 
   void leaves(std::vector<LeafNode*>& buffer);
 
   virtual Node* parent();
+
+  /**
+   * Visits first the current node then the kids in order.
+   */
+  void traverse(NodeVisitor& visitor, void* data = 0);
 
   /**
    * Nodes are not guaranteed to be of the same size, although maybe I could do

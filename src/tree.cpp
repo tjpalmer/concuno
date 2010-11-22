@@ -79,6 +79,14 @@ Node* Node::parent() {
   return 0;
 }
 
+void Node::traverse(NodeVisitor& visitor, void* data) {
+  accept(visitor, data);
+  for (std::vector<Node*>::iterator k = kids.begin(); k != kids.end(); k++) {
+    (*k)->traverse(visitor, data);
+  }
+}
+
+
 
 /// NodeVisitor.
 
