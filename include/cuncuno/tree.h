@@ -129,6 +129,12 @@ struct LeafNode: ArrivalNode {
 
   virtual void accept(NodeVisitor& visitor, void* data);
 
+  /**
+   * In SMRF, the probability that a binding is an example of the target concept
+   * given that it reached this leaf. I might weaken that here to the
+   * probability that it came from a true-labeled bag (given the same
+   * condition).
+   */
   Float probability;
 
 };
@@ -149,14 +155,14 @@ struct PredicateNode: ArrivalNode {
  */
 struct RootNode: Node {
 
-  /**
-   * Builds a tree with just one leaf out of the root.
-   */
-  static void basicTree(RootNode& root);
-
   RootNode(const Type& entityType);
 
   virtual void accept(NodeVisitor& visitor, void* data);
+
+  /**
+   * Builds a tree with just one leaf out of the root.
+   */
+  void basicTree();
 
   void bindingsPush(const std::vector<Sample>& samples);
 

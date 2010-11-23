@@ -112,9 +112,10 @@ void RootNode::accept(NodeVisitor& visitor, void* data) {
   visitor.visit(*this, data);
 }
 
-void RootNode::basicTree(RootNode& root) {
-  // TODO Is this it???
-  root.kids.push_back(new LeafNode);
+void RootNode::basicTree() {
+  // TODO Check for already existing kids and if so then bail out (with or
+  // TODO without error?).
+  kids.push_back(new LeafNode);
 }
 
 void RootNode::bindingsPush(const std::vector<Sample>& samples) {
