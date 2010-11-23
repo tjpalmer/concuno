@@ -142,16 +142,6 @@ struct Node {
   void propagate(BindingsNodeVisitor& visitor, std::vector<Binding*>& bindings);
 
   /**
-   * Propagate bindings starting from the given samples, calling the given
-   * visitor for each node, including this.
-   *
-   * TODO Move this and other propagates to RootNode?
-   */
-  void propagate(
-    BindingsNodeVisitor& visitor, const std::vector<Sample>& samples
-  );
-
-  /**
    * Visits first the current node then the kids in order.
    */
   void traverse(NodeVisitor& visitor, void* data = 0);
@@ -234,6 +224,16 @@ struct RootNode: Node {
   void basicTree();
 
   void bindingsPush(const std::vector<Sample>& samples);
+
+  /**
+   * Propagate bindings starting from the given samples, calling the given
+   * visitor for each node, including this.
+   *
+   * The samples are also pushed as new bindings to this node.
+   */
+  void propagate(
+    BindingsNodeVisitor& visitor, const std::vector<Sample>& samples
+  );
 
   /**
    * Although just one type is supported, technically this could dispatch on

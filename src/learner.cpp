@@ -119,7 +119,9 @@ void TreeLearner::findBestExpansion() {
   for (
     std::vector<LeafNode*>::iterator l = leaves.begin(); l != leaves.end(); l++
   ) {
-    log("Found a leaf.");
+    std::stringstream message;
+    message << "Found a leaf with " << (*l)->bindings.size() << " bindings.";
+    log(message.str());
   }
   // TODO KS threshold on leaves.
 }

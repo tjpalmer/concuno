@@ -116,7 +116,17 @@ void Node::propagate(
     PropagateVisitor(BindingsNodeVisitor& $visitor):
       Worker("PropagateVisitor"), visitor($visitor) {}
     virtual void visit(LeafNode& node, std::vector<Binding*>& bindings) {
-      visitor.visit(node, bindings);
+      // Store the bindings in the node.
+      // TODO Find the generic algorithm for push all.
+      for (
+        std::vector<Binding*>::iterator b = bindings.begin();
+        b != bindings.end();
+        b++
+      ) {
+        node.bindings.push_back(*b);
+      }
+      // Now visit our visitor.
+      visitor.visit(node, node.bindings);
     }
     virtual void visit(PredicateNode& node, std::vector<Binding*>& bindings) {
       visitor.visit(node, bindings);
@@ -140,22 +150,6 @@ void Node::propagate(
   };
   PropagateVisitor propagator(visitor);
   accept(propagator, &bindings);
-}
-
-void Node::propagate(
-  BindingsNodeVisitor& visitor, const std::vector<Sample>& samples
-) {
-  // Put the samples into bindings.
-  std::vector<Binding> bindings;
-  for (
-    std::vector<Sample>::const_iterator s = samples.begin();
-    s != samples.end();
-    s++
-  ) {
-    bindings.push_back(Binding(*s));
-  }
-  // Now propagate the bindings.
-  propagate(visitor, bindings);
 }
 
 void Node::traverse(NodeVisitor& visitor, void* data) {
@@ -192,6 +186,21 @@ void RootNode::bindingsPush(const std::vector<Sample>& samples) {
   for (Count s = 0; s < samples.size(); s++) {
     bindings.push_back(Binding(samples[s]));
   }
+}
+
+void RootNode::propagate(
+  BindingsNodeVisitor& visitor, const std::vector<Sample>& samples
+) {
+  // Put the samples into bindings.
+  for (
+    std::vector<Sample>::const_iterator s = samples.begin();
+    s != samples.end();
+    s++
+  ) {
+    bindings.push_back(Binding(*s));
+  }
+  // Now propagate the bindings.
+  Node::propagate(visitor, bindings);
 }
 
 
