@@ -142,6 +142,16 @@ struct Node {
   void propagate(BindingsNodeVisitor& visitor, std::vector<Binding*>& bindings);
 
   /**
+   * Propagate bindings starting from the given samples, calling the given
+   * visitor for each node, including this.
+   *
+   * TODO Move this and other propagates to RootNode?
+   */
+  void propagate(
+    BindingsNodeVisitor& visitor, const std::vector<Sample>& samples
+  );
+
+  /**
    * Visits first the current node then the kids in order.
    */
   void traverse(NodeVisitor& visitor, void* data = 0);

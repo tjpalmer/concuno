@@ -28,7 +28,7 @@ struct TreeLearner: Worker {
   /**
    * The samples to learn from.
    */
-  const vector<Sample>& samples;
+  const std::vector<Sample>& samples;
 
 };
 
@@ -114,9 +114,14 @@ TreeLearner::TreeLearner(RootNode& $root, const vector<Sample>& $samples):
 
 void TreeLearner::findBestExpansion() {
   updateProbabilities();
+  std::vector<LeafNode*> leaves;
+  root.leaves(leaves);
+  for (
+    std::vector<LeafNode*>::iterator l = leaves.begin(); l != leaves.end(); l++
+  ) {
+    log("Found a leaf.");
+  }
   // TODO KS threshold on leaves.
-  //std::vector<LeafNode*> leaves;
-  //root.leaves(leaves);
 }
 
 void TreeLearner::updateProbabilities() {
@@ -143,16 +148,7 @@ void TreeLearner::updateProbabilities() {
     }
   };
   ProbabilityUpdateVisitor updater;
-  // TODO Extract this samples -> bindings code.
-  std::vector<Binding> bindings;
-  for (
-    std::vector<Sample>::const_iterator s = samples.begin();
-    s != samples.end();
-    s++
-  ) {
-    bindings.push_back(Binding(*s));
-  }
-  root.propagate(updater, bindings);
+  root.propagate(updater, samples);
 }
 
 

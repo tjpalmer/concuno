@@ -86,7 +86,15 @@ Node::~Node() {
 }
 
 void Node::leaves(std::vector<LeafNode*>& buffer) {
-  // TODO
+  struct LeafVisitor: NodeVisitor {
+    LeafVisitor(std::vector<LeafNode*>& $buffer): buffer($buffer) {}
+    virtual void visit(LeafNode& node, void* data) {
+      buffer.push_back(&node);
+    }
+    std::vector<LeafNode*>& buffer;
+  };
+  LeafVisitor visitor(buffer);
+  traverse(visitor);
 }
 
 Node* Node::parent() {
@@ -132,6 +140,22 @@ void Node::propagate(
   };
   PropagateVisitor propagator(visitor);
   accept(propagator, &bindings);
+}
+
+void Node::propagate(
+  BindingsNodeVisitor& visitor, const std::vector<Sample>& samples
+) {
+  // Put the samples into bindings.
+  std::vector<Binding> bindings;
+  for (
+    std::vector<Sample>::const_iterator s = samples.begin();
+    s != samples.end();
+    s++
+  ) {
+    bindings.push_back(Binding(*s));
+  }
+  // Now propagate the bindings.
+  propagate(visitor, bindings);
 }
 
 void Node::traverse(NodeVisitor& visitor, void* data) {
