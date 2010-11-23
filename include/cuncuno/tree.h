@@ -7,8 +7,10 @@
 namespace cuncuno {
 
 struct LeafNode;
-struct NodeVisitor;
+struct PredicateNode;
+struct RootNode;
 struct Sample;
+struct VariableNode;
 
 /**
  * Provides efficient point-toward-root trees of variable bindings. Allows
@@ -61,6 +63,48 @@ private:
 };
 
 /**
+ * Simple void* node visitor for heterogeneous use.
+ */
+struct NodeVisitor {
+  // Do nothing by default for all of these. Subtypes override as they see fit.
+  virtual void visit(LeafNode& node, void* data) {}
+  virtual void visit(PredicateNode& node, void* data) {}
+  virtual void visit(VariableNode& node, void* data) {}
+  virtual void visit(RootNode& node, void* data) {}
+};
+
+/**
+ * Specialization when you want to clearly define what homogeneous data will be
+ * received.
+ */
+template<typename Data>
+struct NodeVisitorOf: NodeVisitor {
+
+  // Do nothing by default for all of these. Subtypes override as they see fit.
+  virtual void visit(LeafNode& node, Data& data) {}
+  virtual void visit(PredicateNode& node, Data& data) {}
+  virtual void visit(VariableNode& node, Data& data) {}
+  virtual void visit(RootNode& node, Data& data) {}
+
+  // Just casts and calls. No need to override these further.
+  virtual void visit(LeafNode& node, void* data) {
+    visit(node, *reinterpret_cast<Data*>(data));
+  }
+  virtual void visit(PredicateNode& node, void* data)  {
+    visit(node, *reinterpret_cast<Data*>(data));
+  }
+  virtual void visit(VariableNode& node, void* data)  {
+    visit(node, *reinterpret_cast<Data*>(data));
+  }
+  virtual void visit(RootNode& node, void* data)  {
+    visit(node, *reinterpret_cast<Data*>(data));
+  }
+
+};
+
+typedef NodeVisitorOf<std::vector<Binding*> > BindingsNodeVisitor;
+
+/**
  * A generic tree node. It's a tree in the sense that the kids are values, not
  * pointers or references. Makes tear-down easy. And a tree is all we need for
  * now.
@@ -84,6 +128,18 @@ struct Node {
   void leaves(std::vector<LeafNode*>& buffer);
 
   virtual Node* parent();
+
+  /**
+   * Propagates bindings with direct storage through the tree, calling the
+   * given visitor for each node, including this.
+   */
+  void propagate(BindingsNodeVisitor& visitor, std::vector<Binding>& bindings);
+
+  /**
+   * Propagates bindings given as pointers through the tree, calling the given
+   * visitor for each node, including this.
+   */
+  void propagate(BindingsNodeVisitor& visitor, std::vector<Binding*>& bindings);
 
   /**
    * Visits first the current node then the kids in order.
@@ -131,9 +187,12 @@ struct LeafNode: ArrivalNode {
 
   /**
    * In SMRF, the probability that a binding is an example of the target concept
-   * given that it reached this leaf. I might weaken that here to the
-   * probability that it came from a true-labeled bag (given the same
-   * condition).
+   * given that it reached this leaf. In some cases, though, I might use this to
+   * mean the probability that a bag is true given that any of its bindings
+   * reach this point. That might just be during intermediate computation,
+   * however.
+   *
+   * TODO Separate the two probabilities? Make node extensions for custom data?
    */
   Float probability;
 
@@ -188,13 +247,6 @@ struct VariableNode: KidNode {
 
   std::vector<Binding> bindings;
 
-};
-
-struct NodeVisitor {
-  virtual void visit(LeafNode& node, void* data);
-  virtual void visit(PredicateNode& node, void* data);
-  virtual void visit(VariableNode& node, void* data);
-  virtual void visit(RootNode& node, void* data);
 };
 
 }

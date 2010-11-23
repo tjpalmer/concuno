@@ -4,6 +4,20 @@
 namespace cuncuno {
 
 
+template<typename Value>
+void pushPointers(
+  std::vector<Value>& values, std::vector<Value*>& pointers
+) {
+  for (
+    typename std::vector<Value>::iterator v(values.begin());
+    v != values.end();
+    v++
+  ) {
+    pointers.push_back(&*v);
+  }
+}
+
+
 /// Binding.
 
 Binding::Binding() {}
@@ -79,22 +93,53 @@ Node* Node::parent() {
   return 0;
 }
 
+void Node::propagate(
+  BindingsNodeVisitor& visitor, std::vector<Binding>& bindings
+) {
+  std::vector<Binding*> pointers;
+  pushPointers(bindings, pointers);
+  propagate(visitor, pointers);
+}
+
+void Node::propagate(
+  BindingsNodeVisitor& visitor, std::vector<Binding*>& bindings
+) {
+  struct PropagateVisitor: BindingsNodeVisitor, Worker {
+    PropagateVisitor(BindingsNodeVisitor& $visitor):
+      Worker("PropagateVisitor"), visitor($visitor) {}
+    virtual void visit(LeafNode& node, std::vector<Binding*>& bindings) {
+      visitor.visit(node, bindings);
+    }
+    virtual void visit(PredicateNode& node, std::vector<Binding*>& bindings) {
+      visitor.visit(node, bindings);
+      // TODO Split on predicate.
+    }
+    virtual void visit(VariableNode& node, std::vector<Binding*>& bindings) {
+      visitor.visit(node, bindings);
+      // TODO Bind entities to variables.
+    }
+    virtual void visit(RootNode& node, std::vector<Binding*>& bindings) {
+      visitor.visit(node, bindings);
+      for (
+        std::vector<Node*>::iterator k = node.kids.begin();
+        k != node.kids.end();
+        k++
+      ) {
+        (*k)->accept(*this, &bindings);
+      }
+    }
+    BindingsNodeVisitor& visitor;
+  };
+  PropagateVisitor propagator(visitor);
+  accept(propagator, &bindings);
+}
+
 void Node::traverse(NodeVisitor& visitor, void* data) {
   accept(visitor, data);
   for (std::vector<Node*>::iterator k = kids.begin(); k != kids.end(); k++) {
     (*k)->traverse(visitor, data);
   }
 }
-
-
-
-/// NodeVisitor.
-
-// Do nothing by default for all of these. That way, subtypes can ignore some.
-void NodeVisitor::visit(LeafNode& node, void* data) {}
-void NodeVisitor::visit(PredicateNode& node, void* data) {}
-void NodeVisitor::visit(VariableNode& node, void* data) {}
-void NodeVisitor::visit(RootNode& node, void* data) {}
 
 
 /// PredicateNode.
