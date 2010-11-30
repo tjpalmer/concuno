@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <Eigen/Dense>
 #include "learner.h"
 #include <sstream>
@@ -122,7 +123,7 @@ void TreeLearner::findBestExpansion() {
     throw "no leaves to expand";
   }
   // TODO KS threshold on leaves. For now, just do first.
-  LeafNode& leaf(*leaves.front());
+  LeafNode* leaf(leaves.front());
   // TODO Sample from available predicates.
   // TODO Learn predicate priors. For now, assume fewer parameters better.
   // TODO Factored predicates allow priors on attributes/functions instead of
@@ -131,7 +132,7 @@ void TreeLearner::findBestExpansion() {
   // TODO Can also add variable nodes up to arity. Assume fewer better.
   // TODO Count preceding var nodes.
   Count varCount(0);
-  Node* node(&leaf);
+  Node* node(leaf);
   while (node) {
     if (dynamic_cast<VariableNode*>(node)) {
       varCount++;
@@ -141,15 +142,28 @@ void TreeLearner::findBestExpansion() {
   stringstream message;
   message << "Var count before expansion: " << varCount;
   log(message.str());
-  for (Count a(0); a < root.entityType.attributes.size(); a++) {
-    const Attribute& attribute(*root.entityType.attributes[a]);
-    // TODO Once we have arbitrary functions, pull arity from there.
-    // TODO Loop arity outside functions.
-    Count arity = 1;
-    // TODO Loop through adding.
-    split(leaf, attribute);
-    // TODO Check quality.
-    // TODO Restore leaf.
+  // TODO Determine max arity of functions.
+  Count maxArity(1);
+  for (Count arity(1); arity <= maxArity; arity++) {
+    for (Count a(0); a < root.entityType.attributes.size(); a++) {
+      const Attribute& attribute(*root.entityType.attributes[a]);
+      // TODO Check if the function matches the arity.
+      // TODO Once we have arbitrary functions, pull arity from there.
+      // Add new variables from either the minimum needed up to the arity of the
+      // function.
+      Count minNewVarCount(std::max(arity - varCount, Count(0)));
+      Count newVarsAddedCount(0);
+      for (
+        Count newVarCount(minNewVarCount); newVarCount <= arity; newVarCount++
+      ) {
+        for (; newVarsAddedCount < newVarCount; newVarsAddedCount++) {
+          // TODO Add new var node, updating pointer to the new leaf.
+        }
+        split(*leaf, attribute);
+      }
+      // TODO Check quality.
+      // TODO Restore leaf.
+    }
   }
   // TODO Try expansions of P, VP, VVP.
   // TODO How to express work units as continuations for placement in heap?
@@ -157,6 +171,9 @@ void TreeLearner::findBestExpansion() {
 
 void TreeLearner::split(LeafNode& leaf, const Attribute& attribute) {
   // TODO Remove but don't destroy leaf.
+  // TODO Consider options of which vars to use in the function.
+  // TODO Even for asymmetric functions, no need to check both directions if the
+  // TODO vars haven't already been used for other predicates.
 }
 
 void TreeLearner::updateProbabilities() {
