@@ -29,6 +29,8 @@ struct Predicate {
 /**
  * A predicate explicitly based on a particular attribute, probability function,
  * and threshold. Making them explicit makes them tweakable.
+ *
+ * TODO Expose arity?
  */
 struct AttributePredicate: Predicate {
 
@@ -38,7 +40,7 @@ struct AttributePredicate: Predicate {
    *
    * TODO Provide an enum for tri-state bools?
    */
-  virtual bool operator ()(const void* entity) const;
+  bool operator ()(const void* entity) const;
 
   /**
    * Allows extracting values from entities.

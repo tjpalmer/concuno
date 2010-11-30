@@ -16,6 +16,11 @@ struct TreeLearner: Worker {
   void findBestExpansion();
 
   /**
+   * TODO Make based on n-ary functions of entities with metrics.
+   */
+  void split(LeafNode& leaf, const Attribute& attribute);
+
+  /**
    * Updates the probabilities assigned to leaf nodes.
    */
   void updateProbabilities();
@@ -117,13 +122,52 @@ void TreeLearner::findBestExpansion() {
   std::vector<LeafNode*> leaves;
   root.leaves(leaves);
   for (
-    std::vector<LeafNode*>::iterator l = leaves.begin(); l != leaves.end(); l++
+    std::vector<LeafNode*>::iterator l(leaves.begin()); l != leaves.end(); l++
   ) {
     std::stringstream message;
     message << "Found a leaf with " << (*l)->bindings.size() << " bindings.";
     log(message.str());
   }
-  // TODO KS threshold on leaves.
+  if (leaves.empty()) {
+    throw "no leaves to expand";
+  }
+  // TODO KS threshold on leaves. For now, just do first.
+  LeafNode& leaf(*leaves.front());
+  // TODO Sample from available predicates.
+  // TODO Learn predicate priors. For now, assume fewer parameters better.
+  // TODO Factored predicates allow priors on attributes/functions instead of
+  // TODO just whole opaque predicates.
+  // TODO Really for now, just go in arbitrary order.
+  // TODO Can also add variable nodes up to arity. Assume fewer better.
+  // TODO Count preceding var nodes.
+  Count varCount(0);
+  Node* node(&leaf);
+  while (node) {
+    VariableNode* var(dynamic_cast<VariableNode*>(node));
+    if (var) {
+      varCount++;
+    }
+    node = node->parent();
+  }
+  stringstream message;
+  message << "Var count before expansion: " << varCount;
+  log(message.str());
+  for (Count a(0); a < root.entityType.attributes.size(); a++) {
+    const Attribute& attribute(*root.entityType.attributes[a]);
+    // TODO Once we have arbitrary functions, pull arity from there.
+    // TODO Loop arity outside functions.
+    Count arity = 1;
+    // TODO Loop through adding.
+    split(leaf, attribute);
+    // TODO Check quality.
+    // TODO Restore leaf.
+  }
+  // TODO Try expansions of P, VP, VVP.
+  // TODO How to express work units as continuations for placement in heap?
+}
+
+void TreeLearner::split(LeafNode& leaf, const Attribute& attribute) {
+  // TODO Remove but don't destroy leaf.
 }
 
 void TreeLearner::updateProbabilities() {
