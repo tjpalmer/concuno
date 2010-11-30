@@ -53,11 +53,9 @@ void Learner::learn(const vector<Sample>& samples) {
   // Load labels first. Among other things, that tells us how many entities
   // there are.
   vector<bool> labels;
-  for (
-    vector<Sample>::const_iterator s(samples.begin()); s != samples.end(); s++
-  ) {
+  for (auto s(samples.begin()); s != samples.end(); s++) {
     const Sample& sample(*s);
-    for (size_t e(0); e < sample.entities.size(); e++) {
+    for (Count e(0); e < sample.entities.size(); e++) {
       labels.push_back(sample.label);
     }
   }
@@ -73,21 +71,15 @@ void Learner::learn(const vector<Sample>& samples) {
   // TODO Just one buffer large enough for all dimensions?
   Float buffer2D[2];
   for (
-    vector<Attribute*>::iterator a(entityType.attributes.begin());
-    a != entityType.attributes.end();
-    a++
+    auto a(entityType.attributes.begin()); a != entityType.attributes.end(); a++
   ) {
     Attribute& attribute(**a);
     if (attribute.type == Type::$float() && attribute.count == 2) {
       size_t index(0);
-      for (
-        vector<Sample>::const_iterator s(samples.begin());
-        s != samples.end();
-        s++
-      ) {
+      for (auto s(samples.begin()); s != samples.end(); s++) {
         const Sample& sample(*s);
         for (
-          vector<const void*>::const_iterator e(sample.entities.begin());
+          auto e(sample.entities.begin());
           e != sample.entities.end();
           e++, index++
         ) {
@@ -121,9 +113,7 @@ void TreeLearner::findBestExpansion() {
   updateProbabilities();
   std::vector<LeafNode*> leaves;
   root.leaves(leaves);
-  for (
-    std::vector<LeafNode*>::iterator l(leaves.begin()); l != leaves.end(); l++
-  ) {
+  for (auto l(leaves.begin()); l != leaves.end(); l++) {
     std::stringstream message;
     message << "Found a leaf with " << (*l)->bindings.size() << " bindings.";
     log(message.str());
@@ -143,8 +133,7 @@ void TreeLearner::findBestExpansion() {
   Count varCount(0);
   Node* node(&leaf);
   while (node) {
-    VariableNode* var(dynamic_cast<VariableNode*>(node));
-    if (var) {
+    if (dynamic_cast<VariableNode*>(node)) {
       varCount++;
     }
     node = node->parent();
@@ -177,11 +166,7 @@ void TreeLearner::updateProbabilities() {
     virtual void visit(LeafNode& node, std::vector<Binding*>& bindings) {
       Float total(0);
       Float trues(0);
-      for (
-        std::vector<Binding*>::iterator b(bindings.begin());
-        b != bindings.end();
-        b++
-      ) {
+      for (auto b(bindings.begin()); b != bindings.end(); b++) {
         // TODO Change to be one vote per bag, not per binding!!!!!
         total++;
         trues += (*b)->sample().label ? 1 : 0;

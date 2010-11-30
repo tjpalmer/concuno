@@ -23,7 +23,7 @@ include_directories(
 )
 
 if(CMAKE_COMPILER_IS_GNUCC)
-  set(CMAKE_CXX_FLAGS "-Wall")
+  set(CMAKE_CXX_FLAGS "-std=c++0x -Wall")
   # set(CMAKE_CXX_FLAGS "-pg") # for profiling -- tie to debug, too?
 endif(CMAKE_COMPILER_IS_GNUCC)
 
