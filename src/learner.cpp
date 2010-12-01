@@ -129,8 +129,7 @@ void TreeLearner::findBestExpansion() {
   // TODO Factored predicates allow priors on attributes/functions instead of
   // TODO just whole opaque predicates.
   // TODO Really for now, just go in arbitrary order.
-  // TODO Can also add variable nodes up to arity. Assume fewer better.
-  // TODO Count preceding var nodes.
+  // Count preceding var nodes.
   Count varCount(0);
   Node* node(leaf);
   while (node) {
@@ -144,28 +143,27 @@ void TreeLearner::findBestExpansion() {
   log(message.str());
   // TODO Determine max arity of functions.
   Count maxArity(1);
-  for (Count arity(1); arity <= maxArity; arity++) {
-    for (Count a(0); a < root.entityType.attributes.size(); a++) {
-      const Attribute& attribute(*root.entityType.attributes[a]);
-      // TODO Check if the function matches the arity.
-      // TODO Once we have arbitrary functions, pull arity from there.
-      // Add new variables from either the minimum needed up to the arity of the
-      // function.
-      Count minNewVarCount(std::max(arity - varCount, Count(0)));
-      Count newVarsAddedCount(0);
-      for (
-        Count newVarCount(minNewVarCount); newVarCount <= arity; newVarCount++
-      ) {
-        for (; newVarsAddedCount < newVarCount; newVarsAddedCount++) {
-          // TODO Add new var node, updating pointer to the new leaf.
-        }
+  // Loop around number of new vars to add. We'd rather not add them.
+  for (Count newVarCount(0); newVarCount <= maxArity; newVarCount++) {
+    if (newVarCount) {
+      // TODO Add new var node, updating pointer to the new predicate point.
+    }
+    // Limit arity by available vars.
+    // TODO Organize or sort functions by arity?
+    Count currentMaxArity(std::min(varCount + newVarCount, maxArity));
+    for (Count arity(1); arity <= currentMaxArity; arity++) {
+      // TODO Constrain newVarCount vars.
+      // TODO Loop on functions, not just attributes.
+      for (Count a(0); a < root.entityType.attributes.size(); a++) {
+        const Attribute& attribute(*root.entityType.attributes[a]);
+        // TODO Check if the function matches the arity.
+        // TODO Once we have arbitrary functions, pull arity from there.
         split(*leaf, attribute);
+        // TODO Check quality.
+        // TODO Restore leaf.
       }
-      // TODO Check quality.
-      // TODO Restore leaf.
     }
   }
-  // TODO Try expansions of P, VP, VVP.
   // TODO How to express work units as continuations for placement in heap?
 }
 
