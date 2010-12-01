@@ -131,6 +131,25 @@ struct Metric {
 
 };
 
+/**
+ * For reference counted management.
+ */
+struct Shared {
+
+  Shared();
+
+  virtual ~Shared();
+
+  void acquire();
+
+  void release();
+
+private:
+
+  Count refCount;
+
+};
+
 }
 
 #endif

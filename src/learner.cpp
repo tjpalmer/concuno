@@ -116,7 +116,10 @@ void TreeLearner::findBestExpansion() {
   root.leaves(leaves);
   for (auto l(leaves.begin()); l != leaves.end(); l++) {
     std::stringstream message;
-    message << "Found a leaf with " << (*l)->bindings.size() << " bindings.";
+    message
+      << "Found a leaf with "
+      << (*l)->arrival->bindings.size()
+      << " bindings.";
     log(message.str());
   }
   if (leaves.empty()) {

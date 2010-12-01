@@ -18,6 +18,15 @@ void pushPointers(
 }
 
 
+/// ArrivalNode.
+
+ArrivalNode::ArrivalNode(): arrival(new BindingArrival) {}
+
+ArrivalNode::~ArrivalNode() {
+  arrival->release();
+}
+
+
 /// Binding.
 
 Binding::Binding() {}
@@ -123,10 +132,10 @@ void Node::propagate(
         b != bindings.end();
         b++
       ) {
-        node.bindings.push_back(*b);
+        node.arrival->bindings.push_back(*b);
       }
       // Now visit our visitor.
-      visitor.visit(node, node.bindings);
+      visitor.visit(node, node.arrival->bindings);
     }
     virtual void visit(PredicateNode& node, std::vector<Binding*>& bindings) {
       visitor.visit(node, bindings);
@@ -182,9 +191,9 @@ void RootNode::basicTree() {
 }
 
 void RootNode::bindingsPush(const std::vector<Sample>& samples) {
-  bindings.reserve(samples.size());
+  storage->bindings.reserve(samples.size());
   for (Count s = 0; s < samples.size(); s++) {
-    bindings.push_back(Binding(samples[s]));
+    storage->bindings.push_back(Binding(samples[s]));
   }
 }
 
@@ -197,10 +206,19 @@ void RootNode::propagate(
     s != samples.end();
     s++
   ) {
-    bindings.push_back(Binding(*s));
+    storage->bindings.push_back(Binding(*s));
   }
   // Now propagate the bindings.
-  Node::propagate(visitor, bindings);
+  Node::propagate(visitor, storage->bindings);
+}
+
+
+/// StorageNode.
+
+StorageNode::StorageNode(): storage(new BindingStorage) {}
+
+StorageNode::~StorageNode() {
+  storage->release();
 }
 
 

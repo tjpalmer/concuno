@@ -62,6 +62,14 @@ private:
 
 };
 
+struct BindingArrival: Shared {
+  std::vector<Binding*> bindings;
+};
+
+struct BindingStorage: Shared {
+  std::vector<Binding> bindings;
+};
+
 /**
  * Simple void* node visitor for heterogeneous use.
  */
@@ -157,7 +165,7 @@ struct Node {
 
 };
 
-struct KidNode: Node {
+struct KidNode: virtual Node {
 
   KidNode();
 
@@ -174,10 +182,31 @@ struct KidNode: Node {
  */
 struct ArrivalNode: KidNode {
 
+  ArrivalNode();
+
+  ~ArrivalNode();
+
   /**
-   * Note that these are pointers to bindings instead of bindings themselves.
+   * I really don't like this here, actually. I would like to be able to have
+   * an abstract tree without samples attached. Is it worth subtyping to get
+   * that?
    */
-  std::vector<Binding*> bindings;
+  BindingArrival* arrival;
+
+};
+
+struct StorageNode: virtual Node {
+
+  StorageNode();
+
+  ~StorageNode();
+
+  /**
+   * I really don't like this here, actually. I would like to be able to have
+   * an abstract tree without samples attached. Is it worth subtyping to get
+   * that?
+   */
+  BindingStorage* storage;
 
 };
 
@@ -212,7 +241,7 @@ struct PredicateNode: ArrivalNode {
 /**
  * Represents the root of the tree.
  */
-struct RootNode: Node {
+struct RootNode: StorageNode {
 
   RootNode(const Type& entityType);
 
@@ -242,20 +271,11 @@ struct RootNode: Node {
    */
   const Type& entityType;
 
-  /**
-   * I really don't like this here, actually. I would like to be able to have
-   * an abstract tree without samples attached. Is it worth subtyping to get
-   * that?
-   */
-  std::vector<Binding> bindings;
-
 };
 
-struct VariableNode: KidNode {
+struct VariableNode: KidNode, StorageNode {
 
   virtual void accept(NodeVisitor& visitor, void* data);
-
-  std::vector<Binding> bindings;
 
 };
 
