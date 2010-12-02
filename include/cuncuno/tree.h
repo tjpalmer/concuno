@@ -6,6 +6,7 @@
 
 namespace cuncuno {
 
+struct KidNode;
 struct LeafNode;
 struct PredicateNode;
 struct RootNode;
@@ -173,7 +174,7 @@ struct Node {
    * types for efficiency, but I don't expect large numbers of kids anyway, so
    * I doubt it's a big deal.
    */
-  std::vector<Node*> kids;
+  std::vector<KidNode*> kids;
 
 };
 

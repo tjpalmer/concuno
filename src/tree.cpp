@@ -105,7 +105,9 @@ Node::Node() {}
 
 Node::Node(const Node& other) {
   for (auto k(other.kids.begin()); k != other.kids.end(); k++) {
-    //kids.push_back((*k)->copy());
+    KidNode* kid = dynamic_cast<KidNode*>((*k)->copy());
+    kid->$parent = this;
+    kids.push_back(kid);
   }
 }
 
@@ -170,7 +172,7 @@ void Node::propagate(
     virtual void visit(RootNode& node, std::vector<Binding*>& bindings) {
       visitor.visit(node, bindings);
       for (
-        std::vector<Node*>::iterator k = node.kids.begin();
+        std::vector<KidNode*>::iterator k = node.kids.begin();
         k != node.kids.end();
         k++
       ) {
@@ -185,7 +187,7 @@ void Node::propagate(
 
 void Node::traverse(NodeVisitor& visitor, void* data) {
   accept(visitor, data);
-  for (std::vector<Node*>::iterator k = kids.begin(); k != kids.end(); k++) {
+  for (std::vector<KidNode*>::iterator k = kids.begin(); k != kids.end(); k++) {
     (*k)->traverse(visitor, data);
   }
 }
