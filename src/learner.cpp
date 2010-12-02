@@ -54,7 +54,9 @@ void Learner::learn(const vector<Sample>& samples) {
   // Load labels first. Among other things, that tells us how many entities
   // there are.
   vector<bool> labels;
-  for (auto s(samples.begin()); s != samples.end(); s++) {
+  for (
+    vector<Sample>::const_iterator s(samples.begin()); s != samples.end(); s++
+  ) {
     const Sample& sample(*s);
     for (Count e(0); e < sample.entities.size(); e++) {
       labels.push_back(sample.label);
@@ -72,15 +74,21 @@ void Learner::learn(const vector<Sample>& samples) {
   // TODO Just one buffer large enough for all dimensions?
   Float buffer2D[2];
   for (
-    auto a(entityType.attributes.begin()); a != entityType.attributes.end(); a++
+    vector<Attribute*>::iterator a(entityType.attributes.begin());
+    a != entityType.attributes.end();
+    a++
   ) {
     Attribute& attribute(**a);
     if (attribute.type == Type::$float() && attribute.count == 2) {
       size_t index(0);
-      for (auto s(samples.begin()); s != samples.end(); s++) {
+      for (
+        vector<Sample>::const_iterator s(samples.begin());
+        s != samples.end();
+        s++
+      ) {
         const Sample& sample(*s);
         for (
-          auto e(sample.entities.begin());
+          vector<const void*>::const_iterator e(sample.entities.begin());
           e != sample.entities.end();
           e++, index++
         ) {
@@ -114,7 +122,7 @@ void TreeLearner::findBestExpansion() {
   updateProbabilities();
   std::vector<LeafNode*> leaves;
   root.leaves(leaves);
-  for (auto l(leaves.begin()); l != leaves.end(); l++) {
+  for (vector<LeafNode*>::iterator l(leaves.begin()); l != leaves.end(); l++) {
     std::stringstream message;
     message
       << "Found a leaf with "
@@ -185,7 +193,9 @@ void TreeLearner::updateProbabilities() {
     virtual void visit(LeafNode& node, std::vector<Binding*>& bindings) {
       Float total(0);
       Float trues(0);
-      for (auto b(bindings.begin()); b != bindings.end(); b++) {
+      for (
+        vector<Binding*>::iterator b(bindings.begin()); b != bindings.end(); b++
+      ) {
         // TODO Change to be one vote per bag, not per binding!!!!!
         total++;
         trues += (*b)->sample().label ? 1 : 0;

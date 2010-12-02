@@ -1,6 +1,8 @@
 #include "learner.h"
 #include "tree.h"
 
+using std::vector;
+
 namespace cuncuno {
 
 
@@ -104,7 +106,11 @@ Node* KidNode::parent() {
 Node::Node() {}
 
 Node::Node(const Node& other) {
-  for (auto k(other.kids.begin()); k != other.kids.end(); k++) {
+  for (
+    vector<KidNode*>::const_iterator k(other.kids.begin());
+    k != other.kids.end();
+    k++
+  ) {
     KidNode* kid = dynamic_cast<KidNode*>((*k)->copy());
     kid->$parent = this;
     kids.push_back(kid);
