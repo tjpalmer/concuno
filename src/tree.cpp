@@ -22,6 +22,9 @@ void pushPointers(
 
 ArrivalNode::ArrivalNode(): arrival(new BindingArrival) {}
 
+ArrivalNode::ArrivalNode(const ArrivalNode& other):
+  KidNode(other), arrival(other.arrival) {}
+
 ArrivalNode::~ArrivalNode() {
   arrival->release();
 }
@@ -71,8 +74,17 @@ const Sample& Binding::sample() const {
 
 /// LeafNode.
 
+LeafNode::LeafNode() {}
+
+LeafNode::LeafNode(const LeafNode& other):
+  ArrivalNode(other), probability(other.probability) {}
+
 void LeafNode::accept(NodeVisitor& visitor, void* data) {
   visitor.visit(*this, data);
+}
+
+Node* LeafNode::copy() {
+  return new LeafNode(*this);
 }
 
 
@@ -80,12 +92,22 @@ void LeafNode::accept(NodeVisitor& visitor, void* data) {
 
 KidNode::KidNode(): $parent(0) {}
 
+KidNode::KidNode(const KidNode& other): Node(other), $parent(0) {}
+
 Node* KidNode::parent() {
   return $parent;
 }
 
 
 /// Node.
+
+Node::Node() {}
+
+Node::Node(const Node& other) {
+  for (auto k(other.kids.begin()); k != other.kids.end(); k++) {
+    //kids.push_back((*k)->copy());
+  }
+}
 
 Node::~Node() {
   while (!kids.empty()) {
@@ -169,14 +191,42 @@ void Node::traverse(NodeVisitor& visitor, void* data) {
 }
 
 
+/// NodeStorage.
+
+NodeStorage::NodeStorage(): storage(new BindingStorage) {}
+
+NodeStorage::NodeStorage(const NodeStorage& other): storage(other.storage) {
+  // We are another client for this storage.
+  storage->acquire();
+}
+
+NodeStorage::~NodeStorage() {
+  storage->release();
+}
+
+
 /// PredicateNode.
+
+PredicateNode::PredicateNode() {}
+
+PredicateNode::PredicateNode(const PredicateNode& other):
+  // TODO Copy the predicate to make sure the tree really is copied???
+  // TODO Could that be slow? Make it instead const and Shared?
+  ArrivalNode(other), predicate(other.predicate) {}
 
 void PredicateNode::accept(NodeVisitor& visitor, void* data) {
   visitor.visit(*this, data);
 }
 
+Node* PredicateNode::copy() {
+  return new PredicateNode(*this);
+}
+
 
 /// RootNode.
+
+RootNode::RootNode(const RootNode& other):
+  Node(other), NodeStorage(other), entityType(other.entityType) {}
 
 RootNode::RootNode(const Type& $entityType): entityType($entityType) {}
 
@@ -197,6 +247,10 @@ void RootNode::bindingsPush(const std::vector<Sample>& samples) {
   }
 }
 
+Node* RootNode::copy() {
+  return new RootNode(*this);
+}
+
 void RootNode::propagate(
   BindingsNodeVisitor& visitor, const std::vector<Sample>& samples
 ) {
@@ -213,19 +267,19 @@ void RootNode::propagate(
 }
 
 
-/// StorageNode.
-
-StorageNode::StorageNode(): storage(new BindingStorage) {}
-
-StorageNode::~StorageNode() {
-  storage->release();
-}
-
-
 /// VariableNode.
+
+VariableNode::VariableNode() {}
+
+VariableNode::VariableNode(const VariableNode& other):
+  KidNode(other), NodeStorage(other) {}
 
 void VariableNode::accept(NodeVisitor& visitor, void* data) {
   visitor.visit(*this, data);
+}
+
+Node* VariableNode::copy() {
+  return new VariableNode(*this);
 }
 
 

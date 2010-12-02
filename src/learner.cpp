@@ -147,6 +147,7 @@ void TreeLearner::findBestExpansion() {
   // TODO Determine max arity of functions.
   Count maxArity(1);
   // Loop around number of new vars to add. We'd rather not add them.
+  RootNode candidate(root);
   for (Count newVarCount(0); newVarCount <= maxArity; newVarCount++) {
     if (newVarCount) {
       // TODO Add new var node, updating pointer to the new predicate point.

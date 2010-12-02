@@ -124,7 +124,12 @@ typedef NodeVisitorOf<std::vector<Binding*> > BindingsNodeVisitor;
  */
 struct Node {
 
-  // TODO Copy constructor and 'operator =' to copy kids?
+  Node();
+
+  /**
+   * Deep copy of tree but with same binding instances and null parent.
+   */
+  Node(const Node& other);
 
   /**
    * Deletes kids.
@@ -133,7 +138,14 @@ struct Node {
 
   virtual void accept(NodeVisitor& visitor, void* data = 0) = 0;
 
+  /**
+   * Deep copy of tree but with same binding instances and null parent.
+   */
+  virtual Node* copy() = 0;
+
   void leaves(std::vector<LeafNode*>& buffer);
+
+  // TODO 'operator =' to copy kids?
 
   virtual Node* parent();
 
@@ -169,6 +181,8 @@ struct KidNode: virtual Node {
 
   KidNode();
 
+  KidNode(const KidNode& other);
+
   virtual Node* parent();
 
   Node* $parent;
@@ -184,6 +198,8 @@ struct ArrivalNode: KidNode {
 
   ArrivalNode();
 
+  ArrivalNode(const ArrivalNode& other);
+
   ~ArrivalNode();
 
   /**
@@ -195,11 +211,17 @@ struct ArrivalNode: KidNode {
 
 };
 
-struct StorageNode: virtual Node {
+/**
+ * Storage of bindings for nodes. Meant to be inherited. Provides some
+ * convenience for construction and destruction.
+ */
+struct NodeStorage {
 
-  StorageNode();
+  NodeStorage();
 
-  ~StorageNode();
+  NodeStorage(const NodeStorage& other);
+
+  ~NodeStorage();
 
   /**
    * I really don't like this here, actually. I would like to be able to have
@@ -212,7 +234,13 @@ struct StorageNode: virtual Node {
 
 struct LeafNode: ArrivalNode {
 
+  LeafNode();
+
+  LeafNode(const LeafNode& other);
+
   virtual void accept(NodeVisitor& visitor, void* data);
+
+  virtual Node* copy();
 
   /**
    * In SMRF, the probability that a binding is an example of the target concept
@@ -232,7 +260,13 @@ struct LeafNode: ArrivalNode {
  */
 struct PredicateNode: ArrivalNode {
 
+  PredicateNode();
+
+  PredicateNode(const PredicateNode& other);
+
   virtual void accept(NodeVisitor& visitor, void* data);
+
+  virtual Node* copy();
 
   AttributePredicate* predicate;
 
@@ -241,7 +275,9 @@ struct PredicateNode: ArrivalNode {
 /**
  * Represents the root of the tree.
  */
-struct RootNode: StorageNode {
+struct RootNode: Node, NodeStorage {
+
+  RootNode(const RootNode& other);
 
   RootNode(const Type& entityType);
 
@@ -253,6 +289,8 @@ struct RootNode: StorageNode {
   void basicTree();
 
   void bindingsPush(const std::vector<Sample>& samples);
+
+  virtual Node* copy();
 
   /**
    * Propagate bindings starting from the given samples, calling the given
@@ -273,9 +311,15 @@ struct RootNode: StorageNode {
 
 };
 
-struct VariableNode: KidNode, StorageNode {
+struct VariableNode: KidNode, NodeStorage {
+
+  VariableNode();
+
+  VariableNode(const VariableNode& other);
 
   virtual void accept(NodeVisitor& visitor, void* data);
+
+  virtual Node* copy();
 
 };
 
