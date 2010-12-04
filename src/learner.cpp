@@ -124,7 +124,7 @@ void TreeLearner::findBestExpansion() {
   root.leaves(leaves);
   for (vector<LeafNode*>::iterator l(leaves.begin()); l != leaves.end(); l++) {
     LeafNode& leaf(**l);
-    std::stringstream message;
+    stringstream message;
     message
       << "Found leaf " << leaf.id <<  " with "
       << leaf.arrival->bindings.size()
@@ -135,7 +135,7 @@ void TreeLearner::findBestExpansion() {
     throw "no leaves to expand";
   }
   // TODO KS threshold on leaves. For now, just do first.
-  LeafNode* leaf(leaves.front());
+  LeafNode& leaf(*leaves.front());
   // TODO Sample from available predicates.
   // TODO Learn predicate priors. For now, assume fewer parameters better.
   // TODO Factored predicates allow priors on attributes/functions instead of
@@ -143,7 +143,7 @@ void TreeLearner::findBestExpansion() {
   // TODO Really for now, just go in arbitrary order.
   // Count preceding var nodes.
   Count varCount(0);
-  Node* node(leaf);
+  Node* node(&leaf);
   while (node) {
     if (dynamic_cast<VariableNode*>(node)) {
       varCount++;
@@ -156,9 +156,15 @@ void TreeLearner::findBestExpansion() {
   // TODO Determine max arity of functions.
   Count maxArity(1);
   // Loop around number of new vars to add. We'd rather not add them.
-  RootNode candidate(root);
   // TODO Ids on nodes so I can find the copied leaf?
   for (Count newVarCount(0); newVarCount <= maxArity; newVarCount++) {
+    RootNode candidate(root);
+    LeafNode& candidateLeaf(
+      dynamic_cast<LeafNode&>(*candidate.findById(leaf.id))
+    );
+    stringstream message;
+    message << "Matching leaf: " << &candidateLeaf;
+    log(message.str());
     if (newVarCount) {
       // TODO Add new var node, updating pointer to the new predicate point.
     }
@@ -172,7 +178,7 @@ void TreeLearner::findBestExpansion() {
         const Attribute& attribute(*root.entityType.attributes[a]);
         // TODO Check if the function matches the arity.
         // TODO Once we have arbitrary functions, pull arity from there.
-        split(*leaf, attribute);
+        split(candidateLeaf, attribute);
         // TODO Check quality.
         // TODO Restore leaf.
       }

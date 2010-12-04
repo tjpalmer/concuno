@@ -1,7 +1,9 @@
 #include "learner.h"
 #include "tree.h"
 
-using std::vector;
+#include <iostream>
+
+using namespace std;
 
 namespace cuncuno {
 
@@ -74,6 +76,17 @@ const Sample& Binding::sample() const {
 }
 
 
+/// KidNode.
+
+KidNode::KidNode(): $parent(0) {}
+
+KidNode::KidNode(const KidNode& other): Node(other), $parent(0) {}
+
+Node* KidNode::parent() {
+  return $parent;
+}
+
+
 /// LeafNode.
 
 LeafNode::LeafNode() {}
@@ -87,17 +100,6 @@ void LeafNode::accept(NodeVisitor& visitor, void* data) {
 
 Node* LeafNode::copy() {
   return new LeafNode(*this);
-}
-
-
-/// KidNode.
-
-KidNode::KidNode(): $parent(0) {}
-
-KidNode::KidNode(const KidNode& other): Node(other), $parent(0) {}
-
-Node* KidNode::parent() {
-  return $parent;
 }
 
 
@@ -123,6 +125,20 @@ Node::~Node() {
     delete kids.back();
     kids.pop_back();
   }
+}
+
+Node* Node::findById(Node::Id id) {
+  if (this->id == id) {
+    return this;
+  }
+  for (vector<KidNode*>::iterator k = kids.begin(); k != kids.end(); k++) {
+    Node* node = (*k)->findById(id);
+    if (node) {
+      return node;
+    }
+  }
+  // No match found.
+  return 0;
 }
 
 void Node::leaves(std::vector<LeafNode*>& buffer) {
@@ -252,8 +268,10 @@ Node* PredicateNode::copy() {
 /// RootNode.
 
 RootNode::RootNode(const RootNode& other):
-  Node(other), NodeStorage(other), entityType(other.entityType), nextId(id + 1)
-  {}
+  Node(other),
+  NodeStorage(other),
+  entityType(other.entityType),
+  nextId(other.nextId) {}
 
 RootNode::RootNode(const Type& $entityType):
   Node(1), entityType($entityType), nextId(id + 1) {}

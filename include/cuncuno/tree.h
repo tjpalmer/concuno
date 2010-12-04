@@ -146,6 +146,11 @@ struct Node {
    */
   virtual Node* copy() = 0;
 
+  /**
+   * Returns this or some descendent with the given id if found, else null.
+   */
+  Node* findById(Id id);
+
   void leaves(std::vector<LeafNode*>& buffer);
 
   // TODO 'operator =' to copy kids? (Leaving current parent?)
@@ -196,7 +201,7 @@ struct Node {
 
 };
 
-struct KidNode: virtual Node {
+struct KidNode: Node {
 
   KidNode();
 
