@@ -123,10 +123,11 @@ void TreeLearner::findBestExpansion() {
   std::vector<LeafNode*> leaves;
   root.leaves(leaves);
   for (vector<LeafNode*>::iterator l(leaves.begin()); l != leaves.end(); l++) {
+    LeafNode& leaf(**l);
     std::stringstream message;
     message
-      << "Found a leaf with "
-      << (*l)->arrival->bindings.size()
+      << "Found leaf " << leaf.id <<  " with "
+      << leaf.arrival->bindings.size()
       << " bindings.";
     log(message.str());
   }
@@ -156,6 +157,7 @@ void TreeLearner::findBestExpansion() {
   Count maxArity(1);
   // Loop around number of new vars to add. We'd rather not add them.
   RootNode candidate(root);
+  // TODO Ids on nodes so I can find the copied leaf?
   for (Count newVarCount(0); newVarCount <= maxArity; newVarCount++) {
     if (newVarCount) {
       // TODO Add new var node, updating pointer to the new predicate point.

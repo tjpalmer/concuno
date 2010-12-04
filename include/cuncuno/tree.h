@@ -125,7 +125,9 @@ typedef NodeVisitorOf<std::vector<Binding*> > BindingsNodeVisitor;
  */
 struct Node {
 
-  Node();
+  typedef int Id;
+
+  Node(Id id = 0);
 
   /**
    * Deep copy of tree but with same binding instances and null parent.
@@ -146,7 +148,7 @@ struct Node {
 
   void leaves(std::vector<LeafNode*>& buffer);
 
-  // TODO 'operator =' to copy kids?
+  // TODO 'operator =' to copy kids? (Leaving current parent?)
 
   virtual Node* parent();
 
@@ -163,9 +165,22 @@ struct Node {
   void propagate(BindingsNodeVisitor& visitor, std::vector<Binding*>& bindings);
 
   /**
+   * Push a kid onto this node, assigning its parent (this) and a new ID (if
+   * this has a root).
+   */
+  void pushKid(KidNode& kid);
+
+  /**
+   * The highest node up the tree if it's a RootNode else null.
+   */
+  RootNode* root();
+
+  /**
    * Visits first the current node then the kids in order.
    */
   void traverse(NodeVisitor& visitor, void* data = 0);
+
+  Id id;
 
   /**
    * Nodes are not guaranteed to be of the same size, although maybe I could do
@@ -173,6 +188,9 @@ struct Node {
    * why the use of pointers here. Could have a pools of nodes of different
    * types for efficiency, but I don't expect large numbers of kids anyway, so
    * I doubt it's a big deal.
+   *
+   * TODO Make a separate ParentNode for holding kids list, like KidNode does
+   * TODO with $parent.
    */
   std::vector<KidNode*> kids;
 
@@ -293,6 +311,8 @@ struct RootNode: Node, NodeStorage {
 
   virtual Node* copy();
 
+  Id generateId();
+
   /**
    * Propagate bindings starting from the given samples, calling the given
    * visitor for each node, including this.
@@ -309,6 +329,10 @@ struct RootNode: Node, NodeStorage {
    * entities for a learning problem will have similar attributes.
    */
   const Type& entityType;
+
+private:
+
+  Id nextId;
 
 };
 

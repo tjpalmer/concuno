@@ -103,9 +103,9 @@ Node* KidNode::parent() {
 
 /// Node.
 
-Node::Node() {}
+Node::Node(Id $id): id($id) {}
 
-Node::Node(const Node& other) {
+Node::Node(const Node& other): id(other.id) {
   for (
     vector<KidNode*>::const_iterator k(other.kids.begin());
     k != other.kids.end();
@@ -113,6 +113,7 @@ Node::Node(const Node& other) {
   ) {
     KidNode* kid = dynamic_cast<KidNode*>((*k)->copy());
     kid->$parent = this;
+    // Don't use pushKid, because we want to keep the ID in this case.
     kids.push_back(kid);
   }
 }
@@ -191,6 +192,23 @@ void Node::propagate(
   accept(propagator, &bindings);
 }
 
+void Node::pushKid(KidNode& kid) {
+  RootNode* root = this->root();
+  if (root) {
+    kid.id = root->generateId();
+  }
+  kid.$parent = this;
+  kids.push_back(&kid);
+}
+
+RootNode* Node::root() {
+  Node* highest = this;
+  while (parent()) {
+    highest = parent();
+  }
+  return dynamic_cast<RootNode*>(highest);
+}
+
 void Node::traverse(NodeVisitor& visitor, void* data) {
   accept(visitor, data);
   for (std::vector<KidNode*>::iterator k = kids.begin(); k != kids.end(); k++) {
@@ -234,9 +252,11 @@ Node* PredicateNode::copy() {
 /// RootNode.
 
 RootNode::RootNode(const RootNode& other):
-  Node(other), NodeStorage(other), entityType(other.entityType) {}
+  Node(other), NodeStorage(other), entityType(other.entityType), nextId(id + 1)
+  {}
 
-RootNode::RootNode(const Type& $entityType): entityType($entityType) {}
+RootNode::RootNode(const Type& $entityType):
+  Node(1), entityType($entityType), nextId(id + 1) {}
 
 void RootNode::accept(NodeVisitor& visitor, void* data) {
   visitor.visit(*this, data);
@@ -245,7 +265,8 @@ void RootNode::accept(NodeVisitor& visitor, void* data) {
 void RootNode::basicTree() {
   // TODO Check for already existing kids and if so then bail out (with or
   // TODO without error?).
-  kids.push_back(new LeafNode);
+  // TODO Or make this a static method?
+  pushKid(*new LeafNode);
 }
 
 void RootNode::bindingsPush(const std::vector<Sample>& samples) {
@@ -257,6 +278,10 @@ void RootNode::bindingsPush(const std::vector<Sample>& samples) {
 
 Node* RootNode::copy() {
   return new RootNode(*this);
+}
+
+Node::Id RootNode::generateId() {
+  return nextId++;
 }
 
 void RootNode::propagate(
