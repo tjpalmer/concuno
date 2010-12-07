@@ -27,7 +27,11 @@ void pushPointers(
 ArrivalNode::ArrivalNode(): arrival(new BindingArrival) {}
 
 ArrivalNode::ArrivalNode(const ArrivalNode& other):
-  KidNode(other), arrival(other.arrival) {}
+  KidNode(other), arrival(other.arrival)
+{
+  // We are another client for these arrivals.
+  arrival->acquire();
+}
 
 ArrivalNode::~ArrivalNode() {
   arrival->release();
