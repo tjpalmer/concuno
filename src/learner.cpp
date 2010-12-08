@@ -4,6 +4,8 @@
 #include <sstream>
 #include "tree.h"
 
+#include <iostream>
+
 using namespace Eigen;
 using namespace std;
 
@@ -155,19 +157,25 @@ void TreeLearner::findBestExpansion() {
   log(message.str());
   // TODO Determine max arity of functions.
   Count maxArity(1);
-  // Loop around number of new vars to add. We'd rather not add them.
-  // TODO Ids on nodes so I can find the copied leaf?
+  // Loop on number of new vars to add. We'd rather not add them.
+  RootNode candidateBase(root);
+  Node* expansionNode(dynamic_cast<LeafNode*>(candidateBase.findById(leaf.id)));
+  expansionNode = expansionNode->purge();
   for (Count newVarCount(0); newVarCount <= maxArity; newVarCount++) {
-    RootNode candidate(root);
-    LeafNode& candidateLeaf(
-      dynamic_cast<LeafNode&>(*candidate.findById(leaf.id))
-    );
-    stringstream message;
-    message << "Matching leaf: " << &candidateLeaf;
-    log(message.str());
     if (newVarCount) {
-      // TODO Add new var node, updating pointer to the new predicate point.
+      cout << "Adding var." << endl;
+      // Add new var node, also calling it the new expansion node.
+      VariableNode& varNode(*new VariableNode);
+      expansionNode->pushKid(varNode);
+      // TODO expansionNode->propagate();
+      expansionNode = &varNode;
     }
+    // {LogEntry entry(this); entry << "Expansion node: " << expansionNode;}
+    // log << "Expansion node: " << expansionNode << endEntry;
+    // log << "Expansion node: ", expansionNode; // <- Possible?
+    stringstream message;
+    message << "Expansion node: " << expansionNode;
+    log(message.str());
     // Limit arity by available vars.
     // TODO Organize or sort functions by arity?
     Count currentMaxArity(std::min(varCount + newVarCount, maxArity));
@@ -178,7 +186,8 @@ void TreeLearner::findBestExpansion() {
         const Attribute& attribute(*root.entityType.attributes[a]);
         // TODO Check if the function matches the arity.
         // TODO Once we have arbitrary functions, pull arity from there.
-        split(candidateLeaf, attribute);
+        // TODO Change to expand?
+        // TODO Change to expand on any node: split(candidateLeaf, attribute);
         // TODO Check quality.
         // TODO Restore leaf.
       }

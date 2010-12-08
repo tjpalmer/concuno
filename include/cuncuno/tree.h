@@ -170,6 +170,11 @@ struct Node {
   void propagate(BindingsNodeVisitor& visitor, std::vector<Binding*>& bindings);
 
   /**
+   * Removes this from its parent, deletes it, and returns the parent.
+   */
+  Node* purge();
+
+  /**
    * Push a kid onto this node, assigning its parent (this) and a new ID (if
    * this has a root).
    */

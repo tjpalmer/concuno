@@ -1,3 +1,4 @@
+#include <algorithm>
 #include "learner.h"
 #include "tree.h"
 
@@ -212,6 +213,22 @@ void Node::propagate(
   accept(propagator, &bindings);
 }
 
+Node* Node::purge() {
+  Node* parent(this->parent());
+  if (parent) {
+    // TODO Put this logic in separate method then call it: this->extract();
+    // Remove doesn't work for me here. I guess I don't understand it.
+    vector<KidNode*>::iterator self =
+      find(parent->kids.begin(), parent->kids.end(), this);
+    if (self == parent->kids.end()) {
+      throw "Extracted node not in parent.";
+    }
+    parent->kids.erase(self);
+  }
+  delete this;
+  return parent;
+}
+
 void Node::pushKid(KidNode& kid) {
   RootNode* root = this->root();
   if (root) {
@@ -223,8 +240,8 @@ void Node::pushKid(KidNode& kid) {
 
 RootNode* Node::root() {
   Node* highest = this;
-  while (parent()) {
-    highest = parent();
+  while (highest->parent()) {
+    highest = highest->parent();
   }
   return dynamic_cast<RootNode*>(highest);
 }
