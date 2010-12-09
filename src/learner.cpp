@@ -160,7 +160,9 @@ void TreeLearner::findBestExpansion() {
   // Loop on number of new vars to add. We'd rather not add them.
   RootNode candidateBase(root);
   Node* expansionNode(dynamic_cast<LeafNode*>(candidateBase.findById(leaf.id)));
-  expansionNode = expansionNode->purge();
+  Joint expansionJoint;
+  expansionNode->purge(expansionJoint);
+  expansionNode = expansionJoint.node;
   for (Count newVarCount(0); newVarCount <= maxArity; newVarCount++) {
     if (newVarCount) {
       cout << "Adding var." << endl;
@@ -172,7 +174,7 @@ void TreeLearner::findBestExpansion() {
     }
     // {LogEntry entry(this); entry << "Expansion node: " << expansionNode;}
     // log << "Expansion node: " << expansionNode << endEntry;
-    // log << "Expansion node: ", expansionNode; // <- Possible?
+    // log << "Expansion node: " << expansionNode << endl;
     stringstream message;
     message << "Expansion node: " << expansionNode;
     log(message.str());

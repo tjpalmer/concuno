@@ -213,20 +213,22 @@ void Node::propagate(
   accept(propagator, &bindings);
 }
 
-Node* Node::purge() {
-  Node* parent(this->parent());
-  if (parent) {
+void Node::purge(Joint& joint) {
+  joint.node = this->parent();
+  if (joint.node) {
+    vector<KidNode*>& siblings = joint.node->kids;
     // TODO Put this logic in separate method then call it: this->extract();
     // Remove doesn't work for me here. I guess I don't understand it.
     vector<KidNode*>::iterator self =
-      find(parent->kids.begin(), parent->kids.end(), this);
-    if (self == parent->kids.end()) {
+      find(siblings.begin(), siblings.end(), this);
+    if (self == siblings.end()) {
       throw "Extracted node not in parent.";
     }
-    parent->kids.erase(self);
+    *self = 0;
+    joint.location = self;
+    siblings.erase(self);
   }
   delete this;
-  return parent;
 }
 
 void Node::pushKid(KidNode& kid) {

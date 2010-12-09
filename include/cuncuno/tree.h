@@ -6,8 +6,10 @@
 
 namespace cuncuno {
 
+struct Joint;
 struct KidNode;
 struct LeafNode;
+struct Node;
 struct PredicateNode;
 struct RootNode;
 struct Sample;
@@ -114,6 +116,18 @@ struct NodeVisitorOf: NodeVisitor {
 typedef NodeVisitorOf<std::vector<Binding*> > BindingsNodeVisitor;
 
 /**
+ * A connection point from a node to a potential child. Used as a placeholder
+ * for specifying locations for kids.
+ */
+struct Joint {
+
+  Node* node;
+
+  std::vector<KidNode*>::iterator location;
+
+};
+
+/**
  * A generic tree node. It's a tree in the sense that the kids are values, not
  * pointers or references. Makes tear-down easy. And a tree is all we need for
  * now.
@@ -170,9 +184,10 @@ struct Node {
   void propagate(BindingsNodeVisitor& visitor, std::vector<Binding*>& bindings);
 
   /**
-   * Removes this from its parent, deletes it, and returns the parent.
+   * At the parent, puts a null in place of this kid, deletes this node, and
+   * puts in joint the spot where the kid used to be.
    */
-  Node* purge();
+  void purge(Joint& joint);
 
   /**
    * Push a kid onto this node, assigning its parent (this) and a new ID (if
@@ -299,6 +314,12 @@ struct PredicateNode: ArrivalNode {
 
   AttributePredicate* predicate;
 
+  Node* $true;
+
+  Node* $false;
+
+  Node* error;
+
 };
 
 /**
@@ -306,8 +327,14 @@ struct PredicateNode: ArrivalNode {
  */
 struct RootNode: Node, NodeStorage {
 
+  /**
+   * Copies the tree structure but not the bindings.
+   */
   RootNode(const RootNode& other);
 
+  /**
+   * Has a LeafNode for a child.
+   */
   RootNode(const Type& entityType);
 
   virtual void accept(NodeVisitor& visitor, void* data);
@@ -340,6 +367,8 @@ struct RootNode: Node, NodeStorage {
    */
   const Type& entityType;
 
+  Node* kid;
+
 private:
 
   Id nextId;
@@ -348,13 +377,22 @@ private:
 
 struct VariableNode: KidNode, NodeStorage {
 
+  /**
+   * Creates a VariableNode with a LeafNode for a child.
+   */
   VariableNode();
+
+  VariableNode(KidNode& kid);
 
   VariableNode(const VariableNode& other);
 
   virtual void accept(NodeVisitor& visitor, void* data);
 
   virtual Node* copy();
+
+  Node* bound;
+
+  Node* error;
 
 };
 
