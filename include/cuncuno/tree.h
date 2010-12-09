@@ -1,13 +1,13 @@
 #ifndef cuncuno_tree_h
 #define cuncuno_tree_h
 
+#include <algorithm>
 #include "entity.h"
 #include "predicate.h"
 
 namespace cuncuno {
 
 struct Joint;
-struct KidNode;
 struct LeafNode;
 struct Node;
 struct PredicateNode;
@@ -123,7 +123,7 @@ struct Joint {
 
   Node* node;
 
-  std::vector<KidNode*>::iterator location;
+  std::vector<Node*>::iterator location;
 
 };
 
@@ -134,8 +134,8 @@ struct Joint {
  *
  * Subtypes provide data.
  *
- * TODO Should I use pointers to make this into a arbitrary graph node? Would
- * TODO need fancier destructor plans.
+ * TODO Should I make this into a arbitrary graph node? Would need fancier
+ * TODO destructor plans.
  */
 struct Node {
 
@@ -165,11 +165,34 @@ struct Node {
    */
   Node* findById(Id id);
 
+  template<typename SomeNode>
+  SomeNode* insertParent() {
+    Node* parent(this->parent());
+    if (parent) {
+      std::vector<Node*>& siblings = parent->kids;
+      // TODO Put this logic in separate method then call it: this->extract();
+      // Remove doesn't work for me here. I guess I don't understand it.
+      std::vector<Node*>::iterator location =
+        std::find(siblings.begin(), siblings.end(), this);
+      if (location == siblings.end()) {
+        throw "Node not in parent.";
+      }
+      SomeNode* newNode(new SomeNode(this));
+      *location = newNode;
+      return newNode;
+    } else {
+      return new SomeNode(this);
+    }
+  }
+
   void leaves(std::vector<LeafNode*>& buffer);
 
   // TODO 'operator =' to copy kids? (Leaving current parent?)
 
-  virtual Node* parent();
+  /**
+   * TODO Go to direct field access?
+   */
+  Node* parent();
 
   /**
    * Propagates bindings with direct storage through the tree, calling the
@@ -193,7 +216,7 @@ struct Node {
    * Push a kid onto this node, assigning its parent (this) and a new ID (if
    * this has a root).
    */
-  void pushKid(KidNode& kid);
+  void pushKid(Node& kid);
 
   /**
    * The highest node up the tree if it's a RootNode else null.
@@ -213,21 +236,8 @@ struct Node {
    * why the use of pointers here. Could have a pools of nodes of different
    * types for efficiency, but I don't expect large numbers of kids anyway, so
    * I doubt it's a big deal.
-   *
-   * TODO Make a separate ParentNode for holding kids list, like KidNode does
-   * TODO with $parent.
    */
-  std::vector<KidNode*> kids;
-
-};
-
-struct KidNode: Node {
-
-  KidNode();
-
-  KidNode(const KidNode& other);
-
-  virtual Node* parent();
+  std::vector<Node*> kids;
 
   Node* $parent;
 
@@ -238,7 +248,7 @@ struct KidNode: Node {
  * binding rather than building new ones. For now, these include predicates and
  * leaves.
  */
-struct ArrivalNode: KidNode {
+struct ArrivalNode: Node {
 
   ArrivalNode();
 
@@ -375,14 +385,17 @@ private:
 
 };
 
-struct VariableNode: KidNode, NodeStorage {
+struct VariableNode: Node, NodeStorage {
 
   /**
-   * Creates a VariableNode with a LeafNode for a child.
+   * Creates a VariableNode with a new LeafNode for each kid.
    */
   VariableNode();
 
-  VariableNode(KidNode& kid);
+  /**
+   * Creates a VariableNode with the given children.
+   */
+  VariableNode(Node* bound, Node* error = 0);
 
   VariableNode(const VariableNode& other);
 

@@ -28,7 +28,7 @@ void pushPointers(
 ArrivalNode::ArrivalNode(): arrival(new BindingArrival) {}
 
 ArrivalNode::ArrivalNode(const ArrivalNode& other):
-  KidNode(other), arrival(other.arrival)
+  Node(other), arrival(other.arrival)
 {
   // We are another client for these arrivals.
   arrival->acquire();
@@ -81,17 +81,6 @@ const Sample& Binding::sample() const {
 }
 
 
-/// KidNode.
-
-KidNode::KidNode(): $parent(0) {}
-
-KidNode::KidNode(const KidNode& other): Node(other), $parent(0) {}
-
-Node* KidNode::parent() {
-  return $parent;
-}
-
-
 /// LeafNode.
 
 LeafNode::LeafNode() {}
@@ -110,15 +99,15 @@ Node* LeafNode::copy() {
 
 /// Node.
 
-Node::Node(Id $id): id($id) {}
+Node::Node(Id $id): id($id), $parent(0) {}
 
-Node::Node(const Node& other): id(other.id) {
+Node::Node(const Node& other): id(other.id), $parent(0) {
   for (
-    vector<KidNode*>::const_iterator k(other.kids.begin());
+    vector<Node*>::const_iterator k(other.kids.begin());
     k != other.kids.end();
     k++
   ) {
-    KidNode* kid = dynamic_cast<KidNode*>((*k)->copy());
+    Node* kid = (*k)->copy();
     kid->$parent = this;
     // Don't use pushKid, because we want to keep the ID in this case.
     kids.push_back(kid);
@@ -130,13 +119,16 @@ Node::~Node() {
     delete kids.back();
     kids.pop_back();
   }
+  // Clear for clean data in case accidentally used.
+  id = 0;
+  $parent = 0;
 }
 
 Node* Node::findById(Node::Id id) {
   if (this->id == id) {
     return this;
   }
-  for (vector<KidNode*>::iterator k = kids.begin(); k != kids.end(); k++) {
+  for (vector<Node*>::iterator k = kids.begin(); k != kids.end(); k++) {
     Node* node = (*k)->findById(id);
     if (node) {
       return node;
@@ -159,7 +151,7 @@ void Node::leaves(std::vector<LeafNode*>& buffer) {
 }
 
 Node* Node::parent() {
-  return 0;
+  return $parent;
 }
 
 void Node::propagate(
@@ -200,7 +192,7 @@ void Node::propagate(
     virtual void visit(RootNode& node, std::vector<Binding*>& bindings) {
       visitor.visit(node, bindings);
       for (
-        std::vector<KidNode*>::iterator k = node.kids.begin();
+        std::vector<Node*>::iterator k = node.kids.begin();
         k != node.kids.end();
         k++
       ) {
@@ -216,10 +208,10 @@ void Node::propagate(
 void Node::purge(Joint& joint) {
   joint.node = this->parent();
   if (joint.node) {
-    vector<KidNode*>& siblings = joint.node->kids;
+    vector<Node*>& siblings = joint.node->kids;
     // TODO Put this logic in separate method then call it: this->extract();
     // Remove doesn't work for me here. I guess I don't understand it.
-    vector<KidNode*>::iterator self =
+    vector<Node*>::iterator self =
       find(siblings.begin(), siblings.end(), this);
     if (self == siblings.end()) {
       throw "Extracted node not in parent.";
@@ -231,7 +223,7 @@ void Node::purge(Joint& joint) {
   delete this;
 }
 
-void Node::pushKid(KidNode& kid) {
+void Node::pushKid(Node& kid) {
   RootNode* root = this->root();
   if (root) {
     kid.id = root->generateId();
@@ -250,7 +242,7 @@ RootNode* Node::root() {
 
 void Node::traverse(NodeVisitor& visitor, void* data) {
   accept(visitor, data);
-  for (std::vector<KidNode*>::iterator k = kids.begin(); k != kids.end(); k++) {
+  for (std::vector<Node*>::iterator k = kids.begin(); k != kids.end(); k++) {
     (*k)->traverse(visitor, data);
   }
 }
@@ -346,7 +338,7 @@ void RootNode::propagate(
 VariableNode::VariableNode() {}
 
 VariableNode::VariableNode(const VariableNode& other):
-  KidNode(other), NodeStorage(other) {}
+  Node(other), NodeStorage(other) {}
 
 void VariableNode::accept(NodeVisitor& visitor, void* data) {
   visitor.visit(*this, data);

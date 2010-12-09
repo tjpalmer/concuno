@@ -166,6 +166,7 @@ void TreeLearner::findBestExpansion() {
   for (Count newVarCount(0); newVarCount <= maxArity; newVarCount++) {
     if (newVarCount) {
       cout << "Adding var." << endl;
+      // TODO expansionNode->insertParent<VariableNode>();
       // Add new var node, also calling it the new expansion node.
       VariableNode& varNode(*new VariableNode);
       expansionNode->pushKid(varNode);
