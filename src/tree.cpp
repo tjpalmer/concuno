@@ -138,6 +138,32 @@ Node* Node::findById(Node::Id id) {
   return 0;
 }
 
+void Node::insertParent(Node& parent, Count index) {
+  // Make sure we have a spot for this kid.
+  if (index >= parent.kids.size()) {
+    throw "No such kid index.";
+  }
+  // Put the new parent in the current parent.
+  Node* currentParent(this->parent());
+  if (currentParent) {
+    vector<Node*>& siblings = currentParent->kids;
+    vector<Node*>::iterator location =
+      find(siblings.begin(), siblings.end(), this);
+    if (location == siblings.end()) {
+      throw "Node not in parent.";
+    }
+    parent.id = root()->generateId();
+    *location = &parent;
+  }
+  // Purge any kid in the way, then put the new kid there.
+  if (parent.kids[index]) {
+    // TODO Do I really want joint required here?
+    Joint joint;
+    parent.kids[index]->purge(joint);
+  }
+  parent.kids[index] = this;
+}
+
 void Node::leaves(std::vector<LeafNode*>& buffer) {
   struct LeafVisitor: NodeVisitor {
     LeafVisitor(std::vector<LeafNode*>& $buffer): buffer($buffer) {}
@@ -288,18 +314,19 @@ RootNode::RootNode(const RootNode& other):
   entityType(other.entityType),
   nextId(other.nextId) {}
 
-RootNode::RootNode(const Type& $entityType):
-  Node(1), entityType($entityType), nextId(id + 1) {}
+RootNode::RootNode(const Type& $entityType, Node* $kid):
+  Node(1), entityType($entityType), kid($kid), nextId(id + 1)
+{
+  // TODO Delete if we remove vector kids.
+  if (kid) {
+    pushKid(*kid);
+  } else {
+    kids.push_back(kid);
+  }
+}
 
 void RootNode::accept(NodeVisitor& visitor, void* data) {
   visitor.visit(*this, data);
-}
-
-void RootNode::basicTree() {
-  // TODO Check for already existing kids and if so then bail out (with or
-  // TODO without error?).
-  // TODO Or make this a static method?
-  pushKid(*new LeafNode);
 }
 
 void RootNode::bindingsPush(const std::vector<Sample>& samples) {
@@ -335,7 +362,14 @@ void RootNode::propagate(
 
 /// VariableNode.
 
-VariableNode::VariableNode() {}
+VariableNode::VariableNode(Node* $kid): kid($kid) {
+  // TODO Remove this if we switch away from vector storage.
+  if (kid) {
+    pushKid(*kid);
+  } else {
+    kids.push_back(kid);
+  }
+}
 
 VariableNode::VariableNode(const VariableNode& other):
   Node(other), NodeStorage(other) {}

@@ -49,7 +49,6 @@ void Learner::learn(const vector<Sample>& samples) {
 
   // Beginnings of tree learning.
   RootNode root(entityType);
-  root.basicTree();
   TreeLearner treeLearner(root, samples);
   treeLearner.findBestExpansion();
 
@@ -160,16 +159,15 @@ void TreeLearner::findBestExpansion() {
   // Loop on number of new vars to add. We'd rather not add them.
   RootNode candidateBase(root);
   Node* expansionNode(dynamic_cast<LeafNode*>(candidateBase.findById(leaf.id)));
-  Joint expansionJoint;
-  expansionNode->purge(expansionJoint);
-  expansionNode = expansionJoint.node;
+  //Joint expansionJoint;
+  //expansionNode->purge(expansionJoint);
+  //expansionNode = expansionJoint.node;
   for (Count newVarCount(0); newVarCount <= maxArity; newVarCount++) {
     if (newVarCount) {
       cout << "Adding var." << endl;
-      // TODO expansionNode->insertParent<VariableNode>();
       // Add new var node, also calling it the new expansion node.
-      VariableNode& varNode(*new VariableNode);
-      expansionNode->pushKid(varNode);
+      VariableNode& varNode(*new VariableNode(0));
+      expansionNode->insertParent(varNode);
       // TODO expansionNode->propagate();
       expansionNode = &varNode;
     }

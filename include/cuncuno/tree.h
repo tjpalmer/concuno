@@ -165,25 +165,19 @@ struct Node {
    */
   Node* findById(Id id);
 
-  template<typename SomeNode>
-  SomeNode* insertParent() {
-    Node* parent(this->parent());
-    if (parent) {
-      std::vector<Node*>& siblings = parent->kids;
-      // TODO Put this logic in separate method then call it: this->extract();
-      // Remove doesn't work for me here. I guess I don't understand it.
-      std::vector<Node*>::iterator location =
-        std::find(siblings.begin(), siblings.end(), this);
-      if (location == siblings.end()) {
-        throw "Node not in parent.";
-      }
-      SomeNode* newNode(new SomeNode(this));
-      *location = newNode;
-      return newNode;
-    } else {
-      return new SomeNode(this);
-    }
-  }
+  /**
+   * Inserts a new parent before this. If this already has a parent, the new
+   * parent will go in its kids in the place of this node. This node goes into
+   * place index in the new parent. Any prior kid at that index will be purged.
+   *
+   * No new kid spots will be added to the new parent. The spot must already be
+   * available.
+   *
+   * The parent will be given a new id. TODO Allow control over this?
+   *
+   * TODO Allow returning a replaced kid instead of purging it?
+   */
+  void insertParent(Node& parent, Count index = 0);
 
   void leaves(std::vector<LeafNode*>& buffer);
 
@@ -343,16 +337,11 @@ struct RootNode: Node, NodeStorage {
   RootNode(const RootNode& other);
 
   /**
-   * Has a LeafNode for a child.
+   * For a new tree with the given entity type.
    */
-  RootNode(const Type& entityType);
+  RootNode(const Type& entityType, Node* kid = new LeafNode);
 
   virtual void accept(NodeVisitor& visitor, void* data);
-
-  /**
-   * Builds a tree with just one leaf out of the root.
-   */
-  void basicTree();
 
   void bindingsPush(const std::vector<Sample>& samples);
 
@@ -388,14 +377,9 @@ private:
 struct VariableNode: Node, NodeStorage {
 
   /**
-   * Creates a VariableNode with a new LeafNode for each kid.
+   * Creates a VariableNode with the given kid, defaulting to a new leaf.
    */
-  VariableNode();
-
-  /**
-   * Creates a VariableNode with the given children.
-   */
-  VariableNode(Node* bound, Node* error = 0);
+  VariableNode(Node* kid = new LeafNode);
 
   VariableNode(const VariableNode& other);
 
@@ -403,9 +387,7 @@ struct VariableNode: Node, NodeStorage {
 
   virtual Node* copy();
 
-  Node* bound;
-
-  Node* error;
+  Node* kid;
 
 };
 
