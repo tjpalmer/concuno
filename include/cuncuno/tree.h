@@ -53,13 +53,21 @@ struct Binding {
   const void entities(std::vector<const void*>& buffer) const;
 
   /**
+   * The entity at the current level, or 0 if at the sample.
+   */
+  const void* entity() const;
+
+  /**
    * The sample from which these entities were extracted.
    */
   const Sample& sample() const;
 
-private:
-
+  /**
+   * The previous binding in the chain, if any.
+   */
   const Binding* previous;
+
+private:
 
   const void* entityOrSample;
 
@@ -156,6 +164,11 @@ struct Node {
   virtual void accept(NodeVisitor& visitor, void* data = 0) = 0;
 
   /**
+   * Clears bindings present in this node and descendents.
+   */
+  virtual void clearBindings(Count reserved = 0) = 0;
+
+  /**
    * Deep copy of tree but with same binding instances and null parent.
    */
   virtual Node* copy() = 0;
@@ -189,16 +202,25 @@ struct Node {
   Node* parent();
 
   /**
-   * Propagates bindings with direct storage through the tree, calling the
-   * given visitor for each node, including this.
+   * Propagate the bindings at this node down through kids.
    */
-  void propagate(BindingsNodeVisitor& visitor, std::vector<Binding>& bindings);
+  virtual void propagate();
 
   /**
-   * Propagates bindings given as pointers through the tree, calling the given
-   * visitor for each node, including this.
+   * Propagates the binding through this node and to kids while retaining other
+   * bindings already in place.
    */
-  void propagate(BindingsNodeVisitor& visitor, std::vector<Binding*>& bindings);
+  virtual void propagate(Binding& binding) = 0;
+
+  /**
+   * Propagate the bindings at this node down through the given node. It might
+   * or might not be a kid of this.
+   *
+   * Even for question nodes, this propagates all of its bindings to the given
+   * node. This comes in handy when inserting parents.
+   * TODO Just unify with parent insertion?
+   */
+  virtual void propagateTo(Node& node) = 0;
 
   /**
    * At the parent, puts a null in place of this kid, deletes this node, and
@@ -251,6 +273,17 @@ struct ArrivalNode: Node {
   ~ArrivalNode();
 
   /**
+   * Clears bindings present in this node and descendents.
+   */
+  virtual void clearBindings(Count reserved = 0);
+
+  /**
+   * Propagate the bindings at this node down through the given node. It might
+   * or might not be a kid of this.
+   */
+  virtual void propagateTo(Node& node);
+
+  /**
    * I really don't like this here, actually. I would like to be able to have
    * an abstract tree without samples attached. Is it worth subtyping to get
    * that?
@@ -263,13 +296,24 @@ struct ArrivalNode: Node {
  * Storage of bindings for nodes. Meant to be inherited. Provides some
  * convenience for construction and destruction.
  */
-struct NodeStorage {
+struct StorageNode: Node {
 
-  NodeStorage();
+  StorageNode(Id id = 0);
 
-  NodeStorage(const NodeStorage& other);
+  StorageNode(const StorageNode& other);
 
-  ~NodeStorage();
+  ~StorageNode();
+
+  /**
+   * Clears bindings present in this node and descendents.
+   */
+  virtual void clearBindings(Count reserved = 0);
+
+  /**
+   * Propagate the bindings at this node down through the given node. It might
+   * or might not be a kid of this.
+   */
+  virtual void propagateTo(Node& node);
 
   /**
    * I really don't like this here, actually. I would like to be able to have
@@ -289,6 +333,12 @@ struct LeafNode: ArrivalNode {
   virtual void accept(NodeVisitor& visitor, void* data);
 
   virtual Node* copy();
+
+  /**
+   * Propagates the binding through this node and to kids while retaining other
+   * bindings already in place.
+   */
+  virtual void propagate(Binding& binding);
 
   /**
    * In SMRF, the probability that a binding is an example of the target concept
@@ -316,6 +366,12 @@ struct PredicateNode: ArrivalNode {
 
   virtual Node* copy();
 
+  /**
+   * Propagates the binding through this node and to kids while retaining other
+   * bindings already in place.
+   */
+  virtual void propagate(Binding& binding);
+
   AttributePredicate* predicate;
 
   Node* $true;
@@ -329,7 +385,7 @@ struct PredicateNode: ArrivalNode {
 /**
  * Represents the root of the tree.
  */
-struct RootNode: Node, NodeStorage {
+struct RootNode: StorageNode {
 
   /**
    * Copies the tree structure but not the bindings.
@@ -350,14 +406,18 @@ struct RootNode: Node, NodeStorage {
   Id generateId();
 
   /**
+   * Propagates the binding through this node and to kids while retaining other
+   * bindings already in place.
+   */
+  virtual void propagate(Binding& binding);
+
+  /**
    * Propagate bindings starting from the given samples, calling the given
    * visitor for each node, including this.
    *
    * The samples are also pushed as new bindings to this node.
    */
-  void propagate(
-    BindingsNodeVisitor& visitor, const std::vector<Sample>& samples
-  );
+  void propagate(const std::vector<Sample>& samples);
 
   /**
    * Although just one type is supported, technically this could dispatch on
@@ -374,7 +434,7 @@ private:
 
 };
 
-struct VariableNode: Node, NodeStorage {
+struct VariableNode: StorageNode {
 
   /**
    * Creates a VariableNode with the given kid, defaulting to a new leaf.
@@ -386,6 +446,12 @@ struct VariableNode: Node, NodeStorage {
   virtual void accept(NodeVisitor& visitor, void* data);
 
   virtual Node* copy();
+
+  /**
+   * Propagates the binding through this node and to kids while retaining other
+   * bindings already in place.
+   */
+  virtual void propagate(Binding& binding);
 
   Node* kid;
 
