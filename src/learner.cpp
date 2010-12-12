@@ -26,7 +26,7 @@ struct TreeLearner: Worker {
   /**
    * Updates the probabilities assigned to leaf nodes.
    */
-  void updateProbabilities();
+  void updateProbabilities(RootNode& root);
 
   /**
    * The tree root.
@@ -122,7 +122,7 @@ TreeLearner::TreeLearner(RootNode& $root, const vector<Sample>& $samples):
 void TreeLearner::findBestExpansion() {
   // Propagate the samples and update probabilities.
   root.propagate(samples);
-  updateProbabilities();
+  updateProbabilities(root);
   // Pick a leaf to expand.
   std::vector<LeafNode*> leaves;
   root.leaves(leaves);
@@ -169,23 +169,25 @@ void TreeLearner::findBestExpansion() {
   //expansionNode = expansionJoint.node;
   for (Count newVarCount(0); newVarCount <= maxArity; newVarCount++) {
     if (newVarCount) {
+      // Add new var node.
       cout << "Adding var." << endl;
-      // Add new var node, also calling it the new expansion node.
-      VariableNode& varNode(*new VariableNode(0));
+      VariableNode& varNode(*new VariableNode);
       // Steal the bindings for propagating. The leaf will be changing, but
       // other clones of the tree might depend on these.
       // TODO Protect against leaks from exceptions here!!!
       // TODO Investigate shared_ptr???
-      BindingArrival& arrival(*expansionNode->arrival);
-      expansionNode->arrival = new BindingArrival;
-      expansionNode->insertParent(varNode);
-      for (Count b = 0; b < arrival.bindings.size(); b++) {
-        varNode.propagate(*arrival.bindings[b]);
-      }
-      // TODO Again, automate the release!
-      arrival.release();
+      expansionNode->replaceWith(varNode);
+      delete expansionNode;
+      varNode.parent()->propagate();
+      // TODO This doesn't work for some reason, even though it should just
+      // TODO point to the most recent real storage.
+      //for (Count b = 0; b < arrival.bindings.size(); b++) {
+      //  varNode.propagate(*arrival.bindings[b]);
+      //}
+      // The var node's leaf is the new expansion node.
+      expansionNode = dynamic_cast<LeafNode*>(varNode.kids.front());
       // Update probabilities again already for kicks. TODO Delete this?
-      updateProbabilities();
+      updateProbabilities(candidateBase);
     }
     // {LogEntry entry(this); entry << "Expansion node: " << expansionNode;}
     // log << "Expansion node: " << expansionNode << endEntry;
@@ -220,12 +222,13 @@ void TreeLearner::split(LeafNode& leaf, const Attribute& attribute) {
   // TODO vars haven't already been used for other predicates.
 }
 
-void TreeLearner::updateProbabilities() {
+void TreeLearner::updateProbabilities(RootNode& root) {
   // Updates probabalities in leaves.
   vector<LeafNode*> leaves;
   root.leaves(leaves);
   for (Count l = 0; l < leaves.size(); l++) {
     LeafNode& leaf(*leaves[l]);
+    cout << "Leaf " << leaf.id << " (root " << leaf.root() << ")" << flush;
     vector<Binding*>& bindings(leaf.arrival->bindings);
     Float total(0);
     Float trues(0);
@@ -235,16 +238,17 @@ void TreeLearner::updateProbabilities() {
       // TODO Change to be one vote per bag, not per binding!!!!!
       // TODO Actually, we do need to allow some bindings in true bags to be
       // TODO counted as false. Optimize across leaf probabilities.
+      if (b == bindings.begin()) {
+        cout << "Checking binding " << *b << " for prob." << endl;
+      }
       total++;
       trues += (*b)->sample().label ? 1 : 0;
     }
     leaf.probability = trues / total;
     // TODO Delete the log.
-    stringstream message;
-    message
-      << "Leaf probability: " << leaf.probability
+    cout
+      << " probability: " << leaf.probability
       << " (" << trues << "/" << total << ")";
-    log(message.str());
   }
 }
 

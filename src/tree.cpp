@@ -3,34 +3,48 @@
 #include "tree.h"
 
 #include <iostream>
+#include <typeinfo>
 
 using namespace std;
 
 namespace cuncuno {
 
 
+void clearBindings(ArrivalNode& node, Count reserved);
+void clearBindings(StorageNode& node, Count reserved);
+
+void propagate(LeafNode& node, Binding& binding);
+void propagate(PredicateNode& node, Binding& binding);
+void propagate(RootNode& node, Binding& binding);
+void propagate(VariableNode& node, Binding& binding);
+
 /**
  * Propagates bindings with direct storage through the tree.
  */
-void propagate(Node& node, std::vector<Binding>& bindings) {
-  node.clearBindings(bindings.size());
+template<typename SomeNode>
+void propagate(SomeNode& node, std::vector<Binding>& bindings) {
+  cout << "(direct " << bindings.size() << ")" << flush;
+  clearBindings(node, bindings.size());
   for (Count b = 0; b < bindings.size(); b++) {
-    // TODO Does a virtual method call for each binding. Would it be better to
-    // TODO cast to the exact type and let the virtual be optimized out. Or can
-    // TODO awesome compilers do that for loops automatically? Too hard since
-    // TODO even down inside propagate, it continues. Separate building and
-    // TODO propagation stages?
-    node.propagate(bindings[b]);
+    if (b < 1) {
+      cout << &bindings[b] << " at list going in " << typeid(node).name() << "." << endl;
+    }
+    propagate(node, bindings[b]);
   }
 }
 
 /**
  * Propagates bindings given as pointers through the tree.
  */
-void propagate(Node& node, std::vector<Binding*>& bindings) {
-  node.clearBindings(bindings.size());
+template<typename SomeNode>
+void propagate(SomeNode& node, std::vector<Binding*>& bindings) {
+  cout << "(pointer " << bindings.size() << ")" << flush;
+  clearBindings(node, bindings.size());
   for (Count b = 0; b < bindings.size(); b++) {
-    node.propagate(*bindings[b]);
+    if (b < 1) {
+      cout << bindings[b] << " vs. " << &*bindings[b] << " at list." << endl;
+    }
+    propagate(node, *bindings[b]);
   }
 }
 
@@ -50,13 +64,13 @@ ArrivalNode::~ArrivalNode() {
   arrival->release();
 }
 
-void ArrivalNode::clearBindings(Count reserved) {
-  arrival->bindings.clear();
-  arrival->bindings.reserve(reserved);
+void clearBindings(ArrivalNode& node, Count reserved) {
+  node.arrival->bindings.clear();
+  node.arrival->bindings.reserve(reserved);
 }
 
 void ArrivalNode::propagateTo(Node& node) {
-  cuncuno::propagate(*this, arrival->bindings);
+  node.propagate(arrival->bindings);
 }
 
 
@@ -67,8 +81,7 @@ Binding::Binding() {}
 Binding::Binding(const Binding& $previous, const void* entity):
   previous(&$previous), entityOrSample(entity) {}
 
-Binding::Binding(const Sample& sample):
-  previous(0), entityOrSample(&sample) {}
+Binding::Binding(const Sample& sample): previous(0), entityOrSample(&sample) {}
 
 Count Binding::count() const {
   Count count(0);
@@ -105,7 +118,7 @@ const Sample& Binding::sample() const {
   while (binding->previous) {
     binding = binding->previous;
   }
-  return *reinterpret_cast<const Sample*>(entityOrSample);
+  return *reinterpret_cast<const Sample*>(binding->entityOrSample);
 }
 
 
@@ -124,9 +137,21 @@ Node* LeafNode::copy() {
   return new LeafNode(*this);
 }
 
-void LeafNode::propagate(Binding& binding) {
+void propagate(LeafNode& node, Binding& binding) {
+  if (node.arrival->bindings.size() < 1) {
+    cout << &binding << " at leaf." << endl;
+  }
+  //cout << "L" << (binding.previous ? 'x' : '.') << (binding.entityOrSample ? 'x' : '.') << flush;
   // No kids for leaves, so just accept the binding.
-  arrival->bindings.push_back(&binding);
+  node.arrival->bindings.push_back(&binding);
+}
+
+void LeafNode::propagate(vector<Binding*>& bindings) {
+  cuncuno::propagate(*this, bindings);
+}
+
+void LeafNode::propagate(vector<Binding>& bindings) {
+  cuncuno::propagate(*this, bindings);
 }
 
 
@@ -172,6 +197,7 @@ Node* Node::findById(Node::Id id) {
 }
 
 void Node::insertParent(Node& parent, Count index) {
+  cout << "Insert parent " << &parent << " between " << this->parent() << " and " << this << endl;
   // Make sure we have a spot for this kid.
   if (index >= parent.kids.size()) {
     throw "No such kid index.";
@@ -186,6 +212,7 @@ void Node::insertParent(Node& parent, Count index) {
       throw "Node not in parent.";
     }
     parent.id = root()->generateId();
+    parent.$parent = currentParent;
     *location = &parent;
   }
   // Purge any kid in the way, then put the new kid there.
@@ -194,6 +221,7 @@ void Node::insertParent(Node& parent, Count index) {
     Joint joint;
     parent.kids[index]->purge(joint);
   }
+  this->$parent = &parent;
   parent.kids[index] = this;
 }
 
@@ -201,6 +229,7 @@ void Node::leaves(std::vector<LeafNode*>& buffer) {
   struct LeafVisitor: NodeVisitor {
     LeafVisitor(std::vector<LeafNode*>& $buffer): buffer($buffer) {}
     virtual void visit(LeafNode& node, void* data) {
+      cout << "Visiting leaf " << node.id << endl;
       buffer.push_back(&node);
     }
     std::vector<LeafNode*>& buffer;
@@ -237,6 +266,37 @@ void Node::purge(Joint& joint) {
   delete this;
 }
 
+void Node::replaceWith(Node& node) {
+  cout << "Replace " << this <<  " with " << &node << " under " << parent() << endl;
+  // Put the new parent in the current parent.
+  Node* currentParent(this->parent());
+  if (currentParent) {
+    vector<Node*>& siblings = currentParent->kids;
+    vector<Node*>::iterator location =
+      find(siblings.begin(), siblings.end(), this);
+    if (location == siblings.end()) {
+      throw "Node not in parent.";
+    }
+    // Assign ids for the new tree members.
+    if (root()) {
+      struct IdNodeVisitor: NodeVisitor {
+        IdNodeVisitor(RootNode& $root): root($root) {}
+        virtual void visit(Node& node, void* data) {
+          node.id = root.generateId();
+        }
+        RootNode& root;
+      };
+      IdNodeVisitor visitor(*root());
+      node.traverse(visitor);
+    }
+    // Put the node in place.
+    node.$parent = currentParent;
+    *location = &node;
+  }
+  // Clean out the old parent link.
+  this->$parent = 0;
+}
+
 void Node::pushKid(Node& kid) {
   RootNode* root = this->root();
   if (root) {
@@ -255,6 +315,8 @@ RootNode* Node::root() {
 }
 
 void Node::traverse(NodeVisitor& visitor, void* data) {
+  cout << "Traversing " << id << " at " << this << endl;
+  visitor.visit(*this, data);
   accept(visitor, data);
   for (std::vector<Node*>::iterator k = kids.begin(); k != kids.end(); k++) {
     (*k)->traverse(visitor, data);
@@ -279,10 +341,21 @@ Node* PredicateNode::copy() {
   return new PredicateNode(*this);
 }
 
-void PredicateNode::propagate(Binding& binding) {
+void propagate(PredicateNode& node, Binding& binding) {
+  //cout << "P" << flush;
   // Record the binding.
-  arrival->bindings.push_back(&binding);
+  node.arrival->bindings.push_back(&binding);
   // TODO Determine which kid gets it, too.
+}
+
+void PredicateNode::propagate(vector<Binding*>& bindings) {
+  cuncuno::propagate(*this, bindings);
+  // TODO Split and propagate.
+}
+
+void PredicateNode::propagate(vector<Binding>& bindings) {
+  cuncuno::propagate(*this, bindings);
+  // TODO Split and propagate.
 }
 
 
@@ -321,15 +394,26 @@ Node::Id RootNode::generateId() {
   return nextId++;
 }
 
-void RootNode::propagate(Binding& binding) {
-  // Store the binding and forward it.
-  storage->bindings.push_back(binding);
-  kids.front()->propagate(storage->bindings.back());
+void propagate(RootNode& node, Binding& binding) {
+  //cout << "R" << flush;
+  // Just store the binding.
+  node.storage->bindings.push_back(binding);
+}
+
+void RootNode::propagate(vector<Binding*>& bindings) {
+  cuncuno::propagate(*this, bindings);
+  propagateTo(*kids.front());
+}
+
+void RootNode::propagate(vector<Binding>& bindings) {
+  cuncuno::propagate(*this, bindings);
+  propagateTo(*kids.front());
 }
 
 void RootNode::propagate(const std::vector<Sample>& samples) {
   // Reserve but don't clear.
-  storage->bindings.reserve(samples.size() + storage->bindings.size());
+  storage->bindings.clear();
+  storage->bindings.reserve(samples.size());
   // Put the samples into bindings and propagate.
   for (
     std::vector<Sample>::const_iterator s = samples.begin();
@@ -337,8 +421,9 @@ void RootNode::propagate(const std::vector<Sample>& samples) {
     s++
   ) {
     Binding binding(*s);
-    propagate(binding);
+    cuncuno::propagate(*this, binding);
   }
+  propagateTo(*kids.front());
 }
 
 
@@ -357,13 +442,13 @@ StorageNode::~StorageNode() {
   storage->release();
 }
 
-void StorageNode::clearBindings(Count reserved) {
-  storage->bindings.clear();
-  storage->bindings.reserve(reserved);
+void clearBindings(StorageNode& node, Count reserved) {
+  node.storage->bindings.clear();
+  node.storage->bindings.reserve(reserved);
 }
 
 void StorageNode::propagateTo(Node& node) {
-  cuncuno::propagate(*this, storage->bindings);
+  node.propagate(storage->bindings);
 }
 
 
@@ -388,38 +473,50 @@ Node* VariableNode::copy() {
   return new VariableNode(*this);
 }
 
-void VariableNode::propagate(Binding& binding) {
-  // TODO Change to direct kid access?
-  Node& kid(*kids.front());
+void propagate(VariableNode& node, Binding& binding) {
+  //cout << "V" << flush;
   // See which entities are left in the sample for binding.
   bool anyAvailable(false);
   const vector<const void*>& entities(binding.sample().entities);
+  //Count count(0);
+  //cout << "[" << entities.size() << "]" << flush;
+  //cout << count << flush;
   for (Count e = 0; e < entities.size(); e++) {
     const void* entity(entities[e]);
     // See if this entity is still available.
     bool available(true);
     const Binding* current(&binding);
     while (current) {
-      if (entity != binding.entity()) {
+      if (entity == binding.entity()) {
         available = false;
         break;
       }
       current = current->previous;
     }
     if (available) {
+      //cout << ++count << flush;
       // It is. Remember we got one and store it.
       anyAvailable = true;
-      storage->bindings.push_back(Binding(binding, entity));
-      // TODO One off propagation across virtual method call is slow?
-      kid.propagate(storage->bindings.back());
+      node.storage->bindings.push_back(Binding(binding, entity));
+      if (node.storage->bindings.size() <= 1) {
+        cout << "Var props " << &node.storage->bindings.back() << " citing " << node.storage->bindings.back().previous << endl;
+      }
     }
   }
-  // See if we need to instantiate a dummy.
+  // See if we need to bind a dummy.
   if (!anyAvailable) {
-    storage->bindings.push_back(Binding(binding, 0));
-    // TODO One off propagation across virtual method call is slow?
-    kid.propagate(storage->bindings.back());
+    node.storage->bindings.push_back(Binding(binding, 0));
   }
+}
+
+void VariableNode::propagate(vector<Binding*>& bindings) {
+  cuncuno::propagate(*this, bindings);
+  propagateTo(*kids.front());
+}
+
+void VariableNode::propagate(vector<Binding>& bindings) {
+  cuncuno::propagate(*this, bindings);
+  propagateTo(*kids.front());
 }
 
 

@@ -67,8 +67,6 @@ struct Binding {
    */
   const Binding* previous;
 
-private:
-
   const void* entityOrSample;
 
 };
@@ -86,10 +84,16 @@ struct BindingStorage: Shared {
  */
 struct NodeVisitor {
   // Do nothing by default for all of these. Subtypes override as they see fit.
+
+  // For all nodes, called before the type-specific version.
+  virtual void visit(Node& node, void* data) {}
+
+  // For specific types.
   virtual void visit(LeafNode& node, void* data) {}
   virtual void visit(PredicateNode& node, void* data) {}
   virtual void visit(VariableNode& node, void* data) {}
   virtual void visit(RootNode& node, void* data) {}
+
 };
 
 /**
@@ -164,11 +168,6 @@ struct Node {
   virtual void accept(NodeVisitor& visitor, void* data = 0) = 0;
 
   /**
-   * Clears bindings present in this node and descendents.
-   */
-  virtual void clearBindings(Count reserved = 0) = 0;
-
-  /**
    * Deep copy of tree but with same binding instances and null parent.
    */
   virtual Node* copy() = 0;
@@ -207,10 +206,14 @@ struct Node {
   virtual void propagate();
 
   /**
-   * Propagates the binding through this node and to kids while retaining other
-   * bindings already in place.
+   * Propagates bindings as pointers, replacing any existing bindings.
    */
-  virtual void propagate(Binding& binding) = 0;
+  virtual void propagate(std::vector<Binding*>& binding) = 0;
+
+  /**
+   * Propagates bindings stored in place, replacing any existing bindings.
+   */
+  virtual void propagate(std::vector<Binding>& binding) = 0;
 
   /**
    * Propagate the bindings at this node down through the given node. It might
@@ -233,6 +236,14 @@ struct Node {
    * this has a root).
    */
   void pushKid(Node& kid);
+
+  /**
+   * Puts node in the parent in place of this, leaving this detached but not
+   * destroyed.
+   *
+   * TODO Guarantee that this isn't replaced if exceptions are thrown?
+   */
+  void replaceWith(Node& node);
 
   /**
    * The highest node up the tree if it's a RootNode else null.
@@ -273,11 +284,6 @@ struct ArrivalNode: Node {
   ~ArrivalNode();
 
   /**
-   * Clears bindings present in this node and descendents.
-   */
-  virtual void clearBindings(Count reserved = 0);
-
-  /**
    * Propagate the bindings at this node down through the given node. It might
    * or might not be a kid of this.
    */
@@ -305,11 +311,6 @@ struct StorageNode: Node {
   ~StorageNode();
 
   /**
-   * Clears bindings present in this node and descendents.
-   */
-  virtual void clearBindings(Count reserved = 0);
-
-  /**
    * Propagate the bindings at this node down through the given node. It might
    * or might not be a kid of this.
    */
@@ -335,10 +336,14 @@ struct LeafNode: ArrivalNode {
   virtual Node* copy();
 
   /**
-   * Propagates the binding through this node and to kids while retaining other
-   * bindings already in place.
+   * Propagates bindings as pointers, replacing any existing bindings.
    */
-  virtual void propagate(Binding& binding);
+  virtual void propagate(std::vector<Binding*>& binding);
+
+  /**
+   * Propagates bindings stored in place, replacing any existing bindings.
+   */
+  virtual void propagate(std::vector<Binding>& binding);
 
   /**
    * In SMRF, the probability that a binding is an example of the target concept
@@ -367,10 +372,14 @@ struct PredicateNode: ArrivalNode {
   virtual Node* copy();
 
   /**
-   * Propagates the binding through this node and to kids while retaining other
-   * bindings already in place.
+   * Propagates bindings as pointers, replacing any existing bindings.
    */
-  virtual void propagate(Binding& binding);
+  virtual void propagate(std::vector<Binding*>& binding);
+
+  /**
+   * Propagates bindings stored in place, replacing any existing bindings.
+   */
+  virtual void propagate(std::vector<Binding>& binding);
 
   AttributePredicate* predicate;
 
@@ -406,10 +415,14 @@ struct RootNode: StorageNode {
   Id generateId();
 
   /**
-   * Propagates the binding through this node and to kids while retaining other
-   * bindings already in place.
+   * Propagates bindings as pointers, replacing any existing bindings.
    */
-  virtual void propagate(Binding& binding);
+  virtual void propagate(std::vector<Binding*>& binding);
+
+  /**
+   * Propagates bindings stored in place, replacing any existing bindings.
+   */
+  virtual void propagate(std::vector<Binding>& binding);
 
   /**
    * Propagate bindings starting from the given samples, calling the given
@@ -448,10 +461,14 @@ struct VariableNode: StorageNode {
   virtual Node* copy();
 
   /**
-   * Propagates the binding through this node and to kids while retaining other
-   * bindings already in place.
+   * Propagates bindings as pointers, replacing any existing bindings.
    */
-  virtual void propagate(Binding& binding);
+  virtual void propagate(std::vector<Binding*>& binding);
+
+  /**
+   * Propagates bindings stored in place, replacing any existing bindings.
+   */
+  virtual void propagate(std::vector<Binding>& binding);
 
   Node* kid;
 
