@@ -13,23 +13,19 @@ namespace cuncuno {
 void clearBindings(ArrivalNode& node, Count reserved);
 void clearBindings(StorageNode& node, Count reserved);
 
-void propagate(LeafNode& node, Binding& binding);
-void propagate(PredicateNode& node, Binding& binding);
-void propagate(RootNode& node, Binding& binding);
-void propagate(VariableNode& node, Binding& binding);
+void receive(LeafNode& node, Binding& binding);
+void receive(PredicateNode& node, Binding& binding);
+void receive(RootNode& node, Binding& binding);
+void receive(VariableNode& node, Binding& binding);
 
 /**
  * Propagates bindings with direct storage through the tree.
  */
 template<typename SomeNode>
-void propagate(SomeNode& node, std::vector<Binding>& bindings) {
-  cout << "(direct " << bindings.size() << ")" << flush;
+void receive(SomeNode& node, std::vector<Binding>& bindings) {
   clearBindings(node, bindings.size());
   for (Count b = 0; b < bindings.size(); b++) {
-    if (b < 1) {
-      cout << &bindings[b] << " at list going in " << typeid(node).name() << "." << endl;
-    }
-    propagate(node, bindings[b]);
+    receive(node, bindings[b]);
   }
 }
 
@@ -37,14 +33,10 @@ void propagate(SomeNode& node, std::vector<Binding>& bindings) {
  * Propagates bindings given as pointers through the tree.
  */
 template<typename SomeNode>
-void propagate(SomeNode& node, std::vector<Binding*>& bindings) {
-  cout << "(pointer " << bindings.size() << ")" << flush;
+void receive(SomeNode& node, std::vector<Binding*>& bindings) {
   clearBindings(node, bindings.size());
   for (Count b = 0; b < bindings.size(); b++) {
-    if (b < 1) {
-      cout << bindings[b] << " vs. " << &*bindings[b] << " at list." << endl;
-    }
-    propagate(node, *bindings[b]);
+    receive(node, *bindings[b]);
   }
 }
 
@@ -137,21 +129,17 @@ Node* LeafNode::copy() {
   return new LeafNode(*this);
 }
 
-void propagate(LeafNode& node, Binding& binding) {
-  if (node.arrival->bindings.size() < 1) {
-    cout << &binding << " at leaf." << endl;
-  }
-  //cout << "L" << (binding.previous ? 'x' : '.') << (binding.entityOrSample ? 'x' : '.') << flush;
-  // No kids for leaves, so just accept the binding.
-  node.arrival->bindings.push_back(&binding);
-}
-
 void LeafNode::propagate(vector<Binding*>& bindings) {
-  cuncuno::propagate(*this, bindings);
+  receive(*this, bindings);
 }
 
 void LeafNode::propagate(vector<Binding>& bindings) {
-  cuncuno::propagate(*this, bindings);
+  receive(*this, bindings);
+}
+
+void receive(LeafNode& node, Binding& binding) {
+  // No kids for leaves, so just accept the binding.
+  node.arrival->bindings.push_back(&binding);
 }
 
 
@@ -197,7 +185,6 @@ Node* Node::findById(Node::Id id) {
 }
 
 void Node::insertParent(Node& parent, Count index) {
-  cout << "Insert parent " << &parent << " between " << this->parent() << " and " << this << endl;
   // Make sure we have a spot for this kid.
   if (index >= parent.kids.size()) {
     throw "No such kid index.";
@@ -229,7 +216,6 @@ void Node::leaves(std::vector<LeafNode*>& buffer) {
   struct LeafVisitor: NodeVisitor {
     LeafVisitor(std::vector<LeafNode*>& $buffer): buffer($buffer) {}
     virtual void visit(LeafNode& node, void* data) {
-      cout << "Visiting leaf " << node.id << endl;
       buffer.push_back(&node);
     }
     std::vector<LeafNode*>& buffer;
@@ -267,7 +253,6 @@ void Node::purge(Joint& joint) {
 }
 
 void Node::replaceWith(Node& node) {
-  cout << "Replace " << this <<  " with " << &node << " under " << parent() << endl;
   // Put the new parent in the current parent.
   Node* currentParent(this->parent());
   if (currentParent) {
@@ -315,7 +300,6 @@ RootNode* Node::root() {
 }
 
 void Node::traverse(NodeVisitor& visitor, void* data) {
-  cout << "Traversing " << id << " at " << this << endl;
   visitor.visit(*this, data);
   accept(visitor, data);
   for (std::vector<Node*>::iterator k = kids.begin(); k != kids.end(); k++) {
@@ -341,21 +325,19 @@ Node* PredicateNode::copy() {
   return new PredicateNode(*this);
 }
 
-void propagate(PredicateNode& node, Binding& binding) {
-  //cout << "P" << flush;
-  // Record the binding.
-  node.arrival->bindings.push_back(&binding);
-  // TODO Determine which kid gets it, too.
-}
-
 void PredicateNode::propagate(vector<Binding*>& bindings) {
-  cuncuno::propagate(*this, bindings);
+  receive(*this, bindings);
   // TODO Split and propagate.
 }
 
 void PredicateNode::propagate(vector<Binding>& bindings) {
-  cuncuno::propagate(*this, bindings);
+  receive(*this, bindings);
   // TODO Split and propagate.
+}
+
+void receive(PredicateNode& node, Binding& binding) {
+  // Record the binding.
+  node.arrival->bindings.push_back(&binding);
 }
 
 
@@ -394,19 +376,13 @@ Node::Id RootNode::generateId() {
   return nextId++;
 }
 
-void propagate(RootNode& node, Binding& binding) {
-  //cout << "R" << flush;
-  // Just store the binding.
-  node.storage->bindings.push_back(binding);
-}
-
 void RootNode::propagate(vector<Binding*>& bindings) {
-  cuncuno::propagate(*this, bindings);
+  receive(*this, bindings);
   propagateTo(*kids.front());
 }
 
 void RootNode::propagate(vector<Binding>& bindings) {
-  cuncuno::propagate(*this, bindings);
+  receive(*this, bindings);
   propagateTo(*kids.front());
 }
 
@@ -421,9 +397,14 @@ void RootNode::propagate(const std::vector<Sample>& samples) {
     s++
   ) {
     Binding binding(*s);
-    cuncuno::propagate(*this, binding);
+    cuncuno::receive(*this, binding);
   }
   propagateTo(*kids.front());
+}
+
+void receive(RootNode& node, Binding& binding) {
+  // Just store the binding.
+  node.storage->bindings.push_back(binding);
 }
 
 
@@ -473,14 +454,20 @@ Node* VariableNode::copy() {
   return new VariableNode(*this);
 }
 
-void propagate(VariableNode& node, Binding& binding) {
-  //cout << "V" << flush;
+void VariableNode::propagate(vector<Binding*>& bindings) {
+  receive(*this, bindings);
+  propagateTo(*kids.front());
+}
+
+void VariableNode::propagate(vector<Binding>& bindings) {
+  receive(*this, bindings);
+  propagateTo(*kids.front());
+}
+
+void receive(VariableNode& node, Binding& binding) {
   // See which entities are left in the sample for binding.
   bool anyAvailable(false);
   const vector<const void*>& entities(binding.sample().entities);
-  //Count count(0);
-  //cout << "[" << entities.size() << "]" << flush;
-  //cout << count << flush;
   for (Count e = 0; e < entities.size(); e++) {
     const void* entity(entities[e]);
     // See if this entity is still available.
@@ -494,29 +481,15 @@ void propagate(VariableNode& node, Binding& binding) {
       current = current->previous;
     }
     if (available) {
-      //cout << ++count << flush;
       // It is. Remember we got one and store it.
       anyAvailable = true;
       node.storage->bindings.push_back(Binding(binding, entity));
-      if (node.storage->bindings.size() <= 1) {
-        cout << "Var props " << &node.storage->bindings.back() << " citing " << node.storage->bindings.back().previous << endl;
-      }
     }
   }
   // See if we need to bind a dummy.
   if (!anyAvailable) {
     node.storage->bindings.push_back(Binding(binding, 0));
   }
-}
-
-void VariableNode::propagate(vector<Binding*>& bindings) {
-  cuncuno::propagate(*this, bindings);
-  propagateTo(*kids.front());
-}
-
-void VariableNode::propagate(vector<Binding>& bindings) {
-  cuncuno::propagate(*this, bindings);
-  propagateTo(*kids.front());
 }
 
 

@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <Eigen/Dense>
 #include "learner.h"
+#include <memory>
 #include <sstream>
 #include "tree.h"
 
@@ -177,13 +178,12 @@ void TreeLearner::findBestExpansion() {
       // TODO Protect against leaks from exceptions here!!!
       // TODO Investigate shared_ptr???
       expansionNode->replaceWith(varNode);
-      delete expansionNode;
-      varNode.parent()->propagate();
-      // TODO This doesn't work for some reason, even though it should just
-      // TODO point to the most recent real storage.
-      //for (Count b = 0; b < arrival.bindings.size(); b++) {
-      //  varNode.propagate(*arrival.bindings[b]);
-      //}
+      {
+        auto_ptr<LeafNode> autoDelete(expansionNode);
+        // We want the exact set of bindings that the leaf already had. This
+        // matters especially for predicate nodes, so we don't need to retest.
+        expansionNode->propagateTo(varNode);
+      }
       // The var node's leaf is the new expansion node.
       expansionNode = dynamic_cast<LeafNode*>(varNode.kids.front());
       // Update probabilities again already for kicks. TODO Delete this?
@@ -228,7 +228,7 @@ void TreeLearner::updateProbabilities(RootNode& root) {
   root.leaves(leaves);
   for (Count l = 0; l < leaves.size(); l++) {
     LeafNode& leaf(*leaves[l]);
-    cout << "Leaf " << leaf.id << " (root " << leaf.root() << ")" << flush;
+    cout << "Leaf " << leaf.id << flush;
     vector<Binding*>& bindings(leaf.arrival->bindings);
     Float total(0);
     Float trues(0);
@@ -238,9 +238,6 @@ void TreeLearner::updateProbabilities(RootNode& root) {
       // TODO Change to be one vote per bag, not per binding!!!!!
       // TODO Actually, we do need to allow some bindings in true bags to be
       // TODO counted as false. Optimize across leaf probabilities.
-      if (b == bindings.begin()) {
-        cout << "Checking binding " << *b << " for prob." << endl;
-      }
       total++;
       trues += (*b)->sample().label ? 1 : 0;
     }
@@ -248,7 +245,8 @@ void TreeLearner::updateProbabilities(RootNode& root) {
     // TODO Delete the log.
     cout
       << " probability: " << leaf.probability
-      << " (" << trues << "/" << total << ")";
+      << " (" << trues << "/" << total << ")" << endl
+    ;
   }
 }
 
