@@ -12,7 +12,10 @@ namespace cuncuno {
 struct Entity2D {
 
   /**
-   * The standard type for Entity2D. Can be copied and expanded as needed.
+   * The standard type for pointers to Entity2D.
+   *
+   * TODO I said this before: Can be copied and expanded as needed.
+   * TODO Now: I need to figure out how to manage types, really.
    */
   static const Type& type();
 

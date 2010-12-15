@@ -381,7 +381,7 @@ struct PredicateNode: ArrivalNode {
    */
   virtual void propagate(std::vector<Binding>& binding);
 
-  AttributePredicate* predicate;
+  FunctionPredicate* predicate;
 
   Node* $true;
 

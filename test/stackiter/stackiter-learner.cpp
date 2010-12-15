@@ -41,8 +41,7 @@ int main(int argc, char** argv) {
 
     Type itemType = Entity2D::type();
     itemType.size = sizeof(Item);
-    Learner learner;
-    learner.entityType = itemType;
+    Learner learner(itemType);
     learner.learn(samples);
 
   } catch (const char* message) {

@@ -18,6 +18,8 @@ typedef Float Probability;
  * corresponding to the concept, given its values?
  *
  * TODO What's the right word for this?
+ *
+ * TODO Just use Function instead? Or make this a decorator?
  */
 struct ProbabilityFunction {
 

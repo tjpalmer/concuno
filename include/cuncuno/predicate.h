@@ -18,7 +18,7 @@ struct Predicate {
    *
    * Errors, if any, will be thrown.
    */
-  virtual bool operator ()(const void* entity) const = 0;
+  virtual bool operator()(const void* entity) const = 0;
 
   // TODO Type and count.
 
@@ -27,12 +27,12 @@ struct Predicate {
 // TODO ProbabilityThresholdPredicate without the Attribute/Function.
 
 /**
- * A predicate explicitly based on a particular attribute, probability function,
- * and threshold. Making them explicit makes them tweakable.
+ * A predicate explicitly based on a particular entity function, probability
+ * function, and threshold. Making them explicit makes them tweakable.
  *
  * TODO Expose arity?
  */
-struct AttributePredicate: Predicate {
+struct FunctionPredicate: Predicate {
 
   /**
    * This is the same as the one-arg classify, except that error conditions are
@@ -40,12 +40,12 @@ struct AttributePredicate: Predicate {
    *
    * TODO Provide an enum for tri-state bools?
    */
-  bool operator ()(const void* entity) const;
+  bool operator()(const void* entity) const;
 
   /**
    * Allows extracting values from entities.
    */
-  const Attribute* attribute;
+  const Function* function;
 
   /**
    * Determines a probability of some value matching a concept. Extracted

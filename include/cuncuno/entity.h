@@ -30,8 +30,88 @@ struct Type;
  * TODO Combine with attribute.
  */
 struct Function {
-  // TODO Types and counts.
-  virtual void operator ()(const void* in, void* out) = 0;
+
+  Function(const String& name = "");
+
+  /**
+   * The out parameter can actually be in-out, such as for attribute "put"
+   * functions. For now, such issues are implicit.
+   */
+  virtual void operator()(const void* in, void* out) const = 0;
+
+  virtual const Type& typeIn() const = 0;
+
+  virtual const Type& typeOut() const = 0;
+
+  /**
+   * Directly exposed because it's more convenient to say 'blah.name' than to
+   * have to provide a buffer, and by that point, we know we need storage
+   * somewhere. So just make it explicit.
+   */
+  String name;
+
+};
+
+/**
+ * Simple getter for the common case of a struct with memory readable at a
+ * particular offset.
+ */
+struct GetFunction: Function {
+
+  /**
+   * The name should be the name of the attribute.
+   */
+  GetFunction(
+    const String& name,
+    const Type& entityType,
+    const Type& attributeType,
+    Size offset
+  );
+
+  virtual void operator()(const void* in, void* out) const;
+
+  /**
+   * The entity type.
+   */
+  virtual const Type& typeIn() const;
+
+  /**
+   * The attribute type.
+   */
+  virtual const Type& typeOut() const;
+
+  const Type& entityType;
+
+  const Type& attributeType;
+
+  /**
+   * Offset in bytes from the start of the entity.
+   */
+  const Size offset;
+
+};
+
+/**
+ * Convenience put function mirroring a convenience get function.
+ */
+struct PutFunction: Function {
+
+  /**
+   * The name will be 'AttributeName='.
+   */
+  PutFunction(GetFunction& get);
+
+  /**
+   * The value goes in. The entity goes inout via out.
+   */
+  virtual void operator()(const void* in, void* out) const;
+
+  virtual const Type& typeIn() const;
+
+  virtual const Type& typeOut() const;
+
+  GetFunction& get;
+
 };
 
 /**
@@ -45,43 +125,25 @@ struct DifferenceFunction;
  * Provides values from entities. Attributes might be abstract or composite,
  * and entities might be composite, too.
  *
- * TODO Unify attribute with Function.
+ * TODO Split just into raw functions or retain knowledge of paired get/put?
  */
 struct Attribute {
 
-  Attribute(const String& name, const Type& type, Count count = 1);
+  Attribute(Function* get, Function* put = 0);
 
-  /**
-   * Gets the value of the attribute for the given entity. The buffer must be
-   * large enough to store the data.
-   */
-  virtual void get(const void* entity, void* buffer) const = 0;
+  const Type& entityType() const;
 
-  /**
-   * The count, dependent on a particular entity. By default, it defers to the
-   * constant count.
-   *
-   * Note that the entity-specific count could actually be zero.
-   *
-   * TODO Would this ever require much calculation to determine? If so, allow
-   * TODO expandable output or partial evaluations for efficiency in creating
-   * TODO output buffers to match.
-   */
-  virtual Count getCount(const void* entity) const;
+  const String& name() const;
 
-  const String name;
+  const Type& type() const;
 
-  const Type& type;
+  Function* get;
 
-  /**
-   * To allocate large arrays efficiently, check for constant count first here.
-   *
-   * If zero, then it depends on each specific entity. Presumably you'd never
-   * want to define an always-empty attribute.
-   */
-  const Count count;
+  Function* put;
 
 };
+
+struct TypeSystem;
 
 /**
  * TODO Arbitrary type parameters then specialized versions filled in? Type
@@ -89,13 +151,17 @@ struct Attribute {
  */
 struct Type {
 
-  static const Type& $bool();
+  /**
+   * Builds a new base type.
+   *
+   * TODO Default count to 0 or 1?
+   */
+  Type(TypeSystem& system, const String& name = "", Size size = 0);
 
-  static const Type& byte();
-
-  static const Type& $float();
-
-  static const Type& $int();
+  /**
+   * To create a derived type with particular arity.
+   */
+  Type(const Type& base, Count count);
 
   /**
    * Simply whether the two types are at the same memory address. Deep
@@ -106,6 +172,13 @@ struct Type {
   String name;
 
   /**
+   * Same as this if not based on another type.
+   */
+  const Type& base;
+
+  Count count;
+
+  /**
    * The size of one instance of this type. All entities are expected to be
    * fixed size for any particular type.
    *
@@ -113,12 +186,35 @@ struct Type {
    */
   Size size;
 
+  TypeSystem& system;
+
   /**
    * These might be raw values or abstract concepts and functions.
    *
    * TODO Make this a map? Easy enough to iterate but also allows fast lookup.
    */
-  std::vector<Attribute*> attributes;
+  std::vector<Attribute> attributes;
+
+};
+
+/**
+ * Convenient access to common types along with a predefined cleanup strategy.
+ */
+struct TypeSystem {
+
+  TypeSystem();
+
+  ~TypeSystem();
+
+  const Type& $bool();
+
+  const Type& byte();
+
+  const Type& $float();
+
+  const Type& $int();
+
+  std::vector<Type*> types;
 
 };
 

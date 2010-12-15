@@ -36,12 +36,12 @@ struct Sample {
  */
 struct Learner: Worker {
 
-  Learner();
+  Learner(const Type& entityType);
 
   /**
    * TODO Make this a const ref.
    */
-  Type entityType;
+  const Type& entityType;
 
   /**
    * TODO What kind of return type?

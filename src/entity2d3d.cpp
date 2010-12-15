@@ -5,14 +5,6 @@ using namespace std;
 
 namespace cuncuno {
 
-struct Location2DAttribute: Attribute {
-  Location2DAttribute(): Attribute("Location2D", Type::$float(), 2) {}
-  virtual void get(const void* entity, void* buffer) const {
-    const Entity2D& e2d = *reinterpret_cast<const Entity2D*>(entity);
-    memcpy(buffer, e2d.location, sizeof(e2d.location));
-  }
-};
-
 Entity2D::Entity2D(): orientation(0), orientationVelocity(0) {
   memset(color, 0, sizeof(color));
   memset(extent, 0, sizeof(extent));
@@ -21,10 +13,27 @@ Entity2D::Entity2D(): orientation(0), orientationVelocity(0) {
 }
 
 const Type& Entity2D::type() {
-  static Type entity2DType;
-  entity2DType.name = "Entity2D";
-  entity2DType.size = sizeof(Entity2D);
-  entity2DType.attributes.push_back(new Location2DAttribute);
+  // TODO Figure out a better way to provide the type system or whatnot.
+  static TypeSystem system;
+  static Type entity2DType(system);
+  static Type float2Type(system.$float(), 2);
+  Entity2D entity2D;
+  static GetFunction location2DGet(
+    "Location2D", entity2DType, float2Type,
+    // TODO Is there a better way to determine offsets?
+    reinterpret_cast<Byte*>(&entity2D.location) -
+    reinterpret_cast<Byte*>(&entity2D)
+  );
+  static PutFunction location2DPut(location2DGet);
+  static bool first(true);
+  if (first) {
+    first = false;
+    entity2DType.name = "Entity2D";
+    entity2DType.size = sizeof(Entity2D*);
+    entity2DType.attributes.push_back(
+      Attribute(&location2DGet, &location2DPut)
+    );
+  }
   return entity2DType;
 }
 

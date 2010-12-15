@@ -22,7 +22,7 @@ struct TreeLearner: Worker {
   /**
    * TODO Make based on n-ary functions of entities with metrics.
    */
-  void split(LeafNode& leaf, const Attribute& attribute);
+  void split(LeafNode& leaf, const Function& function);
 
   /**
    * Updates the probabilities assigned to leaf nodes.
@@ -44,7 +44,8 @@ struct TreeLearner: Worker {
 
 /// Learner.
 
-Learner::Learner(): Worker("Learner") {}
+Learner::Learner(const Type& $entityType):
+  Worker("Learner"), entityType($entityType) {}
 
 void Learner::learn(const vector<Sample>& samples) {
 
@@ -76,12 +77,16 @@ void Learner::learn(const vector<Sample>& samples) {
   // TODO Just one buffer large enough for all dimensions?
   Float buffer2D[2];
   for (
-    vector<Attribute*>::iterator a(entityType.attributes.begin());
+    vector<Attribute>::const_iterator a(entityType.attributes.begin());
     a != entityType.attributes.end();
     a++
   ) {
-    Attribute& attribute(**a);
-    if (attribute.type == Type::$float() && attribute.count == 2) {
+    const Attribute& attribute(*a);
+    const Type& attributeType(attribute.type());
+    if (
+      attributeType.base == attributeType.system.$float() &&
+      attributeType.count == 2
+    ) {
       size_t index(0);
       for (
         vector<Sample>::const_iterator s(samples.begin());
@@ -94,7 +99,7 @@ void Learner::learn(const vector<Sample>& samples) {
           e != sample.entities.end();
           e++, index++
         ) {
-          attribute.get(*e, buffer2D);
+          (*attribute.get)(*e, buffer2D);
           // TODO There's probably some better way than two assignments.
           values2D(index,0) = buffer2D[0];
           values2D(index,1) = buffer2D[1];
@@ -104,7 +109,7 @@ void Learner::learn(const vector<Sample>& samples) {
       stringstream message;
       //cout << values2D << endl;
       message
-        << attribute.name << " values loaded: " << values2D.rows() << endl
+        << attribute.name() << " values loaded: " << values2D.rows() << endl
       ;
       log(message.str());
     }
@@ -202,7 +207,7 @@ void TreeLearner::findBestExpansion() {
       // TODO Constrain newVarCount vars.
       // TODO Loop on functions, not just attributes.
       for (Count a(0); a < root.entityType.attributes.size(); a++) {
-        const Attribute& attribute(*root.entityType.attributes[a]);
+        const Function& function(*root.entityType.attributes[a].get);
         // TODO Check if the function matches the arity.
         // TODO Once we have arbitrary functions, pull arity from there.
         // TODO Change to expand?
@@ -215,7 +220,7 @@ void TreeLearner::findBestExpansion() {
   // TODO How to express work units as continuations for placement in heap?
 }
 
-void TreeLearner::split(LeafNode& leaf, const Attribute& attribute) {
+void TreeLearner::split(LeafNode& leaf, const Function& function) {
   // TODO Remove but don't destroy leaf.
   // TODO Consider options of which vars to use in the function.
   // TODO Even for asymmetric functions, no need to check both directions if the
