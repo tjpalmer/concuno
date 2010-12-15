@@ -166,9 +166,9 @@ void TreeLearner::findBestExpansion() {
   // TODO Determine max arity of functions.
   Count maxArity(2);
   // Loop on number of new vars to add. We'd rather not add them.
-  RootNode candidateBase(root);
+  RootNode candidateTree(root);
   LeafNode* expansionNode(
-    dynamic_cast<LeafNode*>(candidateBase.findById(leaf.id))
+    dynamic_cast<LeafNode*>(candidateTree.findById(leaf.id))
   );
   //Joint expansionJoint;
   //expansionNode->purge(expansionJoint);
@@ -192,7 +192,7 @@ void TreeLearner::findBestExpansion() {
       // The var node's leaf is the new expansion node.
       expansionNode = dynamic_cast<LeafNode*>(varNode.kids.front());
       // Update probabilities again already for kicks. TODO Delete this?
-      updateProbabilities(candidateBase);
+      updateProbabilities(candidateTree);
     }
     // {LogEntry entry(this); entry << "Expansion node: " << expansionNode;}
     // log << "Expansion node: " << expansionNode << endEntry;
@@ -202,18 +202,21 @@ void TreeLearner::findBestExpansion() {
     log(message.str());
     // Limit arity by available vars.
     // TODO Organize or sort functions by arity?
-    Count currentMaxArity(std::min(varCount + newVarCount, maxArity));
-    for (Count arity(1); arity <= currentMaxArity; arity++) {
+    Count currentMaxArity(min(varCount + newVarCount, maxArity));
+    for (Count arity(newVarCount); arity <= currentMaxArity; arity++) {
       // TODO Constrain newVarCount vars.
       // TODO Loop on functions, not just attributes.
       for (Count a(0); a < root.entityType.attributes.size(); a++) {
         const Function& function(*root.entityType.attributes[a].get);
-        // TODO Check if the function matches the arity.
-        // TODO Once we have arbitrary functions, pull arity from there.
-        // TODO Change to expand?
-        // TODO Change to expand on any node: split(candidateLeaf, attribute);
-        // TODO Check quality.
-        // TODO Restore leaf.
+        if (function.typeIn().count == arity) {
+          RootNode tempTree(candidateTree);
+          LeafNode& tempLeaf(
+            *dynamic_cast<LeafNode*>(tempTree.findById(expansionNode->id))
+          );
+          split(tempLeaf, function);
+          // TODO Check quality.
+          // TODO Update candidate tree if better.
+        }
       }
     }
   }
@@ -221,6 +224,7 @@ void TreeLearner::findBestExpansion() {
 }
 
 void TreeLearner::split(LeafNode& leaf, const Function& function) {
+  cout << "Splitting with " << function.name << endl;
   // TODO Remove but don't destroy leaf.
   // TODO Consider options of which vars to use in the function.
   // TODO Even for asymmetric functions, no need to check both directions if the
