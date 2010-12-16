@@ -154,7 +154,7 @@ struct Type {
   /**
    * Builds a new base type. Defaults count to 1.
    */
-  Type(TypeSystem& system, const String& name = "", Size size = 0);
+  Type(TypeSystem& system, const String& name, Size size);
 
   /**
    * To create a derived type with particular arity.
@@ -162,10 +162,32 @@ struct Type {
   Type(const Type& base, Count count);
 
   /**
+   * Deletes all referenced array types.
+   */
+  ~Type();
+
+  /**
+   * Provides a derived type with the given count, creating it if necessary,
+   * and storing it in arrayTypes at an index equivalent to the count.
+   *
+   * Don't use this technique to make really large array types unless you want
+   * a bunch of useless memory allocated for unused array type pointers in
+   * between.
+   *
+   * This allows arrays of count 0 and 1.
+   *
+   * The function is labeled const because this type itself doesn't change,
+   * despite a potentially added derived type.
+   *
+   * TODO Use count 0 to indicate dynamic count? How to support dynamic count?
+   */
+  const Type& arrayType(Count count) const;
+
+  /**
    * Simply whether the two types are at the same memory address. Deep
    * comparison isn't worth it, and type names are risky, too.
    */
-  bool operator ==(const Type& type) const;
+  bool operator==(const Type& type) const;
 
   String name;
 
@@ -190,6 +212,15 @@ struct Type {
    * TODO Make this a map? Easy enough to iterate but also allows fast lookup.
    */
   std::vector<Attribute> attributes;
+
+private:
+
+  /**
+   * A controlled list of derived types of different counts to avoid
+   * duplication and allow easy cleanup. These are all deleted in the
+   * destructor of Type.
+   */
+  std::vector<const Type*> arrayTypes;
 
 };
 

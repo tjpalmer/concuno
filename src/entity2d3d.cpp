@@ -15,11 +15,10 @@ Entity2D::Entity2D(): orientation(0), orientationVelocity(0) {
 const Type& Entity2D::type() {
   // TODO Figure out a better way to provide the type system or whatnot.
   static TypeSystem system;
-  static Type entity2DType(system);
-  static Type float2Type(system.$float(), 2);
+  static Type entity2DType(system, "Entity2D", sizeof(Entity2D*));
   Entity2D entity2D;
   static GetFunction location2DGet(
-    "Location2D", entity2DType, float2Type,
+    "Location2D", entity2DType, system.$float().arrayType(2),
     // TODO Is there a better way to determine offsets?
     reinterpret_cast<Byte*>(&entity2D.location) -
     reinterpret_cast<Byte*>(&entity2D)
@@ -28,8 +27,6 @@ const Type& Entity2D::type() {
   static bool first(true);
   if (first) {
     first = false;
-    entity2DType.name = "Entity2D";
-    entity2DType.size = sizeof(Entity2D*);
     entity2DType.attributes.push_back(
       Attribute(&location2DGet, &location2DPut)
     );

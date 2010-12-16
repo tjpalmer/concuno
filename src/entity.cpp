@@ -106,6 +106,30 @@ Type::Type(const Type& $base, Count $count):
     base($base), count($count), size($base.size * $count), system($base.system)
 {}
 
+Type::~Type() {
+  for (Count t = 0; t < arrayTypes.size(); t++) {
+    delete arrayTypes[t];
+  }
+}
+
+const Type& Type::arrayType(Count count) const {
+  // First make sure we have enough space.
+  if (arrayTypes.size() <= count) {
+    const_cast<vector<const Type*>&>(arrayTypes).resize(count + 1, 0);
+  }
+  // Then make sure we've defined the array type. It's a needless check if we
+  // just resized, but oh well. The common case is that we've already defined
+  // the type.
+  const Type* type = arrayTypes[count];
+  if (!type) {
+    type = new Type(*this, count);
+    const_cast<vector<const Type*>&>(arrayTypes)[count] = type;
+  }
+  // And return the type.
+  return *type;
+}
+
+
 bool Type::operator ==(const Type& type) const {
   return this == &type;
 }
