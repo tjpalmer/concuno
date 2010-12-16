@@ -152,9 +152,7 @@ struct TypeSystem;
 struct Type {
 
   /**
-   * Builds a new base type.
-   *
-   * TODO Default count to 0 or 1?
+   * Builds a new base type. Defaults count to 1.
    */
   Type(TypeSystem& system, const String& name = "", Size size = 0);
 
@@ -179,10 +177,8 @@ struct Type {
   Count count;
 
   /**
-   * The size of one instance of this type. All entities are expected to be
-   * fixed size for any particular type.
-   *
-   * TODO Do I really care about this???
+   * The size of this type. If it has a base, it should be count * base.size.
+   * All entities are expected to be fixed size for any particular type.
    */
   Size size;
 

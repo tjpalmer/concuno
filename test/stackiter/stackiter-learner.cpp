@@ -39,7 +39,7 @@ int main(int argc, char** argv) {
       << "Mean items in chosen states: " << (totalItems/samples.size()) << endl
     ;
 
-    Type itemType = Entity2D::type();
+    Type itemType(Entity2D::type());
     itemType.size = sizeof(Item);
     Learner learner(itemType);
     learner.learn(samples);

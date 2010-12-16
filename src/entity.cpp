@@ -47,12 +47,7 @@ GetFunction::GetFunction(
 {}
 
 void GetFunction::operator()(const void* in, void* out) const {
-  memcpy(
-    out,
-    reinterpret_cast<const Byte*>(in) + offset,
-    // TODO Type::totalSize()?
-    attributeType.count * attributeType.size
-  );
+  memcpy(out, reinterpret_cast<const Byte*>(in) + offset, attributeType.size);
 }
 
 const Type& GetFunction::typeIn() const {
@@ -70,12 +65,7 @@ PutFunction::PutFunction(GetFunction& $get):
   Function($get.name + '='), get($get) {}
 
 void PutFunction::operator()(const void* in, void* out) const {
-  memcpy(
-    reinterpret_cast<Byte*>(out) + get.offset,
-    in,
-    // TODO Type::totalSize()?
-    typeOut().count * typeOut().size
-  );
+  memcpy(reinterpret_cast<Byte*>(out) + get.offset, in, typeOut().size);
 }
 
 const Type& PutFunction::typeIn() const {
@@ -113,7 +103,8 @@ Type::Type(TypeSystem& $system, const String& $name, Size $size):
   name($name), base(*this), count(1), size($size), system($system) {}
 
 Type::Type(const Type& $base, Count $count):
-    base($base), count($count), size($base.size), system($base.system) {}
+    base($base), count($count), size($base.size * $count), system($base.system)
+{}
 
 bool Type::operator ==(const Type& type) const {
   return this == &type;
