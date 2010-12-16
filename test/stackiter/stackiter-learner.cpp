@@ -41,7 +41,35 @@ int main(int argc, char** argv) {
 
     Type itemType(Entity2D::type());
     itemType.size = sizeof(Item);
+
     Learner learner(itemType);
+    DifferenceFunction difference(itemType.system.$float().arrayType(2));
+    // TODO Once we have multiple attributes, how do we get location easily?
+    Function& location(*itemType.attributes.front().get);
+    ComposedFunction differenceLocation(difference, location);
+
+    // Totally flaky:
+    //    cout << "Item count: " << loader.states[3].items.size() << endl;
+    //    Item* items[2] = {&loader.states[3].items[2], &loader.states[3].items[11]};
+    //    Float itemLoc[2];
+    //    location(items[0], itemLoc);
+    //    cout << "Item at " << itemLoc[0] << ", " << itemLoc[1] << endl;
+    //    location(items[1], itemLoc);
+    //    cout << "Item at " << itemLoc[0] << ", " << itemLoc[1] << endl;
+    //    differenceLocation(items, itemLoc);
+    //    cout << "Diff =  " << itemLoc[0] << ", " << itemLoc[1] << endl;
+
+    // Simple test/profiling.
+    //    Function& blah(difference);
+    //    Float ab[] = {1.5, 3.0, 2.0, 0.3};
+    //    Float c[2];
+    //    for (Count i(0); i < 100000000; i++) {
+    //      blah(ab, c);
+    //      c[0] = ab[0] - ab[2];
+    //      c[1] = ab[1] - ab[3];
+    //    }
+    //    cout << "Result: " << c[0] << ", " << c[1] << endl;
+
     learner.learn(samples);
 
   } catch (const char* message) {

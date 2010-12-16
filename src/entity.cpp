@@ -82,9 +82,14 @@ const Type& Type::arrayType(Count count) const {
 }
 
 
-bool Type::operator ==(const Type& type) const {
+bool Type::operator==(const Type& type) const {
   return this == &type;
 }
+
+bool Type::operator!=(const Type& type) const {
+  return !(*this == type);
+}
+
 
 
 /// TypeSystem.

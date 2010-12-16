@@ -120,6 +120,11 @@ struct Type {
    */
   bool operator==(const Type& type) const;
 
+  /**
+   * Silly C++ making me define this.
+   */
+  bool operator!=(const Type& type) const;
+
   String name;
 
   /**

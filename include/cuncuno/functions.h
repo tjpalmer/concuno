@@ -5,6 +5,69 @@
 
 namespace cuncuno {
 
+struct ComposedFunction: Function {
+
+  ComposedFunction(Function& outer, Function& inner);
+
+  virtual void operator()(const void* in, void* out) const;
+
+  virtual const Type& typeIn() const;
+
+  virtual const Type& typeOut() const;
+
+  Function& outer;
+
+  Function& inner;
+
+};
+
+/**
+ * Simple vector difference on floats.
+ *
+ * This is about 2-3x slower on my computer than just manually doing subtraction
+ * on float arrays, when applying optimizations in both cases.
+ * TODO Is it due to data copy?
+ *
+ * TODO Templatize for other than Float?
+ */
+struct DifferenceFunction: Function {
+
+  /**
+   * The vector type for both inputs and for the single output. Should have
+   * type.system.$float as a base type.
+   */
+  DifferenceFunction(const Type& type);
+
+  virtual void operator()(const void* in, void* out) const;
+
+  /**
+   * A type array of 2.
+   */
+  virtual const Type& typeIn() const;
+
+  virtual const Type& typeOut() const;
+
+  const Type& type;
+
+};
+
+/**
+ * A p-norm distance metric based on vector differences.
+ */
+struct DistanceFunction: Function {
+
+  DistanceFunction(const Type& type, Float exponent = 2);
+
+  virtual void operator()(const void* in, void* out) const;
+
+  virtual const Type& typeIn() const;
+
+  virtual const Type& typeOut() const;
+
+  const Type& type;
+
+};
+
 /**
  * Simple getter for the common case of a struct with memory readable at a
  * particular offset.
@@ -64,53 +127,6 @@ struct PutFunction: Function {
   virtual const Type& typeOut() const;
 
   GetFunction& get;
-
-};
-
-/**
- * Simple vector difference on floats.
- */
-struct DifferenceFunction: Function {
-
-  DifferenceFunction(const Type& type);
-
-  virtual void operator()(const void* in, void* out) const;
-
-  virtual const Type& typeIn() const;
-
-  virtual const Type& typeOut() const;
-
-  const Type& type;
-
-};
-
-struct DistanceFunction: Function {
-
-  DistanceFunction(const Type& type);
-
-  virtual void operator()(const void* in, void* out) const;
-
-  virtual const Type& typeIn() const;
-
-  virtual const Type& typeOut() const;
-
-  const Type& type;
-
-};
-
-struct ComposedFunction: Function {
-
-  ComposedFunction(Function& outer, Function& inner);
-
-  virtual void operator()(const void* in, void* out) const;
-
-  virtual const Type& typeIn() const;
-
-  virtual const Type& typeOut() const;
-
-  Function& outer;
-
-  Function& inner;
 
 };
 
