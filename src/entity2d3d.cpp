@@ -1,5 +1,6 @@
 #include <cstring>
 #include "entity2d3d.h"
+#include "functions.h"
 
 using namespace std;
 

@@ -53,75 +53,6 @@ struct Function {
 };
 
 /**
- * Simple getter for the common case of a struct with memory readable at a
- * particular offset.
- */
-struct GetFunction: Function {
-
-  /**
-   * The name should be the name of the attribute.
-   */
-  GetFunction(
-    const String& name,
-    const Type& entityType,
-    const Type& attributeType,
-    Size offset
-  );
-
-  virtual void operator()(const void* in, void* out) const;
-
-  /**
-   * The entity type.
-   */
-  virtual const Type& typeIn() const;
-
-  /**
-   * The attribute type.
-   */
-  virtual const Type& typeOut() const;
-
-  const Type& entityType;
-
-  const Type& attributeType;
-
-  /**
-   * Offset in bytes from the start of the entity.
-   */
-  const Size offset;
-
-};
-
-/**
- * Convenience put function mirroring a convenience get function.
- */
-struct PutFunction: Function {
-
-  /**
-   * The name will be 'AttributeName='.
-   */
-  PutFunction(GetFunction& get);
-
-  /**
-   * The value goes in. The entity goes inout via out.
-   */
-  virtual void operator()(const void* in, void* out) const;
-
-  virtual const Type& typeIn() const;
-
-  virtual const Type& typeOut() const;
-
-  GetFunction& get;
-
-};
-
-/**
- * TODO How to make this generic? With templates or at runtime? Still how?
- * TODO I want to be able to compose functions like Difference(Location2D)
- * TODO arbitrarily and combine attributes with functions.
- */
-struct DifferenceFunction;
-
-/**
  * Provides values from entities. Attributes might be abstract or composite,
  * and entities might be composite, too.
  *
@@ -242,15 +173,6 @@ struct TypeSystem {
   const Type& $int();
 
   std::vector<Type*> types;
-
-};
-
-template<typename Value>
-struct Metric {
-
-  virtual void difference(const Value& a, const Value& b, Value& diff);
-
-  virtual Float distance(const Value& a, const Value& b);
 
 };
 
