@@ -15,7 +15,7 @@ namespace cuncuno {
 
 struct TreeLearner: Worker {
 
-  TreeLearner(RootNode& root, const vector<Sample>& samples);
+  TreeLearner(Learner& learner, RootNode& root, const vector<Sample>& samples);
 
   void findBestExpansion();
 
@@ -28,6 +28,8 @@ struct TreeLearner: Worker {
    * Updates the probabilities assigned to leaf nodes.
    */
   void updateProbabilities(RootNode& root);
+
+  Learner& learner;
 
   /**
    * The tree root.
@@ -51,7 +53,7 @@ void Learner::learn(const vector<Sample>& samples) {
 
   // Beginnings of tree learning.
   RootNode root(entityType);
-  TreeLearner treeLearner(root, samples);
+  TreeLearner treeLearner(*this, root, samples);
   treeLearner.findBestExpansion();
 
   // Load labels first. Among other things, that tells us how many entities
@@ -122,8 +124,10 @@ void Learner::learn(const vector<Sample>& samples) {
 
 /// TreeLearner
 
-TreeLearner::TreeLearner(RootNode& $root, const vector<Sample>& $samples):
-  Worker("TreeLearner"), root($root), samples($samples) {}
+TreeLearner::TreeLearner(
+  Learner& $learner, RootNode& $root, const vector<Sample>& $samples
+):
+  Worker("TreeLearner"), learner($learner), root($root), samples($samples) {}
 
 void TreeLearner::findBestExpansion() {
   // Propagate the samples and update probabilities.
@@ -206,8 +210,8 @@ void TreeLearner::findBestExpansion() {
     for (Count arity(newVarCount); arity <= currentMaxArity; arity++) {
       // TODO Constrain newVarCount vars.
       // TODO Loop on functions, not just attributes.
-      for (Count a(0); a < root.entityType.attributes.size(); a++) {
-        const Function& function(*root.entityType.attributes[a].get);
+      for (Count f(0); f < learner.functions.size(); f++) {
+        const Function& function(*learner.functions[f]);
         if (function.typeIn().count == arity) {
           RootNode tempTree(candidateTree);
           LeafNode& tempLeaf(

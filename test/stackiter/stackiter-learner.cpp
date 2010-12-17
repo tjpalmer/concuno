@@ -48,25 +48,10 @@ int main(int argc, char** argv) {
     // TODO Once we have multiple attributes, how do we get location easily?
     PointerFunction location(*itemType.attributes.front().get);
     ComposedFunction differenceLocation(difference, location);
+    learner.functions.push_back(&location);
+    learner.functions.push_back(&differenceLocation);
 
-    // Trying out fancy functions:
-    //    cout << "Item count: " << loader.states[3].items.size() << endl;
-    //    Item* items[2] =
-    //      {&loader.states[3].items[2], &loader.states[3].items[11]};
-    //    Float itemLoc[2];
-    //    location(items, itemLoc);
-    //    cout << "Item at " << itemLoc[0] << ", " << itemLoc[1] << endl;
-    //    //cout << "Really  " << loader.states[3].items[2].location[0] << ", "
-    //    //  << loader.states[3].items[2].location[1] << endl;
-    //    location(items + 1, itemLoc);
-    //    cout << "Item at " << itemLoc[0] << ", " << itemLoc[1] << endl;
-    //    //cout << "Really  " << loader.states[3].items[11].location[0] << ", "
-    //    //  << loader.states[3].items[11].location[1] << endl;
-    //    differenceLocation(items, itemLoc);
-    //    cout << "Diff =  " << itemLoc[0] << ", " << itemLoc[1] << endl;
-    //    throw "Bailed early!";
-
-    // Simple test/profiling.
+    // Simple test/profiling. TODO Try again with pointers support.
     //    Function& blah(difference);
     //    Float ab[] = {1.5, 3.0, 2.0, 0.3};
     //    Float c[2];

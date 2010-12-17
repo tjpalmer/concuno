@@ -39,9 +39,17 @@ struct Learner: Worker {
   Learner(const Type& entityType);
 
   /**
-   * TODO Make this a const ref.
+   * TODO Do I really need this? For either validation or attributes?
    */
   const Type& entityType;
+
+  /**
+   * Functions take (arrays of) pointers to entities and return vectors or
+   * categories or such.
+   *
+   * TODO How to pair with probability distributions?
+   */
+  std::vector<Function*> functions;
 
   /**
    * TODO What kind of return type?

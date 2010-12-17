@@ -9,7 +9,7 @@ namespace cuncuno {
 /// ComposedFunction.
 
 ComposedFunction::ComposedFunction(Function& $outer, Function& $inner):
-  outer($outer), inner($inner)
+  Function($outer.name + $inner.name), outer($outer), inner($inner)
 {
   if (outer.typeIn() == inner.typeOut()) {
     // Raw composition.
@@ -72,7 +72,9 @@ const Type& ComposedFunction::typeOut() const {
 
 /// DifferenceFunction.
 
-DifferenceFunction::DifferenceFunction(const Type& $type): type($type) {
+DifferenceFunction::DifferenceFunction(const Type& $type):
+  Function("Difference"), type($type)
+{
   // Preallocate in case it's needed.
   type.arrayType(2);
   if (type.base != type.system.$float()) {
@@ -128,7 +130,9 @@ const Type& GetFunction::typeOut() const {
 
 /// PointerFunction.
 
-PointerFunction::PointerFunction(Function& $base): base($base) {
+PointerFunction::PointerFunction(Function& $base):
+  Function($base.name), base($base)
+{
   // Preallocate the pointer type.
   typeIn();
 }
