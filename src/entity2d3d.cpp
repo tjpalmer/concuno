@@ -16,7 +16,7 @@ Entity2D::Entity2D(): orientation(0), orientationVelocity(0) {
 const Type& Entity2D::type() {
   // TODO Figure out a better way to provide the type system or whatnot.
   static TypeSystem system;
-  static Type entity2DType(system, "Entity2D", sizeof(Entity2D*));
+  static Type entity2DType(system, "Entity2D", sizeof(Entity2D));
   Entity2D entity2D;
   static GetFunction location2DGet(
     "Location2D", entity2DType, system.$float().arrayType(2),

@@ -108,6 +108,29 @@ struct GetFunction: Function {
 };
 
 /**
+ * Decorator function for pointer indirection before calling the base.
+ */
+struct PointerFunction: Function {
+
+  PointerFunction(Function& base);
+
+  virtual void operator()(const void* in, void* out) const;
+
+  /**
+   * The entity type.
+   */
+  virtual const Type& typeIn() const;
+
+  /**
+   * The attribute type.
+   */
+  virtual const Type& typeOut() const;
+
+  Function& base;
+
+};
+
+/**
  * Convenience put function mirroring a convenience get function.
  */
 struct PutFunction: Function {

@@ -1,3 +1,4 @@
+#include <algorithm>
 #include "entity.h"
 
 using namespace std;
@@ -52,11 +53,40 @@ void Shared::release() {
 /// Type.
 
 Type::Type(TypeSystem& $system, const String& $name, Size $size):
-  name($name), base(*this), count(1), size($size), system($system) {}
-
-Type::Type(const Type& $base, Count $count):
-    base($base), count($count), size($base.size * $count), system($base.system)
+  name($name),
+  base(*this),
+  count(1),
+  size($size),
+  system($system),
+  $isPointer(false)
 {}
+
+Type::Type(const Type& other):
+  name(other.name),
+  base(other.base == other ? *this : other.base),
+  count(other.count),
+  size(other.size),
+  system(other.system),
+  attributes(other.attributes),
+  $isPointer(other.$isPointer)
+{}
+
+Type::Type(const Type& $base, Count $count, bool $$isPointer):
+  name($base.name),
+  base($base),
+  count($count),
+  size($count * ($$isPointer ? sizeof(void*) : $base.size)),
+  system($base.system),
+  $isPointer($$isPointer)
+{
+  if (isPointer()) {
+    name += "*";
+  }
+  if (count != 1 || !isPointer()) {
+    // TODO Put in actual count.
+    name += "[]";
+  }
+}
 
 Type::~Type() {
   for (Count t = 0; t < arrayTypes.size(); t++) {
@@ -65,7 +95,10 @@ Type::~Type() {
 }
 
 const Type& Type::arrayType(Count count) const {
-  // First make sure we have enough space.
+  if (!count) {
+    throw "Array of length zero unsupported. Use pointerType() for pointer.";
+  }
+  // Make sure we have enough space.
   if (arrayTypes.size() <= count) {
     const_cast<vector<const Type*>&>(arrayTypes).resize(count + 1, 0);
   }
@@ -81,6 +114,9 @@ const Type& Type::arrayType(Count count) const {
   return *type;
 }
 
+bool Type::isPointer() const {
+  return $isPointer;
+}
 
 bool Type::operator==(const Type& type) const {
   return this == &type;
@@ -90,6 +126,13 @@ bool Type::operator!=(const Type& type) const {
   return !(*this == type);
 }
 
+const Type& Type::pointerType() const {
+  if (!$pointerType.get()) {
+    // Peripheral changes here.
+    const_cast<Type*>(this)->$pointerType.reset(new Type(*this, 1, true));
+  }
+  return *$pointerType;
+}
 
 
 /// TypeSystem.

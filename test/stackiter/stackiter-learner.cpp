@@ -39,25 +39,32 @@ int main(int argc, char** argv) {
       << "Mean items in chosen states: " << (totalItems/samples.size()) << endl
     ;
 
+    // TODO Support copied and/or extended types???
     Type itemType(Entity2D::type());
     itemType.size = sizeof(Item);
 
     Learner learner(itemType);
     DifferenceFunction difference(itemType.system.$float().arrayType(2));
     // TODO Once we have multiple attributes, how do we get location easily?
-    Function& location(*itemType.attributes.front().get);
+    PointerFunction location(*itemType.attributes.front().get);
     ComposedFunction differenceLocation(difference, location);
 
-    // Totally flaky:
+    // Trying out fancy functions:
     //    cout << "Item count: " << loader.states[3].items.size() << endl;
-    //    Item* items[2] = {&loader.states[3].items[2], &loader.states[3].items[11]};
+    //    Item* items[2] =
+    //      {&loader.states[3].items[2], &loader.states[3].items[11]};
     //    Float itemLoc[2];
-    //    location(items[0], itemLoc);
+    //    location(items, itemLoc);
     //    cout << "Item at " << itemLoc[0] << ", " << itemLoc[1] << endl;
-    //    location(items[1], itemLoc);
+    //    //cout << "Really  " << loader.states[3].items[2].location[0] << ", "
+    //    //  << loader.states[3].items[2].location[1] << endl;
+    //    location(items + 1, itemLoc);
     //    cout << "Item at " << itemLoc[0] << ", " << itemLoc[1] << endl;
+    //    //cout << "Really  " << loader.states[3].items[11].location[0] << ", "
+    //    //  << loader.states[3].items[11].location[1] << endl;
     //    differenceLocation(items, itemLoc);
     //    cout << "Diff =  " << itemLoc[0] << ", " << itemLoc[1] << endl;
+    //    throw "Bailed early!";
 
     // Simple test/profiling.
     //    Function& blah(difference);

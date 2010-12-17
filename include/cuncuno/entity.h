@@ -2,6 +2,7 @@
 #define cuncuno_entity_h
 
 #include "export.h"
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -88,9 +89,14 @@ struct Type {
   Type(TypeSystem& system, const String& name, Size size);
 
   /**
-   * To create a derived type with particular arity.
+   * Copy constructor.
    */
-  Type(const Type& base, Count count);
+  Type(const Type& other);
+
+  /**
+   * To create a derived type with particular arity or as a pointer.
+   */
+  Type(const Type& base, Count count, bool isPointer = false);
 
   /**
    * Deletes all referenced array types.
@@ -115,6 +121,11 @@ struct Type {
   const Type& arrayType(Count count) const;
 
   /**
+   * Whether this type represents a pointer to the base type.
+   */
+  bool isPointer() const;
+
+  /**
    * Simply whether the two types are at the same memory address. Deep
    * comparison isn't worth it, and type names are risky, too.
    */
@@ -125,6 +136,11 @@ struct Type {
    */
   bool operator!=(const Type& type) const;
 
+  /**
+   * Provides a pointer type for this, creating it if needed.
+   */
+  const Type& pointerType() const;
+
   String name;
 
   /**
@@ -132,6 +148,9 @@ struct Type {
    */
   const Type& base;
 
+  /**
+   * TODO Is 0 best for dynamic size indicator?
+   */
   Count count;
 
   /**
@@ -157,6 +176,17 @@ private:
    * destructor of Type.
    */
   std::vector<const Type*> arrayTypes;
+
+  /**
+   * Whether this type is a pointer to its base type. A bit vector of flags
+   * might be useful later, so this is kept private for now.
+   */
+  bool $isPointer;
+
+  /**
+   * The type representing a pointer to this type.
+   */
+  std::auto_ptr<const Type> $pointerType;
 
 };
 

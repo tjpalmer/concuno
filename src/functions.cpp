@@ -126,6 +126,28 @@ const Type& GetFunction::typeOut() const {
 }
 
 
+/// PointerFunction.
+
+PointerFunction::PointerFunction(Function& $base): base($base) {
+  // Preallocate the pointer type.
+  typeIn();
+}
+
+void PointerFunction::operator()(const void* in, void* out) const {
+  in = *reinterpret_cast<const void *const *>(in);
+  base(in, out);
+}
+
+const Type& PointerFunction::typeIn() const {
+  return base.typeIn().pointerType();
+}
+
+const Type& PointerFunction::typeOut() const {
+  return base.typeOut();
+}
+
+
+
 /// PutFunction.
 
 PutFunction::PutFunction(GetFunction& $get):
