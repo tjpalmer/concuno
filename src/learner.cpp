@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cstdlib>
 #include <Eigen/Dense>
 #include "learner.h"
 #include <memory>
@@ -229,10 +230,37 @@ void TreeLearner::findBestExpansion() {
 
 void TreeLearner::split(LeafNode& leaf, const Function& function) {
   cout << "Splitting with " << function.name << endl;
-  // TODO Remove but don't destroy leaf.
-  // TODO Consider options of which vars to use in the function.
   // TODO Even for asymmetric functions, no need to check both directions if the
   // TODO vars haven't already been used for other predicates.
+  if (function.typeOut().base == function.typeOut().system.$float()) {
+    // Float function.
+    Count bindingCount(leaf.arrival->bindings.size());
+    // Keep count of good bindings. We don't know which have dummies until we
+    // go through them.
+    // TODO Consider splitting out at var nodes to avoid this.
+    // TODO Could also go through to count good vs. bad before allocating the
+    // TODO values buffer.
+    Count goodCount(0);
+    vector<const void*> entities;
+    Size valueSize(function.typeOut().size);
+    // TODO Auto free.
+    Byte* values(reinterpret_cast<Byte*>(malloc(valueSize * bindingCount)));
+    for (Count b(0); b < bindingCount; b++) {
+      Binding& binding(*leaf.arrival->bindings[b]);
+      if (binding.entities(entities)) {
+        // TODO Some way to track errors here, too.
+        // TODO Return true/false or throw exceptions?
+        function(&entities.front(), values + valueSize * goodCount);
+        goodCount++;
+      } else {
+        // TODO Track this one for error branch.
+      }
+    }
+    cout
+      << "Calculated " << goodCount << " (from " << bindingCount << ")"
+      << " values of size " << function.typeOut().size << endl;
+    free(values);
+  }
 }
 
 void TreeLearner::updateProbabilities(RootNode& root) {
