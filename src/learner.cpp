@@ -242,15 +242,20 @@ void TreeLearner::optimizePredicate(PredicateNode& splitter) {
   Count goodCount(0);
   vector<const void*> entities;
   Size valueSize(function.typeOut().size);
-  // TODO Auto free.
-  Byte* values(reinterpret_cast<Byte*>(malloc(valueSize * bindingCount)));
+  vector<const void*> inBuffer(function.typeIn().count);
+  vector<Byte> values(valueSize * bindingCount);
   for (Count b(0); b < bindingCount; b++) {
     Binding& binding(*bindings[b]);
     // TODO Actually, we still need to know which to use.
     if (binding.entities(entities)) {
+      // Pull out the specified arguments.
+      for (Count a(0); a < splitter.args.size(); a++) {
+        inBuffer[a] = entities[splitter.args[a]];
+      }
+      // Call the function, and call it good (for now).
       // TODO Some way to track errors here, too.
       // TODO Return true/false or throw exceptions?
-      function(&entities.front(), values + valueSize * goodCount);
+      function(&inBuffer.front(), &values[valueSize * goodCount]);
       goodCount++;
     } else {
       // TODO Track this one for error branch.
@@ -259,7 +264,6 @@ void TreeLearner::optimizePredicate(PredicateNode& splitter) {
   cout
     << "Calculated " << goodCount << " (from " << bindingCount << ")"
     << " values of size " << function.typeOut().size << endl;
-  free(values);
 }
 
 void TreeLearner::split(LeafNode& leaf, const Function& function) {
@@ -279,11 +283,19 @@ void TreeLearner::split(LeafNode& leaf, const Function& function) {
   // Set up the predicate, except for the arg indexes.
   splitter.predicate = new FunctionPredicate;
   splitter.predicate->function = &function;
+  // TODO Auto-manage args count?
+  Count arity(splitter.predicate->function->typeIn().count);
+  splitter.args.resize(arity);
+  Count varCount = splitter.varCount();
   // TODO Go through the various argument options. This is fake for now.
   for (Count argOptionIndex(0); argOptionIndex < 1; argOptionIndex++) {
     // TODO Set args on the splitter.
     // TODO Even for asymmetric functions, no need to check both directions if the
     // TODO vars haven't already been used for other predicates.
+    // For now, just use the most recent vars with the most recent at the end.
+    for (Count a(0); a < arity; a++) {
+      splitter.args[a] = varCount - arity + a;
+    }
     // TODO Optimization could be kicked off into a heap here, or perhaps at any
     // TODO hierarchical level.
     optimizePredicate(splitter);

@@ -186,7 +186,7 @@ struct Node {
   /**
    * TODO Go to direct field access?
    */
-  Node* parent();
+  Node* parent() const;
 
   /**
    * Propagate the bindings at this node down through kids.
@@ -246,6 +246,13 @@ struct Node {
    * Visits first the current node then the kids in order.
    */
   void traverse(NodeVisitor& visitor, void* data = 0);
+
+  /**
+   * The number of var nodes from the root down through (including) this node.
+   *
+   * TODO Also a count of how many var nodes below the most recent predicate?
+   */
+  Count varCount() const;
 
   Id id;
 

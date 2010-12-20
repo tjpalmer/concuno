@@ -201,7 +201,7 @@ void Node::leaves(std::vector<LeafNode*>& buffer) {
   traverse(visitor);
 }
 
-Node* Node::parent() {
+Node* Node::parent() const {
   return $parent;
 }
 
@@ -283,6 +283,17 @@ void Node::traverse(NodeVisitor& visitor, void* data) {
     (*k)->traverse(visitor, data);
   }
 }
+
+Count Node::varCount() const {
+  Count count(0);
+  for (const Node* node(this); node; node = node->parent()) {
+    if (dynamic_cast<const VariableNode*>(node)) {
+      count++;
+    }
+  }
+  return count;
+}
+
 
 
 /// PredicateNode.
