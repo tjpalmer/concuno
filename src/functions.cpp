@@ -29,28 +29,22 @@ ComposedFunction::ComposedFunction(Function& $outer, Function& $inner):
 
 void ComposedFunction::operator()(const void* in, void* out) const {
   if (outer.typeIn() == inner.typeOut()) {
-    // TODO Some auto_ptr for arrays. Exceptions here will leak memory.
-    // TODO Or just use alloca/_malloca instead?
-    Byte* buffer = new Byte[inner.typeOut().size];
-    inner(in, buffer);
-    outer(buffer, out);
-    delete[] buffer;
+    vector<Byte> buffer(inner.typeOut().size);
+    inner(in, &buffer.front());
+    outer(&buffer.front(), out);
   } else {
     const Type& innerIn(inner.typeIn());
     const Type& innerOut(inner.typeOut());
     const Type& outerIn(innerOut.arrayType(outer.typeIn().count));
     // Gather up all the inner outs for a single call to outer.
-    // TODO Some auto_ptr for arrays. Exceptions here will leak memory.
-    // TODO Or just use alloca/_malloca instead?
-    Byte* buffer = new Byte[outerIn.size];
+    vector<Byte> buffer(outerIn.size);
     for (Count i(0); i < outerIn.count; i++) {
       inner(
         reinterpret_cast<const Byte*>(in) + i * innerIn.size,
-        buffer + i * innerOut.size
+        &buffer[i * innerOut.size]
       );
     }
-    outer(buffer, out);
-    delete[] buffer;
+    outer(&buffer.front(), out);
   }
 }
 
