@@ -20,6 +20,8 @@ struct TreeLearner: Worker {
 
   void findBestExpansion();
 
+  void optimizePredicate(PredicateNode& splitter);
+
   /**
    * TODO Make based on n-ary functions of entities with metrics.
    */
@@ -228,38 +230,63 @@ void TreeLearner::findBestExpansion() {
   // TODO How to express work units as continuations for placement in heap?
 }
 
+void TreeLearner::optimizePredicate(PredicateNode& splitter) {
+  const Function& function(*splitter.predicate->function);
+  vector<Binding*>& bindings(splitter.arrival->bindings);
+  Count bindingCount(bindings.size());
+  // Keep count of good bindings. We don't know which have dummies until we
+  // go through them.
+  // TODO Consider splitting out at var nodes to avoid this.
+  // TODO Could also go through to count good vs. bad before allocating the
+  // TODO values buffer.
+  Count goodCount(0);
+  vector<const void*> entities;
+  Size valueSize(function.typeOut().size);
+  // TODO Auto free.
+  Byte* values(reinterpret_cast<Byte*>(malloc(valueSize * bindingCount)));
+  for (Count b(0); b < bindingCount; b++) {
+    Binding& binding(*bindings[b]);
+    // TODO Actually, we still need to know which to use.
+    if (binding.entities(entities)) {
+      // TODO Some way to track errors here, too.
+      // TODO Return true/false or throw exceptions?
+      function(&entities.front(), values + valueSize * goodCount);
+      goodCount++;
+    } else {
+      // TODO Track this one for error branch.
+    }
+  }
+  cout
+    << "Calculated " << goodCount << " (from " << bindingCount << ")"
+    << " values of size " << function.typeOut().size << endl;
+  free(values);
+}
+
 void TreeLearner::split(LeafNode& leaf, const Function& function) {
   cout << "Splitting with " << function.name << endl;
-  // TODO Even for asymmetric functions, no need to check both directions if the
-  // TODO vars haven't already been used for other predicates.
-  if (function.typeOut().base == function.typeOut().system.$float()) {
-    // Float function.
-    Count bindingCount(leaf.arrival->bindings.size());
-    // Keep count of good bindings. We don't know which have dummies until we
-    // go through them.
-    // TODO Consider splitting out at var nodes to avoid this.
-    // TODO Could also go through to count good vs. bad before allocating the
-    // TODO values buffer.
-    Count goodCount(0);
-    vector<const void*> entities;
-    Size valueSize(function.typeOut().size);
-    // TODO Auto free.
-    Byte* values(reinterpret_cast<Byte*>(malloc(valueSize * bindingCount)));
-    for (Count b(0); b < bindingCount; b++) {
-      Binding& binding(*leaf.arrival->bindings[b]);
-      if (binding.entities(entities)) {
-        // TODO Some way to track errors here, too.
-        // TODO Return true/false or throw exceptions?
-        function(&entities.front(), values + valueSize * goodCount);
-        goodCount++;
-      } else {
-        // TODO Track this one for error branch.
-      }
-    }
-    cout
-      << "Calculated " << goodCount << " (from " << bindingCount << ")"
-      << " values of size " << function.typeOut().size << endl;
-    free(values);
+  RootNode splitTree(*leaf.root());
+  LeafNode* expansionNode(
+    dynamic_cast<LeafNode*>(splitTree.findById(leaf.id))
+  );
+  PredicateNode& splitter(*new PredicateNode);
+  // TODO Generify this replace/propagate/delete logic?
+  expansionNode->replaceWith(splitter);
+  {
+    auto_ptr<LeafNode> autoDelete(expansionNode);
+    // TODO Without a limit on propagation to kids, this will be wasteful.
+    expansionNode->propagateTo(splitter);
+  }
+  // Set up the predicate, except for the arg indexes.
+  splitter.predicate = new FunctionPredicate;
+  splitter.predicate->function = &function;
+  // TODO Go through the various argument options. This is fake for now.
+  for (Count argOptionIndex(0); argOptionIndex < 1; argOptionIndex++) {
+    // TODO Set args on the splitter.
+    // TODO Even for asymmetric functions, no need to check both directions if the
+    // TODO vars haven't already been used for other predicates.
+    // TODO Optimization could be kicked off into a heap here, or perhaps at any
+    // TODO hierarchical level.
+    optimizePredicate(splitter);
   }
 }
 

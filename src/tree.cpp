@@ -189,34 +189,6 @@ Node* Node::findById(Node::Id id) {
   return 0;
 }
 
-void Node::insertParent(Node& parent, Count index) {
-  // Make sure we have a spot for this kid.
-  if (index >= parent.kids.size()) {
-    throw "No such kid index.";
-  }
-  // Put the new parent in the current parent.
-  Node* currentParent(this->parent());
-  if (currentParent) {
-    vector<Node*>& siblings = currentParent->kids;
-    vector<Node*>::iterator location =
-      find(siblings.begin(), siblings.end(), this);
-    if (location == siblings.end()) {
-      throw "Node not in parent.";
-    }
-    parent.id = root()->generateId();
-    parent.$parent = currentParent;
-    *location = &parent;
-  }
-  // Purge any kid in the way, then put the new kid there.
-  if (parent.kids[index]) {
-    // TODO Do I really want joint required here?
-    Joint joint;
-    parent.kids[index]->purge(joint);
-  }
-  this->$parent = &parent;
-  parent.kids[index] = this;
-}
-
 void Node::leaves(std::vector<LeafNode*>& buffer) {
   struct LeafVisitor: NodeVisitor {
     LeafVisitor(std::vector<LeafNode*>& $buffer): buffer($buffer) {}
@@ -315,12 +287,24 @@ void Node::traverse(NodeVisitor& visitor, void* data) {
 
 /// PredicateNode.
 
-PredicateNode::PredicateNode() {}
+PredicateNode::PredicateNode(Node* $$true, Node* $$false, Node* $error):
+  predicate(0), $true($$true), $false($$false), error($error)
+{
+  // TODO Remove this if we get away from vector kids.
+  pushKid(*$true);
+  pushKid(*$false);
+  pushKid(*error);
+}
 
 PredicateNode::PredicateNode(const PredicateNode& other):
   // TODO Copy the predicate to make sure the tree really is copied???
   // TODO Could that be slow? Make it instead const and Shared?
-  ArrivalNode(other), predicate(other.predicate) {}
+  ArrivalNode(other), predicate(other.predicate)
+{}
+
+PredicateNode::~PredicateNode() {
+  delete predicate;
+}
 
 void PredicateNode::accept(NodeVisitor& visitor, void* data) {
   visitor.visit(*this, data);

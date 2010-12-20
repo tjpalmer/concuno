@@ -179,20 +179,6 @@ struct Node {
    */
   Node* findById(Id id);
 
-  /**
-   * Inserts a new parent before this. If this already has a parent, the new
-   * parent will go in its kids in the place of this node. This node goes into
-   * place index in the new parent. Any prior kid at that index will be purged.
-   *
-   * No new kid spots will be added to the new parent. The spot must already be
-   * available.
-   *
-   * The parent will be given a new id. TODO Allow control over this?
-   *
-   * TODO Allow returning a replaced kid instead of purging it?
-   */
-  void insertParent(Node& parent, Count index = 0);
-
   void leaves(std::vector<LeafNode*>& buffer);
 
   // TODO 'operator =' to copy kids? (Leaving current parent?)
@@ -223,19 +209,23 @@ struct Node {
    *
    * Even for question nodes, this propagates all of its bindings to the given
    * node. This comes in handy when inserting parents.
-   * TODO Just unify with parent insertion?
+   * TODO We don't do parent insertion anymore. We don't restructure trees.
    */
   virtual void propagateTo(Node& node) = 0;
 
   /**
    * At the parent, puts a null in place of this kid, deletes this node, and
    * puts in joint the spot where the kid used to be.
+   *
+   * TODO Keep this???
    */
   void purge(Joint& joint);
 
   /**
    * Push a kid onto this node, assigning its parent (this) and a new ID (if
    * this has a root).
+   *
+   * TODO Keep this???
    */
   void pushKid(Node& kid);
 
@@ -283,7 +273,7 @@ struct ArrivalNode: Node {
 
   ArrivalNode(const ArrivalNode& other);
 
-  ~ArrivalNode();
+  virtual ~ArrivalNode();
 
   /**
    * Propagate the bindings at this node down through the given node. It might
@@ -365,9 +355,18 @@ struct LeafNode: ArrivalNode {
  */
 struct PredicateNode: ArrivalNode {
 
-  PredicateNode();
+  /**
+   * The predicate will be null, propagating any bindings to the error node.
+   */
+  PredicateNode(
+    Node* $true = new LeafNode,
+    Node* $false = new LeafNode,
+    Node* error = new LeafNode
+  );
 
   PredicateNode(const PredicateNode& other);
+
+  virtual ~PredicateNode();
 
   virtual void accept(NodeVisitor& visitor, void* data);
 
@@ -383,6 +382,18 @@ struct PredicateNode: ArrivalNode {
    */
   virtual void propagate(std::vector<Binding>& binding);
 
+  /**
+   * Indexes to var nodes in the tree counting down from the root to this node.
+   * In other words, the indexes in the entity arrays extracted from the
+   * bindings.
+   *
+   * The number of args should be the arity of the predicate.
+   */
+  std::vector<Count> args;
+
+  /**
+   * Will be deleted if non-null.
+   */
   FunctionPredicate* predicate;
 
   Node* $true;
