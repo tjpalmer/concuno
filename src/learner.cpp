@@ -1,14 +1,9 @@
-#include <algorithm>
-#include <cstdlib>
-#include <Eigen/Dense>
 #include "learner.h"
-#include <memory>
 #include <sstream>
 #include "tree.h"
 
 #include <iostream>
 
-using namespace Eigen;
 using namespace std;
 
 namespace cuncuno {
@@ -47,79 +42,29 @@ struct TreeLearner: Worker {
 };
 
 
+/**
+ * Just calculate diverse density for now, based on Gaussian and Euclidean.
+ *
+ * TODO Figure out what this really should be doing.
+ *
+ * TODO Base this on a probability distribution or something.
+ */
+void diverseDensity(
+  const vector<bool>& labels, const Float* values, Count ndim
+);
+
+
 /// Learner.
 
 Learner::Learner(const Type& $entityType):
   Worker("Learner"), entityType($entityType) {}
 
 void Learner::learn(const vector<Sample>& samples) {
-
   // Beginnings of tree learning.
+  // TODO How to organize types to allow priority queue or whatever convenience?
   RootNode root(entityType);
   TreeLearner treeLearner(*this, root, samples);
   treeLearner.findBestExpansion();
-
-  // Load labels first. Among other things, that tells us how many entities
-  // there are.
-  vector<bool> labels;
-  for (
-    vector<Sample>::const_iterator s(samples.begin()); s != samples.end(); s++
-  ) {
-    const Sample& sample(*s);
-    for (Count e(0); e < sample.entities.size(); e++) {
-      labels.push_back(sample.label);
-    }
-  }
-
-  // TODO I need instantiation nodes and a more formed tree notion even to get
-  // TODO this far legitimately.
-
-  // Load up all the attribute values for each attribute.
-  // TODO This handles individual values. N-tuples (and pairs) should recurse.
-  // TODO That is, pairs need done per sample bag, not the whole list.
-  Matrix<Float,Dynamic,2> values2D(MatrixXd::Zero(labels.size(),2));
-  // TODO Figure out how to get data pointers from Eigen.
-  // TODO Just one buffer large enough for all dimensions?
-  Float buffer2D[2];
-  for (
-    vector<Attribute>::const_iterator a(entityType.attributes.begin());
-    a != entityType.attributes.end();
-    a++
-  ) {
-    const Attribute& attribute(*a);
-    const Type& attributeType(attribute.type());
-    if (
-      attributeType.base == attributeType.system.$float() &&
-      attributeType.count == 2
-    ) {
-      size_t index(0);
-      for (
-        vector<Sample>::const_iterator s(samples.begin());
-        s != samples.end();
-        s++
-      ) {
-        const Sample& sample(*s);
-        for (
-          vector<const void*>::const_iterator e(sample.entities.begin());
-          e != sample.entities.end();
-          e++, index++
-        ) {
-          (*attribute.get)(*e, buffer2D);
-          // TODO There's probably some better way than two assignments.
-          values2D(index,0) = buffer2D[0];
-          values2D(index,1) = buffer2D[1];
-        }
-      }
-      // A bit of logging status. TODO Are there easier ways than all this?
-      stringstream message;
-      //cout << values2D << endl;
-      message
-        << attribute.name() << " values loaded: " << values2D.rows() << endl
-      ;
-      log(message.str());
-    }
-  }
-
 }
 
 //struct Learner: Learner
@@ -243,6 +188,7 @@ void TreeLearner::optimizePredicate(PredicateNode& splitter) {
   vector<const void*> entities;
   Size valueSize(function.typeOut().size);
   vector<const void*> inBuffer(function.typeIn().count);
+  vector<bool> labels(bindingCount);
   vector<Byte> values(valueSize * bindingCount);
   for (Count b(0); b < bindingCount; b++) {
     Binding& binding(*bindings[b]);
@@ -264,14 +210,26 @@ void TreeLearner::optimizePredicate(PredicateNode& splitter) {
       // TODO Some way to track errors here, too.
       // TODO Return true/false or throw exceptions?
       function(&inBuffer.front(), &values[valueSize * goodCount]);
+      // TODO Anything more efficient than making a new list of labels?
+      labels[goodCount] = binding.sample().label;
       goodCount++;
     } else {
       // TODO Track this one for error branch.
     }
   }
+  // Don't claim we have more data than we do. Might not matter much either way.
+  values.resize(valueSize * goodCount);
+  labels.resize(goodCount);
   cout
     << "Calculated " << goodCount << " (from " << bindingCount << ")"
     << " values of size " << function.typeOut().size << endl;
+  if (function.typeOut().base == function.typeOut().system.$float()) {
+    diverseDensity(
+      labels,
+      reinterpret_cast<Float*>(&values.front()),
+      function.typeOut().count
+    );
+  }
 }
 
 void TreeLearner::split(LeafNode& leaf, const Function& function) {
@@ -336,6 +294,14 @@ void TreeLearner::updateProbabilities(RootNode& root) {
       << " (" << trues << "/" << total << ")" << endl
     ;
   }
+}
+
+
+void diverseDensity(
+  const vector<bool>& labels, const Float* values, Count ndim
+) {
+  // TODO Real work.
+  cout << "Calculate " << ndim << "D diverse density" << endl;
 }
 
 
