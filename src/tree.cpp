@@ -85,8 +85,7 @@ Count Binding::count() const {
   return count;
 }
 
-const bool Binding::entities(std::vector<const void*>& buffer) const {
-  bool allGood(true);
+const void Binding::entities(std::vector<const void*>& buffer) const {
   Count count = this->count();
   buffer.clear();
   buffer.resize(count);
@@ -96,11 +95,7 @@ const bool Binding::entities(std::vector<const void*>& buffer) const {
     // Fill in reverse order, so subtract count as we go. Also, no need to check
     // bounds. We already made sure we had the right size.
     buffer[--count] = binding->entityOrSample;
-    if (!binding->entityOrSample) {
-      allGood = false;
-    }
   }
-  return allGood;
 }
 
 /**

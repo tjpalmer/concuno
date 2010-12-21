@@ -247,11 +247,19 @@ void TreeLearner::optimizePredicate(PredicateNode& splitter) {
   for (Count b(0); b < bindingCount; b++) {
     Binding& binding(*bindings[b]);
     // TODO Actually, we still need to know which to use.
-    if (binding.entities(entities)) {
-      // Pull out the specified arguments.
-      for (Count a(0); a < splitter.args.size(); a++) {
-        inBuffer[a] = entities[splitter.args[a]];
+    binding.entities(entities);
+    bool allThere(true);
+    // Pull out the specified arguments.
+    for (Count a(0); a < splitter.args.size(); a++) {
+      const void* entity(entities[splitter.args[a]]);
+      if (!entity) {
+        // One of the required arguments wasn't defined.
+        allThere = false;
+        break;
       }
+      inBuffer[a] = entity;
+    }
+    if (allThere) {
       // Call the function, and call it good (for now).
       // TODO Some way to track errors here, too.
       // TODO Return true/false or throw exceptions?

@@ -48,11 +48,9 @@ struct Binding {
    * A list of the entities starting from the root towards this level. That is,
    * the current entity is last.
    *
-   * Returns true if all entities are non-null or false if any are null.
-   *
    * TODO Provide a raw pointer buffer version, too?
    */
-  const bool entities(std::vector<const void*>& buffer) const;
+  const void entities(std::vector<const void*>& buffer) const;
 
   /**
    * The entity at the current level, or 0 if at the sample.
