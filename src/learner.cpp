@@ -1,4 +1,5 @@
 #include "learner.h"
+#include <limits>
 #include <sstream>
 #include "tree.h"
 
@@ -300,8 +301,33 @@ void TreeLearner::updateProbabilities(RootNode& root) {
 void diverseDensity(
   const vector<bool>& labels, const Float* values, Count ndim
 ) {
-  // TODO Real work.
   cout << "Calculate " << ndim << "D diverse density" << endl;
+  // TODO Replace any of this with Eigen or my own grid type?
+  Count count(labels.size());
+  vector<Float> maxVals(ndim, -numeric_limits<Float>::infinity());
+  vector<Float> minVals(ndim, numeric_limits<Float>::infinity());
+  for (Count v(0); v < count; v++) {
+    const Float* vector(values + v*ndim);
+    for (Count d(0); d < ndim; d++) {
+      if (vector[d] > maxVals[0]) {
+        maxVals[d] = vector[d];
+      } else if (vector[d] < minVals[0]) {
+        minVals[d] = vector[d];
+      }
+    }
+  }
+  cout << "Max: ";
+  for (Count d(0); d < ndim; d++) {
+    cout << maxVals[d] << " ";
+  }
+  cout << endl;
+  cout << "Min: ";
+  for (Count d(0); d < ndim; d++) {
+    cout << minVals[d] << " ";
+  }
+  cout << endl;
+  // TODO Find a kernel.
+  // TODO Real work.
 }
 
 
