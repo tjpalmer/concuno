@@ -1,14 +1,19 @@
-#include "grid.h"
+//#include "grid.h"
+#include <Eigen/Core>
 #include "learner.h"
 #include <limits>
 #include <sstream>
 #include "tree.h"
 
 #include <iostream>
+#include <fstream>
 
 using namespace std;
 
 namespace cuncuno {
+
+
+typedef Eigen::Matrix<Float,Eigen::Dynamic,Eigen::Dynamic> Matrix;
 
 
 struct TreeLearner: Worker {
@@ -52,7 +57,7 @@ struct TreeLearner: Worker {
  * TODO Base this on a probability distribution or something.
  */
 void diverseDensity(
-  const vector<bool>& labels, const GridOf<Float>& values
+  const vector<bool>& labels, const Matrix& values
 );
 
 
@@ -178,58 +183,56 @@ void TreeLearner::findBestExpansion() {
 }
 
 void TreeLearner::optimizePredicate(PredicateNode& splitter) {
+  // This branches out to static typing on Float only for now.
+  // TODO Be more generic and/or support more types.
   const Function& function(*splitter.predicate->function);
-  vector<Binding*>& bindings(splitter.arrival->bindings);
-  Count bindingCount(bindings.size());
-  // Keep count of good bindings. We don't know which have dummies until we
-  // go through them.
-  // TODO Consider splitting out at var nodes to avoid this.
-  // TODO Could also go through to count good vs. bad before allocating the
-  // TODO values buffer.
-  Count goodCount(0);
-  vector<const void*> entities;
-  //Size valueSize(function.typeOut().size);
-  vector<const void*> inBuffer(function.typeIn().count);
-  vector<bool> labels(bindingCount);
-  Grid values(
-    function.typeOut().base, 2, function.typeOut().size, bindingCount
-  );
-  //vector<Byte> values(valueSize * bindingCount);
-  for (Count b(0); b < bindingCount; b++) {
-    Binding& binding(*bindings[b]);
-    // TODO Actually, we still need to know which to use.
-    binding.entities(entities);
-    bool allThere(true);
-    // Pull out the specified arguments.
-    for (Count a(0); a < splitter.args.size(); a++) {
-      const void* entity(entities[splitter.args[a]]);
-      if (!entity) {
-        // One of the required arguments wasn't defined.
-        allThere = false;
-        break;
-      }
-      inBuffer[a] = entity;
-    }
-    if (allThere) {
-      // Call the function, and call it good (for now).
-      // TODO Some way to track errors here, too.
-      // TODO Return true/false or throw exceptions?
-      function(&inBuffer.front(), values.at(0,goodCount));
-      // TODO Anything more efficient than making a new list of labels?
-      labels[goodCount] = binding.sample().label;
-      goodCount++;
-    } else {
-      // TODO Track this one for error branch.
-    }
-  }
-  // Don't claim we have more data than we do. Might not matter much either way.
-  values.resize(1, goodCount);
-  labels.resize(goodCount);
-  cout
-    << "Calculated " << goodCount << " (from " << bindingCount << ")"
-    << " values of size " << function.typeOut().size << endl;
   if (function.typeOut().base == function.typeOut().system.$float()) {
-    diverseDensity(labels, values.of<Float>());
+    vector<Binding*>& bindings(splitter.arrival->bindings);
+    Count bindingCount(bindings.size());
+    // Keep count of good bindings. We don't know which have dummies until we
+    // go through them.
+    // TODO Consider splitting out at var nodes to avoid this.
+    // TODO Could also go through to count good vs. bad before allocating the
+    // TODO values buffer.
+    Count goodCount(0);
+    vector<const void*> entities;
+    vector<const void*> inBuffer(function.typeIn().count);
+    vector<bool> labels(bindingCount);
+    Matrix values(function.typeOut().count, bindingCount);
+    for (Count b(0); b < bindingCount; b++) {
+      Binding& binding(*bindings[b]);
+      // TODO Actually, we still need to know which to use.
+      binding.entities(entities);
+      bool allThere(true);
+      // Pull out the specified arguments.
+      for (Count a(0); a < splitter.args.size(); a++) {
+        const void* entity(entities[splitter.args[a]]);
+        if (!entity) {
+          // One of the required arguments wasn't defined.
+          allThere = false;
+          break;
+        }
+        inBuffer[a] = entity;
+      }
+      if (allThere) {
+        // Call the function, and call it good (for now).
+        // TODO Some way to track errors here, too.
+        // TODO Return true/false or throw exceptions?
+        function(&inBuffer.front(), &values(0,goodCount));
+        // TODO Anything more efficient than making a new list of labels?
+        labels[goodCount] = binding.sample().label;
+        goodCount++;
+      } else {
+        // TODO Track this one for error branch.
+      }
+    }
+    // Resize now that we know how many are good. Hopefully not much wasted.
+    values.resize(function.typeOut().count, goodCount);
+    labels.resize(goodCount);
+    cout
+      << "Calculated " << goodCount << " (from " << bindingCount << ")"
+      << " values of size " << function.typeOut().size << endl;
+    diverseDensity(labels, values);
   }
 }
 
@@ -299,35 +302,29 @@ void TreeLearner::updateProbabilities(RootNode& root) {
 
 
 void diverseDensity(
-  const vector<bool>& labels, const GridOf<Float>& values
+  const vector<bool>& labels, const Matrix& values
 ) {
-  cout << "Calculate " << values.size(0) << "D diverse density" << endl;
-  //  // TODO Replace any of this with Eigen or my own grid type?
-  //  Count count(labels.size());
-  //  vector<Float> maxVals(ndim, -numeric_limits<Float>::infinity());
-  //  vector<Float> minVals(ndim, numeric_limits<Float>::infinity());
-  //  for (Count v(0); v < count; v++) {
-  //    const Float* vector(values + v*ndim);
-  //    for (Count d(0); d < ndim; d++) {
-  //      if (vector[d] > maxVals[0]) {
-  //        maxVals[d] = vector[d];
-  //      } else if (vector[d] < minVals[0]) {
-  //        minVals[d] = vector[d];
+  cout << "Calculate " << values.rows() << "D diverse density" << endl;
+  //  ofstream file("vals.csv");
+  //  for (Count c(0); c < values.cols(); c++) {
+  //    for (Count r(0); r < values.rows(); r++) {
+  //      if (r) {
+  //        file << ',';
   //      }
+  //      file << values(r,c);
   //    }
+  //    file << '\n';
   //  }
-  GridOf<Float> minVals(values.type());
-  min(minVals, values, 1);
-  //  cout << "Max: ";
-  //  for (Count d(0); d < ndim; d++) {
-  //    cout << maxVals[d] << " ";
-  //  }
-  //  cout << endl;
-  //  cout << "Min: ";
-  //  for (Count d(0); d < ndim; d++) {
-  //    cout << minVals[d] << " ";
-  //  }
-  //  cout << endl;
+  cout << "Max: " << values.rowwise().maxCoeff().transpose() << endl;
+  cout << "Min: " << values.rowwise().minCoeff().transpose() << endl;
+  cout << "Mean: " << values.rowwise().mean().transpose() << endl;
+  Matrix mean(values.rowwise().mean());
+  Matrix diff(values);
+  for (Int c(0); c < diff.cols(); c++) {
+    diff.col(c) -= mean;
+  }
+  Matrix cov(diff * diff.transpose() / values.cols());
+  cout << "Cov:\n" << cov << endl;
   //  // TODO Find a kernel.
   //  // TODO Real work.
 }

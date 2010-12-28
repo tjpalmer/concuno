@@ -27,8 +27,23 @@ Grid::Grid(const Type& type, Count ndim, ...):
   va_end(sizes);
 }
 
+void* Grid::at(Count index0, ...) {
+  //Count count(this->count());
+  va_list indexes;
+  va_start(indexes, index0);
+  for (Count d(1); d < ndim(); d++) {
+    //$shape[s] = va_arg(indexes, Count);
+  }
+  va_end(indexes);
+  return 0;
+}
+
 Count Grid::count() const {
   return list.count();
+}
+
+Count Grid::ndim() const {
+  return $shape.count() + 1;
 }
 
 const Type& Grid::type() const {
@@ -46,6 +61,11 @@ List::~List() {
   if (needsBuffer(*this)) {
     std::free(data.buffer);
   }
+}
+
+void* List::at(Count index) {
+  // TODO
+  return 0;
 }
 
 Count List::count() const {

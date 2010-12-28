@@ -17,6 +17,8 @@ struct List {
    */
   ~List();
 
+  void* at(Count index);
+
   Count count() const;
 
   /**
@@ -54,7 +56,9 @@ struct ListOf: List {
 
   ListOf(const Type& type, Count count): List(type, count) {}
 
-  Item& operator[](Count index);
+  Item& operator[](Count index) {
+    return *reinterpret_cast<Item*>(at(index));
+  }
 
 };
 
