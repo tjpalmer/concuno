@@ -203,6 +203,8 @@ struct TypeSystem {
 
   const Type& byte();
 
+  const Type& count();
+
   const Type& $float();
 
   const Type& $int();

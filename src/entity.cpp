@@ -140,6 +140,8 @@ const Type& Type::pointerType() const {
 TypeSystem::TypeSystem() {
   // TODO Other cores.
   types.push_back(new Type(*this, "Float", sizeof(Float)));
+  types.push_back(new Type(*this, "Int", sizeof(Int)));
+  types.push_back(new Type(*this, "Count", sizeof(Count)));
 }
 
 TypeSystem::~TypeSystem() {
@@ -151,6 +153,16 @@ TypeSystem::~TypeSystem() {
 const Type& TypeSystem::$float() {
   // TODO Constants for well-known indexes.
   return *types[0];
+}
+
+const Type& TypeSystem::$int() {
+  // TODO Constants for well-known indexes.
+  return *types[1];
+}
+
+const Type& TypeSystem::count() {
+  // TODO Constants for well-known indexes.
+  return *types[2];
 }
 
 

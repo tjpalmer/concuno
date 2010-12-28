@@ -1,3 +1,4 @@
+#include "grid.h"
 #include "learner.h"
 #include <limits>
 #include <sstream>
@@ -51,7 +52,7 @@ struct TreeLearner: Worker {
  * TODO Base this on a probability distribution or something.
  */
 void diverseDensity(
-  const vector<bool>& labels, const Float* values, Count ndim
+  const vector<bool>& labels, const GridOf<Float>& values
 );
 
 
@@ -155,7 +156,7 @@ void TreeLearner::findBestExpansion() {
     log(message.str());
     // Limit arity by available vars.
     // TODO Organize or sort functions by arity?
-    Count currentMaxArity(min(varCount + newVarCount, maxArity));
+    Count currentMaxArity(std::min(varCount + newVarCount, maxArity));
     for (Count arity(newVarCount); arity <= currentMaxArity; arity++) {
       // TODO Constrain newVarCount vars.
       // TODO Loop on functions, not just attributes.
@@ -187,10 +188,13 @@ void TreeLearner::optimizePredicate(PredicateNode& splitter) {
   // TODO values buffer.
   Count goodCount(0);
   vector<const void*> entities;
-  Size valueSize(function.typeOut().size);
+  //Size valueSize(function.typeOut().size);
   vector<const void*> inBuffer(function.typeIn().count);
   vector<bool> labels(bindingCount);
-  vector<Byte> values(valueSize * bindingCount);
+  Grid values(
+    function.typeOut().base, 2, function.typeOut().size, bindingCount
+  );
+  //vector<Byte> values(valueSize * bindingCount);
   for (Count b(0); b < bindingCount; b++) {
     Binding& binding(*bindings[b]);
     // TODO Actually, we still need to know which to use.
@@ -210,7 +214,7 @@ void TreeLearner::optimizePredicate(PredicateNode& splitter) {
       // Call the function, and call it good (for now).
       // TODO Some way to track errors here, too.
       // TODO Return true/false or throw exceptions?
-      function(&inBuffer.front(), &values[valueSize * goodCount]);
+      function(&inBuffer.front(), values.at(0,goodCount));
       // TODO Anything more efficient than making a new list of labels?
       labels[goodCount] = binding.sample().label;
       goodCount++;
@@ -219,17 +223,13 @@ void TreeLearner::optimizePredicate(PredicateNode& splitter) {
     }
   }
   // Don't claim we have more data than we do. Might not matter much either way.
-  values.resize(valueSize * goodCount);
+  values.resize(1, goodCount);
   labels.resize(goodCount);
   cout
     << "Calculated " << goodCount << " (from " << bindingCount << ")"
     << " values of size " << function.typeOut().size << endl;
   if (function.typeOut().base == function.typeOut().system.$float()) {
-    diverseDensity(
-      labels,
-      reinterpret_cast<Float*>(&values.front()),
-      function.typeOut().count
-    );
+    diverseDensity(labels, values.of<Float>());
   }
 }
 
@@ -257,8 +257,8 @@ void TreeLearner::split(LeafNode& leaf, const Function& function) {
   // TODO Go through the various argument options. This is fake for now.
   for (Count argOptionIndex(0); argOptionIndex < 1; argOptionIndex++) {
     // TODO Set args on the splitter.
-    // TODO Even for asymmetric functions, no need to check both directions if the
-    // TODO vars haven't already been used for other predicates.
+    // TODO Even for asymmetric functions, no need to check both directions if
+    // TODO the vars haven't already been used for other predicates.
     // For now, just use the most recent vars with the most recent at the end.
     for (Count a(0); a < arity; a++) {
       splitter.args[a] = varCount - arity + a;
@@ -299,35 +299,37 @@ void TreeLearner::updateProbabilities(RootNode& root) {
 
 
 void diverseDensity(
-  const vector<bool>& labels, const Float* values, Count ndim
+  const vector<bool>& labels, const GridOf<Float>& values
 ) {
-  cout << "Calculate " << ndim << "D diverse density" << endl;
-  // TODO Replace any of this with Eigen or my own grid type?
-  Count count(labels.size());
-  vector<Float> maxVals(ndim, -numeric_limits<Float>::infinity());
-  vector<Float> minVals(ndim, numeric_limits<Float>::infinity());
-  for (Count v(0); v < count; v++) {
-    const Float* vector(values + v*ndim);
-    for (Count d(0); d < ndim; d++) {
-      if (vector[d] > maxVals[0]) {
-        maxVals[d] = vector[d];
-      } else if (vector[d] < minVals[0]) {
-        minVals[d] = vector[d];
-      }
-    }
-  }
-  cout << "Max: ";
-  for (Count d(0); d < ndim; d++) {
-    cout << maxVals[d] << " ";
-  }
-  cout << endl;
-  cout << "Min: ";
-  for (Count d(0); d < ndim; d++) {
-    cout << minVals[d] << " ";
-  }
-  cout << endl;
-  // TODO Find a kernel.
-  // TODO Real work.
+  cout << "Calculate " << values.size(0) << "D diverse density" << endl;
+  //  // TODO Replace any of this with Eigen or my own grid type?
+  //  Count count(labels.size());
+  //  vector<Float> maxVals(ndim, -numeric_limits<Float>::infinity());
+  //  vector<Float> minVals(ndim, numeric_limits<Float>::infinity());
+  //  for (Count v(0); v < count; v++) {
+  //    const Float* vector(values + v*ndim);
+  //    for (Count d(0); d < ndim; d++) {
+  //      if (vector[d] > maxVals[0]) {
+  //        maxVals[d] = vector[d];
+  //      } else if (vector[d] < minVals[0]) {
+  //        minVals[d] = vector[d];
+  //      }
+  //    }
+  //  }
+  GridOf<Float> minVals(values.type());
+  min(minVals, values, 1);
+  //  cout << "Max: ";
+  //  for (Count d(0); d < ndim; d++) {
+  //    cout << maxVals[d] << " ";
+  //  }
+  //  cout << endl;
+  //  cout << "Min: ";
+  //  for (Count d(0); d < ndim; d++) {
+  //    cout << minVals[d] << " ";
+  //  }
+  //  cout << endl;
+  //  // TODO Find a kernel.
+  //  // TODO Real work.
 }
 
 
