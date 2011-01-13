@@ -2,6 +2,7 @@
 #include <Eigen/Core>
 #include "learner.h"
 #include <limits>
+#include <math.h>
 #include <sstream>
 #include "tree.h"
 
@@ -52,12 +53,14 @@ struct TreeLearner: Worker {
 /**
  * Just calculate diverse density for now, based on Gaussian and Euclidean.
  *
+ * All values for a particular sample are assumed to be contiguous.
+ *
  * TODO Figure out what this really should be doing.
  *
- * TODO Base this on a probability distribution or something.
+ * TODO Generify this based on a probability distribution or something.
  */
 void diverseDensity(
-  const vector<bool>& labels, const Matrix& values
+  const vector<const Sample*>& samples, const Matrix& values
 );
 
 
@@ -197,7 +200,7 @@ void TreeLearner::optimizePredicate(PredicateNode& splitter) {
     Count goodCount(0);
     vector<const void*> entities;
     vector<const void*> inBuffer(function.typeIn().count);
-    vector<bool> labels(bindingCount);
+    vector<const Sample*> samples(bindingCount);
     Matrix values(function.typeOut().count, bindingCount);
     for (Count b(0); b < bindingCount; b++) {
       Binding& binding(*bindings[b]);
@@ -220,19 +223,19 @@ void TreeLearner::optimizePredicate(PredicateNode& splitter) {
         // TODO Return true/false or throw exceptions?
         function(&inBuffer.front(), &values(0,goodCount));
         // TODO Anything more efficient than making a new list of labels?
-        labels[goodCount] = binding.sample().label;
+        samples[goodCount] = &binding.sample();
         goodCount++;
       } else {
         // TODO Track this one for error branch.
       }
     }
     // Resize now that we know how many are good. Hopefully not much wasted.
+    samples.resize(goodCount);
     values.resize(function.typeOut().count, goodCount);
-    labels.resize(goodCount);
     cout
       << "Calculated " << goodCount << " (from " << bindingCount << ")"
       << " values of size " << function.typeOut().size << endl;
-    diverseDensity(labels, values);
+    diverseDensity(samples, values);
   }
 }
 
@@ -301,8 +304,17 @@ void TreeLearner::updateProbabilities(RootNode& root) {
 }
 
 
+void updateDiverseDensity(Float* dd, Float bagLogDensity, bool label) {
+  Float bagDensity = exp(bagLogDensity);
+  if (!label) {
+    bagDensity = log(1 - exp(bagLogDensity));
+  }
+  *dd += bagDensity;
+}
+
+
 void diverseDensity(
-  const vector<bool>& labels, const Matrix& values
+  const vector<const Sample*>& samples, const Matrix& values
 ) {
   cout << "Calculate " << values.rows() << "D diverse density" << endl;
   //  ofstream file("vals.csv");
@@ -315,17 +327,69 @@ void diverseDensity(
   //    }
   //    file << '\n';
   //  }
+  Count count(samples.size());
+  Count ndim(values.rows());
   cout << "Max: " << values.rowwise().maxCoeff().transpose() << endl;
   cout << "Min: " << values.rowwise().minCoeff().transpose() << endl;
   cout << "Mean: " << values.rowwise().mean().transpose() << endl;
   Matrix mean(values.rowwise().mean());
   Matrix diff(values);
-  for (Int c(0); c < diff.cols(); c++) {
+  for (Count c(0); c < count; c++) {
     diff.col(c) -= mean;
   }
-  Matrix cov(diff * diff.transpose() / values.cols());
+  Matrix cov(diff * diff.transpose() / count);
   cout << "Cov:\n" << cov << endl;
-  //  // TODO Find a kernel.
+  // Error: invalid use of incomplete type ‘const struct Eigen::FullPivLU<Eigen::Matrix<double, -0x00000000000000001, -0x00000000000000001, 0, -0x00000000000000001, -0x00000000000000001> >’
+  // eigen/Eigen/src/Core/util/ForwardDeclarations.h:178: error: declaration of ‘const struct Eigen::FullPivLU<Eigen::Matrix<double, -0x00000000000000001, -0x00000000000000001, 0, -0x00000000000000001, -0x00000000000000001> >’
+  // Matrix covInv(cov.fullPivLu().inverse());
+  Matrix covInv(Matrix::Identity(cov.rows(), cov.cols()));
+  // TODO Find a better kernel than just the covariance matrix. I think it will
+  // TODO smooth too much.
+  Matrix testPoint(ndim,1);
+  Float bagDensity;
+  Matrix dist(ndim,1);
+  Count testSampleCount(0);
+  const Sample* currentTestSample(0);
+  for (Count t(0); t < count; t++) {
+    //cout << t << ' ' << flush;
+    const Sample& testSample(*samples[t]);
+    // Just check DD for positive bag points.
+    if (!testSample.label) {
+      continue;
+    }
+    // Just check DD for positive bag points.
+    if (currentTestSample != &testSample) {
+      currentTestSample = &testSample;
+      testSampleCount++;
+      // Too slow to check very many.
+      if (testSampleCount > 10) {
+        break;
+      }
+    }
+    Float dd(0);
+    // Okay, go ahead with the current test point.
+    testPoint = values.col(t);
+    const Sample* currentSample(0);
+    for (Count s(0); s < count; s++) {
+      const Sample& sample(*samples[s]);
+      if (currentSample != &sample) {
+        if (currentSample) {
+          updateDiverseDensity(&dd, bagDensity, currentSample->label);
+        }
+        currentSample = &sample;
+        // Prepare for max/min for true/false labels. Eigen's fill is slow.
+        bagDensity = -numeric_limits<Float>::infinity();
+      }
+      dist = testPoint - values.col(s);
+      Matrix density(dist.transpose() * covInv * dist);
+      if (-density(0,0) > bagDensity) {
+        bagDensity = -density(0,0);
+        //cout << bagDensity << endl;
+      }
+    }
+    updateDiverseDensity(&dd, bagDensity, currentSample->label);
+    cout << "DD at " << testPoint.transpose() << ": " << dd << endl;
+  }
   //  // TODO Real work.
 }
 
