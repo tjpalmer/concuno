@@ -345,8 +345,11 @@ void diverseDensity(
   Matrix covInv(Matrix::Identity(cov.rows(), cov.cols()));
   // TODO Find a better kernel than just the covariance matrix. I think it will
   // TODO smooth too much.
+  if (true) {
+    return;
+  }
   Matrix testPoint(ndim,1);
-  Float bagDensity;
+  Float bagDensity = -numeric_limits<Float>::infinity();
   Matrix dist(ndim,1);
   Count testSampleCount(0);
   const Sample* currentTestSample(0);
