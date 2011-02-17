@@ -2,6 +2,25 @@ log = console.log
 {readFile} = require 'fs'
 
 exports.load = load = (file) ->
-  readFile file, (err, content) ->
+  readFile file, 'utf8', (err, content) ->
     throw err if err
     log "Parsing #{file} ..."
+    parseAll content.split /\n/
+
+parseAll = (lines) ->
+  count = 0
+  states = []
+  state = {}
+  for line in lines
+    count += parseLine states, state, line
+  log "#{count} item commands"
+
+parseLine = (states, state, line) ->
+  args = line.trim().split /\s+/
+  switch args[0]
+    when 'item'
+      1
+    when 'time'
+      0
+    else
+      0
