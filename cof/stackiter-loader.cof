@@ -1,3 +1,7 @@
 log = console.log
+{readFile} = require 'fs'
 
-exports.load = load = -> log "Loading ..."
+exports.load = load = (file) ->
+  readFile file, (err, content) ->
+    throw err if err
+    log "Parsing #{file} ..."
