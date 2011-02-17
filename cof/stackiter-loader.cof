@@ -1,0 +1,3 @@
+log = console.log
+
+exports.load = load = -> log "Loading ..."
