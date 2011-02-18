@@ -1,26 +1,42 @@
 log = console.log
 {readFile} = require 'fs'
 
-exports.load = load = (file) ->
+exports.load = (file) ->
   readFile file, 'utf8', (err, content) ->
     throw err if err
     log "Parsing #{file} ..."
     parseAll content.split /\n/
 
 parseAll = (lines) ->
-  count = 0
   states = []
-  state = {}
+  state = indexes: [], items: []
   for line in lines
-    count += parseLine states, state, line
-  log "#{count} item commands"
+    state = parseLine states, state, line
+  log "#{state.items.length} items at end"
+
+parseDestroy = (state, args) ->
+  id = Number args[1]
+  index = state.indexes[id]
+  throw "no such item" if not index?
+  # Remove the item and update the indexes.
+  state.items.splice index, 1
+  for i in [index ... state.items.length]
+    state.indexes[state.items[i].id]--
+
+parseItem = (state, args) ->
+  id = Number args[1]
+  state.indexes[id] = state.items.length
+  state.items.push {id}
 
 parseLine = (states, state, line) ->
   args = line.trim().split /\s+/
   switch args[0]
+    when 'destroy'
+      parseDestroy state, args
     when 'item'
-      1
+      parseItem state, args
     when 'time'
       0
     else
       0
+  state
