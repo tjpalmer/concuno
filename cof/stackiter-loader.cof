@@ -11,8 +11,12 @@ exports.load = (file) ->
 
 # TODO Move clone out to some utility area.
 clone = (obj) ->
-  # TODO Clone it!
-  obj
+  # This could be more sophisticated about more types, but eh?
+  return obj if not obj.constructor
+  copied = new obj.constructor
+  for key, val of obj
+    copied[key] = clone(val)
+  copied
 
 
 class Loader
@@ -28,6 +32,9 @@ class Loader
     @states.push clone @state
     log "At end:"
     log "#{@state.items.length} items"
+    log @states[100]
+    log "#{@states[100].items.length} here"
+    log "#{@states[400].items.length} there"
     log "#{@states.length} states"
 
   parseDestroy: (args) ->
