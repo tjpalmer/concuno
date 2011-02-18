@@ -1,42 +1,60 @@
 log = console.log
 {readFile} = require 'fs'
 
+
 exports.load = (file) ->
   readFile file, 'utf8', (err, content) ->
     throw err if err
     log "Parsing #{file} ..."
-    parseAll content.split /\n/
+    new Loader().parseAll content.split /\n/
 
-parseAll = (lines) ->
-  states = []
-  state = indexes: [], items: []
-  for line in lines
-    state = parseLine states, state, line
-  log "#{state.items.length} items at end"
 
-parseDestroy = (state, args) ->
-  id = Number args[1]
-  index = state.indexes[id]
-  throw "no such item" if not index?
-  # Remove the item and update the indexes.
-  state.items.splice index, 1
-  for i in [index ... state.items.length]
-    state.indexes[state.items[i].id]--
+# TODO Move clone out to some utility area.
+clone = (obj) ->
+  # TODO Clone it!
+  obj
 
-parseItem = (state, args) ->
-  id = Number args[1]
-  state.indexes[id] = state.items.length
-  state.items.push {id}
 
-parseLine = (states, state, line) ->
-  args = line.trim().split /\s+/
-  switch args[0]
-    when 'destroy'
-      parseDestroy state, args
-    when 'item'
-      parseItem state, args
-    when 'time'
-      0
-    else
-      0
-  state
+class Loader
+
+  constructor: ->
+    @indexes = []
+    @state = items: [], time: 0
+    @states = []
+
+  parseAll: (lines) ->
+    for line in lines
+      @parseLine line
+    @states.push clone @state
+    log "At end:"
+    log "#{@state.items.length} items"
+    log "#{@states.length} states"
+
+  parseDestroy: (args) ->
+    id = Number args[1]
+    index = @indexes[id]
+    throw "no such item" if not index?
+    # Remove the item and update the indexes.
+    @state.items.splice index, 1
+    for i in [index ... @state.items.length]
+      @indexes[@state.items[i].id]--
+
+  parseItem: (args) ->
+    id = Number args[1]
+    @indexes[id] = @state.items.length
+    @state.items.push {id}
+
+  parseLine: (line) ->
+    args = line.trim().split /\s+/
+    switch args[0]
+      when 'destroy'
+        @parseDestroy args
+      when 'item'
+        @parseItem args
+      when 'time'
+        @parseTime args
+
+  parseTime: (args) ->
+    if args[1] is 'sim'
+      @states.push clone @state
+      @state.time = Number args[2]
