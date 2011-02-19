@@ -10,9 +10,12 @@ exports.load = (file) ->
 
 
 # TODO Move clone out to some utility area.
+# Cloning technique based on examples and discussions here:
+# http://stackoverflow.com/questions/122102/
+#   what-is-the-most-efficient-way-to-clone-a-javascript-object
 clone = (obj) ->
   # This could be more sophisticated about more types, but eh.
-  return obj if typeof obj isnt 'object'
+  return obj if not obj? or typeof obj isnt 'object'
   copied = new obj.constructor
   for key, val of obj
     copied[key] = clone(val)
