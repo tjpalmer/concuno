@@ -29,42 +29,101 @@ class Loader
     @state = items: [], time: 0
     @states = []
 
+  findIndex: (args, argIndex = 1) ->
+    id = Number args[argIndex]
+    index = @indexes[id]
+    throw "no such item" if not index?
+    index
+
+  findItem: (args, argIndex = 1) -> @state.items[@findIndex args, argIndex]
+
   parseAll: (lines) ->
     for line in lines
       @parseLine line
     @states.push clone @state
     log "At end:"
     log "#{@state.items.length} items"
-    #log @states[100]
-    #log "#{@states[100].items.length} here"
+    #log @states[102]
+    #log @states[102].items[9].extent
+    #log "#{@states[102].items.length} here"
     #log "#{@states[700].items.length} there"
     log "#{@states.length} states"
 
   parseDestroy: (args) ->
-    id = Number args[1]
-    index = @indexes[id]
-    throw "no such item" if not index?
+    index = @findIndex args
     # Remove the item and update the indexes.
     @state.items.splice index, 1
     for i in [index ... @state.items.length]
       @indexes[@state.items[i].id]--
 
+  parseExtent: (args) ->
+    item = @findItem args
+    item.extent[0] = Number args[2]
+    item.extent[1] = Number args[3]
+
+  parseGrasp: (args) ->
+    tool = @findItem args
+    item = @findItem args, 2
+    tool.grasping = true
+    item.grasped = true
+
   parseItem: (args) ->
     id = Number args[1]
     @indexes[id] = @state.items.length
-    @state.items.push {id}
+    @state.items.push {
+      color: [0, 0, 0]
+      extent: [0, 0]
+      grasped: false
+      grasping: false
+      id
+      location: [0, 0]
+      orientation: 0
+      type: null
+    }
 
   parseLine: (line) ->
     args = line.trim().split /\s+/
     switch args[0]
       when 'destroy'
         @parseDestroy args
+      when 'extent'
+        @parseExtent args
+      when 'grasp'
+        @parseGrasp args
       when 'item'
         @parseItem args
+      when 'pos'
+        @parsePos args
+      when 'release'
+        @parseRelease args
+      when 'rot'
+        @parseRot args
       when 'time'
         @parseTime args
+      when 'type'
+        @parseType args
+
+  parsePos: (args) ->
+    item = @findItem args
+    item.location[0] = Number args[2]
+    item.location[1] = Number args[3]
+
+  parseRelease: (args) ->
+    tool = @findItem args
+    item = @findItem args, 2
+    tool.grasping = false
+    item.grasped = false
+
+  parseRot: (args) ->
+    item = @findItem args
+    # TODO Angle is rats. Convert to radians or not?
+    item.orientation = Number args[2]
 
   parseTime: (args) ->
     if args[1] is 'sim'
       @states.push clone @state
       @state.time = Number args[2]
+
+  parseType: (args) ->
+    item = @findItem args
+    item.type = args[2]
