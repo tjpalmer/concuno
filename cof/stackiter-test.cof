@@ -1,5 +1,17 @@
 {load} = require('./stackiter-loader')
+log = console.log
 
-# TODO Determine project root or let file be passed in.
 
-load 'temp/stackiter-20101105-171808-671_drop-from-25.log', 2000
+chooseDropWhereLandOnOther = ->
+  log "Choosing ..."
+
+
+go = ->
+  # TODO Determine project root or let file be passed in.
+  load 'temp/stackiter-20101105-171808-671_drop-from-25.log',
+    stateLimit: 1000
+    ready: (states) ->
+      chooseDropWhereLandOnOther()
+
+
+go()
