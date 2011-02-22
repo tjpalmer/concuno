@@ -2,8 +2,15 @@
 log = console.log
 
 
-chooseDropWhereLandOnOther = ->
-  log "Choosing ..."
+chooseDropWhereLandOnOther = (states) ->
+  log "At end:"
+  # TODO What's the best way to say 'last item' in JS/Coffee?
+  log "#{states[states.length - 1].items.length} items"
+  #log states[102]
+  #log states[102].items[9].extent
+  #log "#{states[102].items.length} here"
+  #log "#{states[700].items.length} there"
+  log "#{states.length} states"
 
 
 go = ->
@@ -11,7 +18,7 @@ go = ->
   load 'temp/stackiter-20101105-171808-671_drop-from-25.log',
     stateLimit: 1000
     ready: (states) ->
-      chooseDropWhereLandOnOther()
+      chooseDropWhereLandOnOther(states)
 
 
 go()

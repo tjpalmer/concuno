@@ -44,13 +44,6 @@ class Loader
         break
     if @states.length < stateLimit
       @states.push clone @state
-    log "At end:"
-    log "#{@state.items.length} items"
-    #log @states[102]
-    #log @states[102].items[9].extent
-    #log "#{@states[102].items.length} here"
-    #log "#{@states[700].items.length} there"
-    log "#{@states.length} states"
     @states
 
   parseDestroy: (args) ->
