@@ -2,11 +2,11 @@ log = console.log
 {readFile} = require 'fs'
 
 
-exports.load = (file) ->
+exports.load = (file, stateLimit = Infinity) ->
   readFile file, 'utf8', (err, content) ->
     throw err if err
     log "Parsing #{file} ..."
-    new Loader().parseAll content.split /\n/
+    new Loader().parseAll content.split(/\n/), stateLimit
 
 
 # TODO Move clone out to some utility area.
@@ -37,10 +37,13 @@ class Loader
 
   findItem: (args, argIndex = 1) -> @state.items[@findIndex args, argIndex]
 
-  parseAll: (lines) ->
+  parseAll: (lines, stateLimit) ->
     for line in lines
       @parseLine line
-    @states.push clone @state
+      if @states.length >= stateLimit
+        break
+    if @states.length < stateLimit
+      @states.push clone @state
     log "At end:"
     log "#{@state.items.length} items"
     #log @states[102]
