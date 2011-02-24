@@ -26,7 +26,7 @@ class Loader
 
   constructor: ->
     @indexes = []
-    @state = items: [], time: 0
+    @state = cleared: false, items: [], time: 0
     @states = []
 
   findIndex: (args, argIndex = 1) ->
@@ -45,6 +45,9 @@ class Loader
     if @states.length < stateLimit
       @states.push clone @state
     @states
+
+  parseClear: (args) ->
+    @state.cleared = true
 
   parseDestroy: (args) ->
     index = @findIndex args
@@ -81,6 +84,8 @@ class Loader
   parseLine: (line) ->
     args = line.trim().split /\s+/
     switch args[0]
+      when 'clear'
+        @parseClear args
       when 'destroy'
         @parseDestroy args
       when 'extent'
@@ -119,6 +124,7 @@ class Loader
   parseTime: (args) ->
     if args[1] is 'sim'
       @states.push clone @state
+      @state.cleared = false
       @state.time = Number args[2]
 
   parseType: (args) ->
