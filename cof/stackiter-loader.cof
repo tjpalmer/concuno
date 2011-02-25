@@ -79,6 +79,7 @@ class Loader
       location: [0, 0]
       orientation: 0
       type: null
+      velocity: [0, 0]
     }
 
   parseLine: (line) ->
@@ -96,6 +97,8 @@ class Loader
         @parseItem args
       when 'pos'
         @parsePos args
+      when 'posvel'
+        @parsePosVel args
       when 'release'
         @parseRelease args
       when 'rot'
@@ -109,6 +112,12 @@ class Loader
     item = @findItem args
     item.location[0] = Number args[2]
     item.location[1] = Number args[3]
+
+  parsePosVel: (args) ->
+    # TODO Unify these that are similar form?
+    item = @findItem args
+    item.velocity[0] = Number args[2]
+    item.velocity[1] = Number args[3]
 
   parseRelease: (args) ->
     tool = @findItem args
