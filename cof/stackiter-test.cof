@@ -1,35 +1,41 @@
+{abs, sqrt} = Math
 {load} = require('./stackiter-loader')
 log = console.log
 
 
 chooseDropWhereLandOnOther = (states) ->
+  samples = []
   formerHadGrasp = false
   graspedId = -1
   ungraspState = null
   for state in states
     if ungraspState
+      # Item released. We're now trying to find when it settles.
+      settled = false
+      label = null
       if state.cleared
-        # Ignore this sequence, because of clear before settling.
-        graspedId = -1
-        ungraspState = null
-        continue
-      done = false
-      item = findItem state, graspedId
-      if item
-        # Still here. See if it's moving.
-        if norm(item.velocity) < 0.01
-          # Stopped. See where it is.
-          # TODO If the block bounced up, we might be catching it at the peak.
-          # TODO Maybe we should check for that (by accel or location?).
-          done = true
-          label = not onGround item
+        # World cleared. Say it's settled, but don't assign a label.
+        settled = true
       else
-        # It fell off the table, so it didn't land on another block.
-        done = true
-        label = false
-      if done
+        item = findItem state, graspedId
+        if item
+          # Still here. See if it's moving.
+          if norm(item.velocity) < 0.01
+            # Stopped. See where it is.
+            # TODO If the block bounced up, we might be catching it at the peak.
+            # TODO Maybe we should check for that (by accel or location?).
+            settled = true
+            label = not onGround item
+        else
+          # It fell off the table, so it didn't land on another block.
+          settled = true
+          label = false
+      if settled
         ungraspState = null
-        # TODO More.
+        if label?
+          # Labeled, so record it.
+          # TODO Trim to live items!
+          samples.push {entities: state.items, label}
     else
       graspedItems = findGraspedItems state
       hasGrasp = Boolean graspedItems.length
@@ -39,9 +45,9 @@ chooseDropWhereLandOnOther = (states) ->
       else if formerHadGrasp
         ungraspState = state
       formerHadGrasp = hasGrasp
+  samples
 
-findGraspedItems = (state) ->
-  []
+findGraspedItems = (state) -> item for item in state.items when item.grasped
 
 findItem = (state, id) ->
   for item in state.items
@@ -55,15 +61,23 @@ go = ->
     stateLimit: 1000
     ready: (states) ->
       report(states)
-      chooseDropWhereLandOnOther(states)
+      samples = chooseDropWhereLandOnOther(states)
+      log "#{samples.length} samples"
 
 
 norm = (vector) ->
-  0
+  sum = 0
+  for val in vector
+    sum += val * val
+  sqrt sum
 
 
 onGround = (item) ->
-  false
+  angle = item.orientation
+  # Angles go from -1 to 1.
+  # Here, dim 1 is upright, and 0 sideways.
+  dim = Number angle < -0.75 || -0.25 < angle < 0.25 || 0.75 < angle
+  abs(item.extent[dim] - item.location[1]) < 0.01
 
 
 report = (states) ->
