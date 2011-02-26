@@ -37,6 +37,10 @@ class Loader
 
   findItem: (args, argIndex = 1) -> @state.items[@findIndex args, argIndex]
 
+  parseAlive: (args) ->
+    item = @findItem args
+    item.alive = args[2] is 'true'
+
   parseAll: (lines, stateLimit = Infinity) ->
     for line in lines
       @parseLine line
@@ -71,6 +75,7 @@ class Loader
     id = Number args[1]
     @indexes[id] = @state.items.length
     @state.items.push {
+      alive: false
       color: [0, 0, 0]
       extent: [0, 0]
       grasped: false
@@ -85,6 +90,8 @@ class Loader
   parseLine: (line) ->
     args = line.trim().split /\s+/
     switch args[0]
+      when 'alive'
+        @parseAlive
       when 'clear'
         @parseClear args
       when 'destroy'
@@ -134,7 +141,7 @@ class Loader
     if args[1] is 'sim'
       @states.push clone @state
       @state.cleared = false
-      @state.time = Number args[2]
+      @state.time = Number args[3]
 
   parseType: (args) ->
     item = @findItem args

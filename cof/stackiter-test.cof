@@ -34,8 +34,10 @@ chooseDropWhereLandOnOther = (states) ->
         ungraspState = null
         if label?
           # Labeled, so record it.
-          # TODO Trim to live items!
-          samples.push {entities: state.items, label}
+          samples.push {
+            entities: item for item in state.items when item.alive
+            label
+          }
     else
       graspedItems = findGraspedItems state
       hasGrasp = Boolean graspedItems.length
@@ -47,13 +49,16 @@ chooseDropWhereLandOnOther = (states) ->
       formerHadGrasp = hasGrasp
   samples
 
+
 findGraspedItems = (state) -> item for item in state.items when item.grasped
+
 
 findItem = (state, id) ->
   for item in state.items
     if item.id is id
       return item
   null
+
 
 go = ->
   # TODO Determine project root or let file be passed in.
@@ -62,7 +67,8 @@ go = ->
     ready: (states) ->
       report(states)
       samples = chooseDropWhereLandOnOther(states)
-      log "#{samples.length} samples"
+      trues = (sample for sample in samples when sample.label)
+      log "#{trues.length}/#{samples.length} true samples"
 
 
 norm = (vector) ->
@@ -76,7 +82,7 @@ onGround = (item) ->
   angle = item.orientation
   # Angles go from -1 to 1.
   # Here, dim 1 is upright, and 0 sideways.
-  dim = Number angle < -0.75 || -0.25 < angle < 0.25 || 0.75 < angle
+  dim = Number angle < -0.75 or -0.25 < angle < 0.25 or 0.75 < angle
   abs(item.extent[dim] - item.location[1]) < 0.01
 
 
