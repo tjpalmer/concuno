@@ -1,6 +1,7 @@
 {abs, sqrt} = Math
 {load} = require('./stackiter-loader')
 log = console.log
+{startTree} = require('./tree')
 
 
 chooseDropWhereLandOnOther = (states) ->
@@ -69,6 +70,8 @@ go = ->
       samples = chooseDropWhereLandOnOther(states)
       trues = (sample for sample in samples when sample.label)
       log "#{trues.length}/#{samples.length} true samples"
+      tree = startTree()
+      log tree.kid
 
 
 norm = (vector) ->

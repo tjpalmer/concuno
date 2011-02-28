@@ -1,0 +1,37 @@
+log = console.log
+
+
+exports.startTree = ->
+  new RootNode
+
+
+class Node
+
+  constructor: ->
+    @bindings = []
+
+
+class LeafNode extends Node
+
+  constructor: (@prob = 0) ->
+    super()
+
+
+class RootNode extends Node
+
+  constructor: (@kid = new LeafNode) ->
+    super()
+    @bags = []
+
+
+class SplitNode extends Node
+
+  constructor:
+    (@$true = new LeafNode, @$false = new LeafNode, @error = new LeafNode) ->
+      super()
+
+
+class VarNode extends Node
+
+  constructor: (@kid = new LeafNode) ->
+    super()
