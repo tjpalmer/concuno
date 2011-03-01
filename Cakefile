@@ -30,11 +30,11 @@ compileAll = ->
   dir = 'cof'
   files = readdir dir, (err, files) ->
     throw err if err
-    compileFile "#{dir}/#{file}" for file in files when file.match /\.cof$/
+    compileFile "#{dir}/#{file}" for file in files when file.match /\.coffee$/
 
 compileFile = (name) ->
   readFile name, 'utf8', (err, input) ->
     throw err if err
     output = compile input, filename: name
-    base = basename(name, '.cof')
+    base = basename(name, '.coffee')
     writeFile "#{outDir}/#{base}.js", output, (err) -> throw err if err
