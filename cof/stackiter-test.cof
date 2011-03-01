@@ -1,6 +1,7 @@
+{log} = console
 {abs, sqrt} = Math
 {load} = require('./stackiter-loader')
-log = console.log
+{emptyBindings, startTree} = require('./tree')
 
 
 chooseDropWhereLandOnOther = (states) ->
@@ -69,6 +70,10 @@ go = ->
       samples = chooseDropWhereLandOnOther(states)
       trues = (sample for sample in samples when sample.label)
       log "#{trues.length}/#{samples.length} true samples"
+      tree = startTree()
+      tree.propagate emptyBindings samples
+      log "Leaf with #{tree.kid.prob} prob" +
+        " and #{tree.kid.bindings.length} bindings"
 
 
 norm = (vector) ->
