@@ -16,10 +16,22 @@ class Binding
 
 class Node
 
+  clone: ->
+    node = new @constructor (kid.clone() for kid in @kids())...
+    # By default, we get empty bindings.
+    # We could leave them empty, or we could clone the array.
+    # Instead default to using the same binds in the clone as the current.
+    # Do this because we clone a lot, and it would be nice not to have lots of
+    # big array copies going on.
+    # TODO This is still wasteful creating lots of empty arrays.
+    # TODO Consider how to avoid that.
+    node.bindings = @bindings
+    node
+
   constructor: ->
     @bindings = []
     @parent = null
-    kid.parent = this for kid in @kids
+    kid.parent = this for kid in @kids()
 
   leaves: ->
     result = []
@@ -44,8 +56,14 @@ class Node
 
 class LeafNode extends Node
 
-  constructor: (@prob = 0) ->
+  clone: ->
+    node = super()
+    node.prob = @prob
+    node
+
+  constructor: ->
     super()
+    @prob = 0
 
   kids: -> []
 
