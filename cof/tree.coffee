@@ -18,6 +18,8 @@ class Node
 
   constructor: ->
     @bindings = []
+    @parent = null
+    kid.parent = this for kid in @kids
 
   leaves: ->
     result = []
@@ -32,6 +34,13 @@ class Node
     pushLeaves this
     result
 
+  varDepth: ->
+    depth = 0
+    node = this
+    while node?
+      depth += node.constructor is VarNode
+      node = node.parent
+    depth
 
 class LeafNode extends Node
 

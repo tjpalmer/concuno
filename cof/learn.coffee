@@ -1,4 +1,5 @@
 {log} = console
+{max} = Math
 
 exports.learn = (tree) ->
   log "Learning ..."
@@ -21,5 +22,8 @@ expandLeaf = (leaf) ->
   arities.sort()
   minArity = arities[0]
   maxArity = arities[arities.length - 1]
-  log arities
-  # TODO varDepth vs minArity
+  log "Arities: #{arities.join ', '}"
+  minNewVarCount = max 0, minArity - leaf.varDepth()
+  log "Min new var count: #{minNewVarCount}"
+  # TODO Clone tree.
+  # TODO Add var nodes.
