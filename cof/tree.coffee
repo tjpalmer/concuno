@@ -17,21 +17,22 @@ class Binding
 class Node
 
   clone: ->
-    node = new @constructor (kid.clone() for kid in @kids())...
-    # By default, we get empty bindings.
-    # We could leave them empty, or we could clone the array.
-    # Instead default to using the same binds in the clone as the current.
-    # Do this because we clone a lot, and it would be nice not to have lots of
-    # big array copies going on.
-    # TODO This is still wasteful creating lots of empty arrays.
-    # TODO Consider how to avoid that.
-    node.bindings = @bindings
+    # Mostly, we're okay keeping things just as prototypes. A bit risky if we
+    # don't track the consequences (such as for bindings lists), but we make
+    # a lot of clones, and avoiding copying data seems wise and simple.
+    Clone = ->
+    Clone.prototype = this
+    node = new Clone
+    kids = @kids()
+    if kids.length
+      # We do want to copy the kids.
+      node.setKids(kid.clone() for kid in kids)
     node
 
   constructor: ->
     @bindings = []
     @parent = null
-    kid.parent = this for kid in @kids()
+    setKidsParent this
 
   leaves: ->
     result = []
@@ -53,6 +54,7 @@ class Node
       depth += node.constructor is VarNode
       node = node.parent
     depth
+
 
 class LeafNode extends Node
 
@@ -81,6 +83,10 @@ class RootNode extends Node
   propagate: (@bindings) ->
     @kid.propagate @bindings
 
+  setKids: (kids) ->
+    [@kid] = kids
+    setKidsParent this
+
 
 class SplitNode extends Node
 
@@ -90,6 +96,10 @@ class SplitNode extends Node
 
   kids: -> [@$true, @$false, @error]
 
+  setKids: (kids) ->
+    [@$true, @$false, @error] = kids
+    setKidsParent this
+
 
 class VarNode extends Node
 
@@ -97,3 +107,11 @@ class VarNode extends Node
     super()
 
   kids: -> [@kid]
+
+  setKids: (kids) ->
+    [@kid] = kids
+    setKidsParent this
+
+
+setKidsParent = (parent) ->
+    kid.parent = parent for kid in parent.kids()
