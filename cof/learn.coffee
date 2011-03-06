@@ -4,17 +4,6 @@
 exports.learn = (tree) ->
   log "Learning ..."
   # TODO Better leaf picking.
-  other = tree.clone()
-  log other is tree
-  log tree.leaves().length
-  log other.leaves().length
-  log tree.leaves()[0].bindings.length
-  log other.leaves()[0].bindings.length
-  log tree.leaves()[0] is other.leaves()[0]
-  log tree.leaves()[0].bindings is other.leaves()[0].bindings
-  log tree.leaves()[0].parent.constructor
-  log other.leaves()[0].parent.constructor
-  log tree.leaves()[0].parent is other.leaves()[0].parent
   leaves = tree.leaves()
   leaf = leaves[0]
   expandLeaf leaf
