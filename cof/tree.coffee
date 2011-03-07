@@ -4,8 +4,7 @@ log = console.log
 exports.emptyBindings = (bags) -> new Binding bag for bag in bags
 
 
-exports.startTree = ->
-  new RootNode
+exports.startTree = -> new RootNode
 
 
 class Binding
@@ -16,14 +15,78 @@ class Binding
 
 class Node
 
+  clone: ->
+    # Mostly, we're okay keeping things just as prototypes. A bit risky if we
+    # don't track the consequences (such as for bindings lists), but we make
+    # a lot of clones, and avoiding copying data seems wise and simple.
+    Clone = ->
+    Clone.prototype = this
+    node = new Clone
+    kids = @kids()
+    if kids.length
+      # We do want to copy the kids.
+      node.setKids(kid.clone() for kid in kids)
+    node
+
   constructor: ->
     @bindings = []
+    @id = 0
+    @parent = null
+    initKids this
+
+  getNode: (id) ->
+    if @id is id
+      this
+    else
+      for kid in @kids()
+        node = kid.getNode id
+        return node if node?
+      null
+
+  leaves: ->
+    result = []
+    pushLeaves = (node) ->
+      kids = node.kids()
+      if kids.length
+        for kid in kids
+          pushLeaves kid
+      else
+        # This is a leaf.
+        result.push node
+    pushLeaves this
+    result
+
+  newLeaf: (kid) -> new LeadNode kid
+
+  newSplit: (kid) -> new SplitNode kid
+
+  newVar: (kid) -> new VarNode kid
+
+  replaceWith: (node) ->
+    if @parent?
+      for k, kid of @parent.kids()
+        if kid.id is @id
+          @parent.setKid +k, node
+    undefined
+
+  varDepth: ->
+    depth = 0
+    node = this
+    while node?
+      depth += node.constructor is VarNode
+      node = node.parent
+    depth
+
+  root: -> if @parent? then @parent.root() else this
 
 
 class LeafNode extends Node
 
-  constructor: (@prob = 0) ->
+  constructor: ->
     super()
+    @prob = 0
+
+  kids: -> []
 
   propagate: (@bindings) -> # That's all?
 
@@ -31,11 +94,26 @@ class LeafNode extends Node
 class RootNode extends Node
 
   constructor: (@kid = new LeafNode) ->
+    # Set nextId before calling super, so kids will init correctly.
+    @nextId = 1;
     super()
     @bags = []
 
+  kids: -> [@kid]
+
+  generateId: -> @nextId++
+
   propagate: (@bindings) ->
     @kid.propagate @bindings
+
+  setKid: (k, kid) ->
+    throw "bad kid index #{k}" if k
+    @kid = kid
+    initKids this
+
+  setKids: (kids) ->
+    [@kid] = kids
+    initKids this
 
 
 class SplitNode extends Node
@@ -44,8 +122,44 @@ class SplitNode extends Node
     (@$true = new LeafNode, @$false = new LeafNode, @error = new LeafNode) ->
       super()
 
+  kids: -> [@$true, @$false, @error]
+
+  setKid: (k, kid) ->
+    keys = ['$true', '$false', 'error']
+    this[keys[k]] = kid
+    initKids this
+
+  setKids: (kids) ->
+    [@$true, @$false, @error] = kids
+    initKids this
+
 
 class VarNode extends Node
 
   constructor: (@kid = new LeafNode) ->
     super()
+
+  kids: -> [@kid]
+
+  setKid: (k, kid) ->
+    throw "bad kid index #{k}" if k
+    @kid = kid
+    initKids this
+
+  setKids: (kids) ->
+    [@kid] = kids
+    initKids this
+
+
+initKids = (parent) ->
+  kids = parent.kids()
+  # Set parent.
+  kid.parent = parent for kid in kids
+  # Set ids if we're part of a tree already.
+  root = parent.root()
+  if root instanceof RootNode
+    for kid in kids
+      if not kid.id
+        kid.id = root.generateId()
+        initKids kid
+  undefined
