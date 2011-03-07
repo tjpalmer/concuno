@@ -70,7 +70,7 @@ go = ->
       report(states)
       samples = chooseDropWhereLandOnOther(states)
       trues = (sample for sample in samples when sample.label)
-      log "#{trues.length}/#{samples.length} true samples"
+      log "#{trues.length} true of #{samples.length} samples"
       tree = startTree()
       tree.propagate emptyBindings samples
       leaf = tree.leaves()[0]

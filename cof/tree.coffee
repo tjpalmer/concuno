@@ -56,6 +56,19 @@ class Node
     pushLeaves this
     result
 
+  newLeaf: (kid) -> new LeadNode kid
+
+  newSplit: (kid) -> new SplitNode kid
+
+  newVar: (kid) -> new VarNode kid
+
+  replaceWith: (node) ->
+    if @parent?
+      for k, kid of @parent.kids()
+        if kid.id is @id
+          @parent.setKid +k, node
+    undefined
+
   varDepth: ->
     depth = 0
     node = this
@@ -93,6 +106,11 @@ class RootNode extends Node
   propagate: (@bindings) ->
     @kid.propagate @bindings
 
+  setKid: (k, kid) ->
+    throw "bad kid index #{k}" if k
+    @kid = kid
+    initKids this
+
   setKids: (kids) ->
     [@kid] = kids
     initKids this
@@ -106,6 +124,11 @@ class SplitNode extends Node
 
   kids: -> [@$true, @$false, @error]
 
+  setKid: (k, kid) ->
+    keys = ['$true', '$false', 'error']
+    this[keys[k]] = kid
+    initKids this
+
   setKids: (kids) ->
     [@$true, @$false, @error] = kids
     initKids this
@@ -118,6 +141,11 @@ class VarNode extends Node
 
   kids: -> [@kid]
 
+  setKid: (k, kid) ->
+    throw "bad kid index #{k}" if k
+    @kid = kid
+    initKids this
+
   setKids: (kids) ->
     [@kid] = kids
     initKids this
@@ -127,9 +155,11 @@ initKids = (parent) ->
   kids = parent.kids()
   # Set parent.
   kid.parent = parent for kid in kids
-  # Set ids.
+  # Set ids if we're part of a tree already.
   root = parent.root()
-  for kid in kids
-    if not kid.id
-      kid.id = root.generateId()
+  if root instanceof RootNode
+    for kid in kids
+      if not kid.id
+        kid.id = root.generateId()
+        initKids kid
   undefined

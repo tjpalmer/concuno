@@ -17,19 +17,30 @@ differenceLocation = difference identityLocation
 
 expandLeaf = (leaf) ->
   log "Expanding leaf #{leaf.id} ..."
+  # Sort mappers by arity. We prefer simpler models.
   mappers = [identityLocation, differenceLocation]
-  arities = (mapper.length for mapper in mappers)
-  arities.sort()
-  minArity = arities[0]
-  maxArity = arities[arities.length - 1]
-  log "Arities: #{arities.join ', '}"
+  mappers.sort (a, b) -> a.length - b.length
+  minArity = mappers[0].length
+  maxArity = mappers[mappers.length - 1].length
+  # Compare that to the number of vars available in this branch.
   varDepth = leaf.varDepth()
   minNewVarCount = max 0, minArity - varDepth
   log "Min new var count: #{minNewVarCount}"
-  node = leaf
-  for v in [minNewVarCount..maxArity]
-    log "Adding up to var #{v}"
-    clone = node.root().clone()
-    clonedNode = clone.getNode node.id
-    log "Cloned leaf #{clonedNode.id}"
-    # TODO Add var node.
+  # Clone the tree, and start adding vars.
+  # We prefer simpler trees, so the fewer nodes the better.
+  clone = leaf.root().clone()
+  node = clone.getNode leaf.id
+  for addedVarCount in [minNewVarCount..maxArity]
+    log "Adding up to var #{addedVarCount}"
+    $var = clone.newVar()
+    node.replaceWith $var
+    node = $var.kid
+    log "New var #{$var.id}"
+    log "New leaf #{node.id}"
+    varDepth++
+    for mapper in mappers
+      # End our loop once we don't have enough vars.
+      break if mapper.length > varDepth
+      # And skip mappers for which we've added superfluous vars.
+      continue if mapper.length < addedVarCount
+      log "Trying #{mapper}"
