@@ -16,14 +16,20 @@ identityLocation = (entity) -> entity.location
 differenceLocation = difference identityLocation
 
 expandLeaf = (leaf) ->
-  log "Expanding leaf ..."
+  log "Expanding leaf #{leaf.id} ..."
   mappers = [identityLocation, differenceLocation]
   arities = (mapper.length for mapper in mappers)
   arities.sort()
   minArity = arities[0]
   maxArity = arities[arities.length - 1]
   log "Arities: #{arities.join ', '}"
-  minNewVarCount = max 0, minArity - leaf.varDepth()
+  varDepth = leaf.varDepth()
+  minNewVarCount = max 0, minArity - varDepth
   log "Min new var count: #{minNewVarCount}"
-  # TODO Clone tree.
-  # TODO Add var nodes.
+  node = leaf
+  for v in [minNewVarCount..maxArity]
+    log "Adding up to var #{v}"
+    clone = node.root().clone()
+    clonedNode = clone.getNode node.id
+    log "Cloned leaf #{clonedNode.id}"
+    # TODO Add var node.

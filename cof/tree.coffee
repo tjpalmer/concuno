@@ -4,8 +4,7 @@ log = console.log
 exports.emptyBindings = (bags) -> new Binding bag for bag in bags
 
 
-exports.startTree = ->
-  new RootNode
+exports.startTree = -> new RootNode
 
 
 class Binding
@@ -31,8 +30,18 @@ class Node
 
   constructor: ->
     @bindings = []
+    @id = 0
     @parent = null
-    setKidsParent this
+    initKids this
+
+  getNode: (id) ->
+    if @id is id
+      this
+    else
+      for kid in @kids()
+        node = kid.getNode id
+        return node if node?
+      null
 
   leaves: ->
     result = []
@@ -55,13 +64,10 @@ class Node
       node = node.parent
     depth
 
+  root: -> if @parent? then @parent.root() else this
+
 
 class LeafNode extends Node
-
-  clone: ->
-    node = super()
-    node.prob = @prob
-    node
 
   constructor: ->
     super()
@@ -75,17 +81,21 @@ class LeafNode extends Node
 class RootNode extends Node
 
   constructor: (@kid = new LeafNode) ->
+    # Set nextId before calling super, so kids will init correctly.
+    @nextId = 1;
     super()
     @bags = []
 
   kids: -> [@kid]
+
+  generateId: -> @nextId++
 
   propagate: (@bindings) ->
     @kid.propagate @bindings
 
   setKids: (kids) ->
     [@kid] = kids
-    setKidsParent this
+    initKids this
 
 
 class SplitNode extends Node
@@ -98,7 +108,7 @@ class SplitNode extends Node
 
   setKids: (kids) ->
     [@$true, @$false, @error] = kids
-    setKidsParent this
+    initKids this
 
 
 class VarNode extends Node
@@ -110,8 +120,16 @@ class VarNode extends Node
 
   setKids: (kids) ->
     [@kid] = kids
-    setKidsParent this
+    initKids this
 
 
-setKidsParent = (parent) ->
-    kid.parent = parent for kid in parent.kids()
+initKids = (parent) ->
+  kids = parent.kids()
+  # Set parent.
+  kid.parent = parent for kid in kids
+  # Set ids.
+  root = parent.root()
+  for kid in kids
+    if not kid.id
+      kid.id = root.generateId()
+  undefined
