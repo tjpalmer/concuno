@@ -167,7 +167,7 @@ class VarNode extends Node
             bind entity
             any = true
         if not any
-          # Dummy entity here for when no new entities where available.
+          # Dummy entity here for when no new entities were available.
           bind null
       # TODO Need to bind some things first, eh?
       @bindings = outgoings
