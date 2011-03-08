@@ -16,7 +16,7 @@ difference = (mapper) ->
   map = mapper.map
   throw "#{name} arity #{map.length} != 1" if map.length != 1
   name: "difference#{name[0].toUpperCase()}#{name[1..]}"
-  map: (a, b) -> map(a) - map(b)
+  map: (a, b) -> vectorDiff(map(a), map(b))
 
 
 # Mapping functions.
@@ -59,5 +59,34 @@ expandLeaf = (leaf) ->
       split node, mapper
 
 
-split = (node, mapper) ->
-  log "Splitting node #{node.id} on #{mapper.name} ..."
+split = (leaf, mapper) ->
+  log "Splitting node #{leaf.id} on #{mapper.name} ..."
+  # TODO Figure out which vars to use.
+  # TODO Could figure out how many vars immediately above the current leaf.
+  # TODO We should commit all those, but we could mix and match earliers.
+  # TODO   committed = 0
+  # TODO   node = leaf.parent
+  # TODO   while node? and node.isVar()
+  # TODO     committed++
+  # TODO     node = node.parent
+  # For now, just use the most recent vars.
+  arity = mapper.map.length
+  varDepth = leaf.varDepth()
+  splitWithIndexes leaf, mapper, [varDepth-arity ... varDepth]
+
+
+splitWithIndexes = (leaf, mapper, indexes) ->
+  log "Using indexes #{indexes} ..."
+  # TODO Split off the error cases immediately. No need to hang onto them.
+  # TODO It's only the true vs. false we need to determine.
+  values = []
+  # TODO Bindings by bag, all the way down.
+  for binding in leaf.bindings
+    entities = binding.entities
+    entities = (entities[index] for index in indexes)
+    value = mapper.map entities...
+    values.push value
+  #log values.join ' '
+
+
+vectorDiff = (x, y) -> x[i] - y[i] for i in [0 ... x.length]

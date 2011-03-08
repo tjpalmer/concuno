@@ -43,6 +43,8 @@ class Node
         return node if node?
       null
 
+  isVar: -> false
+
   leaves: ->
     result = []
     pushLeaves = (node) ->
@@ -73,7 +75,7 @@ class Node
     depth = 0
     node = this
     while node?
-      depth += node.constructor is VarNode
+      depth += node.isVar()
       node = node.parent
     depth
 
@@ -148,6 +150,8 @@ class VarNode extends Node
 
   constructor: (@kid = new LeafNode) ->
     super()
+
+  isVar: -> true
 
   kids: -> [@kid]
 
