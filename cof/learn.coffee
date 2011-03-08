@@ -35,6 +35,7 @@ expandLeaf = (leaf) ->
     $var = clone.newVar()
     node.replaceWith $var
     node = $var.kid
+    $var.parent.propagate()
     log "New var #{$var.id}"
     log "New leaf #{node.id}"
     varDepth++

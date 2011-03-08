@@ -75,6 +75,7 @@ go = ->
       tree.propagate emptyBindings samples
       leaf = tree.leaves()[0]
       log "Leaf with #{leaf.prob} prob and #{leaf.bindings.length} bindings"
+      # TODO Or 'tree = learn tree' to avoid modification?
       learn tree
       leaf = tree.leaves()[0]
       log "Leaf with #{leaf.prob} prob and #{leaf.bindings.length} bindings"

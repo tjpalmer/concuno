@@ -88,7 +88,10 @@ class LeafNode extends Node
 
   kids: -> []
 
-  propagate: (@bindings) -> # That's all?
+  propagate: (bindings) ->
+    if bindings?
+      # We got new bindings.
+      @bindings = bindings
 
 
 class RootNode extends Node
@@ -103,8 +106,15 @@ class RootNode extends Node
 
   generateId: -> @nextId++
 
-  propagate: (@bindings) ->
-    @kid.propagate @bindings
+  propagate: (bindings) ->
+    if bindings?
+      # We got new bindings.
+      @bindings = bindings
+    else
+      # We need to use the ones we already had.
+      bindings = @bindings
+    log "RootNode to prop #{bindings.length} bindings"
+    @kid.propagate bindings
 
   setKid: (k, kid) ->
     throw "bad kid index #{k}" if k
@@ -140,6 +150,29 @@ class VarNode extends Node
     super()
 
   kids: -> [@kid]
+
+  propagate: (bindings) ->
+    if bindings?
+      # We got new bindings.
+      outgoings = []
+      for binding in bindings
+        bind = (entity) ->
+          outEntities = binding.entities.slice()
+          outEntities.push entity
+          outgoings.push {bag: binding.bag, entities: outEntities}
+        any = false
+        for entity in binding.bag.entities
+          if entity not in binding.entities
+            # We don't repeat bindings in SMRF.
+            bind entity
+            any = true
+        if not any
+          # Dummy entity here for when no new entities where available.
+          bind null
+      # TODO Need to bind some things first, eh?
+      @bindings = outgoings
+      log "Build #{bindings.length} bindings into #{outgoings.length}"
+    @kid.propagate @bindings
 
   setKid: (k, kid) ->
     throw "bad kid index #{k}" if k

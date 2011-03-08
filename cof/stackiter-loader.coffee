@@ -91,7 +91,7 @@ class Loader
     args = line.trim().split /\s+/
     switch args[0]
       when 'alive'
-        @parseAlive
+        @parseAlive args
       when 'clear'
         @parseClear args
       when 'destroy'
