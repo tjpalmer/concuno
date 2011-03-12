@@ -84,9 +84,9 @@ splitWithIndexes = (leaf, mapper, indexes) ->
   for binding in leaf.bindings
     entities = binding.entities
     entities = (entities[index] for index in indexes)
-    if null not in entities
-      value = mapper.map entities...
-      values.push value
+    continue if null in entities
+    value = mapper.map entities...
+    values.push value
   #log values.join ' '
 
 

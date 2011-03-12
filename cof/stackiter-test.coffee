@@ -65,7 +65,7 @@ findItem = (state, id) ->
 go = ->
   # TODO Determine project root or let file be passed in.
   load 'temp/stackiter-20101105-171808-671_drop-from-25.log',
-    #stateLimit: 1000
+    stateLimit: 1000
     ready: (states) ->
       report(states)
       samples = chooseDropWhereLandOnOther(states)
