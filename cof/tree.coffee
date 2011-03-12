@@ -12,6 +12,26 @@ class Binding
   constructor: (@bag) ->
     @entities = []
 
+class Bindings
+
+  constructor: (@formers, @indexes, @entities) ->
+    if not @entities?
+      @indexes = [0...@formers.length]
+      @entities = []
+    @length = @entities.length
+    @depth = if @formers.depth? then @formers.depth + 1 else 0
+
+  getEntities: (bindingIndex, varIndexes) ->
+    entities = []
+    bindings = this
+    v = varIndexes.length - 1
+    varIndex = varIndexes[v]
+    for depth in [@depth..1]
+      if varIndex is depth - 1
+        entities.push bindings.entities[bindingIndex]
+        varIndex = varIndexes[--v]
+      bindings = bindings.formers[bindingIndex]
+    entities
 
 class Node
 
@@ -115,7 +135,7 @@ class RootNode extends Node
     else
       # We need to use the ones we already had.
       bindings = @bindings
-    log "RootNode to prop #{bindings.length} bindings"
+    #log "RootNode to prop #{bindings.length} bindings"
     @kid.propagate bindings
 
   setKid: (k, kid) ->
@@ -175,7 +195,7 @@ class VarNode extends Node
           bind null
       # TODO Need to bind some things first, eh?
       @bindings = outgoings
-      log "Build #{bindings.length} bindings into #{outgoings.length}"
+      #log "Build #{bindings.length} bindings into #{outgoings.length}"
     @kid.propagate @bindings
 
   setKid: (k, kid) ->

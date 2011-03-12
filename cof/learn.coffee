@@ -48,6 +48,10 @@ expandLeaf = (leaf) ->
     node.replaceWith $var
     node = $var.kid
     $var.parent.propagate()
+    for i in [0...1000]
+      #clone.propagate()
+      i
+    log "Bindings at leaf after 1000 props: #{clone.leaves()[0].bindings.length}"
     log "New var #{$var.id}"
     log "New leaf #{node.id}"
     varDepth++
