@@ -1,37 +1,22 @@
 log = console.log
 
 
-exports.emptyBindings = (bags) -> new Binding bag for bag in bags
+exports.emptyBindings = (bags) ->
+  bindings = (new BindingBag bag for bag in bags)
+  # We start with one empty binding per bag.
+  for binding in bindings
+    binding.entityLists.push []
+  bindings
 
 
 exports.startTree = -> new RootNode
 
 
-class Binding
+class BindingBag
 
   constructor: (@bag) ->
-    @entities = []
+    @entityLists = []
 
-class Bindings
-
-  constructor: (@formers, @indexes, @entities) ->
-    if not @entities?
-      @indexes = [0...@formers.length]
-      @entities = []
-    @length = @entities.length
-    @depth = if @formers.depth? then @formers.depth + 1 else 0
-
-  getEntities: (bindingIndex, varIndexes) ->
-    entities = []
-    bindings = this
-    v = varIndexes.length - 1
-    varIndex = varIndexes[v]
-    for depth in [@depth..1]
-      if varIndex is depth - 1
-        entities.push bindings.entities[bindingIndex]
-        varIndex = varIndexes[--v]
-      bindings = bindings.formers[bindingIndex]
-    entities
 
 class Node
 
@@ -179,23 +164,31 @@ class VarNode extends Node
     if bindings?
       # We got new bindings.
       outgoings = []
+      inCount = 0
+      outCount = 0
+      bind = (entity) ->
+        outEntities = entities.slice()
+        outEntities.push entity
+        outgoing.entityLists.push outEntities
+        outCount++
       for binding in bindings
-        bind = (entity) ->
-          outEntities = binding.entities.slice()
-          outEntities.push entity
-          outgoings.push {bag: binding.bag, entities: outEntities}
-        any = false
-        for entity in binding.bag.entities
-          if entity not in binding.entities
-            # We don't repeat bindings in SMRF.
-            bind entity
-            any = true
-        if not any
-          # Dummy entity here for when no new entities were available.
-          bind null
-      # TODO Need to bind some things first, eh?
+        bag = binding.bag
+        outgoing = new BindingBag bag
+        for entities in binding.entityLists
+          inCount++
+          any = false
+          for entity in bag.entities
+            if entity not in entities
+              # We don't repeat bindings in SMRF.
+              bind entity
+              any = true
+          if not any
+            # Dummy entity here for when no new entities were available.
+            # We send these down error branches later at split nodes.
+            bind null
+        outgoings.push outgoing
       @bindings = outgoings
-      #log "Build #{bindings.length} bindings into #{outgoings.length}"
+      #log "Built #{inCount} bindings into #{outCount}"
     @kid.propagate @bindings
 
   setKid: (k, kid) ->

@@ -48,10 +48,13 @@ expandLeaf = (leaf) ->
     node.replaceWith $var
     node = $var.kid
     $var.parent.propagate()
-    for i in [0...1000]
-      #clone.propagate()
-      i
-    log "Bindings at leaf after 1000 props: #{clone.leaves()[0].bindings.length}"
+    if false
+      # Poor man's benchmark.
+      for i in [0...1000]
+        clone.propagate()
+      bindingCount = 0
+      bindingCount += binding.entityLists.length for binding in clone.leaves()[0].bindings
+      log "Bindings at leaf after 1000 props: #{bindingCount}"
     log "New var #{$var.id}"
     log "New leaf #{node.id}"
     varDepth++
@@ -81,17 +84,20 @@ split = (leaf, mapper) ->
 
 splitWithIndexes = (leaf, mapper, indexes) ->
   log "Using indexes #{indexes} ..."
-  # TODO Split off the error cases immediately. No need to hang onto them.
-  # TODO It's only the true vs. false we need to determine.
-  values = []
-  # TODO Bindings by bag, all the way down. But less efficient vs. big array???
+  valueBags = []
   for binding in leaf.bindings
-    entities = binding.entities
-    entities = (entities[index] for index in indexes)
-    continue if null in entities
-    value = mapper.map entities...
-    values.push value
-  #log values.join ' '
+    values = []
+    for entities in binding.entityLists
+      entities = (entities[index] for index in indexes)
+      continue if null in entities # error case
+      value = mapper.map entities...
+      values.push value
+    valueBags.push values
+  if true
+    valueCount = 0
+    valueCount += values.length for values in valueBags
+    log "Built #{valueCount} values in #{valueBags.length} bags"
+    #log values.join ' '
 
 
 vectorDiff = (x, y) -> x[i] - y[i] for i in [0 ... x.length]
