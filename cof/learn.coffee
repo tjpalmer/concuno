@@ -80,7 +80,7 @@ splitWithIndexes = (leaf, mapper, indexes) ->
   # TODO Split off the error cases immediately. No need to hang onto them.
   # TODO It's only the true vs. false we need to determine.
   values = []
-  # TODO Bindings by bag, all the way down.
+  # TODO Bindings by bag, all the way down. But less efficient vs. big array???
   for binding in leaf.bindings
     entities = binding.entities
     entities = (entities[index] for index in indexes)
