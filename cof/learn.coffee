@@ -1,5 +1,5 @@
 {log} = console
-{max} = Math
+{max, min} = Math
 
 
 exports.learn = (tree) ->
@@ -93,11 +93,49 @@ splitWithIndexes = (leaf, mapper, indexes) ->
       value = mapper.map entities...
       values.push value
     valueBags.push values
+  # TODO Manual loops probably faster than list building here.
+  mins = vectorMin (vectorMin valueBag for valueBag in valueBags)
+  maxes = vectorMax (vectorMax valueBag for valueBag in valueBags)
   if true
     valueCount = 0
     valueCount += values.length for values in valueBags
     log "Built #{valueCount} values in #{valueBags.length} bags"
+    log "Limits: #{mins} #{maxes}"
     #log values.join ' '
 
 
 vectorDiff = (x, y) -> x[i] - y[i] for i in [0 ... x.length]
+
+
+vectorMax = (vectors) ->
+  if vectors.length and dim = vectors[0].length
+    # This manual looping is substantially faster (3x?) than building a array
+    # on the spot for each dim then using Math.max.
+    # Slower version:
+    # max (vectors[v][d] for v in [0...vectors.length])... for d in [0...dim]
+    for d in [0...dim]
+      maxVal = -Infinity
+      for vector in vectors
+        val = vector[d]
+        if val > maxVal
+          maxVal = val
+      maxVal
+  else
+    []
+
+
+vectorMin = (vectors) ->
+  if vectors.length and dim = vectors[0].length
+    # This manual looping is substantially faster (3x?) than building a array
+    # on the spot for each dim then using Math.min.
+    # Slower version:
+    # min (vectors[v][d] for v in [0...vectors.length])... for d in [0...dim]
+    for d in [0...dim]
+      minVal = Infinity
+      for vector in vectors
+        val = vector[d]
+        if val < minVal
+          minVal = val
+      minVal
+  else
+    []
