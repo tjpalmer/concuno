@@ -25,13 +25,14 @@ putMapper = (mapper) ->
   mappers[mapper.name] = mapper
 putMapper name: 'location', map: (entity) -> entity.location
 putMapper difference mappers.location
+# TODO Move mappers to a separate file, and just make the list here.
+mappers = (mapper for name, mapper of mappers)
+# Sort mappers by arity. We prefer simpler models.
+mappers.sort (a, b) -> a.map.length - b.map.length
 
 
 expandLeaf = (leaf) ->
   log "Expanding leaf #{leaf.id} ..."
-  # Sort mappers by arity. We prefer simpler models.
-  mappers = (mapper for name, mapper of mappers)
-  mappers.sort (a, b) -> a.map.length - b.map.length
   minArity = mappers[0].map.length
   maxArity = mappers[mappers.length - 1].map.length
   # Compare that to the number of vars available in this branch.
@@ -66,6 +67,17 @@ expandLeaf = (leaf) ->
       split node, mapper
 
 
+getValueBags = (bindingBags, mapper, indexes) ->
+  for binding in bindingBags
+    values = []
+    for entities in binding.entityLists
+      entities = (entities[index] for index in indexes)
+      continue if null in entities # error case
+      value = mapper.map entities...
+      values.push value
+    values
+
+
 split = (leaf, mapper) ->
   log "Splitting node #{leaf.id} on #{mapper.name} ..."
   # TODO Figure out which vars to use.
@@ -84,15 +96,7 @@ split = (leaf, mapper) ->
 
 splitWithIndexes = (leaf, mapper, indexes) ->
   log "Using indexes #{indexes} ..."
-  valueBags = []
-  for binding in leaf.bindings
-    values = []
-    for entities in binding.entityLists
-      entities = (entities[index] for index in indexes)
-      continue if null in entities # error case
-      value = mapper.map entities...
-      values.push value
-    valueBags.push values
+  valueBags = getValueBags leaf.bindings, mapper, indexes
   # TODO Manual loops probably faster than list building here.
   mins = vectorMin (vectorMin valueBag for valueBag in valueBags)
   maxes = vectorMax (vectorMax valueBag for valueBag in valueBags)
