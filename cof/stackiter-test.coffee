@@ -3,6 +3,7 @@
 {abs, sqrt} = Math
 {load} = require './stackiter-loader'
 {emptyBindings, startTree} = require './tree'
+#{startProfiling, stopProfiling} = require 'v8-profiler'
 
 
 chooseDropWhereLandOnOther = (states) ->
@@ -64,6 +65,7 @@ findItem = (state, id) ->
 
 go = ->
   # TODO Determine project root or let file be passed in.
+  #startProfiling()
   load 'temp/stackiter-20101105-171808-671_drop-from-25.log',
     stateLimit: 1000
     ready: (states) ->
@@ -79,6 +81,8 @@ go = ->
       learn tree
       leaf = tree.leaves()[0]
       log "Leaf with #{leaf.prob} prob and #{leaf.bindings.length} bindings"
+      #stopProfiling()
+      #debugger
 
 
 norm = (vector) ->

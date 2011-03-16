@@ -68,6 +68,8 @@ expandLeaf = (leaf) ->
 
 
 getValueBags = (bindingBags, mapper, indexes) ->
+  # TODO Provide the error bindings and bags immediately here, too?
+  # TODO Or reloop later to pull those out?
   for binding in bindingBags
     values = for entities in binding.entityLists
       entities = (entities[index] for index in indexes)
