@@ -69,13 +69,12 @@ expandLeaf = (leaf) ->
 
 getValueBags = (bindingBags, mapper, indexes) ->
   for binding in bindingBags
-    values = []
-    for entities in binding.entityLists
+    values = for entities in binding.entityLists
       entities = (entities[index] for index in indexes)
       continue if null in entities # error case
-      value = mapper.map entities...
-      values.push value
-    values
+      mapper.map entities...
+    continue if not values.length # no actual values
+    bag: binding.bag, values
 
 
 split = (leaf, mapper) ->
@@ -96,14 +95,23 @@ split = (leaf, mapper) ->
 
 splitWithIndexes = (leaf, mapper, indexes) ->
   log "Using indexes #{indexes} ..."
+  initBagLimit = 4
+  posCount = 0
   valueBags = getValueBags leaf.bindings, mapper, indexes
+  for valueBag in valueBags
+    if valueBag.bag.label
+      #log valueBag
+      break if ++posCount > initBagLimit
+      for value in valueBag.values
+        # TODO Calculate kernel or whatnot against all other bags.
+        value
   # TODO Manual loops probably faster than list building here.
-  mins = vectorMin (vectorMin valueBag for valueBag in valueBags)
-  maxes = vectorMax (vectorMax valueBag for valueBag in valueBags)
   if true
     valueCount = 0
-    valueCount += values.length for values in valueBags
+    valueCount += valueBag.values.length for valueBag in valueBags
     log "Built #{valueCount} values in #{valueBags.length} bags"
+    mins = vectorMin (vectorMin valueBag.values for valueBag in valueBags)
+    maxes = vectorMax (vectorMax valueBag.values for valueBag in valueBags)
     log "Limits: #{mins} #{maxes}"
     #log values.join ' '
 
