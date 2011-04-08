@@ -1,0 +1,173 @@
+// Imports.
+
+var log = console.log;
+var learn = require('./learn').learn;
+var abs = Math.abs, sqrt = Math.sqrt;
+var load = require('./stackiter-loader');
+var emptyBindings, startTree; (function() {
+  emptyBindings = this.emptyBindings;
+  startTree = this.startTree;
+}).apply(require('./tree'));
+//{startProfiling, stopProfiling} = require 'v8-profiler'
+
+
+go();
+
+
+// Functions.
+
+
+function chooseDropWhereLandOnOther(states: State*): Sample* {
+  // TODO Automate empty constructor call for non-null!
+  var samples: Sample* = [];
+  var formerHadGrasp = false;
+  var graspedId = -1;
+  var ungraspState: State? = null;
+  for (var s = 0; s < states.length; s++) {
+    var state = states[s];
+    if (ungraspState) {
+      // Item released. We're now trying to find when it settles.
+      var settled = false;
+      var label: Boolean? = null;
+      if (state.cleared) {
+        // World cleared. Say it's settled, but don't assign a label.
+        settled = true;
+      } else {
+        var item = findItem(state, graspedId);
+        if (item) {
+          // Still here. See if it's moving.
+          if (norm(item.velocity) < 0.01) {
+            // Stopped. See where it is.
+            // TODO If the block bounced up, we might be catching it at the peak.
+            // TODO Maybe we should check for that (by accel or location?).
+            settled = true;
+            label = !onGround(item);
+          }
+        } else {
+          // It fell off the table, so it didn't land on another block.
+          settled = true;
+          label = false;
+        }
+      }
+      if (settled) {
+        ungraspState = null;
+        if (label == null) { // ?label operator ??
+          // Labeled, so record it.
+          var entities: Item* = [];
+          var items = state.items;
+          for (var i = 0; i < items.length; i++) {
+            var item = items[i];
+            if (item.alive) {
+              entities.push(item);
+            }
+          }
+          // TODO Just {entities, label} here.
+          samples.push({entities: entities, label: label});
+        }
+      }
+    } else {
+      var graspedItems = findGraspedItems(state);
+      var hasGrasp = Boolean(graspedItems.length);
+      if (hasGrasp) {
+        // TODO Support multiple grasped items intelligently?
+        graspedId = graspedItems[0].id;
+      } else if (formerHadGrasp) {
+        ungraspState = state;
+      }
+      formerHadGrasp = hasGrasp;
+    }
+  }
+  return samples;
+}
+
+
+function findGraspedItems(state: State): Item* {
+  var graspedItems: Item* = [];
+  var items = state.items;
+  for (var i = 0; i < items.length; i++) {
+    var item = items[i];
+    if (item.grasped) {
+      graspedItems.push(item);
+    }
+  }
+  return graspedItems;
+}
+
+
+function findItem(state: State, id): Item? {
+  var items = state.items;
+  for (var i = 0; i < items.length; i++) {
+    var item = items[i];
+    if (item.id == id) {
+      return item;
+    }
+  }
+  return null;
+}
+
+
+// TODO Best to be explicit with void or not?
+function go(): void {
+  // TODO Determine project root or let file be passed in.
+  //startProfiling();
+  load('temp/stackiter-20101105-171808-671_drop-from-25.log', {
+    stateLimit: 1000,
+    ready: do(states) {
+      report(states);
+      var samples = chooseDropWhereLandOnOther(states);
+      var trueCount = 0;
+      for (var s = 0; s < samples.length; s++) {
+        trueCount += Number(samples[s].label);
+      }
+      log(trueCount + " true of " + samples.length + " samples");
+      var tree = startTree();
+      tree.propagate(emptyBindings(samples));
+      var leaf = tree.leaves()[0];
+      log(
+        "Leaf with " + leaf.prob + " prob and " +
+        leaf.bindings.length + " bindings"
+      );
+      // TODO Or 'tree = learn(tree);' to avoid modification?
+      learn(tree);
+      leaf = tree.leaves()[0];
+      log(
+        "Leaf with " + leaf.prob + " prob and " +
+        leaf.bindings.length + " bindings"
+      );
+      // stopProfiling();
+      // debugger;
+    }
+  });
+}
+
+
+function norm(vector: Number*): Number {
+  var sum = 0;
+  for (var v = 0; v < vector.length; v++) {
+    var val = vector[v];
+    sum += val * val;
+  }
+  return sqrt(sum);
+}
+
+
+function onGround(item: Item): Boolean {
+  var angle = item.orientation;
+  // Angles go from -1 to 1.
+  // Here, dim 1 is upright, and 0 sideways.
+  var dim =
+    Number(angle < -0.75 || (-0.25 < angle && angle < 0.25) || 0.75 < angle);
+  return abs(item.extent[dim] - item.location[1]) < 0.01;
+}
+
+
+function report(states: State*): void {
+  log("At end:");
+  // TODO Is there a good way to say 'last item' in June?
+  log(states[states.length - 1].items.length + " items");
+  //log(states[102]);
+  //log(states[102].items[9].extent);
+  //log(states[102].items.length + " here");
+  //log(states[700].items.length + " there");
+  log(states.length + " states");
+}
