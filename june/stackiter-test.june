@@ -3,7 +3,7 @@
 var log = console.log;
 var learn = require('./learn').learn;
 var abs = Math.abs, sqrt = Math.sqrt;
-var load = require('./stackiter-loader');
+var load = require('./stackiter-loader').load;
 var emptyBindings, startTree; (function() {
   emptyBindings = this.emptyBindings;
   startTree = this.startTree;
