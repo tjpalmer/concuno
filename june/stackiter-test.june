@@ -51,7 +51,7 @@ function chooseDropWhereLandOnOther(states: State*): Sample* {
       }
       if (settled) {
         ungraspState = null;
-        if (label == null) { // ?label operator ??
+        if (label != null) { // ?label operator ??
           // Labeled, so record it.
           var entities: Item* = [];
           var items = state.items;
