@@ -61,8 +61,7 @@ function chooseDropWhereLandOnOther(states: State*): Sample* {
               entities.push(item);
             }
           }
-          // TODO Just {entities, label} here.
-          samples.push({entities: entities, label: label});
+          samples.push({entities, label});
         }
       }
     } else {
