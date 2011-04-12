@@ -60,8 +60,8 @@ function Loader() {
   this.parseAll = parseAll;
 
   function findIndex(args: String*, argIndex: Number?): Number {
-    // TODO Param default values! (Could it help avoid nulls?)
-    if (argIndex == null) argIndex = 1;
+    // TODO Param default values?! Undefined types as '??'?
+    if (argIndex === undefined) argIndex = 1;
     var id = Number(args[argIndex]);
     var index = indexes[id];
     if (index == null) throw "no such item";
@@ -79,8 +79,8 @@ function Loader() {
   }
 
   function parseAll(lines: String*, stateLimit: Number?): State* {
-    // TODO Param default values! (Could it help avoid nulls?)
-    if (stateLimit == null) stateLimit = Infinity;
+    // TODO Param default values?! Undefined types as '??'?
+    if (stateLimit === undefined) stateLimit = Infinity;
     for (var l = 0; l < lines.length; l++) {
       var line = lines[l];
       parseLine(line);
@@ -129,11 +129,11 @@ function Loader() {
       extent: [0, 0],
       grasped: false,
       grasping: false,
-      id: id, // TODO Just 'id,'.
+      id,
       location: [0, 0],
       orientation: 0,
       type: null,
-      velocity: [0, 0]
+      velocity: [0, 0],
     });
   }
 

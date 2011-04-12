@@ -61,8 +61,7 @@ function chooseDropWhereLandOnOther(states: State*): Sample* {
               entities.push(item);
             }
           }
-          // TODO Just {entities, label} here.
-          samples.push({entities: entities, label: label});
+          samples.push({entities, label});
         }
       }
     } else {
@@ -94,7 +93,7 @@ function findGraspedItems(state: State): Item* {
 }
 
 
-function findItem(state: State, id): Item? {
+function findItem(state: State, id: Number): Item? {
   var items = state.items;
   for (var i = 0; i < items.length; i++) {
     var item = items[i];
