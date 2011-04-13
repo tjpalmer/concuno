@@ -110,13 +110,14 @@ function getValueBags(bindingBags, mapper, indexes) {
       for (var i = 0; i < indexes.length; i++) {
         entities.push(entitiesAll[indexes[i]]);
       }
-      if (entities.indexOf(null) < 0) continue; // error case
-      // TODO mapper.map.apply(, entities);
+      if (entities.indexOf(null) >= 0) continue; // error case
+      // TODO mapper.map.apply(,entities);
       values.push(mapper.map.apply(undefined, entities));
     }
     if (!values.length) continue; // no actual values
     bags.push({bag: binding.bag, values});
   }
+  return bags;
 }
 
 
@@ -161,7 +162,6 @@ function splitWithIndexes(
   for (var b = 0; b < valueBags.length; b++) {
     var valueBag = valueBags[b];
     if (valueBag.bag.label) {
-      //log(valueBag);
       if (++posCount > initBagLimit) break;
       var values = valueBag.values;
       for (var v = 0; v < values.length; v++) {
@@ -177,7 +177,7 @@ function splitWithIndexes(
     var maxesInner: Number* = []; // TODO Number**
     for (var b = 0; b < valueBags.length; b++) {
       var valueBag = valueBags[b];
-      valueCount += valueBag.length;
+      valueCount += valueBag.values.length;
       minsInner.push(vectorMin(valueBag.values));
       maxesInner.push(vectorMax(valueBag.values));
     }
@@ -194,7 +194,7 @@ function splitWithIndexes(
 function vectorDiff(x: Number*, y: Number*): Number* {
   var diff: Number* = Array(x.length);
   for (var i = 0; i < diff.length; i++) {
-    diff(i) = x[i] - y[i];
+    diff[i] = x[i] - y[i];
   }
   return diff;
 }
@@ -214,7 +214,7 @@ function vectorMax(vectors: Number*): Number* {
           maxVal = val;
         }
       }
-      maxVals.push(maxVal);
+      maxVals[d] = maxVal;
     }
     return maxVals;
   } else {
@@ -237,7 +237,7 @@ function vectorMin(vectors: Number*): Number* {
           minVal = val;
         }
       }
-      minVals.push(minVal);
+      minVals[d] = minVal;
     }
     return minVals;
   } else {
