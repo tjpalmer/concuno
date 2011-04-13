@@ -17,10 +17,10 @@ exports.learn = learn;
 function difference(mapper: Mapper): Mapper {
   var name = mapper.name;
   var map = mapper.map;
-  if (map.length != 1) throw "#{name} arity #{map.length} != 1";
+  if (map.length != 1) throw name + " arity " + map.length + " != 1";
   return {
-    name: "difference#{name[0].toUpperCase()}#{name[1..]}",
-    map: (a, b) -> vectorDiff(map(a), map(b)),
+    name: "difference" + name[0].toUpperCase() + name.substring(1),
+    map: do(a, b) {return vectorDiff(map(a), map(b));},
   };
 }
 
@@ -38,8 +38,8 @@ var mappers: Mapper* = [];
   putMapper({name: 'location', map: do(entity) {return entity.location;}});
   putMapper(difference(mappersObj.location));
   // TODO Move mappers to a separate file, and just make the list here.
-  for (var m in mappers) {
-    mappers.push(mappers[m]);
+  for (var m in mappersObj) {
+    mappers.push(mappersObj[m]);
   }
   // Sort mappers by arity. We prefer simpler models.
   mappers.sort(do(a, b) {return a.map.length - b.map.length;});
@@ -63,7 +63,7 @@ function expandLeaf(leaf: LeafNode): void {
     addedVarCount <= maxArity;
     addedVarCount++
   ) {
-    log "Adding up to var #{addedVarCount}"
+    log("Adding up to var " + addedVarCount);
     var $var = clone.newVar();
     node.replaceWith($var);
     node = $var.kid;
@@ -103,6 +103,7 @@ function getValueBags(bindingBags, mapper, indexes) {
     var binding = bindingBags[b];
     var values: Object* = [];
     var entityLists = binding.entityLists;
+    // TODO for (entityLists) do(entities) {...}
     for (var e = 0; e < entityLists.length; e++) {
       var entitiesAll = entityLists[e];
       var entities: Entity* = [];
@@ -119,8 +120,9 @@ function getValueBags(bindingBags, mapper, indexes) {
 }
 
 
-split = (leaf, mapper) ->
-  log "Splitting node #{leaf.id} on #{mapper.name} ..."
+function split(leaf: LeafNode, mapper: Mapper): void {
+  // TODO log($"Splitting node ${leaf.id} on ${mapper.name} ...");
+  log("Splitting node " + leaf.id + " on " + mapper.name + " ...");
   // TODO Figure out which vars to use.
   // TODO Could figure out how many vars immediately above the current leaf.
   // TODO We should commit all those, but we could mix and match earliers.
@@ -130,9 +132,14 @@ split = (leaf, mapper) ->
   // TODO     committed++
   // TODO     node = node.parent
   // For now, just use the most recent vars.
-  arity = mapper.map.length
-  varDepth = leaf.varDepth()
-  splitWithIndexes leaf, mapper, [varDepth-arity ... varDepth]
+  var arity = mapper.map.length;
+  var varDepth = leaf.varDepth();
+  var indexes = [];
+  for (var index = varDepth - arity; index < varDepth; index++) {
+    indexes.push(index);
+  }
+  splitWithIndexes(leaf, mapper, indexes);
+}
 
 
 function learn(tree: Node): void {
@@ -144,61 +151,96 @@ function learn(tree: Node): void {
 }
 
 
-splitWithIndexes = (leaf, mapper, indexes) ->
-  log "Using indexes #{indexes} ..."
-  initBagLimit = 4
-  posCount = 0
-  valueBags = getValueBags leaf.bindings, mapper, indexes
-  for valueBag in valueBags
-    if valueBag.bag.label
-      //log valueBag
-      break if ++posCount > initBagLimit
-      for value in valueBag.values
+function splitWithIndexes(
+  leaf: LeafNode, mapper: Mapper, indexes: Number*
+): void {
+  log("Using indexes " + indexes + " ...");
+  var initBagLimit = 4;
+  var posCount = 0;
+  var valueBags = getValueBags(leaf.bindings, mapper, indexes);
+  for (var b = 0; b < valueBags.length; b++) {
+    var valueBag = valueBags[b];
+    if (valueBag.bag.label) {
+      //log(valueBag);
+      if (++posCount > initBagLimit) break;
+      var values = valueBag.values;
+      for (var v = 0; v < values.length; v++) {
         // TODO Calculate kernel or whatnot against all other bags.
-        value
+        var value = values[v];
+      }
+    }
+  }
   // TODO Manual loops probably faster than list building here.
-  if true
-    valueCount = 0
-    valueCount += valueBag.values.length for valueBag in valueBags
-    log "Built #{valueCount} values in #{valueBags.length} bags"
-    mins = vectorMin (vectorMin valueBag.values for valueBag in valueBags)
-    maxes = vectorMax (vectorMax valueBag.values for valueBag in valueBags)
-    log "Limits: #{mins} #{maxes}"
-    //log values.join ' '
+  if (true) {
+    var valueCount = 0;
+    var minsInner: Number* = []; // TODO Number**
+    var maxesInner: Number* = []; // TODO Number**
+    for (var b = 0; b < valueBags.length; b++) {
+      var valueBag = valueBags[b];
+      valueCount += valueBag.length;
+      minsInner.push(vectorMin(valueBag.values));
+      maxesInner.push(vectorMax(valueBag.values));
+    }
+    var mins = vectorMin(minsInner);
+    var maxes = vectorMax(maxesInner);
+    log("Built " + valueCount + " values in " + valueBags.length + " bags");
+    log("Limits: " + mins + " " + maxes);
+    //log(values.join(' '));
+  }
+}
 
 
-vectorDiff = (x, y) -> x[i] - y[i] for i in [0 ... x.length]
+// TODO I need to support vector diff automatically.
+function vectorDiff(x: Number*, y: Number*): Number* {
+  var diff: Number* = Array(x.length);
+  for (var i = 0; i < diff.length; i++) {
+    diff(i) = x[i] - y[i];
+  }
+  return diff;
+}
 
 
-vectorMax = (vectors) ->
-  if vectors.length and dim = vectors[0].length
-    // This manual looping is substantially faster (3x?) than building a array
-    // on the spot for each dim then using Math.max.
-    // Slower version:
-    // max (vectors[v][d] for v in [0...vectors.length])... for d in [0...dim]
-    for d in [0...dim]
-      maxVal = -Infinity
-      for vector in vectors
-        val = vector[d]
-        if val > maxVal
-          maxVal = val
-      maxVal
-  else
-    []
+// TODO Number**.
+function vectorMax(vectors: Number*): Number* {
+  var dim: Number;
+  if (vectors.length && (dim = vectors[0].length)) {
+    var maxVals: Number* = Array(dim);
+    for (var d = 0; d < dim; d++) {
+      var maxVal = -Infinity;
+      for (var v = 0; v < vectors.length; v++) {
+        var vector = vectors[v];
+        var val = vector[d];
+        if (val > maxVal) {
+          maxVal = val;
+        }
+      }
+      maxVals.push(maxVal);
+    }
+    return maxVals;
+  } else {
+    return [];
+  }
+}
 
 
-vectorMin = (vectors) ->
-  if vectors.length and dim = vectors[0].length
-    // This manual looping is substantially faster (3x?) than building a array
-    // on the spot for each dim then using Math.min.
-    // Slower version:
-    // min (vectors[v][d] for v in [0...vectors.length])... for d in [0...dim]
-    for d in [0...dim]
-      minVal = Infinity
-      for vector in vectors
-        val = vector[d]
-        if val < minVal
-          minVal = val
-      minVal
-  else
-    []
+// TODO Number**.
+function vectorMin(vectors: Number*): Number* {
+  var dim: Number;
+  if (vectors.length && (dim = vectors[0].length)) {
+    var minVals: Number* = Array(dim);
+    for (var d = 0; d < dim; d++) {
+      var minVal = Infinity;
+      for (var v = 0; v < vectors.length; v++) {
+        var vector = vectors[v];
+        var val = vector[d];
+        if (val < minVal) {
+          minVal = val;
+        }
+      }
+      minVals.push(minVal);
+    }
+    return minVals;
+  } else {
+    return [];
+  }
+}
