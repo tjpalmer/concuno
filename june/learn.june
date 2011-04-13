@@ -95,7 +95,9 @@ function expandLeaf(leaf: LeafNode): void {
 }
 
 
-function getValueBags(bindingBags, mapper, indexes) {
+function getValueBags(
+  bindingBags: BindingBag*, mapper: Mapper*, indexes: Number*
+): ValueBag* {
   // TODO Provide the error bindings and bags immediately here, too?
   // TODO Or reloop later to pull those out?
   var bags: ValueBag* = [];
