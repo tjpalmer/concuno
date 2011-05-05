@@ -1,0 +1,281 @@
+// Imports.
+
+var dump = console.log;
+
+
+// Exports.
+
+exports.emptyBindings = emptyBindings;
+exports.startTree = startTree;
+
+
+// Functions.
+
+
+class BindingBag {
+  // TODO @bag on param like CoffeeScript/Scala???
+  function BindingBag(bag: Sample) {
+    // TODO @bag = bag;
+    this.bag = bag;
+    // TODO Need class defs to type these members!
+    this.entityLists = [];
+  };
+};
+
+
+class Node {
+
+  function Node() {
+    this.bindings = [];
+    this.id = 0;
+    this.parent = null;
+    initKids(this);
+  };
+
+  function clone(): Node {
+    // Mostly, we're okay keeping things just as prototypes. A bit risky if we
+    // don't track the consequences (such as for bindings lists), but we make
+    // a lot of clones, and avoiding copying data seems wise and simple.
+    var Clone = function() {};
+    Clone.prototype = this;
+    var node = new Clone;
+    var kids = this.kids();
+    if (kids.length) {
+      // We do want to copy the kids.
+      // TODO Array comprehensions???
+      var clonedKids: Node* = [];
+      for (var k = 0; k < kids.length; k++) {
+        clonedKids.push(kids[k]);
+      };
+      node.setKids(clonedKids);
+    };
+    return node;
+  };
+
+  function getNode(id: Number): Node? {
+    if (this.id == id) {
+      return this;
+    } else {
+      var kids = this.kids();
+      // TODO for (kids) do(kid) {...};
+      for (var k = 0; k < kids.length; k++) {
+        var node = kid.getNode(id);
+        if (node) {
+          return node;
+        };
+      };
+      return null;
+    };
+  };
+
+  function isVar(): Boolean {
+    return false;
+  }
+
+  function leaves(): Node* {
+    var result: Node* = [];
+    pushLeaves(this);
+    return result;
+    function pushLeaves(node) {
+      var kids = node.kids();
+      if (kids.length) {
+        for (var k = 0; k < kids.length; k++) {
+          pushLeaves(kids[k]);
+        };
+      } else {
+        // This is a leaf.
+        result.push(node);
+      };
+    };
+  };
+
+  function newLeaf(kid): LeafNode {
+    return new LeafNode(kid);
+  };
+
+  function newSplit(kid): SplitNode {
+    return new SplitNode(kid);
+  };
+
+  function newVar(kid): VarNode {
+    return new VarNode(kid);
+  };
+
+  function replaceWith(node): void {
+    if (this.parent) {
+      var kids = this.parent.kids();
+      for (var k = 0; k < kids.length; k++) {
+        var kid = kids[k];
+        if (kid.id == this.id) {
+          this.parent.setKid(Number(k), node);
+        };
+      };
+    };
+  };
+
+  function varDepth(): Number {
+    var depth = 0;
+    var node = this;
+    while (node) {
+      depth += node.isVar();
+      node = node.parent;
+    };
+    return depth;
+  };
+
+  function root(): Node {
+    return this.parent ? this.parent.root() : this;
+  };
+
+};
+
+/*class LeafNode extends Node
+
+  constructor: ->
+    super()
+    @prob = 0
+
+  kids: -> []
+
+  propagate: (bindings) ->
+    if bindings?
+      # We got new bindings.
+      @bindings = bindings
+
+
+class RootNode extends Node
+
+  constructor: (@kid = new LeafNode) ->
+    # Set nextId before calling super, so kids will init correctly.
+    @nextId = 1;
+    super()
+    @bags = []
+
+  kids: -> [@kid]
+
+  generateId: -> @nextId++
+
+  propagate: (bindings) ->
+    if bindings?
+      # We got new bindings.
+      @bindings = bindings
+    else
+      # We need to use the ones we already had.
+      bindings = @bindings
+    #dump "RootNode to prop #{bindings.length} bindings"
+    @kid.propagate bindings
+
+  setKid: (k, kid) ->
+    throw "bad kid index #{k}" if k
+    @kid = kid
+    initKids this
+
+  setKids: (kids) ->
+    [@kid] = kids
+    initKids this
+
+
+class SplitNode extends Node
+
+  constructor:
+    (@$true = new LeafNode, @$false = new LeafNode, @error = new LeafNode) ->
+      super()
+
+  kids: -> [@$true, @$false, @error]
+
+  setKid: (k, kid) ->
+    keys = ['$true', '$false', 'error']
+    this[keys[k]] = kid
+    initKids this
+
+  setKids: (kids) ->
+    [@$true, @$false, @error] = kids
+    initKids this
+
+
+class VarNode extends Node
+
+  constructor: (@kid = new LeafNode) ->
+    super()
+
+  isVar: -> true
+
+  kids: -> [@kid]
+
+  propagate: (bindings) ->
+    if bindings?
+      # We got new bindings.
+      outgoings = []
+      inCount = 0
+      outCount = 0
+      bind = (entity) ->
+        outEntities = entities.slice()
+        outEntities.push entity
+        outgoing.entityLists.push outEntities
+        outCount++
+      for binding in bindings
+        bag = binding.bag
+        outgoing = new BindingBag bag
+        for entities in binding.entityLists
+          inCount++
+          any = false
+          for entity in bag.entities
+            if entity not in entities
+              # We don't repeat bindings in SMRF.
+              bind entity
+              any = true
+          if not any
+            # Dummy entity here for when no new entities were available.
+            # We send these down error branches later at split nodes.
+            bind null
+        outgoings.push outgoing
+      @bindings = outgoings
+      #dump "Built #{inCount} bindings into #{outCount}"
+    @kid.propagate @bindings
+
+  setKid: (k, kid) ->
+    throw "bad kid index #{k}" if k
+    @kid = kid
+    initKids this
+
+  setKids: (kids) ->
+    [@kid] = kids
+    initKids this
+
+
+
+function emptyBindings(bags: Sample*): BindingBag* {
+  var bindings: BindingBag* = [];
+  for (var b = 0; b < bags.length; b++) {
+    var binding = new BindingBag(bags[b]);
+    // We start with one empty binding per bag.
+    binding.entityLists.push([]);
+    bindings.push(binding);
+  }
+  return bindings;
+}
+
+
+function initKids(parent: Node): void {
+  var kids = parent.kids();
+  // Set parent.
+  for (var k = 0; k < kids.length; k++) {
+    kids[k].parent = parent;
+  }
+  // Set ids if we're part of a tree already.
+  var root = parent.root();
+  if (root instanceof RootNode) {
+    for (var k = 0; k < kids.length; k++) {
+      var kid = kids[k];
+      if (!kid.id) {
+        kid.id = root.generateId();
+        initKids(kid);
+      }
+    }
+  }
+}
+
+
+function startTree(): RootNode {
+  return new RootNode;
+}*/
