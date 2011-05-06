@@ -32,6 +32,12 @@ class Node {
     initKids(this);
   };
 
+  var bindings: BindingBag*;
+
+  var id: Number;
+
+  var parent: Node?;
+
   function clone(): Node {
     // Mostly, we're okay keeping things just as prototypes. A bit risky if we
     // don't track the consequences (such as for bindings lists), but we make
@@ -129,21 +135,31 @@ class Node {
 
 };
 
-/*class LeafNode extends Node
 
-  constructor: ->
-    super()
-    @prob = 0
+class LeafNode: Node {
 
-  kids: -> []
+  function LeafNode() {
+    Node(this);
+    this.prob = 0;
+  };
 
-  propagate: (bindings) ->
-    if bindings?
-      # We got new bindings.
-      @bindings = bindings
+  var prob: Number;
+
+  function kids() {
+    return [];
+  };
+
+  function propagate(bindings: BindingBag*): void {
+    if (bindings) {
+      // We got new bindings.
+      this.bindings = bindings;
+    };
+  };
+
+};
 
 
-class RootNode extends Node
+/* class RootNode extends Node
 
   constructor: (@kid = new LeafNode) ->
     # Set nextId before calling super, so kids will init correctly.
