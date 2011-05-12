@@ -278,7 +278,7 @@ class VarNode: Node {
           var entities = binding.entityLists[L];
           inCount++;
           var any = false;
-          for (var e = 0; e < bag.entities; e++) {
+          for (var e = 0; e < bag.entities.length; e++) {
             var entity = bag.entities[e];
             if (entities.indexOf(entity) < 0) {
               // We don't repeat bindings in SMRF.
