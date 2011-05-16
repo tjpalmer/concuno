@@ -47,6 +47,12 @@ var mappers: Mapper* = [];
 
 
 function expandLeaf(leaf: LeafNode): void {
+  // 1. Choose function.
+  // 2. Initial kernel.
+  // 3. DD for initial guesses.
+  // 4. Weighted MLE center and shape.
+  // 5. KS (or other?) Threshold.
+  // 6. Leaf probs.
   log("Expanding leaf " + leaf.id + " ...");
   var minArity = mappers[0].map.length;
   var maxArity = mappers[mappers.length - 1].map.length;
@@ -189,6 +195,10 @@ function splitWithIndexes(
     log("Limits: " + mins + " " + maxes);
     //log(values.join(' '));
   }
+}
+
+
+function updateLeafProbs(root: RootNode): void {
 }
 
 
