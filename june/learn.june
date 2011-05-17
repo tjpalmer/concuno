@@ -46,7 +46,7 @@ var mappers: Mapper* = [];
 })();
 
 
-function expandLeaf(leaf: LeafNode): void {
+function expandLeaf(leaf: LeafNode): RootNode {
   // 1. Choose function.
   // 2. Initial kernel.
   // 3. DD for initial guesses.
@@ -80,7 +80,7 @@ function expandLeaf(leaf: LeafNode): void {
         clone.propagate();
       }
       var bindingCount = 0;
-      var bindings = clone.leaves[0].bindings;
+      var bindings = clone.leaves()[0].bindings;
       for (var b = 0; b < bindings.length; b++) {
         bindingCount += bindings[b].entityLists.length;
       }
@@ -96,9 +96,11 @@ function expandLeaf(leaf: LeafNode): void {
       // And skip mappers for which we've added superfluous vars.
       if (mapper.map.length < addedVarCount) continue;
       split(node, mapper);
-    }
-  }
-}
+    };
+  };
+  // TODO Return the clone that scored highest, if any.
+  return clone;
+};
 
 
 function getValueBags(
@@ -151,12 +153,14 @@ function split(leaf: LeafNode, mapper: Mapper): void {
 }
 
 
-function learn(tree: Node): void {
+function learn(tree: Node): Node {
   log("Learning ...");
   // TODO Better leaf picking.
   var leaves = tree.leaves();
   var leaf = leaves[0];
-  expandLeaf(leaf);
+  tree = expandLeaf(leaf);
+  updateLeafProbs(tree);
+  return tree;
 }
 
 
@@ -199,7 +203,21 @@ function splitWithIndexes(
 
 
 function updateLeafProbs(root: RootNode): void {
-}
+  var leaves = root.leaves();
+  // TODO 1. Find the leaf with the highest prob.
+  // TODO 2. Remove all the bags in that leaf from others.
+  // TODO 2a. Actually need a separate list of bags to avoid nixing bindings.
+  // TODO 3. Repeat.
+  for (var L = 0; L < leaves.length; L++) {
+    var leaf = leaves[L];
+    var bindingBags = leaf.bindings;
+    var sumPos = 0;
+    for (var b = 0; b < bindingBags.length; b++) {
+      sumPos += Number(bindingBags[b].bag.label);
+    };
+    leaf.prob = sumPos / bindingBags.length;
+  };
+};
 
 
 // TODO I need to support vector diff automatically.

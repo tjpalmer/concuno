@@ -126,8 +126,8 @@ function go(): void {
         "Leaf with " + leaf.prob + " prob and " +
         leaf.bindings.length + " bindings"
       );
-      // TODO Or 'tree = learn(tree);' to avoid modification?
-      learn(tree);
+      // TODO Or just 'learn(tree);' for simplicity?
+      tree = learn(tree);
       leaf = tree.leaves()[0];
       log(
         "Leaf with " + leaf.prob + " prob and " +
