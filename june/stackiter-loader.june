@@ -47,8 +47,8 @@ function load(file: String, options: Options): void {
 }
 
 
-// TODO Class support!!
-function Loader() {
+// TODO Change this to a class??? Or leave it as an alternative?
+function Loader(): Loader {
 
   // TODO Specify default types?
   // TODO var* args: String*;
@@ -56,6 +56,21 @@ function Loader() {
   var indexes: Number* = [];
   var state: State = {cleared: false, items: [], time: 0};
   var states: State* = [];
+
+  var parsers = {
+    alive: parseAlive,
+    clear: parseClear,
+    destroy: parseDestroy,
+    extent: parseExtent,
+    grasp: parseGrasp,
+    item: parseItem,
+    pos: parsePos,
+    posvel: parsePosVel,
+    release: parseRelease,
+    rot: parseRot,
+    time: parseTime,
+    type: parseType,
+  };
 
   this.parseAll = parseAll;
 
@@ -139,45 +154,11 @@ function Loader() {
 
   function parseLine(line: String): void {
     var args = line.trim().split(/\s+/);
-    switch (args[0]) {
-      case 'alive':
-        parseAlive(args);
-        break;
-      case 'clear':
-        parseClear(args);
-        break;
-      case 'destroy':
-        parseDestroy(args);
-        break;
-      case 'extent':
-        parseExtent(args);
-        break;
-      case 'grasp':
-        parseGrasp(args);
-        break;
-      case 'item':
-        parseItem(args);
-        break;
-      case 'pos':
-        parsePos(args);
-        break;
-      case 'posvel':
-        parsePosVel(args);
-        break;
-      case 'release':
-        parseRelease(args);
-        break;
-      case 'rot':
-        parseRot(args);
-        break;
-      case 'time':
-        parseTime(args);
-        break;
-      case 'type':
-        parseType(args);
-        break;
-    }
-  }
+    var parser = parsers[args[0]];
+    if (parser) {
+      parser(args);
+    };
+  };
 
   function parsePos(args: String*): void {
     item = findItem(args);
@@ -218,4 +199,4 @@ function Loader() {
     item.type = args[2];
   }
 
-}
+};
