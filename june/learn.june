@@ -145,7 +145,7 @@ function split(leaf: LeafNode, mapper: Mapper): void {
   // For now, just use the most recent vars.
   var arity = mapper.map.length;
   var varDepth = leaf.varDepth();
-  var indexes = [];
+  var indexes: Number* = [];
   for (var index = varDepth - arity; index < varDepth; index++) {
     indexes.push(index);
   }
