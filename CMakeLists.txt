@@ -18,8 +18,8 @@ set(
 set(cuncuno_INCLUDE_DIR ${cuncuno_SOURCE_DIR}/include)
 
 include_directories(
-  ${cuncuno_INCLUDE_DIR}
-  ${Eigen_INCLUDE_DIR}
+  #${cuncuno_INCLUDE_DIR}
+  #${Eigen_INCLUDE_DIR}
 )
 
 if(CMAKE_COMPILER_IS_GNUCC)
@@ -28,6 +28,7 @@ if(CMAKE_COMPILER_IS_GNUCC)
 endif(CMAKE_COMPILER_IS_GNUCC)
 
 subdirs(
-  src
-  test
+  c
+  #src
+  #test
 )
