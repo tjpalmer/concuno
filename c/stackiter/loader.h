@@ -4,7 +4,8 @@
 #include "state.h"
 
 
-cnList* stLoad(char* name);
+cnBool stLoad(char* name, cnList* states);
+
 
 /*
   Item& getItem(std::stringstream& tokens);

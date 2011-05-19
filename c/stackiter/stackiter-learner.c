@@ -3,15 +3,22 @@
 
 
 int main(int argc, char** argv) {
+  int status = EXIT_FAILURE;
+  cnList states;
 
   // Validate args.
   if (argc < 2) {
-    // TODO throw "Please specify a data file.";
-    return EXIT_FAILURE;
+    printf("No data file specified.\n");
+    goto DONE;
   }
 
   // Load file and show stats.
-  cnList* states = stLoad(argv[1]);
+  if (!stLoad(argv[1], &states)) {
+    printf("Failed to load file.\n");
+    goto DONE;
+  }
+
+  printf("Loaded.\n");
 
   /*
     cout << "Items at end: " << loader.states.back().items.size() << endl;
@@ -64,6 +71,10 @@ int main(int argc, char** argv) {
     learner.learn(samples);
   */
 
-  return EXIT_SUCCESS;
+  status = EXIT_SUCCESS;
+
+DONE:
+
+  return status;
 
 }

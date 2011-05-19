@@ -1,11 +1,19 @@
 #include <cuncuno.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 #include "loader.h"
 
 
-cnList* stLoad(char* name) {
-  return NULL;
+cnBool stLoad(char* name, cnList* states) {
+  FILE* file = fopen(name, "r");
+  if (!file) {
+    printf("Failed to open: %s\n", name);
+    return cnFalse;
+  }
+  printf("Opened: %s\n", name);
+  fclose(file);
+  return cnTrue;
 }
 
 

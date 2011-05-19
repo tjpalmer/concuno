@@ -28,10 +28,7 @@ typedef struct cnList {
 /**
  * Null-terminated UTF-8 string.
  */
-typedef struct cnString {
-  char* buffer;
-  cnCount reservedCount;
-} cnString;
+typedef cnList cnString;
 
 
 void cnListClean(cnList* list);
@@ -43,13 +40,31 @@ void* cnListGet(cnList* list, cnIndex index);
 void cnListInit(cnList* list, cnCount itemSize);
 
 
+/**
+ * Pushes a single item from the given address onto the list.
+ */
 cnBool cnListPush(cnList* list, void* item);
 
 
-cnBool cnStringInit(cnString* string);
+void cnStringClean(cnString* string);
 
 
-cnBool cnStringClean(cnString* string);
+char cnStringGetChar(cnString* string, cnIndex index);
+
+
+/**
+ * Provides a pointer to an empty string, but not dynamically allocated.
+ */
+void cnStringInit(cnString* string);
+
+
+cnBool cnStringPushChar(cnString* string, char c);
+
+
+cnBool cnStringPushStr(cnString* string, char* str);
+
+
+char* cnStringStr(cnString* string);
 
 
 #endif
