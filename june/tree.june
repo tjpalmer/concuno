@@ -238,7 +238,7 @@ class SplitNode: Node {
     initKids(this);
   };
 
-  function setKids(kids) {
+  function setKids(kids: Node*): void {
     this.$true = kids[0];
     this.$false = kids[1];
     this.error = kids[2];
@@ -322,7 +322,7 @@ class VarNode: Node {
     initKids(this);
   };
 
-}
+};
 
 
 function emptyBindings(bags: Sample*): BindingBag* {

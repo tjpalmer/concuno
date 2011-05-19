@@ -1,105 +1,103 @@
 // Imports.
 
+
+var $class = require('./etc').$class;
 var dump = console.log;
 
 
 // Exports.
 
-exports.cloneNode
+
 exports.emptyBindings = emptyBindings;
 exports.startTree = startTree;
 
 
-// Functions.
+// Classes.
+
 
 function BindingBag(bag) {
   this.bag = bag;
   this.entityLists = [];
 }
 
-function cloneNode(node) {
-  // Mostly, we're okay keeping things just as prototypes. A bit risky if we
-  // don't track the consequences (such as for bindings lists), but we make
-  // a lot of clones, and avoiding copying data seems wise and simple.
-  var Clone = function() {};
-  Clone.prototype = this;
-  var clone = new Clone;
-  var kids = this.kids();
-  if (kids.length) {
-    // We do want to copy the kids.
-    var clonedKids = [];
-    for (var k = 0; k < kids.length; k++) {
-      clonedKids.push(kids[k]);
-    }
-    clone.setKids(clonedKids);
-  }
-  return clone;
-}
 
+function Node() {
 
-function leaves(node) {
+  this.bindings = [];
+  this.id = 0;
+  this.parent = null;
+  initKids(this);
 
-  var result = [];
-  pushLeaves(node);
-  return result;
+} $class(Node, null, function() {
 
-  function pushLeaves(node) {
-    var kids = node.kids();
+  this.clone = function() {
+    // Mostly, we're okay keeping things just as prototypes. A bit risky if we
+    // don't track the consequences (such as for bindings lists), but we make
+    // a lot of clones, and avoiding copying data seems wise and simple.
+    var Clone = function() {};
+    Clone.prototype = this;
+    var node = new Clone;
+    var kids = this.kids();
     if (kids.length) {
+      // We do want to copy the kids.
+      var clonedKids = [];
       for (var k = 0; k < kids.length; k++) {
-        pushLeaves(kids[k]);
+        clonedKids.push(kids[k]);
       }
-    } else {
-      // This is a leaf.
-      result.push(node);
+      node.setKids(clonedKids);
     }
-  }
-
-}
-
-
-function findNode(node, id) {
-  if (node.id == id) {
     return node;
-  } else {
-    var kids = node.kids();
-    for (var k = 0; k < kids.length; k++) {
-      var found = findNode(kids[k], id);
-      if (found) {
-        return found;
+  };
+
+  this.getNode = function(id) {
+    if (this.id == id) {
+      return this;
+    } else {
+      var kids = this.kids();
+      for (var k = 0; k < kids.length; k++) {
+        var node = kids[k].getNode(id);
+        if (node) {
+          return node;
+        }
+      }
+      return null;
+    }
+  };
+
+  this.isVar = function() {
+    return false;
+  };
+
+  this.leaves = function() {
+    var result = [];
+    pushLeaves(this);
+    return result;
+    function pushLeaves(node) {
+      var kids = node.kids();
+      if (kids.length) {
+        for (var k = 0; k < kids.length; k++) {
+          pushLeaves(kids[k]);
+        }
+      } else {
+        // This is a leaf.
+        result.push(node);
       }
     }
-    return null;
-  }
-}
-
-
-class Node {
-
-  function Node() {
-    this.bindings = [];
-    this.id = 0;
-    this.parent = null;
-    initKids(this);
   }
 
-  function isVar() {
-    return false;
-  }
-
-  function newLeaf(kid) {
+  this.newLeaf = function(kid) {
     return new LeafNode(kid);
-  }
+  };
 
-  function newSplit(kid) {
+  this.newSplit = function(kid) {
     return new SplitNode(kid);
-  }
+  };
 
-  function newVar(kid) {
+  this.newVar = function(kid) {
     return new VarNode(kid);
-  }
+  };
 
-  function replaceWith(node) {
+  this.replaceWith = function(node) {
     if (this.parent) {
       var kids = this.parent.kids();
       for (var k = 0; k < kids.length; k++) {
@@ -109,61 +107,66 @@ class Node {
         }
       }
     }
-  }
+  };
 
-  function root() {
+  this.varDepth = function() {
+    var depth = 0;
+    var node = this;
+    while (node) {
+      depth += node.isVar();
+      node = node.parent;
+    }
+    return depth;
+  };
+
+  this.root = function() {
     return this.parent ? this.parent.root() : this;
   }
 
-}
+});
+
 
 
 function LeafNode() {
 
   Node.call(this);
-  this.kids = kids;
   this.prob = 0;
-  this.propagate = propagate;
 
-  function kids() {
+} $class(LeafNode, Node, function() {
+
+  this.kids = function() {
     return [];
-  }
+  };
 
-  function propagate(bindings) {
+  this.propagate = function(bindings) {
     if (bindings) {
       // We got new bindings.
       this.bindings = bindings;
     }
-  }
+  };
 
-}
+});
 
 
-class RootNode {
+function RootNode(kid) {
 
-  function RootNode(kid) {
-    this.kid = kid || new LeafNode;
-    // Set nextId before calling super, so kids will init correctly.
-    this.nextId = 1;
-    Node.call(this);
-    this.bags = [];
-  }
+  this.kid = kid || new LeafNode;
+  // Set nextId before calling super, so kids will init correctly.
+  this.nextId = 1;
+  Node.call(this);
+  this.bags = [];
 
-  var bags;
+} $class(RootNode, Node, function() {
 
-  var kid;
-
-  var nextId;
-
-  function kids() {
+  this.kids = function() {
     return [this.kid];
-  }
+  };
 
-  function generateId() {
+  this.generateId = function() {
     return this.nextId++;
-  }
+  };
 
-  function propagate(bindings) {
+  this.propagate = function(bindings) {
     if (bindings) {
       // We got new bindings.
       this.bindings = bindings;
@@ -173,71 +176,68 @@ class RootNode {
     }
     // dump("RootNode to prop " + bindings.length + " bindings");
     this.kid.propagate(bindings);
-  }
+  };
 
-  function setKid(k, kid) {
+  this.setKid = function(k, kid) {
     if (k) throw "bad kid index " + k;
     this.kid = kid;
     initKids(this);
-  }
+  };
 
-  function setKids(kids) {
+  this.setKids = function(kids) {
     this.kid = kids[0];
     initKids(this);
-  }
+  };
 
-}
+});
 
 
-class SplitNode {
+function SplitNode($true, $false, error) {
 
-  function SplitNode($true, $false, error) {
-    this.$true = $true || new LeafNode;
-    this.$false = $false || new LeafNode;
-    this.error = error || new LeafNode;
-    Node.call(this);
-  }
+  this.$true = $true || new LeafNode;
+  this.$false = $false || new LeafNode;
+  this.error = error || new LeafNode;
+  Node.call(this);
 
-  var $true;
-  var $false;
-  var error;
+} $class(SplitNode, Node, function() {
 
-  function kids() {
+  this.kids = function() {
     return [this.$true, this.false, this.error];
-  }
+  };
 
-  function setKid(k, kid) {
+  this.setKid = function(k, kid) {
     var keys = ['$true', '$false', 'error'];
     this[keys[k]] = kid;
     initKids(this);
-  }
+  };
 
-  function setKids(kids) {
+  this.setKids = function(kids) {
     this.$true = kids[0];
     this.$false = kids[1];
     this.error = kids[2];
     initKids(this);
-  }
+  };
 
-}
+});
 
 
-class VarNode {
 
-  function VarNode(kid) {
-    this.kid = kid || new LeafNode;
-    Node.call(this);
-  }
+function VarNode(kid) {
 
-  function isVar() {
+  this.kid = kid || new LeafNode;
+  Node.call(this);
+
+} $class(VarNode, Node, function() {
+
+  this.isVar = function() {
     return true;
-  }
+  };
 
-  function kids() {
+  this.kids = function() {
     return [this.kid];
-  }
+  };
 
-  function propagate(bindings) {
+  this.propagate = function(bindings) {
 
     if (bindings) {
       // We got new bindings.
@@ -283,20 +283,23 @@ class VarNode {
       outCount++;
     }
 
-  }
+  };
 
-  function setKid(k, kid) {
+  this.setKid = function(k, kid) {
     if (k) throw "bad kid index " + k;
     this.kid = kid;
     initKids(this);
-  }
+  };
 
-  function setKids(kids) {
+  this.setKids = function(kids) {
     this.kid = kids[0];
     initKids(this);
-  }
+  };
 
-}
+});
+
+
+// Functions.
 
 
 function emptyBindings(bags) {
@@ -333,14 +336,4 @@ function initKids(parent) {
 
 function startTree() {
   return new RootNode;
-}
-
-
-function varDepth(node) {
-  var depth = 0;
-  while (node) {
-    depth += node.isVar();
-    node = node.parent;
-  }
-  return depth;
 }
