@@ -42,7 +42,7 @@ function Node() {
       // We do want to copy the kids.
       var clonedKids = [];
       for (var k = 0; k < kids.length; k++) {
-        clonedKids.push(kids[k]);
+        clonedKids.push(kids[k].clone());
       }
       node.setKids(clonedKids);
     }
@@ -85,12 +85,12 @@ function Node() {
     }
   }
 
-  this.newLeaf = function(kid) {
-    return new LeafNode(kid);
+  this.newLeaf = function() {
+    return new LeafNode();
   };
 
-  this.newSplit = function(kid) {
-    return new SplitNode(kid);
+  this.newSplit = function($true, $false, error) {
+    return new SplitNode($true, $false, error);
   };
 
   this.newVar = function(kid) {
@@ -199,10 +199,26 @@ function SplitNode($true, $false, error) {
   this.error = error || new LeafNode;
   Node.call(this);
 
+  // Placeholders for later.
+  this.indexes = null;
+  // TODO Mappers reference their relevant pdf type?
+  this.mapper = null;
+  this.pdf = null;
+  this.threshold = NaN;
+
 } $class(SplitNode, Node, function() {
 
   this.kids = function() {
-    return [this.$true, this.false, this.error];
+    return [this.$true, this.$false, this.error];
+  };
+
+  this.propagate = function(bindings) {
+    if (bindings) {
+      this.bindings = bindings;
+    } else {
+      bindings = this.bindings;
+    }
+    this.error.propagate(bindings);
   };
 
   this.setKid = function(k, kid) {

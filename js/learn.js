@@ -1,10 +1,13 @@
 // Imports.
 
-var log = console.log;
+
+var Gaussian = require('./pdf').Gaussian;
+var dump = console.log;
 var max = Math.max, min = Math.min;
 
 
 // Exports.
+
 
 exports.learn = learn;
 
@@ -21,6 +24,7 @@ function difference(mapper) {
   return {
     name: "difference" + name[0].toUpperCase() + name.substring(1),
     map: function(a, b) {return vectorDiff(map(a), map(b))},
+    pdfType: mapper.pdfType
   };
 }
 
@@ -34,7 +38,8 @@ var mappers = [];
   }
   putMapper({
     name: 'location',
-    map: function(entity) {return entity.location}
+    map: function(entity) {return entity.location},
+    pdfType: Gaussian
   });
   putMapper(difference(mappersObj.location));
   // TODO Move mappers to a separate file, and just make the list here.
@@ -53,13 +58,13 @@ function expandLeaf(leaf) {
   // 4. Weighted MLE center and shape.
   // 5. KS (or other?) Threshold.
   // 6. Leaf probs.
-  log("Expanding leaf " + leaf.id + " ...");
+  dump("Expanding leaf " + leaf.id + " ...");
   var minArity = mappers[0].map.length;
   var maxArity = mappers[mappers.length - 1].map.length;
   // Compare that to the number of vars available in this branch.
   var varDepth = leaf.varDepth();
   var minNewVarCount = max(0, minArity - varDepth);
-  log("Min new var count: " + minNewVarCount);
+  dump("Min new var count: " + minNewVarCount);
   // Clone the tree, and start adding vars.
   // We prefer simpler trees, so the fewer nodes the better.
   var clone = leaf.root().clone();
@@ -69,7 +74,7 @@ function expandLeaf(leaf) {
     addedVarCount <= maxArity;
     addedVarCount++
   ) {
-    log("Adding up to var " + addedVarCount);
+    dump("Adding up to var " + addedVarCount);
     var $var = clone.newVar();
     node.replaceWith($var);
     node = $var.kid;
@@ -84,10 +89,10 @@ function expandLeaf(leaf) {
       for (var b = 0; b < bindings.length; b++) {
         bindingCount += bindings[b].entityLists.length;
       }
-      log("Bindings at leaf after 1000 props: " + bindingCount);
+      dump("Bindings at leaf after 1000 props: " + bindingCount);
     }
-    log("New var " + $var.id);
-    log("New leaf " + node.id);
+    dump("New var " + $var.id);
+    dump("New leaf " + node.id);
     varDepth++;
     for (var m = 0; m < mappers.length; m++) {
       var mapper = mappers[m];
@@ -128,7 +133,7 @@ function getValueBags(bindingBags, mapper, indexes) {
 
 
 function split(leaf, mapper) {
-  log("Splitting node " + leaf.id + " on " + mapper.name + " ...");
+  dump("Splitting node " + leaf.id + " on " + mapper.name + " ...");
   // TODO Figure out which vars to use.
   // TODO Could figure out how many vars immediately above the current leaf.
   // TODO We should commit all those, but we could mix and match earliers.
@@ -149,7 +154,7 @@ function split(leaf, mapper) {
 
 
 function learn(tree) {
-  log("Learning ...");
+  dump("Learning ...");
   // TODO Better leaf picking.
   var leaves = tree.leaves();
   var leaf = leaves[0];
@@ -160,7 +165,16 @@ function learn(tree) {
 
 
 function splitWithIndexes(leaf, mapper, indexes) {
-  log("Using indexes " + indexes + " ...");
+  // Create split.
+  var clone = leaf.root().clone();
+  var node = clone.getNode(leaf.id);
+  var split = clone.newSplit();
+  node.replaceWith(split);
+  split.parent.propagate();
+  split.mapper = mapper;
+  split.indexes = indexes;
+  // Build model.
+  dump("Using indexes " + indexes + " ...");
   var initBagLimit = 4;
   var posCount = 0;
   var valueBags = getValueBags(leaf.bindings, mapper, indexes);
@@ -188,9 +202,9 @@ function splitWithIndexes(leaf, mapper, indexes) {
     }
     var mins = vectorMin(minsInner);
     var maxes = vectorMax(maxesInner);
-    log("Built " + valueCount + " values in " + valueBags.length + " bags");
-    log("Limits: " + mins + " " + maxes);
-    //log(values.join(' '));
+    dump("Built " + valueCount + " values in " + valueBags.length + " bags");
+    dump("Limits: " + mins + " " + maxes);
+    //dump(values.join(' '));
   }
 }
 
