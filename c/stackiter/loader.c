@@ -5,19 +5,51 @@
 #include "loader.h"
 
 
+cnBool stParseLine(cnString* line, stState* state, cnList* states);
+
+
 cnBool stLoad(char* name, cnList* states) {
+  cnBool result = cnTrue;
+  int closeError;
   cnString line;
+  cnCount lineCount, readCount;
+  stState state;
+  // Open file.
   FILE* file = fopen(name, "r");
   if (!file) {
     printf("Failed to open: %s\n", name);
     return cnFalse;
   }
   printf("Opened: %s\n", name);
+  // TODO Init state.
+  // Read lines.
   cnStringInit(&line);
-  cnReadLine(file, &line);
-  printf("Line: %s", cnStr(&line));
-  cnStringClean(&line);
-  fclose(file);
+  lineCount = 0;
+  while ((readCount = cnReadLine(file, &line)) > 0) {
+    //printf("Line: %s", cnStr(&line));
+    lineCount++;
+    if (!stParseLine(&line, &state, states)) {
+      // TODO Distinguish parse errors from memory allocation fails.
+      printf(
+          "Error parsing line %d of %s: %s\n", lineCount, name, cnStr(&line)
+      );
+      result = cnFalse;
+      break;
+    }
+  }
+  printf("Read lines: %d\n", lineCount);
+  cnStringDispose(&line);
+  closeError = fclose(file);
+  if (readCount < 0 || closeError) {
+    printf("Error reading or closing: %s\n", name);
+    result = cnFalse;
+  }
+  return result;
+}
+
+
+cnBool stParseLine(cnString* line, stState* state, cnList* states) {
+  // TODO Extract command then scanf it?
   return cnTrue;
 }
 

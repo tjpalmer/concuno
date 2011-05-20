@@ -13,9 +13,10 @@ int main(int argc, char** argv) {
   }
 
   // Load file and show stats.
+  cnListInit(&states, sizeof(stState));
   if (!stLoad(argv[1], &states)) {
     printf("Failed to load file.\n");
-    goto DONE;
+    goto DISPOSE_STATES;
   }
 
   printf("Loaded.\n");
@@ -72,6 +73,10 @@ int main(int argc, char** argv) {
   */
 
   status = EXIT_SUCCESS;
+
+DISPOSE_STATES:
+
+  cnListDispose(&states);
 
 DONE:
 

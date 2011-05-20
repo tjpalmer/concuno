@@ -34,7 +34,13 @@ typedef struct cnList {
 typedef cnList cnString;
 
 
-void cnListClean(cnList* list);
+/**
+ * Sets the count to 0, but leaves space allocated.
+ */
+void cnListClear(cnList* list);
+
+
+void cnListDispose(cnList* list);
 
 
 void* cnListGet(cnList* list, cnIndex index);
@@ -49,7 +55,17 @@ void cnListInit(cnList* list, cnCount itemSize);
 cnBool cnListPush(cnList* list, void* item);
 
 
-void cnStringClean(cnString* string);
+cnChar* cnStr(cnString* string);
+
+
+/**
+ * Changes content to an empty string and count to 1, if items are already
+ * allocated. If not, just leaves it alone.
+ */
+void cnStringClear(cnString* string);
+
+
+void cnStringDispose(cnString* string);
 
 
 cnChar cnStringGetChar(cnString* string, cnIndex index);
@@ -65,9 +81,6 @@ cnBool cnStringPushChar(cnString* string, cnChar c);
 
 
 cnBool cnStringPushStr(cnString* string, cnChar* str);
-
-
-cnChar* cnStr(cnString* string);
 
 
 #endif

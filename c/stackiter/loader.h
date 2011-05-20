@@ -4,6 +4,9 @@
 #include "state.h"
 
 
+/**
+ * The states list should have been previously init'd.
+ */
 cnBool stLoad(char* name, cnList* states);
 
 

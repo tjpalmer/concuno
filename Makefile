@@ -25,4 +25,4 @@ temp:
 	mkdir temp
 
 temp/stackiter-test: temp $(sources)
-	tcc -Ic -o temp/stackiter-test $(sources)
+	tcc -Wall -Ic -o temp/stackiter-test $(sources)

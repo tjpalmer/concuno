@@ -2,7 +2,12 @@
 #include "core.h"
 
 
-void cnListClean(cnList* list) {
+void cnListClear(cnList* list) {
+  list->count = 0;
+}
+
+
+void cnListDispose(cnList* list) {
   free(list->items);
   cnListInit(list, list->itemSize);
 }
@@ -46,8 +51,21 @@ cnBool cnListPush(cnList* list, void* item) {
 }
 
 
-void cnStringClean(cnString* string) {
-  cnListClean(string);
+cnChar* cnStr(cnString* string) {
+  return string->items ? (cnChar*)string->items : "";
+}
+
+
+void cnStringClear(cnString* string) {
+  if (string->items) {
+    string->count = 1;
+    *cnStr(string) = '\0';
+  }
+}
+
+
+void cnStringDispose(cnString* string) {
+  cnListDispose(string);
 }
 
 
@@ -70,9 +88,4 @@ cnBool cnStringPushChar(cnString* string, cnChar c) {
   str = string->items;
   str[string->count - 2] = c;
   str[string->count - 1] = '\0';
-}
-
-
-cnChar* cnStr(cnString* string) {
-  return string->items ? (cnChar*)string->items : "";
 }

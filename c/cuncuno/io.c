@@ -3,6 +3,7 @@
 cnCount cnReadLine(FILE* file, cnString* string) {
   cnCount count = 0;
   int i;
+  cnStringClear(string);
   while ((i = fgetc(file)) != EOF) {
     cnChar c = (cnChar)i;
     count++;
