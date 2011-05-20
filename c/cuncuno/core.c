@@ -52,7 +52,7 @@ cnBool cnListPush(cnList* list, void* item) {
 
 
 cnChar* cnStr(cnString* string) {
-  return string->items ? (cnChar*)string->items : "";
+  return string->items ? (cnChar*)string->items : (cnChar*)"";
 }
 
 
