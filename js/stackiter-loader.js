@@ -13,21 +13,32 @@ exports.load = load;
 // Functions.
 
 
-// TODO Move clone out to some utility area.
-// Cloning technique based on examples and discussions here:
-// http://stackoverflow.com/questions/122102/
-//   what-is-the-most-efficient-way-to-clone-a-javascript-object
-function clone(obj) {
-  // This could be more sophisticated about more types, but eh.
-  if (obj == null || typeof(obj) != 'object') {
-    return obj;
+/**
+ * Custom clone seems to be about twice as fast as generic.
+ */
+function cloneState(state) {
+  var stateClone = {
+    cleared: state.cleared,
+    items: Array(state.items.length),
+    time: 0
+  };
+  for (var i = 0; i < state.items.length; i++) {
+    var item = state.items[i];
+    var itemClone = {
+      alive: item.alive,
+      color: item.color.slice(),
+      extent: item.extent.slice(),
+      grasped: item.grasped,
+      grasping: item.grasping,
+      id: item.id,
+      location: item.location.slice(),
+      orientation: item.orientation,
+      type: item.type,
+      velocity: item.velocity.slice()
+    };
+    stateClone.items[i] = itemClone;
   }
-  var copied = new obj.constructor;
-  for (var key in obj) {
-    var val = obj[key];
-    copied[key] = clone(val);
-  }
-  return copied;
+  return stateClone;
 }
 
 
@@ -96,7 +107,7 @@ function Loader() {
       }
     }
     if (states.length < stateLimit) {
-      states.push(clone(state));
+      states.push(cloneState(state));
     }
     return states;
   }
@@ -180,7 +191,7 @@ function Loader() {
 
   function parseTime(args) {
     if (args[1] == 'sim') {
-      states.push(clone(state));
+      states.push(cloneState(state));
       state.cleared = false;
       state.time = Number(args[3]);
     }
