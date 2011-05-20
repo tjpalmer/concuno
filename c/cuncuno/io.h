@@ -5,6 +5,6 @@
 
 #include "core.h"
 
-cnCount cnReadLine(FILE* file, cnList* string);
+cnCount cnReadLine(FILE* file, cnString* string);
 
 #endif

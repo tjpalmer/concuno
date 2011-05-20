@@ -8,6 +8,9 @@
 typedef enum {cnFalse, cnTrue} cnBool;
 
 
+typedef unsigned char cnChar;
+
+
 typedef int cnCount;
 
 
@@ -49,7 +52,7 @@ cnBool cnListPush(cnList* list, void* item);
 void cnStringClean(cnString* string);
 
 
-char cnStringGetChar(cnString* string, cnIndex index);
+cnChar cnStringGetChar(cnString* string, cnIndex index);
 
 
 /**
@@ -58,13 +61,13 @@ char cnStringGetChar(cnString* string, cnIndex index);
 void cnStringInit(cnString* string);
 
 
-cnBool cnStringPushChar(cnString* string, char c);
+cnBool cnStringPushChar(cnString* string, cnChar c);
 
 
-cnBool cnStringPushStr(cnString* string, char* str);
+cnBool cnStringPushStr(cnString* string, cnChar* str);
 
 
-char* cnStringStr(cnString* string);
+cnChar* cnStr(cnString* string);
 
 
 #endif

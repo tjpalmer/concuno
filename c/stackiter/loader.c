@@ -6,12 +6,17 @@
 
 
 cnBool stLoad(char* name, cnList* states) {
+  cnString line;
   FILE* file = fopen(name, "r");
   if (!file) {
     printf("Failed to open: %s\n", name);
     return cnFalse;
   }
   printf("Opened: %s\n", name);
+  cnStringInit(&line);
+  cnReadLine(file, &line);
+  printf("Line: %s", cnStr(&line));
+  cnStringClean(&line);
   fclose(file);
   return cnTrue;
 }
