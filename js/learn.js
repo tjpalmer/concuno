@@ -172,11 +172,36 @@ function splitWithIndexes(leaf, mapper, indices) {
   node.replaceWith(split);
   split.parent.propagate();
   split.setMapping(mapper, indices);
-  // Build model.
+  // Update/optimize the question.
+  updateModel(split);
+}
+
+
+function updateLeafProbs(root) {
+  var leaves = root.leaves();
+  // TODO 1. Find the leaf with the highest prob.
+  // TODO 2. Remove all the bags in that leaf from others.
+  // TODO 2a. Actually need a separate list of bags to avoid nixing bindings.
+  // TODO 3. Repeat.
+  for (var L = 0; L < leaves.length; L++) {
+    var leaf = leaves[L];
+    var bindingBags = leaf.bindings;
+    var sumPos = 0;
+    for (var b = 0; b < bindingBags.length; b++) {
+      sumPos += Number(bindingBags[b].bag.label);
+    }
+    leaf.prob = sumPos / bindingBags.length;
+  }
+}
+
+
+function updateModel(split) {
+  var indices = split.indices;
+  var mapper = split.mapper;
   dump("Using indices " + indices + " ...");
   var initBagLimit = 4;
   var posCount = 0;
-  var valueBags = getValueBags(leaf.bindings, mapper, indices);
+  var valueBags = getValueBags(split.bindings, mapper, indices);
   for (var b = 0; b < valueBags.length; b++) {
     var valueBag = valueBags[b];
     if (valueBag.bag.label) {
@@ -204,24 +229,6 @@ function splitWithIndexes(leaf, mapper, indices) {
     dump("Built " + valueCount + " values in " + valueBags.length + " bags");
     dump("Limits: " + mins + " " + maxes);
     //dump(values.join(' '));
-  }
-}
-
-
-function updateLeafProbs(root) {
-  var leaves = root.leaves();
-  // TODO 1. Find the leaf with the highest prob.
-  // TODO 2. Remove all the bags in that leaf from others.
-  // TODO 2a. Actually need a separate list of bags to avoid nixing bindings.
-  // TODO 3. Repeat.
-  for (var L = 0; L < leaves.length; L++) {
-    var leaf = leaves[L];
-    var bindingBags = leaf.bindings;
-    var sumPos = 0;
-    for (var b = 0; b < bindingBags.length; b++) {
-      sumPos += Number(bindingBags[b].bag.label);
-    }
-    leaf.prob = sumPos / bindingBags.length;
   }
 }
 
