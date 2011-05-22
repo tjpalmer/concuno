@@ -58,7 +58,7 @@ function load(file, options) {
 // TODO Change this to a class??? Or leave it as an alternative?
 function Loader() {
 
-  var indexes = [];
+  var indices = [];
   var state = {cleared: false, items: [], time: 0};
   var states = [];
 
@@ -82,7 +82,7 @@ function Loader() {
   function findIndex(args, argIndex) {
     if (argIndex === undefined) argIndex = 1;
     var id = Number(args[argIndex]);
-    var index = indexes[id];
+    var index = indices[id];
     if (index == null) throw "no such item";
     return index;
   }
@@ -118,10 +118,10 @@ function Loader() {
 
   function parseDestroy(args) {
     var index = findIndex(args);
-    // Remove the item and update the indexes.
+    // Remove the item and update the indices.
     state.items.splice(index, 1);
     for (var i = index; i < state.items.length; i++) {
-      indexes[state.items[i].id]--;
+      indices[state.items[i].id]--;
     }
   }
 
@@ -140,7 +140,7 @@ function Loader() {
 
   function parseItem(args) {
     var id = Number(args[1]);
-    indexes[id] = state.items.length;
+    indices[id] = state.items.length;
     state.items.push({
       alive: false,
       color: [0, 0, 0],

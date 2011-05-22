@@ -108,7 +108,7 @@ function expandLeaf(leaf) {
 }
 
 
-function getValueBags(bindingBags, mapper, indexes) {
+function getValueBags(bindingBags, mapper, indices) {
   // TODO Provide the error bindings and bags immediately here, too?
   // TODO Or reloop later to pull those out?
   var bags = [];
@@ -119,8 +119,8 @@ function getValueBags(bindingBags, mapper, indexes) {
     for (var e = 0; e < entityLists.length; e++) {
       var entitiesAll = entityLists[e];
       var entities = [];
-      for (var i = 0; i < indexes.length; i++) {
-        entities.push(entitiesAll[indexes[i]]);
+      for (var i = 0; i < indices.length; i++) {
+        entities.push(entitiesAll[indices[i]]);
       }
       if (entities.indexOf(null) >= 0) continue; // error case
       values.push(mapper.map.apply(undefined, entities));
@@ -145,11 +145,11 @@ function split(leaf, mapper) {
   // For now, just use the most recent vars.
   var arity = mapper.map.length;
   var varDepth = leaf.varDepth();
-  var indexes = [];
+  var indices = [];
   for (var index = varDepth - arity; index < varDepth; index++) {
-    indexes.push(index);
+    indices.push(index);
   }
-  splitWithIndexes(leaf, mapper, indexes);
+  splitWithIndexes(leaf, mapper, indices);
 }
 
 
@@ -164,20 +164,19 @@ function learn(tree) {
 }
 
 
-function splitWithIndexes(leaf, mapper, indexes) {
+function splitWithIndexes(leaf, mapper, indices) {
   // Create split.
   var clone = leaf.root().clone();
   var node = clone.getNode(leaf.id);
   var split = clone.newSplit();
   node.replaceWith(split);
   split.parent.propagate();
-  split.mapper = mapper;
-  split.indexes = indexes;
+  split.setMapping(mapper, indices);
   // Build model.
-  dump("Using indexes " + indexes + " ...");
+  dump("Using indices " + indices + " ...");
   var initBagLimit = 4;
   var posCount = 0;
-  var valueBags = getValueBags(leaf.bindings, mapper, indexes);
+  var valueBags = getValueBags(leaf.bindings, mapper, indices);
   for (var b = 0; b < valueBags.length; b++) {
     var valueBag = valueBags[b];
     if (valueBag.bag.label) {

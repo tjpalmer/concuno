@@ -200,8 +200,8 @@ function SplitNode($true, $false, error) {
   Node.call(this);
 
   // Placeholders for later.
-  this.indexes = null;
-  // TODO Mappers reference their relevant pdf type?
+  this.indices = null;
+  // TODO Separate model/predicate object?
   this.mapper = null;
   this.pdf = null;
   this.threshold = NaN;
@@ -232,6 +232,12 @@ function SplitNode($true, $false, error) {
     this.$false = kids[1];
     this.error = kids[2];
     initKids(this);
+  };
+
+  this.setMapping = function(mapper, indices) {
+    this.mapper = mapper;
+    this.indices = indices;
+    this.pdf = new mapper.pdfType;
   };
 
 });
