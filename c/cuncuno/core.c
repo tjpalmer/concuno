@@ -69,6 +69,11 @@ void cnStringDispose(cnString* string) {
 }
 
 
+cnChar cnStringGetChar(cnString* string, cnIndex index) {
+  return *(cnChar*)cnListGet(string, index);
+}
+
+
 void cnStringInit(cnString* string) {
   cnListInit(string, sizeof(cnChar));
 }

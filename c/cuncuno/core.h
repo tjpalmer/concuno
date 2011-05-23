@@ -55,6 +55,9 @@ void cnListInit(cnList* list, cnCount itemSize);
 cnBool cnListPush(cnList* list, void* item);
 
 
+void cnListPut(cnList* list, cnIndex index, void* value);
+
+
 cnChar* cnStr(cnString* string);
 
 

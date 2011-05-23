@@ -5,7 +5,29 @@
 #include "loader.h"
 
 
+/**
+ * Parses a single line, returning true for no error.
+ */
 cnBool stParseLine(cnString* line, stState* state, cnList* states);
+
+
+/**
+ * Individual parse handlers for specific commands.
+ */
+cnBool stParseAlive(cnChar* args, stState* state, cnList* states);
+cnBool stParseClear(cnChar* args, stState* state, cnList* states);
+cnBool stParseColor(cnChar* args, stState* state, cnList* states);
+cnBool stParseDestroy(cnChar* args, stState* state, cnList* states);
+cnBool stParseExtent(cnChar* args, stState* state, cnList* states);
+cnBool stParseGrasp(cnChar* args, stState* state, cnList* states);
+cnBool stParseItem(cnChar* args, stState* state, cnList* states);
+cnBool stParsePos(cnChar* args, stState* state, cnList* states);
+cnBool stParsePosVel(cnChar* args, stState* state, cnList* states);
+cnBool stParseRelease(cnChar* args, stState* state, cnList* states);
+cnBool stParseRot(cnChar* args, stState* state, cnList* states);
+cnBool stParseRotVel(cnChar* args, stState* state, cnList* states);
+cnBool stParseTime(cnChar* args, stState* state, cnList* states);
+cnBool stParseType(cnChar* args, stState* state, cnList* states);
 
 
 cnBool stLoad(char* name, cnList* states) {
@@ -50,27 +72,131 @@ cnBool stLoad(char* name, cnList* states) {
 
 cnBool stParseLine(cnString* line, stState* state, cnList* states) {
   // TODO Extract command then scanf it?
+  cnChar *args, *c, *command;
+  cnBool (*parse)(cnChar* args, stState* state, cnList* states) = NULL;
+  for (c = line->items; *c; c++) {
+    // TODO Separate whitespace function?
+    if (*c == ' ' || *c == '\r' || *c == '\n') {
+      *c = '\0';
+      args = c + 1;
+      break;
+    }
+  }
+  command = line->items;
+  // TODO Hashtable? This is still quite fast.
+  if (!strcmp(command, "alive")) {
+    parse = stParseAlive;
+  } else if (!strcmp(command, "clear")) {
+    parse = stParseClear;
+  } else if (!strcmp(command, "color")) {
+    parse = stParseColor;
+  } else if (!strcmp(command, "destroy")) {
+    parse = stParseDestroy;
+  } else if (!strcmp(command, "extent")) {
+    parse = stParseExtent;
+  } else if (!strcmp(command, "grasp")) {
+    parse = stParseGrasp;
+  } else if (!strcmp(command, "item")) {
+    parse = stParseItem;
+  } else if (!strcmp(command, "pos")) {
+    parse = stParsePos;
+  } else if (!strcmp(command, "posvel")) {
+    parse = stParsePosVel;
+  } else if (!strcmp(command, "release")) {
+    parse = stParseRelease;
+  } else if (!strcmp(command, "rot")) {
+    parse = stParseRot;
+  } else if (!strcmp(command, "rotvel")) {
+    parse = stParseRotVel;
+  } else if (!strcmp(command, "time")) {
+    parse = stParseTime;
+  } else if (!strcmp(command, "type")) {
+    parse = stParseType;
+  }
+  if (parse) {
+    return parse(args, state, states);
+  } else {
+    // TODO List explicit known okay ignore commands?
+    //printf("Unknown command: %s\n", command);
+    return cnTrue;
+  }
+}
+
+
+cnBool stParseAlive(cnChar* args, stState* state, cnList* states) {
   return cnTrue;
 }
 
 
-/*
-Loader::Loader() {
-  handlers["alive"] = &Loader::handleAlive;
-  handlers["clear"] = &Loader::handleClear;
-  handlers["color"] = &Loader::handleColor;
-  handlers["destroy"] = &Loader::handleDestroy;
-  handlers["extent"] = &Loader::handleExtent;
-  handlers["grasp"] = &Loader::handleGrasp;
-  handlers["item"] = &Loader::handleItem;
-  handlers["pos"] = &Loader::handleLocation;
-  handlers["posvel"] = &Loader::handleVelocity;
-  handlers["release"] = &Loader::handleRelease;
-  handlers["rot"] = &Loader::handleOrientation;
-  handlers["rotvel"] = &Loader::handleOrientationVelocity;
-  handlers["time"] = &Loader::handleTime;
-  handlers["type"] = &Loader::handleType;
+cnBool stParseClear(cnChar* args, stState* state, cnList* states) {
+  return cnTrue;
 }
+
+
+cnBool stParseColor(cnChar* args, stState* state, cnList* states) {
+  return cnTrue;
+}
+
+
+cnBool stParseDestroy(cnChar* args, stState* state, cnList* states) {
+  return cnTrue;
+}
+
+
+cnBool stParseExtent(cnChar* args, stState* state, cnList* states) {
+  return cnTrue;
+}
+
+
+cnBool stParseGrasp(cnChar* args, stState* state, cnList* states) {
+  return cnTrue;
+}
+
+
+cnBool stParseItem(cnChar* args, stState* state, cnList* states) {
+  return cnTrue;
+}
+
+
+cnBool stParsePos(cnChar* args, stState* state, cnList* states) {
+  return cnTrue;
+}
+
+
+cnBool stParsePosVel(cnChar* args, stState* state, cnList* states) {
+  return cnTrue;
+}
+
+
+cnBool stParseRelease(cnChar* args, stState* state, cnList* states) {
+  return cnTrue;
+}
+
+
+cnBool stParseRot(cnChar* args, stState* state, cnList* states) {
+  return cnTrue;
+}
+
+
+cnBool stParseRotVel(cnChar* args, stState* state, cnList* states) {
+  return cnTrue;
+}
+
+
+cnBool stParseTime(cnChar* args, stState* state, cnList* states) {
+  return cnTrue;
+}
+
+
+cnBool stParseType(cnChar* args, stState* state, cnList* states) {
+  return cnTrue;
+}
+
+
+
+
+/*
+
 
 Item& Loader::getItem(stringstream& tokens) {
   // TODO Any validation?
