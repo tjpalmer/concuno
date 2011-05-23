@@ -86,11 +86,17 @@ cnBool cnStringPushChar(cnString* string, cnChar c) {
   // TODO Just a call to reserve for these one or two chars?
   if (!string->reservedCount) {
     // Extra allocation because we need two chars for the first.
-    cnListPush(string, &c);
+    if (!cnListPush(string, &c)) {
+      return cnFalse;
+    }
   }
-  cnListPush(string, &c);
+  if (!cnListPush(string, &c)) {
+    // TODO Anything to do with null chars for failure?
+    return cnFalse;
+  }
   // Now swap the null char and the final.
   str = string->items;
   str[string->count - 2] = c;
   str[string->count - 1] = '\0';
+  return cnTrue;
 }

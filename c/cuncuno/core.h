@@ -8,7 +8,7 @@
 typedef enum {cnFalse, cnTrue} cnBool;
 
 
-typedef unsigned char cnChar;
+typedef char cnChar;
 
 
 typedef int cnCount;
