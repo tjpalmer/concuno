@@ -15,7 +15,7 @@ typedef enum {
 } stItemType;
 
 
-typedef int stId;
+typedef cnIndex stId;
 
 
 typedef int stTypeId;
@@ -24,6 +24,8 @@ typedef int stTypeId;
 typedef struct stItem {
 
   cnBool alive;
+
+  cnFloat color[3];
 
   /**
    * Only ever true for blocks.

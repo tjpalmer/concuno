@@ -32,6 +32,9 @@ cnBool stParseLine(stParser* parser, cnString* line);
 char* stParseString(char* begin, char** end);
 
 
+stItem* stParserItem(stParser* parser, char* begin, char** end);
+
+
 /**
  * Individual parse handlers for specific commands.
  */
@@ -77,14 +80,14 @@ cnBool stLoad(char* name, cnList* states) {
     if (!stParseLine(&parser, &line)) {
       // TODO Distinguish parse errors from memory allocation fails.
       printf(
-          "Error parsing line %d of %s: %s\n", lineCount, name, cnStr(&line)
+          "Error parsing line %ld of %s: %s\n", lineCount, name, cnStr(&line)
       );
       result = cnFalse;
       break;
     }
   }
-  printf("Lines: %d\n", lineCount);
-  printf("Items: %d\n", parser.state.items.count);
+  printf("Lines: %ld\n", lineCount);
+  printf("Items: %ld\n", parser.state.items.count);
   cnStringDispose(&line);
   cnListDispose(&parser.indices);
   stStateDispose(&parser.state);
@@ -168,9 +171,18 @@ char* stParseString(char* begin, char** end) {
 }
 
 
+stItem* stParserItem(stParser* parser, char* begin, char** end) {
+  // TODO Better validation?
+  stId id = strtol(begin, end, 10);
+  cnIndex* index = (cnIndex*)cnListGet(&parser->indices, id);
+  //printf("Id: %ld, count: %ld, index: %p\n", id, parser->indices.count, index);
+  return cnListGet(&parser->state.items, *index);
+}
+
+
 cnBool stParseAlive(stParser* parser, char* args) {
   char* status;
-  cnIndex id = strtol(args, &args, 10);
+  stId id = strtol(args, &args, 10);
   status = stParseString(args, &args);
   if (id < 0 || !*status) {
     return cnFalse;
@@ -182,11 +194,19 @@ cnBool stParseAlive(stParser* parser, char* args) {
 
 
 cnBool stParseClear(stParser* parser, char* args) {
+  parser->state.cleared = cnTrue;
   return cnTrue;
 }
 
 
 cnBool stParseColor(stParser* parser, char* args) {
+  stItem* item = stParserItem(parser, args, &args);
+  // TODO Use HSV colorspace to begin with?
+  // TODO Verify we haven't run out?
+  item->color[0] = strtod(args, &args);
+  item->color[1] = strtod(args, &args);
+  item->color[2] = strtod(args, &args);
+  // Ignore opacity, the 4th value. It's bogus for now.
   return cnTrue;
 }
 
@@ -208,16 +228,22 @@ cnBool stParseGrasp(stParser* parser, char* args) {
 
 cnBool stParseItem(stParser* parser, char* args) {
   stItem item;
-  cnIndex index = parser->state.items.count;
+  stId badId = -1;
+  cnIndex i, index = parser->state.items.count;
   item.id = strtol(args, &args, 10);
   // TODO Verify against duplicate ID?
   // TODO Extra data copy here. Do I care?
   if (!cnListPush(&parser->state.items, &item)) {
     return cnFalse;
   }
-  if (!cnListPush(&parser->indices, &index)) {
-    return cnFalse;
+  // TODO Bulk expand?
+  for (i = parser->indices.count; i <= item.id; i++) {
+    if (!cnListPush(&parser->indices, &badId)) {
+      return cnFalse;
+    }
   }
+  *(cnIndex*)cnListGet(&parser->indices, item.id) = index;
+  //printf("item: %ld/%ld at %ld\n", item.id, parser->indices.count, index);
   return cnTrue;
 }
 
@@ -258,34 +284,6 @@ cnBool stParseType(stParser* parser, char* args) {
 
 
 /*
-
-
-Item& Loader::getItem(stringstream& tokens) {
-  // TODO Any validation?
-  return state.items[indexes[handleId(tokens)]];
-}
-
-void Loader::handleAlive(stringstream& tokens) {
-  Item& item = getItem(tokens);
-  // TODO Does this really work from strings?
-  string alive;
-  tokens >> alive;
-  item.alive = alive == "true";
-}
-
-void Loader::handleClear(stringstream& tokens) {
-  state.cleared = true;
-}
-
-void Loader::handleColor(stringstream& tokens) {
-  Item& item = getItem(tokens);
-  // TODO Use HSV colorspace to begin with?
-  // TODO Verify we haven't run out?
-  tokens >> item.color[0];
-  tokens >> item.color[1];
-  tokens >> item.color[2];
-  // Ignore opacity, the 4th value. It's bogus for now.
-}
 
 void Loader::handleDestroy(stringstream& tokens) {
   int id = handleId(tokens);

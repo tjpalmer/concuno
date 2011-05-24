@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <string.h>
 #include "core.h"
 
@@ -24,7 +25,7 @@ void* cnListGet(cnList* list, cnIndex index) {
 
 void cnListInit(cnList* list, cnCount itemSize) {
   list->count = 0;
-  list->itemSize = 0;
+  list->itemSize = itemSize;
   list->items = NULL;
   list->reservedCount = 0;
 }
@@ -36,7 +37,7 @@ cnBool cnListPush(cnList* list, void* item) {
     // Exponential growth to avoid slow pushing.
     cnCount wanted = 2 * list->reservedCount;
     if (!wanted) wanted = 1;
-    void* newItems = realloc(list->items, wanted);
+    void* newItems = realloc(list->items, wanted * list->itemSize);
     if (!newItems) {
       // No memory for this.
       return cnFalse;
@@ -45,8 +46,8 @@ cnBool cnListPush(cnList* list, void* item) {
     list->items = newItems;
     list->reservedCount = wanted;
   }
-  memcpy(cnListGet(list, list->count), item, list->itemSize);
   list->count = needed;
+  memcpy(cnListGet(list, needed - 1), item, list->itemSize);
   return cnTrue;
 }
 
