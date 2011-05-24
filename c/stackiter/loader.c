@@ -212,6 +212,27 @@ cnBool stParseColor(stParser* parser, char* args) {
 
 
 cnBool stParseDestroy(stParser* parser, char* args) {
+  stItem* item = stParserItem(parser, args, &args);
+  /*
+  int index = indexes[id];
+  if (!index) {
+    throw "double destroy";
+  }
+  // Remove the destroyed item.
+  indexes[id] = 0;
+  state.items.erase(state.items.begin() + index);
+  // Reduce the index of successive items.
+  for (
+    vector<Item>::iterator i = state.items.begin() + index;
+    i < state.items.end();
+    i++
+  ) {
+    // TODO Could optimize further if we assume seeing items always in
+    // TODO increasing order.
+    const Item& item = *i;
+    indexes[item.id]--;
+  }
+  */
   return cnTrue;
 }
 
@@ -284,28 +305,6 @@ cnBool stParseType(stParser* parser, char* args) {
 
 
 /*
-
-void Loader::handleDestroy(stringstream& tokens) {
-  int id = handleId(tokens);
-  int index = indexes[id];
-  if (!index) {
-    throw "double destroy";
-  }
-  // Remove the destroyed item.
-  indexes[id] = 0;
-  state.items.erase(state.items.begin() + index);
-  // Reduce the index of successive items.
-  for (
-    vector<Item>::iterator i = state.items.begin() + index;
-    i < state.items.end();
-    i++
-  ) {
-    // TODO Could optimize further if we assume seeing items always in
-    // TODO increasing order.
-    const Item& item = *i;
-    indexes[item.id]--;
-  }
-}
 
 void Loader::handleExtent(stringstream& tokens) {
   Item& item = getItem(tokens);
