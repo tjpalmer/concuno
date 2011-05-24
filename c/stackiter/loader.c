@@ -182,13 +182,13 @@ stItem* stParserItem(stParser* parser, char* begin, char** end) {
 
 cnBool stParseAlive(stParser* parser, char* args) {
   char* status;
-  stId id = strtol(args, &args, 10);
+  stItem* item;
+  item = stParserItem(parser, args, &args);
   status = stParseString(args, &args);
-  if (id < 0 || !*status) {
+  if (!item || !*status) {
     return cnFalse;
   }
-  // TODO Find item at id.
-  // item->alive = !strcmp(stParser* parser, status, "true");
+  item->alive = !strcmp(status, "true");
   return cnTrue;
 }
 
@@ -202,7 +202,7 @@ cnBool stParseClear(stParser* parser, char* args) {
 cnBool stParseColor(stParser* parser, char* args) {
   stItem* item = stParserItem(parser, args, &args);
   // TODO Use HSV colorspace to begin with?
-  // TODO Verify we haven't run out?
+  // TODO Verify we haven't run out of args?
   item->color[0] = strtod(args, &args);
   item->color[1] = strtod(args, &args);
   item->color[2] = strtod(args, &args);
@@ -212,27 +212,27 @@ cnBool stParseColor(stParser* parser, char* args) {
 
 
 cnBool stParseDestroy(stParser* parser, char* args) {
-  stItem* item = stParserItem(parser, args, &args);
-  /*
-  int index = indexes[id];
-  if (!index) {
-    throw "double destroy";
+  cnList* indices = &parser->indices;
+  stId id = strtol(args, &args, 10);
+  cnIndex* index = (cnIndex*)cnListGet(indices, id);
+  cnIndex oldIndex = *index;
+  cnList* items;
+  stItem *item, *endItem;
+  if (!oldIndex) {
+    printf("Already destroyed: %ld\n", id);
+    return cnFalse;
   }
   // Remove the destroyed item.
-  indexes[id] = 0;
-  state.items.erase(state.items.begin() + index);
+  *index = 0;
+  items = &parser->state.items;
+  cnListRemove(items, oldIndex);
+  endItem = cnListGet(items, items->count);
   // Reduce the index of successive items.
-  for (
-    vector<Item>::iterator i = state.items.begin() + index;
-    i < state.items.end();
-    i++
-  ) {
+  for (item = cnListGet(items, oldIndex); item < endItem; item++) {
     // TODO Could optimize further if we assume seeing items always in
     // TODO increasing order.
-    const Item& item = *i;
-    indexes[item.id]--;
+    (*(cnIndex*)cnListGet(indices, item->id))--;
   }
-  */
   return cnTrue;
 }
 
@@ -249,7 +249,7 @@ cnBool stParseGrasp(stParser* parser, char* args) {
 
 cnBool stParseItem(stParser* parser, char* args) {
   stItem item;
-  stId badId = -1;
+  stId badId = 0;
   cnIndex i, index = parser->state.items.count;
   item.id = strtol(args, &args, 10);
   // TODO Verify against duplicate ID?
