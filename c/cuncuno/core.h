@@ -11,13 +11,13 @@ typedef enum {cnFalse, cnTrue} cnBool;
 typedef unsigned char cnByte;
 
 
-typedef int cnCount;
+typedef long cnCount;
 
 
 typedef double cnFloat;
 
 
-typedef int cnIndex;
+typedef long cnIndex;
 
 
 typedef struct cnList {

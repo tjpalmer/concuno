@@ -1,5 +1,20 @@
-#include <cstring>
 #include "state.h"
+
+
+void stStateDispose(stState* state) {
+  cnListDispose(&state->items);
+  stStateInit(state);
+}
+
+
+void stStateInit(stState* state) {
+  state->cleared = cnFalse;
+  cnListInit(&state->items, sizeof(stState));
+  state->time = 0;
+}
+
+
+/*
 
 using namespace std;
 
@@ -22,3 +37,5 @@ const Item* State::findItem(int id) const {
 }
 
 }
+
+*/

@@ -8,7 +8,7 @@ add_executable(
   stackiter-learner.c
   #chooser.cpp
   loader.c
-  #state.cpp
+  state.c
 )
 
 target_link_libraries(

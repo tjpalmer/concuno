@@ -43,19 +43,22 @@ typedef struct stItem {
 
 } stItem;
 
+
 typedef struct stState {
 
   cnBool cleared;
 
   cnList items;
 
-  /**
-   * Simulation time, actually.
-   *
-   * TODO Break this out as a separately typed item?
-   */
   double time;
 
 } stState;
+
+
+void stStateDispose(stState* state);
+
+
+void stStateInit(stState* state);
+
 
 #endif

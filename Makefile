@@ -13,6 +13,7 @@ headers = \
 sources = \
 	c/stackiter/loader.c \
 	c/stackiter/stackiter-learner.c \
+	c/stackiter/state.c \
 	c/cuncuno/core.c \
 	c/cuncuno/io.c
 	#c/stackiter/chooser.c \

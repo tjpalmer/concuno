@@ -1,4 +1,5 @@
 #include <cuncuno.h>
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -10,6 +11,18 @@
  * Parses a single line, returning true for no error.
  */
 cnBool stParseLine(cnString* line, stState* state, cnList* states);
+
+
+/**
+ * Finds a non-whitespace string if it exists, overwriting the first trailing
+ * whitespace (if any) with a null char. The end will point past that null
+ * char if added, or at the already existing null char if at the end. This
+ * function returns where the first non-whitespace was found, if any, for usage
+ * like below:
+ *
+ * char* string = stParseString(source, &source);
+ */
+char* stParseString(char* begin, char** end);
 
 
 /**
@@ -31,15 +44,13 @@ cnBool stParseTime(char* args, stState* state, cnList* states);
 cnBool stParseType(char* args, stState* state, cnList* states);
 
 
-cnBool stWhite(char c);
-
-
 cnBool stLoad(char* name, cnList* states) {
   cnBool result = cnTrue;
   int closeError;
   cnString line;
   cnCount lineCount, readCount;
   stState state;
+  stStateInit(&state);
   // Open file.
   FILE* file = fopen(name, "r");
   if (!file) {
@@ -65,6 +76,7 @@ cnBool stLoad(char* name, cnList* states) {
   }
   printf("Read lines: %d\n", lineCount);
   cnStringDispose(&line);
+  stStateDispose(&state);
   closeError = fclose(file);
   if (readCount < 0 || closeError) {
     printf("Error reading or closing: %s\n", name);
@@ -76,17 +88,9 @@ cnBool stLoad(char* name, cnList* states) {
 
 cnBool stParseLine(cnString* line, stState* state, cnList* states) {
   // TODO Extract command then scanf it?
-  char *args, *c, *command;
+  char *args, *command;
   cnBool (*parse)(char* args, stState* state, cnList* states) = NULL;
-  for (c = line->items; *c; c++) {
-    // TODO Separate whitespace function?
-    if (stWhite(*c)) {
-      *c = '\0';
-      args = c + 1;
-      break;
-    }
-  }
-  command = line->items;
+  command = stParseString(line->items, &args);
   // TODO Hashtable? This is still quite fast.
   if (!strcmp(command, "alive")) {
     parse = stParseAlive;
@@ -127,19 +131,37 @@ cnBool stParseLine(cnString* line, stState* state, cnList* states) {
 }
 
 
-cnBool stParseAlive(char* args, stState* state, cnList* states) {
+char* stParseString(char* begin, char** end) {
+  cnBool pastSpace = cnFalse;
   char* c;
-  int id;
-  if (!sscanf(args, "%d", &id)) {
-    return cnFalse;
-  }
-  // TODO Find item.
-  for (c = args; *c; c++) {
-    if (stWhite(*c)) {
-      *c = '\0';
+  for (c = begin; *c; c++) {
+    if (isspace(*c)) {
+      if (pastSpace) {
+        // We found the end!
+        *c = '\0';
+        // Advance past the new null char.
+        c++;
+        break;
+      }
+    } else if (!pastSpace) {
+      begin = c;
+      pastSpace = cnTrue;
     }
-  } 
-  // item->alive = !strcmp(args, "true");
+  }
+  if (!pastSpace) {
+    // No content. Make sure it's empty.
+    begin = c;
+  }
+  *end = c;
+  return begin;
+}
+
+
+cnBool stParseAlive(char* args, stState* state, cnList* states) {
+  cnIndex id = strtol(args, &args, 10);
+  char* status = stParseString(args, &args);
+  // TODO Find item at id.
+  // item->alive = !strcmp(status, "true");
   return cnTrue;
 }
 
@@ -206,11 +228,6 @@ cnBool stParseTime(char* args, stState* state, cnList* states) {
 
 cnBool stParseType(char* args, stState* state, cnList* states) {
   return cnTrue;
-}
-
-
-cnBool stWhite(char c) {
-  return c == ' ' || c == '\n' || c == '\r' || c == '\t';
 }
 
 
