@@ -18,7 +18,7 @@ void* cnListGet(cnList* list, cnIndex index) {
   if (index < 0 || index >= list->count) {
     return NULL;
   }
-  return ((cnChar*)list->items) + (index * list->itemSize);
+  return ((cnByte*)list->items) + (index * list->itemSize);
 }
 
 
@@ -51,8 +51,8 @@ cnBool cnListPush(cnList* list, void* item) {
 }
 
 
-cnChar* cnStr(cnString* string) {
-  return string->items ? (cnChar*)string->items : (cnChar*)"";
+char* cnStr(cnString* string) {
+  return string->items ? (char*)string->items : (char*)"";
 }
 
 
@@ -69,18 +69,18 @@ void cnStringDispose(cnString* string) {
 }
 
 
-cnChar cnStringGetChar(cnString* string, cnIndex index) {
-  return *(cnChar*)cnListGet(string, index);
+char cnStringGetChar(cnString* string, cnIndex index) {
+  return *(char*)cnListGet(string, index);
 }
 
 
 void cnStringInit(cnString* string) {
-  cnListInit(string, sizeof(cnChar));
+  cnListInit(string, sizeof(char));
 }
 
 
-cnBool cnStringPushChar(cnString* string, cnChar c) {
-  cnChar* str;
+cnBool cnStringPushChar(cnString* string, char c) {
+  char* str;
   // Push a char, even though we'll soon swap it.
   // This gives us at least the right space.
   // TODO Just a call to reserve for these one or two chars?

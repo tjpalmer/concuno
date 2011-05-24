@@ -5,7 +5,7 @@ cnCount cnReadLine(FILE* file, cnString* string) {
   int i;
   cnStringClear(string);
   while ((i = fgetc(file)) != EOF) {
-    cnChar c = (cnChar)i;
+    char c = (char)i;
     count++;
     if (!cnStringPushChar(string, c)) {
       count = -count;

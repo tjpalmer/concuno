@@ -15,20 +15,23 @@ cnBool stParseLine(cnString* line, stState* state, cnList* states);
 /**
  * Individual parse handlers for specific commands.
  */
-cnBool stParseAlive(cnChar* args, stState* state, cnList* states);
-cnBool stParseClear(cnChar* args, stState* state, cnList* states);
-cnBool stParseColor(cnChar* args, stState* state, cnList* states);
-cnBool stParseDestroy(cnChar* args, stState* state, cnList* states);
-cnBool stParseExtent(cnChar* args, stState* state, cnList* states);
-cnBool stParseGrasp(cnChar* args, stState* state, cnList* states);
-cnBool stParseItem(cnChar* args, stState* state, cnList* states);
-cnBool stParsePos(cnChar* args, stState* state, cnList* states);
-cnBool stParsePosVel(cnChar* args, stState* state, cnList* states);
-cnBool stParseRelease(cnChar* args, stState* state, cnList* states);
-cnBool stParseRot(cnChar* args, stState* state, cnList* states);
-cnBool stParseRotVel(cnChar* args, stState* state, cnList* states);
-cnBool stParseTime(cnChar* args, stState* state, cnList* states);
-cnBool stParseType(cnChar* args, stState* state, cnList* states);
+cnBool stParseAlive(char* args, stState* state, cnList* states);
+cnBool stParseClear(char* args, stState* state, cnList* states);
+cnBool stParseColor(char* args, stState* state, cnList* states);
+cnBool stParseDestroy(char* args, stState* state, cnList* states);
+cnBool stParseExtent(char* args, stState* state, cnList* states);
+cnBool stParseGrasp(char* args, stState* state, cnList* states);
+cnBool stParseItem(char* args, stState* state, cnList* states);
+cnBool stParsePos(char* args, stState* state, cnList* states);
+cnBool stParsePosVel(char* args, stState* state, cnList* states);
+cnBool stParseRelease(char* args, stState* state, cnList* states);
+cnBool stParseRot(char* args, stState* state, cnList* states);
+cnBool stParseRotVel(char* args, stState* state, cnList* states);
+cnBool stParseTime(char* args, stState* state, cnList* states);
+cnBool stParseType(char* args, stState* state, cnList* states);
+
+
+cnBool stWhite(char c);
 
 
 cnBool stLoad(char* name, cnList* states) {
@@ -73,11 +76,11 @@ cnBool stLoad(char* name, cnList* states) {
 
 cnBool stParseLine(cnString* line, stState* state, cnList* states) {
   // TODO Extract command then scanf it?
-  cnChar *args, *c, *command;
-  cnBool (*parse)(cnChar* args, stState* state, cnList* states) = NULL;
+  char *args, *c, *command;
+  cnBool (*parse)(char* args, stState* state, cnList* states) = NULL;
   for (c = line->items; *c; c++) {
     // TODO Separate whitespace function?
-    if (*c == ' ' || *c == '\r' || *c == '\n') {
+    if (stWhite(*c)) {
       *c = '\0';
       args = c + 1;
       break;
@@ -124,76 +127,91 @@ cnBool stParseLine(cnString* line, stState* state, cnList* states) {
 }
 
 
-cnBool stParseAlive(cnChar* args, stState* state, cnList* states) {
+cnBool stParseAlive(char* args, stState* state, cnList* states) {
+  char* c;
+  int id;
+  if (!sscanf(args, "%d", &id)) {
+    return cnFalse;
+  }
+  // TODO Find item.
+  for (c = args; *c; c++) {
+    if (stWhite(*c)) {
+      *c = '\0';
+    }
+  } 
+  // item->alive = !strcmp(args, "true");
   return cnTrue;
 }
 
 
-cnBool stParseClear(cnChar* args, stState* state, cnList* states) {
+cnBool stParseClear(char* args, stState* state, cnList* states) {
   return cnTrue;
 }
 
 
-cnBool stParseColor(cnChar* args, stState* state, cnList* states) {
+cnBool stParseColor(char* args, stState* state, cnList* states) {
   return cnTrue;
 }
 
 
-cnBool stParseDestroy(cnChar* args, stState* state, cnList* states) {
+cnBool stParseDestroy(char* args, stState* state, cnList* states) {
   return cnTrue;
 }
 
 
-cnBool stParseExtent(cnChar* args, stState* state, cnList* states) {
+cnBool stParseExtent(char* args, stState* state, cnList* states) {
   return cnTrue;
 }
 
 
-cnBool stParseGrasp(cnChar* args, stState* state, cnList* states) {
+cnBool stParseGrasp(char* args, stState* state, cnList* states) {
   return cnTrue;
 }
 
 
-cnBool stParseItem(cnChar* args, stState* state, cnList* states) {
+cnBool stParseItem(char* args, stState* state, cnList* states) {
   return cnTrue;
 }
 
 
-cnBool stParsePos(cnChar* args, stState* state, cnList* states) {
+cnBool stParsePos(char* args, stState* state, cnList* states) {
   return cnTrue;
 }
 
 
-cnBool stParsePosVel(cnChar* args, stState* state, cnList* states) {
+cnBool stParsePosVel(char* args, stState* state, cnList* states) {
   return cnTrue;
 }
 
 
-cnBool stParseRelease(cnChar* args, stState* state, cnList* states) {
+cnBool stParseRelease(char* args, stState* state, cnList* states) {
   return cnTrue;
 }
 
 
-cnBool stParseRot(cnChar* args, stState* state, cnList* states) {
+cnBool stParseRot(char* args, stState* state, cnList* states) {
   return cnTrue;
 }
 
 
-cnBool stParseRotVel(cnChar* args, stState* state, cnList* states) {
+cnBool stParseRotVel(char* args, stState* state, cnList* states) {
   return cnTrue;
 }
 
 
-cnBool stParseTime(cnChar* args, stState* state, cnList* states) {
+cnBool stParseTime(char* args, stState* state, cnList* states) {
   return cnTrue;
 }
 
 
-cnBool stParseType(cnChar* args, stState* state, cnList* states) {
+cnBool stParseType(char* args, stState* state, cnList* states) {
   return cnTrue;
 }
 
 
+cnBool stWhite(char c) {
+  return c == ' ' || c == '\n' || c == '\r' || c == '\t';
+}
 
 
 /*
