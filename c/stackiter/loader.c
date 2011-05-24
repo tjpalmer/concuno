@@ -7,10 +7,17 @@
 #include "loader.h"
 
 
+typedef struct stParser {
+  cnList indices;
+  stState state;
+  cnList* states;
+} stParser;
+
+
 /**
  * Parses a single line, returning true for no error.
  */
-cnBool stParseLine(cnString* line, stState* state, cnList* states);
+cnBool stParseLine(stParser* parser, cnString* line);
 
 
 /**
@@ -28,20 +35,20 @@ char* stParseString(char* begin, char** end);
 /**
  * Individual parse handlers for specific commands.
  */
-cnBool stParseAlive(char* args, stState* state, cnList* states);
-cnBool stParseClear(char* args, stState* state, cnList* states);
-cnBool stParseColor(char* args, stState* state, cnList* states);
-cnBool stParseDestroy(char* args, stState* state, cnList* states);
-cnBool stParseExtent(char* args, stState* state, cnList* states);
-cnBool stParseGrasp(char* args, stState* state, cnList* states);
-cnBool stParseItem(char* args, stState* state, cnList* states);
-cnBool stParsePos(char* args, stState* state, cnList* states);
-cnBool stParsePosVel(char* args, stState* state, cnList* states);
-cnBool stParseRelease(char* args, stState* state, cnList* states);
-cnBool stParseRot(char* args, stState* state, cnList* states);
-cnBool stParseRotVel(char* args, stState* state, cnList* states);
-cnBool stParseTime(char* args, stState* state, cnList* states);
-cnBool stParseType(char* args, stState* state, cnList* states);
+cnBool stParseAlive(stParser* parser, char* args);
+cnBool stParseClear(stParser* parser, char* args);
+cnBool stParseColor(stParser* parser, char* args);
+cnBool stParseDestroy(stParser* parser, char* args);
+cnBool stParseExtent(stParser* parser, char* args);
+cnBool stParseGrasp(stParser* parser, char* args);
+cnBool stParseItem(stParser* parser, char* args);
+cnBool stParsePos(stParser* parser, char* args);
+cnBool stParsePosVel(stParser* parser, char* args);
+cnBool stParseRelease(stParser* parser, char* args);
+cnBool stParseRot(stParser* parser, char* args);
+cnBool stParseRotVel(stParser* parser, char* args);
+cnBool stParseTime(stParser* parser, char* args);
+cnBool stParseType(stParser* parser, char* args);
 
 
 cnBool stLoad(char* name, cnList* states) {
@@ -49,8 +56,10 @@ cnBool stLoad(char* name, cnList* states) {
   int closeError;
   cnString line;
   cnCount lineCount, readCount;
+  stParser parser;
   stState state;
-  stStateInit(&state);
+  stStateInit(&parser.state);
+  cnListInit(&parser.indices, sizeof(cnIndex));
   // Open file.
   FILE* file = fopen(name, "r");
   if (!file) {
@@ -65,7 +74,7 @@ cnBool stLoad(char* name, cnList* states) {
   while ((readCount = cnReadLine(file, &line)) > 0) {
     //printf("Line: %s", cnStr(&line));
     lineCount++;
-    if (!stParseLine(&line, &state, states)) {
+    if (!stParseLine(&parser, &line)) {
       // TODO Distinguish parse errors from memory allocation fails.
       printf(
           "Error parsing line %d of %s: %s\n", lineCount, name, cnStr(&line)
@@ -76,7 +85,8 @@ cnBool stLoad(char* name, cnList* states) {
   }
   printf("Read lines: %d\n", lineCount);
   cnStringDispose(&line);
-  stStateDispose(&state);
+  cnListDispose(&parser.indices);
+  stStateDispose(&parser.state);
   closeError = fclose(file);
   if (readCount < 0 || closeError) {
     printf("Error reading or closing: %s\n", name);
@@ -86,10 +96,10 @@ cnBool stLoad(char* name, cnList* states) {
 }
 
 
-cnBool stParseLine(cnString* line, stState* state, cnList* states) {
+cnBool stParseLine(stParser* parser, cnString* line) {
   // TODO Extract command then scanf it?
   char *args, *command;
-  cnBool (*parse)(char* args, stState* state, cnList* states) = NULL;
+  cnBool (*parse)(stParser* parser, char* args) = NULL;
   command = stParseString(line->items, &args);
   // TODO Hashtable? This is still quite fast.
   if (!strcmp(command, "alive")) {
@@ -122,7 +132,7 @@ cnBool stParseLine(cnString* line, stState* state, cnList* states) {
     parse = stParseType;
   }
   if (parse) {
-    return parse(args, state, states);
+    return parse(parser, args);
   } else {
     // TODO List explicit known okay ignore commands?
     //printf("Unknown command: %s\n", command);
@@ -157,76 +167,80 @@ char* stParseString(char* begin, char** end) {
 }
 
 
-cnBool stParseAlive(char* args, stState* state, cnList* states) {
+cnBool stParseAlive(stParser* parser, char* args) {
+  char* status;
   cnIndex id = strtol(args, &args, 10);
-  char* status = stParseString(args, &args);
+  status = stParseString(args, &args);
+  if (id < 0 || !*status) {
+    return cnFalse;
+  }
   // TODO Find item at id.
-  // item->alive = !strcmp(status, "true");
+  // item->alive = !strcmp(stParser* parser, status, "true");
   return cnTrue;
 }
 
 
-cnBool stParseClear(char* args, stState* state, cnList* states) {
+cnBool stParseClear(stParser* parser, char* args) {
   return cnTrue;
 }
 
 
-cnBool stParseColor(char* args, stState* state, cnList* states) {
+cnBool stParseColor(stParser* parser, char* args) {
   return cnTrue;
 }
 
 
-cnBool stParseDestroy(char* args, stState* state, cnList* states) {
+cnBool stParseDestroy(stParser* parser, char* args) {
   return cnTrue;
 }
 
 
-cnBool stParseExtent(char* args, stState* state, cnList* states) {
+cnBool stParseExtent(stParser* parser, char* args) {
   return cnTrue;
 }
 
 
-cnBool stParseGrasp(char* args, stState* state, cnList* states) {
+cnBool stParseGrasp(stParser* parser, char* args) {
   return cnTrue;
 }
 
 
-cnBool stParseItem(char* args, stState* state, cnList* states) {
+cnBool stParseItem(stParser* parser, char* args) {
   return cnTrue;
 }
 
 
-cnBool stParsePos(char* args, stState* state, cnList* states) {
+cnBool stParsePos(stParser* parser, char* args) {
   return cnTrue;
 }
 
 
-cnBool stParsePosVel(char* args, stState* state, cnList* states) {
+cnBool stParsePosVel(stParser* parser, char* args) {
   return cnTrue;
 }
 
 
-cnBool stParseRelease(char* args, stState* state, cnList* states) {
+cnBool stParseRelease(stParser* parser, char* args) {
   return cnTrue;
 }
 
 
-cnBool stParseRot(char* args, stState* state, cnList* states) {
+cnBool stParseRot(stParser* parser, char* args) {
   return cnTrue;
 }
 
 
-cnBool stParseRotVel(char* args, stState* state, cnList* states) {
+cnBool stParseRotVel(stParser* parser, char* args) {
   return cnTrue;
 }
 
 
-cnBool stParseTime(char* args, stState* state, cnList* states) {
+cnBool stParseTime(stParser* parser, char* args) {
   return cnTrue;
 }
 
 
-cnBool stParseType(char* args, stState* state, cnList* states) {
+cnBool stParseType(stParser* parser, char* args) {
   return cnTrue;
 }
 
