@@ -83,7 +83,8 @@ cnBool stLoad(char* name, cnList* states) {
       break;
     }
   }
-  printf("Read lines: %d\n", lineCount);
+  printf("Lines: %d\n", lineCount);
+  printf("Items: %d\n", parser.state.items.count);
   cnStringDispose(&line);
   cnListDispose(&parser.indices);
   stStateDispose(&parser.state);
@@ -206,6 +207,17 @@ cnBool stParseGrasp(stParser* parser, char* args) {
 
 
 cnBool stParseItem(stParser* parser, char* args) {
+  stItem item;
+  cnIndex index = parser->state.items.count;
+  item.id = strtol(args, &args, 10);
+  // TODO Verify against duplicate ID?
+  // TODO Extra data copy here. Do I care?
+  if (!cnListPush(&parser->state.items, &item)) {
+    return cnFalse;
+  }
+  if (!cnListPush(&parser->indices, &index)) {
+    return cnFalse;
+  }
   return cnTrue;
 }
 

@@ -39,6 +39,8 @@ typedef struct stItem {
 
   stId id;
 
+  cnFloat location[2];
+
   stTypeId typeId;
 
 } stItem;
