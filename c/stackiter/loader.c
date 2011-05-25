@@ -175,7 +175,6 @@ stItem* stParserItem(stParser* parser, char* begin, char** end) {
   // TODO Better validation?
   stId id = strtol(begin, end, 10);
   cnIndex* index = (cnIndex*)cnListGet(&parser->indices, id);
-  //printf("Id: %ld, count: %ld, index: %p\n", id, parser->indices.count, index);
   return cnListGet(&parser->state.items, *index);
 }
 
@@ -215,24 +214,23 @@ cnBool stParseDestroy(stParser* parser, char* args) {
   cnList* indices = &parser->indices;
   stId id = strtol(args, &args, 10);
   cnIndex* index = (cnIndex*)cnListGet(indices, id);
-  cnIndex oldIndex = *index;
   cnList* items;
   stItem *item, *endItem;
-  if (!oldIndex) {
+  if (!*index) {
     printf("Already destroyed: %ld\n", id);
     return cnFalse;
   }
   // Remove the destroyed item.
-  *index = 0;
   items = &parser->state.items;
-  cnListRemove(items, oldIndex);
-  endItem = cnListGet(items, items->count);
+  cnListRemove(items, *index);
+  endItem = cnListEnd(items);
   // Reduce the index of successive items.
-  for (item = cnListGet(items, oldIndex); item < endItem; item++) {
+  for (item = cnListGet(items, *index); item < endItem; item++) {
     // TODO Could optimize further if we assume seeing items always in
     // TODO increasing order.
     (*(cnIndex*)cnListGet(indices, item->id))--;
   }
+  *index = 0;
   return cnTrue;
 }
 
@@ -264,7 +262,6 @@ cnBool stParseItem(stParser* parser, char* args) {
     }
   }
   *(cnIndex*)cnListGet(&parser->indices, item.id) = index;
-  //printf("item: %ld/%ld at %ld\n", item.id, parser->indices.count, index);
   return cnTrue;
 }
 

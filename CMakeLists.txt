@@ -20,6 +20,7 @@ set(cuncuno_INCLUDE_DIR ${cuncuno_SOURCE_DIR}/include)
 include_directories(
   #${cuncuno_INCLUDE_DIR}
   #${Eigen_INCLUDE_DIR}
+  c
 )
 
 if(CMAKE_COMPILER_IS_GNUCC)

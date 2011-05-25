@@ -9,7 +9,7 @@ void stStateDispose(stState* state) {
 
 void stStateInit(stState* state) {
   state->cleared = cnFalse;
-  cnListInit(&state->items, sizeof(stState));
+  cnListInit(&state->items, sizeof(stItem));
   state->time = 0;
 }
 

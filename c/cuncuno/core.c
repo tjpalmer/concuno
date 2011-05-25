@@ -19,7 +19,12 @@ void* cnListGet(cnList* list, cnIndex index) {
   if (index < 0 || index >= list->count) {
     return NULL;
   }
-  return ((cnByte*)list->items) + (index * list->itemSize);
+  return ((char*)list->items) + (index * list->itemSize);
+}
+
+
+void* cnListEnd(cnList* list) {
+  return ((char*)list->items) + (list->count * list->itemSize);
 }
 
 
@@ -49,6 +54,22 @@ cnBool cnListPush(cnList* list, void* item) {
   list->count = needed;
   memcpy(cnListGet(list, needed - 1), item, list->itemSize);
   return cnTrue;
+}
+
+
+void cnListRemove(cnList* list, cnIndex index) {
+  char *begin = cnListGet(list, index);
+  if (!begin) {
+    printf("Bad index for remove: %ld\n", index);
+    return;
+  }
+  list->count--;
+  if (index == list->count) {
+    return;
+  }
+  memmove(
+    begin, begin + list->itemSize, (list->count - index) * list->itemSize
+  );
 }
 
 

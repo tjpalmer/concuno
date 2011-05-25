@@ -43,6 +43,13 @@ void cnListClear(cnList* list);
 void cnListDispose(cnList* list);
 
 
+/**
+ * The address right after the end of the list. Useful for iteration, but don't
+ * try to store anything here.
+ */
+void* cnListEnd(cnList* list);
+
+
 void* cnListGet(cnList* list, cnIndex index);
 
 
@@ -56,6 +63,13 @@ cnBool cnListPush(cnList* list, void* item);
 
 
 void cnListPut(cnList* list, cnIndex index, void* value);
+
+
+/**
+ * Does not reduce memory usage nor change the address of items. The count is
+ * reduced by one and the item at the index is deleted from the array.
+ */
+void cnListRemove(cnList* list, cnIndex index);
 
 
 char* cnStr(cnString* string);
