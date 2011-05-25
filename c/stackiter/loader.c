@@ -274,6 +274,10 @@ cnBool stParseItem(stParser* parser, char* args) {
 
 
 cnBool stParsePos(stParser* parser, char* args) {
+  stItem* item = stParserItem(parser, args, &args);
+  // TODO Verify we haven't run out of args or have other errors?
+  item->location[0] = strtod(args, &args);
+  item->location[1] = strtod(args, &args);
   return cnTrue;
 }
 
@@ -322,12 +326,6 @@ void Loader::handleGrasp(stringstream& tokens) {
   // TODO Parse and use the relative grasp location?
   tool.grasping = true;
   item.grasped = true;
-}
-
-void Loader::handleLocation(stringstream& tokens) {
-  Item& item = getItem(tokens);
-  tokens >> item.location[0];
-  tokens >> item.location[1];
 }
 
 void Loader::handleOrientation(stringstream& tokens) {
