@@ -405,26 +405,4 @@ void Loader::handleVelocity(stringstream& tokens) {
   tokens >> item.velocity[1];
 }
 
-void Loader::load(const string& name) {
-  cout << "Loading " << name << endl;
-  ifstream in(name.c_str());
-  if (!in.is_open()) {
-    throw "failed to open";
-  }
-  string command;
-  string line;
-  while (!getline(in, line).eof()) {
-    stringstream tokens(line);
-    tokens >> command;
-    map<string,LoaderHandler>::iterator h = handlers.find(command);
-    if (h != handlers.end()) {
-      // We've defined a handler for this command, so handle it.
-      LoaderHandler handler = h->second;
-      (this->*handler)(tokens);
-    }
-  }
-  // Record the end state.
-  pushState();
-}
-
 */
