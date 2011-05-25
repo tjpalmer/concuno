@@ -38,20 +38,20 @@ stItem* stParserItem(stParser* parser, char* begin, char** end);
 /**
  * Individual parse handlers for specific commands.
  */
-cnBool stParseAlive(stParser* parser, char* args);
-cnBool stParseClear(stParser* parser, char* args);
-cnBool stParseColor(stParser* parser, char* args);
-cnBool stParseDestroy(stParser* parser, char* args);
-cnBool stParseExtent(stParser* parser, char* args);
-cnBool stParseGrasp(stParser* parser, char* args);
-cnBool stParseItem(stParser* parser, char* args);
-cnBool stParsePos(stParser* parser, char* args);
-cnBool stParsePosVel(stParser* parser, char* args);
-cnBool stParseRelease(stParser* parser, char* args);
-cnBool stParseRot(stParser* parser, char* args);
-cnBool stParseRotVel(stParser* parser, char* args);
-cnBool stParseTime(stParser* parser, char* args);
-cnBool stParseType(stParser* parser, char* args);
+cnBool stHandleAlive(stParser* parser, char* args);
+cnBool stHandleClear(stParser* parser, char* args);
+cnBool stHandleColor(stParser* parser, char* args);
+cnBool stHandleDestroy(stParser* parser, char* args);
+cnBool stHandleExtent(stParser* parser, char* args);
+cnBool stHandleGrasp(stParser* parser, char* args);
+cnBool stHandleItem(stParser* parser, char* args);
+cnBool stHandlePos(stParser* parser, char* args);
+cnBool stHandlePosVel(stParser* parser, char* args);
+cnBool stHandleRelease(stParser* parser, char* args);
+cnBool stHandleRot(stParser* parser, char* args);
+cnBool stHandleRotVel(stParser* parser, char* args);
+cnBool stHandleTime(stParser* parser, char* args);
+cnBool stHandleType(stParser* parser, char* args);
 
 
 cnBool stLoad(char* name, cnList* states) {
@@ -107,33 +107,33 @@ cnBool stParseLine(stParser* parser, cnString* line) {
   command = stParseString(line->items, &args);
   // TODO Hashtable? This is still quite fast.
   if (!strcmp(command, "alive")) {
-    parse = stParseAlive;
+    parse = stHandleAlive;
   } else if (!strcmp(command, "clear")) {
-    parse = stParseClear;
+    parse = stHandleClear;
   } else if (!strcmp(command, "color")) {
-    parse = stParseColor;
+    parse = stHandleColor;
   } else if (!strcmp(command, "destroy")) {
-    parse = stParseDestroy;
+    parse = stHandleDestroy;
   } else if (!strcmp(command, "extent")) {
-    parse = stParseExtent;
+    parse = stHandleExtent;
   } else if (!strcmp(command, "grasp")) {
-    parse = stParseGrasp;
+    parse = stHandleGrasp;
   } else if (!strcmp(command, "item")) {
-    parse = stParseItem;
+    parse = stHandleItem;
   } else if (!strcmp(command, "pos")) {
-    parse = stParsePos;
+    parse = stHandlePos;
   } else if (!strcmp(command, "posvel")) {
-    parse = stParsePosVel;
+    parse = stHandlePosVel;
   } else if (!strcmp(command, "release")) {
-    parse = stParseRelease;
+    parse = stHandleRelease;
   } else if (!strcmp(command, "rot")) {
-    parse = stParseRot;
+    parse = stHandleRot;
   } else if (!strcmp(command, "rotvel")) {
-    parse = stParseRotVel;
+    parse = stHandleRotVel;
   } else if (!strcmp(command, "time")) {
-    parse = stParseTime;
+    parse = stHandleTime;
   } else if (!strcmp(command, "type")) {
-    parse = stParseType;
+    parse = stHandleType;
   }
   if (parse) {
     return parse(parser, args);
@@ -179,7 +179,7 @@ stItem* stParserItem(stParser* parser, char* begin, char** end) {
 }
 
 
-cnBool stParseAlive(stParser* parser, char* args) {
+cnBool stHandleAlive(stParser* parser, char* args) {
   char* status;
   stItem* item;
   item = stParserItem(parser, args, &args);
@@ -192,13 +192,13 @@ cnBool stParseAlive(stParser* parser, char* args) {
 }
 
 
-cnBool stParseClear(stParser* parser, char* args) {
+cnBool stHandleClear(stParser* parser, char* args) {
   parser->state.cleared = cnTrue;
   return cnTrue;
 }
 
 
-cnBool stParseColor(stParser* parser, char* args) {
+cnBool stHandleColor(stParser* parser, char* args) {
   stItem* item = stParserItem(parser, args, &args);
   // TODO Use HSV colorspace to begin with?
   // TODO Verify we haven't run out of args?
@@ -210,7 +210,7 @@ cnBool stParseColor(stParser* parser, char* args) {
 }
 
 
-cnBool stParseDestroy(stParser* parser, char* args) {
+cnBool stHandleDestroy(stParser* parser, char* args) {
   stId id = strtol(args, &args, 10);
   cnIndex* index = (cnIndex*)cnListGet(&parser->indices, id);
   cnIndex* indices = parser->indices.items;
@@ -240,17 +240,17 @@ cnBool stParseDestroy(stParser* parser, char* args) {
 }
 
 
-cnBool stParseExtent(stParser* parser, char* args) {
+cnBool stHandleExtent(stParser* parser, char* args) {
   return cnTrue;
 }
 
 
-cnBool stParseGrasp(stParser* parser, char* args) {
+cnBool stHandleGrasp(stParser* parser, char* args) {
   return cnTrue;
 }
 
 
-cnBool stParseItem(stParser* parser, char* args) {
+cnBool stHandleItem(stParser* parser, char* args) {
   stItem item;
   stId badId = 0;
   cnIndex i, index = parser->state.items.count;
@@ -273,7 +273,7 @@ cnBool stParseItem(stParser* parser, char* args) {
 }
 
 
-cnBool stParsePos(stParser* parser, char* args) {
+cnBool stHandlePos(stParser* parser, char* args) {
   stItem* item = stParserItem(parser, args, &args);
   // TODO Verify we haven't run out of args or have other errors?
   item->location[0] = strtod(args, &args);
@@ -282,32 +282,32 @@ cnBool stParsePos(stParser* parser, char* args) {
 }
 
 
-cnBool stParsePosVel(stParser* parser, char* args) {
+cnBool stHandlePosVel(stParser* parser, char* args) {
   return cnTrue;
 }
 
 
-cnBool stParseRelease(stParser* parser, char* args) {
+cnBool stHandleRelease(stParser* parser, char* args) {
   return cnTrue;
 }
 
 
-cnBool stParseRot(stParser* parser, char* args) {
+cnBool stHandleRot(stParser* parser, char* args) {
   return cnTrue;
 }
 
 
-cnBool stParseRotVel(stParser* parser, char* args) {
+cnBool stHandleRotVel(stParser* parser, char* args) {
   return cnTrue;
 }
 
 
-cnBool stParseTime(stParser* parser, char* args) {
+cnBool stHandleTime(stParser* parser, char* args) {
   return cnTrue;
 }
 
 
-cnBool stParseType(stParser* parser, char* args) {
+cnBool stHandleType(stParser* parser, char* args) {
   return cnTrue;
 }
 
