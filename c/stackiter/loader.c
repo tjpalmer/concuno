@@ -316,34 +316,12 @@ void Loader::handleExtent(stringstream& tokens) {
   tokens >> item.extent[1];
 }
 
-int Loader::handleId(stringstream& tokens) {
-  int id;
-  tokens >> id;
-  if (id <= 0) {
-    throw "nonpositive id";
-  }
-  return id;
-}
-
 void Loader::handleGrasp(stringstream& tokens) {
   Item& tool = getItem(tokens);
   Item& item = getItem(tokens);
   // TODO Parse and use the relative grasp location?
   tool.grasping = true;
   item.grasped = true;
-}
-
-void Loader::handleItem(stringstream& tokens) {
-  Item item;
-  item.id = handleId(tokens);
-  // TODO Verify against duplicate ID?
-  // TODO Evil data copy here. Do I care?
-  state.items.push_back(item);
-  while (indexes.size() < static_cast<size_t>(item.id + 1)) {
-    // TODO Or is it 0 by default for resize?
-    indexes.push_back(0);
-  }
-  indexes[item.id] = state.items.size() - 1;
 }
 
 void Loader::handleLocation(stringstream& tokens) {
