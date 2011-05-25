@@ -6,13 +6,13 @@
 
 
 typedef enum {
-  None,
-  Block,
-  Tool,
-  Tray,
-  View,
-  World,
-} stItemType;
+  stTypeNone,
+  stTypeBlock,
+  stTypeTool,
+  stTypeTray,
+  stTypeView,
+  stTypeWorld,
+} stType;
 
 
 typedef cnIndex stId;
@@ -57,6 +57,9 @@ typedef struct stState {
   double time;
 
 } stState;
+
+
+void stItemInit(stItem* item);
 
 
 void stStateDispose(stState* state);

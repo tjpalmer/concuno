@@ -1,6 +1,25 @@
 #include "state.h"
 
 
+#define stFill(items, val, i, end) \
+  end = items + sizeof(items)/sizeof(*items); \
+  for (i = items; i < end; i++) { \
+    *i = (val); \
+  }
+
+
+void stItemInit(stItem* item) {
+  cnFloat *f, *end;
+  item->alive = cnFalse;
+  stFill(item->color, 0.0, f, end);
+  item->grasped = cnFalse;
+  item->grasping = cnFalse;
+  item->id = 0; // TODO or -1?
+  stFill(item->location, 0.0, f, end);
+  item->typeId = stTypeNone;
+}
+
+
 void stStateDispose(stState* state) {
   cnListDispose(&state->items);
   stStateInit(state);

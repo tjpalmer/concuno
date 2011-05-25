@@ -254,6 +254,7 @@ cnBool stParseItem(stParser* parser, char* args) {
   stItem item;
   stId badId = 0;
   cnIndex i, index = parser->state.items.count;
+  stItemInit(&item);
   item.id = strtol(args, &args, 10);
   // TODO Verify against duplicate ID?
   // TODO Extra data copy here. Do I care?
@@ -266,7 +267,8 @@ cnBool stParseItem(stParser* parser, char* args) {
       return cnFalse;
     }
   }
-  *(cnIndex*)cnListGet(&parser->indices, item.id) = index;
+  // Guaranteed good array spot here.
+  ((cnIndex*)parser->indices.items)[item.id] = index;
   return cnTrue;
 }
 
