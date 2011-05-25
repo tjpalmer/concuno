@@ -54,6 +54,9 @@ char* stParseString(char* begin, char** end);
 stItem* stParserItem(stParser* parser, char* begin, char** end);
 
 
+cnBool stPushState(stParser* parser);
+
+
 cnBool stLoad(char* name, cnList* states) {
   cnBool result = cnTrue;
   int closeError;
@@ -61,6 +64,7 @@ cnBool stLoad(char* name, cnList* states) {
   cnCount lineCount, readCount;
   stParser parser;
   stState state;
+  parser.states = states;
   stStateInit(&parser.state);
   cnListInit(&parser.indices, sizeof(cnIndex));
   // Open file.
@@ -86,8 +90,14 @@ cnBool stLoad(char* name, cnList* states) {
       break;
     }
   }
+  // Grab the last state.
+  if (!stPushState(&parser)) {
+    result = cnFalse;
+  }
+  // Report stats.
   printf("Lines: %ld\n", lineCount);
   printf("Items: %ld\n", parser.state.items.count);
+  printf("States: %ld\n", states->count);
   cnStringDispose(&line);
   cnListDispose(&parser.indices);
   stStateDispose(&parser.state);
@@ -224,6 +234,20 @@ cnBool stHandleRotVel(stParser* parser, char* args) {
 
 
 cnBool stHandleTime(stParser* parser, char* args) {
+  cnCount steps;
+  char* type = stParseString(args, &args);
+  if (!strcmp(type, "sim")) {
+    if (!stPushState(parser)) {
+      return cnFalse;
+    }
+    // TODO Some general 'reset' function?
+    parser->state.cleared = cnFalse;
+    // Just eat the number of steps for now. Maybe I'll care more about it
+    // later.
+    steps = strtol(args, &args, 10);
+    // I pretend the sim time (in seconds) is what matters here.
+    parser->state.time = strtod(args, &args);
+  }
   return cnTrue;
 }
 
@@ -312,6 +336,22 @@ stItem* stParserItem(stParser* parser, char* begin, char** end) {
 }
 
 
+cnBool stPushState(stParser* parser) {
+  // Save a copy of the current state.
+  cnBool result;
+  stState state;
+  if (!stStateCopy(&state, &parser->state)) {
+    printf("Failed state copy.\n");
+    return cnFalse;
+  }
+  if (!cnListPush(parser->states, &state)) {
+    printf("Failed to push state copy.\n");
+    return cnFalse;
+  }
+  return cnTrue;
+}
+
+
 /*
 
 void Loader::handleExtent(stringstream& tokens) {
@@ -345,22 +385,6 @@ void Loader::handleRelease(stringstream& tokens) {
   Item& item = getItem(tokens);
   tool.grasping = false;
   item.grasped = false;
-}
-
-void Loader::handleTime(stringstream& tokens) {
-  string type;
-  tokens >> type;
-  if (type == "sim") {
-    pushState();
-    // TODO Some general 'reset' function?
-    state.cleared = false;
-    // Just eat the number of steps for now. Maybe I'll care more about it
-    // later.
-    int steps;
-    tokens >> steps;
-    // I pretend the sim time (in seconds) is what matters here.
-    tokens >> state.time;
-  }
 }
 
 void Loader::handleType(stringstream& tokens) {
@@ -401,11 +425,6 @@ void Loader::load(const string& name) {
   }
   // Record the end state.
   pushState();
-}
-
-void Loader::pushState() {
-  // Save a copy of the current state.
-  states.push_back(state);
 }
 
 */

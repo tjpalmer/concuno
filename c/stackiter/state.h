@@ -68,4 +68,7 @@ void stStateDispose(stState* state);
 void stStateInit(stState* state);
 
 
+cnBool stStateCopy(stState* to, stState* from);
+
+
 #endif

@@ -62,6 +62,18 @@ void cnListInit(cnList* list, cnCount itemSize);
 cnBool cnListPush(cnList* list, void* item);
 
 
+/**
+ * Pushes all of the from list onto the given list.
+ */
+cnBool cnListPushAll(cnList* list, cnList* from);
+
+
+/**
+ * Pushes count items onto the given list.
+ */
+cnBool cnListPushMulti(cnList* list, void* items, cnCount count);
+
+
 void cnListPut(cnList* list, cnIndex index, void* value);
 
 

@@ -20,6 +20,13 @@ void stItemInit(stItem* item) {
 }
 
 
+cnBool stStateCopy(stState* to, stState* from) {
+  *to = *from;
+  cnListInit(&to->items, to->items.itemSize);
+  return cnListPushAll(&to->items, &from->items);
+}
+
+
 void stStateDispose(stState* state) {
   cnListDispose(&state->items);
   stStateInit(state);

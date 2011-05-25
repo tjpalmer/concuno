@@ -110,7 +110,7 @@ function go() {
   // TODO Determine project root or let file be passed in.
   //startProfiling();
   load('temp/stackiter-20101105-171808-671_drop-from-25.log', {
-    stateLimit: 1000,
+    //stateLimit: 1000,
     ready: function(states) {
       report(states);
       var samples = chooseDropWhereLandOnOther(states);
@@ -162,7 +162,8 @@ function onGround(item) {
 
 function report(states) {
   log("At end:");
-  log(states[states.length - 1].items.length + " items");
+  var state = states[states.length - 1];
+  log(state.items.length + " items");
   //log(states[102]);
   //log(states[102].items[9].extent);
   //log(states[102].items.length + " here");
