@@ -44,6 +44,18 @@ void cnListDispose(cnList* list);
 
 
 /**
+ * Perform the action for each item. Variable i will be of type Type*.
+ */
+#define cnListEach(list, Type, i, action) \
+  { \
+    Type *i, *end; \
+    for (i = (list)->items, end = cnListEnd(list); i < end; i++) { \
+      action; \
+    } \
+  }
+
+
+/**
  * The address right after the end of the list. Useful for iteration, but don't
  * try to store anything here.
  */

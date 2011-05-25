@@ -3,8 +3,8 @@
 
 
 int main(int argc, char** argv) {
-  int status = EXIT_FAILURE;
   cnList states;
+  int status = EXIT_FAILURE;
 
   // Validate args.
   if (argc < 2) {
@@ -22,9 +22,6 @@ int main(int argc, char** argv) {
   printf("Loaded.\n");
 
   /*
-    cout << "Items at end: " << loader.states.back().items.size() << endl;
-    cout << "Total states: " << loader.states.size() << endl;
-
     // Choose and label some samples.
     Chooser chooser;
     vector<Sample> samples;
@@ -76,6 +73,7 @@ int main(int argc, char** argv) {
 
 DISPOSE_STATES:
 
+  cnListEach(&states, stState, state, stStateDispose(state));
   cnListDispose(&states);
 
 DONE:
