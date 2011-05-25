@@ -15,6 +15,25 @@ typedef struct stParser {
 
 
 /**
+ * Individual parse handlers for specific commands.
+ */
+cnBool stHandleAlive(stParser* parser, char* args);
+cnBool stHandleClear(stParser* parser, char* args);
+cnBool stHandleColor(stParser* parser, char* args);
+cnBool stHandleDestroy(stParser* parser, char* args);
+cnBool stHandleExtent(stParser* parser, char* args);
+cnBool stHandleGrasp(stParser* parser, char* args);
+cnBool stHandleItem(stParser* parser, char* args);
+cnBool stHandlePos(stParser* parser, char* args);
+cnBool stHandlePosVel(stParser* parser, char* args);
+cnBool stHandleRelease(stParser* parser, char* args);
+cnBool stHandleRot(stParser* parser, char* args);
+cnBool stHandleRotVel(stParser* parser, char* args);
+cnBool stHandleTime(stParser* parser, char* args);
+cnBool stHandleType(stParser* parser, char* args);
+
+
+/**
  * Parses a single line, returning true for no error.
  */
 cnBool stParseLine(stParser* parser, cnString* line);
@@ -33,25 +52,6 @@ char* stParseString(char* begin, char** end);
 
 
 stItem* stParserItem(stParser* parser, char* begin, char** end);
-
-
-/**
- * Individual parse handlers for specific commands.
- */
-cnBool stHandleAlive(stParser* parser, char* args);
-cnBool stHandleClear(stParser* parser, char* args);
-cnBool stHandleColor(stParser* parser, char* args);
-cnBool stHandleDestroy(stParser* parser, char* args);
-cnBool stHandleExtent(stParser* parser, char* args);
-cnBool stHandleGrasp(stParser* parser, char* args);
-cnBool stHandleItem(stParser* parser, char* args);
-cnBool stHandlePos(stParser* parser, char* args);
-cnBool stHandlePosVel(stParser* parser, char* args);
-cnBool stHandleRelease(stParser* parser, char* args);
-cnBool stHandleRot(stParser* parser, char* args);
-cnBool stHandleRotVel(stParser* parser, char* args);
-cnBool stHandleTime(stParser* parser, char* args);
-cnBool stHandleType(stParser* parser, char* args);
 
 
 cnBool stLoad(char* name, cnList* states) {
@@ -97,85 +97,6 @@ cnBool stLoad(char* name, cnList* states) {
     result = cnFalse;
   }
   return result;
-}
-
-
-cnBool stParseLine(stParser* parser, cnString* line) {
-  // TODO Extract command then scanf it?
-  char *args, *command;
-  cnBool (*parse)(stParser* parser, char* args) = NULL;
-  command = stParseString(line->items, &args);
-  // TODO Hashtable? This is still quite fast.
-  if (!strcmp(command, "alive")) {
-    parse = stHandleAlive;
-  } else if (!strcmp(command, "clear")) {
-    parse = stHandleClear;
-  } else if (!strcmp(command, "color")) {
-    parse = stHandleColor;
-  } else if (!strcmp(command, "destroy")) {
-    parse = stHandleDestroy;
-  } else if (!strcmp(command, "extent")) {
-    parse = stHandleExtent;
-  } else if (!strcmp(command, "grasp")) {
-    parse = stHandleGrasp;
-  } else if (!strcmp(command, "item")) {
-    parse = stHandleItem;
-  } else if (!strcmp(command, "pos")) {
-    parse = stHandlePos;
-  } else if (!strcmp(command, "posvel")) {
-    parse = stHandlePosVel;
-  } else if (!strcmp(command, "release")) {
-    parse = stHandleRelease;
-  } else if (!strcmp(command, "rot")) {
-    parse = stHandleRot;
-  } else if (!strcmp(command, "rotvel")) {
-    parse = stHandleRotVel;
-  } else if (!strcmp(command, "time")) {
-    parse = stHandleTime;
-  } else if (!strcmp(command, "type")) {
-    parse = stHandleType;
-  }
-  if (parse) {
-    return parse(parser, args);
-  } else {
-    // TODO List explicit known okay ignore commands?
-    //printf("Unknown command: %s\n", command);
-    return cnTrue;
-  }
-}
-
-
-char* stParseString(char* begin, char** end) {
-  cnBool pastSpace = cnFalse;
-  char* c;
-  for (c = begin; *c; c++) {
-    if (isspace(*c)) {
-      if (pastSpace) {
-        // We found the end!
-        *c = '\0';
-        // Advance past the new null char.
-        c++;
-        break;
-      }
-    } else if (!pastSpace) {
-      begin = c;
-      pastSpace = cnTrue;
-    }
-  }
-  if (!pastSpace) {
-    // No content. Make sure it's empty.
-    begin = c;
-  }
-  *end = c;
-  return begin;
-}
-
-
-stItem* stParserItem(stParser* parser, char* begin, char** end) {
-  // TODO Better validation?
-  stId id = strtol(begin, end, 10);
-  cnIndex* index = (cnIndex*)cnListGet(&parser->indices, id);
-  return cnListGet(&parser->state.items, *index);
 }
 
 
@@ -309,6 +230,85 @@ cnBool stHandleTime(stParser* parser, char* args) {
 
 cnBool stHandleType(stParser* parser, char* args) {
   return cnTrue;
+}
+
+
+cnBool stParseLine(stParser* parser, cnString* line) {
+  // TODO Extract command then scanf it?
+  char *args, *command;
+  cnBool (*parse)(stParser* parser, char* args) = NULL;
+  command = stParseString(line->items, &args);
+  // TODO Hashtable? This is still quite fast.
+  if (!strcmp(command, "alive")) {
+    parse = stHandleAlive;
+  } else if (!strcmp(command, "clear")) {
+    parse = stHandleClear;
+  } else if (!strcmp(command, "color")) {
+    parse = stHandleColor;
+  } else if (!strcmp(command, "destroy")) {
+    parse = stHandleDestroy;
+  } else if (!strcmp(command, "extent")) {
+    parse = stHandleExtent;
+  } else if (!strcmp(command, "grasp")) {
+    parse = stHandleGrasp;
+  } else if (!strcmp(command, "item")) {
+    parse = stHandleItem;
+  } else if (!strcmp(command, "pos")) {
+    parse = stHandlePos;
+  } else if (!strcmp(command, "posvel")) {
+    parse = stHandlePosVel;
+  } else if (!strcmp(command, "release")) {
+    parse = stHandleRelease;
+  } else if (!strcmp(command, "rot")) {
+    parse = stHandleRot;
+  } else if (!strcmp(command, "rotvel")) {
+    parse = stHandleRotVel;
+  } else if (!strcmp(command, "time")) {
+    parse = stHandleTime;
+  } else if (!strcmp(command, "type")) {
+    parse = stHandleType;
+  }
+  if (parse) {
+    return parse(parser, args);
+  } else {
+    // TODO List explicit known okay ignore commands?
+    //printf("Unknown command: %s\n", command);
+    return cnTrue;
+  }
+}
+
+
+char* stParseString(char* begin, char** end) {
+  cnBool pastSpace = cnFalse;
+  char* c;
+  for (c = begin; *c; c++) {
+    if (isspace(*c)) {
+      if (pastSpace) {
+        // We found the end!
+        *c = '\0';
+        // Advance past the new null char.
+        c++;
+        break;
+      }
+    } else if (!pastSpace) {
+      begin = c;
+      pastSpace = cnTrue;
+    }
+  }
+  if (!pastSpace) {
+    // No content. Make sure it's empty.
+    begin = c;
+  }
+  *end = c;
+  return begin;
+}
+
+
+stItem* stParserItem(stParser* parser, char* begin, char** end) {
+  // TODO Better validation?
+  stId id = strtol(begin, end, 10);
+  cnIndex* index = (cnIndex*)cnListGet(&parser->indices, id);
+  return cnListGet(&parser->state.items, *index);
 }
 
 
