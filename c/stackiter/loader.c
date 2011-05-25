@@ -211,11 +211,15 @@ cnBool stParseColor(stParser* parser, char* args) {
 
 
 cnBool stParseDestroy(stParser* parser, char* args) {
-  cnList* indices = &parser->indices;
   stId id = strtol(args, &args, 10);
-  cnIndex* index = (cnIndex*)cnListGet(indices, id);
+  cnIndex* index = (cnIndex*)cnListGet(&parser->indices, id);
+  cnIndex* indices = parser->indices.items;
   cnList* items;
   stItem *item, *endItem;
+  if (!index) {
+    printf("Bad id: %ld\n", id);
+    return cnFalse;
+  }
   if (!*index) {
     printf("Already destroyed: %ld\n", id);
     return cnFalse;
@@ -226,9 +230,10 @@ cnBool stParseDestroy(stParser* parser, char* args) {
   endItem = cnListEnd(items);
   // Reduce the index of successive items.
   for (item = cnListGet(items, *index); item < endItem; item++) {
+    // All items ids in our list should be valid, so index directly.
     // TODO Could optimize further if we assume seeing items always in
     // TODO increasing order.
-    (*(cnIndex*)cnListGet(indices, item->id))--;
+    indices[item->id]--;
   }
   *index = 0;
   return cnTrue;
