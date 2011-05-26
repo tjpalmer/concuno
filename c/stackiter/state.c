@@ -12,11 +12,15 @@ void stItemInit(stItem* item) {
   cnFloat *f, *end;
   item->alive = cnFalse;
   stFill(item->color, 0.0, f, end);
+  stFill(item->extent, 0.0, f, end);
   item->grasped = cnFalse;
   item->grasping = cnFalse;
   item->id = 0; // TODO or -1?
   stFill(item->location, 0.0, f, end);
-  item->typeId = stTypeNone;
+  item->orientation = 0.0;
+  item->orientationVelocity = 0.0;
+  item->type = stTypeNone;
+  stFill(item->velocity, 0.0, f, end);
 }
 
 

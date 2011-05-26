@@ -111,10 +111,8 @@ cnBool stLoad(char* name, cnList* states) {
 
 
 cnBool stHandleAlive(stParser* parser, char* args) {
-  char* status;
-  stItem* item;
-  item = stParserItem(parser, args, &args);
-  status = stParseString(args, &args);
+  stItem* item = stParserItem(parser, args, &args);
+  char* status = stParseString(args, &args);
   if (!item || !*status) {
     return cnFalse;
   }
@@ -172,11 +170,19 @@ cnBool stHandleDestroy(stParser* parser, char* args) {
 
 
 cnBool stHandleExtent(stParser* parser, char* args) {
+  stItem* item = stParserItem(parser, args, &args);
+  item->extent[0] = strtod(args, &args);
+  item->extent[1] = strtod(args, &args);
   return cnTrue;
 }
 
 
 cnBool stHandleGrasp(stParser* parser, char* args) {
+  stItem* tool = stParserItem(parser, args, &args);
+  stItem* item = stParserItem(parser, args, &args);
+  // TODO Parse and use the relative grasp location?
+  tool->grasping = cnTrue;
+  item->grasped = cnTrue;
   return cnTrue;
 }
 
@@ -214,21 +220,34 @@ cnBool stHandlePos(stParser* parser, char* args) {
 
 
 cnBool stHandlePosVel(stParser* parser, char* args) {
+  stItem* item = stParserItem(parser, args, &args);
+  item->velocity[0] = strtod(args, &args);
+  item->velocity[1] = strtod(args, &args);
   return cnTrue;
 }
 
 
 cnBool stHandleRelease(stParser* parser, char* args) {
+  stItem* tool = stParserItem(parser, args, &args);
+  stItem* item = stParserItem(parser, args, &args);
+  tool->grasping = cnFalse;
+  item->grasped = cnFalse;
   return cnTrue;
 }
 
 
 cnBool stHandleRot(stParser* parser, char* args) {
+  stItem* item = stParserItem(parser, args, &args);
+  // TODO Angle is in rats. Convert to radians or not?
+  item->orientation = strtod(args, &args);
   return cnTrue;
 }
 
 
 cnBool stHandleRotVel(stParser* parser, char* args) {
+  stItem* item = stParserItem(parser, args, &args);
+  // TODO Angular velocity is in rats. Convert to radians or not?
+  item->orientationVelocity = strtod(args, &args);
   return cnTrue;
 }
 
@@ -253,6 +272,15 @@ cnBool stHandleTime(stParser* parser, char* args) {
 
 
 cnBool stHandleType(stParser* parser, char* args) {
+  stItem* item = stParserItem(parser, args, &args);
+  char* type = stParseString(args, &args);
+  if (!strcmp(type, "block")) {
+    item->type = stTypeBlock;
+  } else if (!strcmp(type, "tool")) {
+    item->type = stTypeTool;
+  } else {
+    // TODO Handle others?
+  }
   return cnTrue;
 }
 
@@ -350,59 +378,3 @@ cnBool stPushState(stParser* parser) {
   }
   return cnTrue;
 }
-
-
-/*
-
-void Loader::handleExtent(stringstream& tokens) {
-  Item& item = getItem(tokens);
-  tokens >> item.extent[0];
-  tokens >> item.extent[1];
-}
-
-void Loader::handleGrasp(stringstream& tokens) {
-  Item& tool = getItem(tokens);
-  Item& item = getItem(tokens);
-  // TODO Parse and use the relative grasp location?
-  tool.grasping = true;
-  item.grasped = true;
-}
-
-void Loader::handleOrientation(stringstream& tokens) {
-  Item& item = getItem(tokens);
-  // TODO Angle is in rats. Convert to radians or not?
-  tokens >> item.orientation;
-}
-
-void Loader::handleOrientationVelocity(stringstream& tokens) {
-  Item& item = getItem(tokens);
-  // TODO Angular velocity is in rats. Convert to radians or not?
-  tokens >> item.orientationVelocity;
-}
-
-void Loader::handleRelease(stringstream& tokens) {
-  Item& tool = getItem(tokens);
-  Item& item = getItem(tokens);
-  tool.grasping = false;
-  item.grasped = false;
-}
-
-void Loader::handleType(stringstream& tokens) {
-  Item& item = getItem(tokens);
-  string type;
-  tokens >> type;
-  // TODO Validate id.
-  if (type == "block") {
-    item.typeId = stackiter::Block;
-  } else if (type == "tool") {
-    item.typeId = Tool;
-  }
-}
-
-void Loader::handleVelocity(stringstream& tokens) {
-  Item& item = getItem(tokens);
-  tokens >> item.velocity[0];
-  tokens >> item.velocity[1];
-}
-
-*/

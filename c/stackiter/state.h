@@ -27,6 +27,8 @@ typedef struct stItem {
 
   cnFloat color[3];
 
+  cnFloat extent[2];
+
   /**
    * Only ever true for blocks.
    *
@@ -43,7 +45,13 @@ typedef struct stItem {
 
   cnFloat location[2];
 
-  stTypeId typeId;
+  cnFloat orientation;
+
+  cnFloat orientationVelocity;
+
+  stType type;
+
+  cnFloat velocity[2];
 
 } stItem;
 
