@@ -56,7 +56,7 @@ cnBool stChooseDropWhereLandOnOther(const cnList* states, cnList* samples) {
       }
       if (settled) {
         ungraspState = NULL;
-        if (label >= 0) {
+        if (label == cnFalse || label == cnTrue) {
           // TODO How to allocate in place in the vector?
           cnSample sampleSpace, *sample;
           cnSampleInit(&sampleSpace);
