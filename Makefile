@@ -17,13 +17,17 @@ sources = \
 	c/cuncuno/core.c \
 	c/cuncuno/io.c
 	#c/stackiter/chooser.c \
-	#c/stackiter/state.c \
 
-test: temp/stackiter-test
-	temp/stackiter-test temp/stackiter-20101105-171808-671_drop-from-25.log
+build: temp/stackiter-test
+
+clean:
+	rm temp/stackiter-test
 
 temp:
 	mkdir temp
 
 temp/stackiter-test: temp $(sources)
 	tcc -Wall -Ic -o temp/stackiter-test $(sources)
+
+test: temp/stackiter-test
+	temp/stackiter-test temp/stackiter-20101105-171808-671_drop-from-25.log
