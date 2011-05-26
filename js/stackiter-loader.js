@@ -20,7 +20,7 @@ function cloneState(state) {
   var stateClone = {
     cleared: state.cleared,
     items: Array(state.items.length),
-    time: 0
+    time: state.time
   };
   for (var i = 0; i < state.items.length; i++) {
     var item = state.items[i];

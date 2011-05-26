@@ -133,7 +133,7 @@ cnBool stOnGround(const stItem* item) {
   // Angles go from -1 to 1.
   // Here, dim 1 is upright, and 0 sideways.
   int dim = angle < -0.75 || (-0.25 < angle && angle < 0.25) || 0.75 < angle;
-  return abs(item->extent[dim] - item->location[1]) < 0.01;
+  return fabs(item->extent[dim] - item->location[1]) < 0.01;
 }
 
 
