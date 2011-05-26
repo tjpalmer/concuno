@@ -73,6 +73,9 @@ void stItemInit(stItem* item);
 void stStateDispose(stState* state);
 
 
+stItem* stStateFindItem(stState* state, stId id);
+
+
 void stStateInit(stState* state);
 
 

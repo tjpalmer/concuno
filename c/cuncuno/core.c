@@ -23,7 +23,7 @@ void* cnListGet(cnList* list, cnIndex index) {
 }
 
 
-void* cnListEnd(cnList* list) {
+void* cnListEnd(const cnList* list) {
   return ((char*)list->items) + (list->count * list->itemSize);
 }
 

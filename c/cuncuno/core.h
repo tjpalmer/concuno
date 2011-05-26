@@ -5,6 +5,10 @@
 #include <stdlib.h>
 
 
+// Prettier in some contexts than the braces.
+#define cnEnd }
+
+
 typedef enum {cnFalse, cnTrue} cnBool;
 
 
@@ -45,21 +49,19 @@ void cnListDispose(cnList* list);
 
 /**
  * Perform the action for each item. Variable i will be of type Type*.
+ *
+ * Terminate with cnEnd.
  */
-#define cnListEach(list, Type, i, action) \
-  { \
+#define cnListEachBegin(list, Type, i) { \
     Type *i, *end; \
-    for (i = (list)->items, end = cnListEnd(list); i < end; i++) { \
-      action; \
-    } \
-  }
+    for (i = (list)->items, end = cnListEnd(list); i < end; i++)
 
 
 /**
  * The address right after the end of the list. Useful for iteration, but don't
  * try to store anything here.
  */
-void* cnListEnd(cnList* list);
+void* cnListEnd(const cnList* list);
 
 
 void* cnListGet(cnList* list, cnIndex index);

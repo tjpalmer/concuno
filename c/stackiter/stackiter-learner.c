@@ -1,4 +1,6 @@
 #include <stdlib.h>
+
+
 #include "stackiter-learner.h"
 
 
@@ -73,7 +75,9 @@ int main(int argc, char** argv) {
 
 DISPOSE_STATES:
 
-  cnListEach(&states, stState, state, stStateDispose(state));
+  cnListEachBegin(&states, stState, state) {
+    stStateDispose(state);
+  } cnEnd;
   cnListDispose(&states);
 
 DONE:

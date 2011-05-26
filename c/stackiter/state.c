@@ -44,28 +44,11 @@ void stStateInit(stState* state) {
 }
 
 
-/*
-
-using namespace std;
-
-namespace stackiter {
-
-Item::Item(): alive(false), grasped(false), grasping(false), id(0), typeId(0) {}
-
-State::State(): cleared(false) {}
-
-const Item* State::findItem(int id) const {
-  for (
-    vector<Item>::const_iterator i = items.begin(); i != items.end(); i++
-  ) {
-    const Item& item = *i;
-    if (item.id == id) {
-      return &item;
+stItem* stStateFindItem(stState* state, stId id) {
+  cnListEachBegin(&state->items, stItem, item) {
+    if (item->id == id) {
+      return item;
     }
-  }
-  return 0;
+  } cnEnd;
+  return NULL;
 }
-
-}
-
-*/

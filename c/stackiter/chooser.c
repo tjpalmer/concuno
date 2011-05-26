@@ -1,119 +1,150 @@
+#include <math.h>
+
 #include "chooser.h"
-#include <cmath>
-#include <iostream>
 
-using namespace cuncuno;
-using namespace std;
 
-namespace stackiter {
+/**
+ * Finds items grasped in the state, and returns whether any were found.
+ */
+cnBool stFindGraspedItems(const stState* state, cnList* items);
 
-void Chooser::chooseDropWhereLandOnOtherTrue(
-  const vector<State>& states, vector<Sample>& samples
-) {
-  bool formerHadGrasp(false);
-  int graspedId(-1);
-  const State* ungraspState(0);
-  vector<const Item*> graspedItems;
-  for (
-    vector<State>::const_iterator s(states.begin()); s != states.end(); s++
-  ) {
-    const State& state(*s);
+
+cnBool stOnGround(const stItem* item);
+
+
+cnFloat stNorm(const cnFloat* values, cnCount count);
+
+
+/**
+ * Place pointers to alive items into the entities vector.
+ */
+cnBool stPlaceLiveItems(const cnList* items, cnList* entities);
+
+
+cnBool stChooseDropWhereLandOnOther(const cnList* states, cnList* samples) {
+  cnBool result = cnTrue;
+  cnBool formerHadGrasp = cnFalse;
+  stId graspedId = -1;
+  const stState* ungraspState = NULL;
+  cnList graspedItems;
+  cnListInit(&graspedItems, sizeof(stItem*));
+  cnListEachBegin(states, stState, state) {
     if (ungraspState) {
-      if (state.cleared) {
-        // The world was cleared before the block settled. Just move on with
-        // life.
-        continue;
-      }
       // Look for stable state.
-      bool done(false);
-      bool label;
-      const Item* item(state.findItem(graspedId));
-      if (!item) {
-        // It fell away. This is a negative state.
-        done = true;
-        label = false;
-      } else if (norm(item->velocity, 2) < 0.01) {
-        // Settled down. See if it is above the ground.
-        done = true;
-        label = !onGround(*item);
+      cnBool label = -1;
+      cnBool settled = cnFalse;
+      if (state->cleared) {
+        // World cleared. Say it's settled, but don't assign a label.
+        settled = cnTrue;
+      } else {
+        const stItem* item = stStateFindItem(state, graspedId);
+        if (item) {
+          // Still here. See if it's moving.
+          if (stNorm(item->velocity, 2) < 0.01) {
+            // Stopped. See where it is.
+            // TODO If the block bounced up, we might be catching it at the
+            // TODO peak. Maybe we should check for that (by accel or
+            // TODO location?).
+            settled = cnTrue;
+            label = !stOnGround(item);
+          }
+        } else {
+          // It fell off the table, so it didn't land on another block.
+          settled = cnTrue;
+          label = cnFalse;
+        }
       }
-      if (done) {
-        ungraspState = 0;
-        // TODO How to allocate in place in the vector?
-        samples.push_back(Sample());
-        Sample& sample(samples.back());
-        placeLiveItems(state.items, sample.entities);
-        sample.label = label;
+      if (settled) {
+        ungraspState = NULL;
+        if (label >= 0) {
+          // TODO How to allocate in place in the vector?
+          cnSample sampleSpace, *sample;
+          cnSampleInit(&sampleSpace);
+          if (!cnListPush(samples, &sampleSpace)) {
+            printf("Failed to push sample.\n");
+            result = cnFalse;
+            break;
+          }
+          // Now init the sample in the list.
+          sample = cnListGet(samples, samples->count - 1);
+          sample->label = label;
+          // If we defer placing entity pointers until after we've stored the
+          // sample itself, then cleanup from failure is easier.
+          if (!stPlaceLiveItems(&state->items, &sample->entities)) {
+            printf("Failed to push entities.\n");
+            result = cnFalse;
+            break;
+          }
+        }
       }
     } else {
-      bool hasGrasp(findGraspedItems(state, &graspedItems));
+      cnBool hasGrasp;
+      if (!stFindGraspedItems(state, &graspedItems)) {
+        printf("Failed to push grasped items.\n");
+        result = cnFalse;
+        break;
+      }
+      hasGrasp = graspedItems.count;
       if (hasGrasp) {
         // TODO Deal with sets of grasped items? This would easily fail if
         // TODO more than one.
         // TODO What if more than one ungrasp occurs at the same state and
         // TODO each has a different result?
-        graspedId = graspedItems[0]->id;
-        graspedItems.clear();
+        graspedId = ((stItem*)graspedItems.items[0])->id;
+        cnListClear(&graspedItems);
       } else if (formerHadGrasp) {
-        ungraspState = &state;
+        ungraspState = state;
       }
       formerHadGrasp = hasGrasp;
     }
-  }
+  } cnEnd;
+  cnListDispose(&graspedItems);
+  return result;
 }
 
-bool Chooser::findGraspedItems(
-  const State& state, vector<const Item*>* items
-) {
-  bool anyGrasped = false;
-  for (
-    vector<Item>::const_iterator i(state.items.begin());
-    i != state.items.end();
-    i++
-  ) {
-    const Item& item(*i);
-    if (item.grasped) {
-      anyGrasped = true;
+
+cnBool stFindGraspedItems(const stState* state, cnList* items) {
+  cnListEachBegin(&state->items, stItem, item) {
+    if (item->grasped) {
       if (items) {
-        items->push_back(&item);
+        if (!cnListPush(items, &item)) {
+          return cnFalse;
+        }
       }
     }
-  }
-  return anyGrasped;
+  } cnEnd;
+  return cnTrue;
 }
 
-double norm(const double* values, size_t count) {
-  double total(0);
-  for (size_t v(0); v < count; v++) {
-    double value(values[v]);
+
+cnFloat stNorm(const cnFloat* values, cnCount count) {
+  cnCount v;
+  cnFloat total = 0;
+  for (v = 0; v < count; v++) {
+    cnFloat value = values[v];
     total += value * value;
   }
   return sqrt(total);
 }
 
-bool onGround(const Item& item) {
-  double angle(item.orientation);
-  int dim;
+
+cnBool stOnGround(const stItem* item) {
+  cnFloat angle = item->orientation;
   // Angles go from -1 to 1.
-  if ((-0.25 < angle && angle < 0.25) || (angle < -0.75 || angle > 0.75)) {
-    // Upright.
-    dim = 1;
-  } else {
-    // Sideways.
-    dim = 0;
-  }
-  return abs(item.extent[dim] - item.location[1]) < 0.01;
+  // Here, dim 1 is upright, and 0 sideways.
+  int dim = angle < -0.75 || (-0.25 < angle && angle < 0.25) || 0.75 < angle;
+  return abs(item->extent[dim] - item->location[1]) < 0.01;
 }
 
-void placeLiveItems(
-  const vector<Item>& items, vector<const void*>& entities
-) {
-  for (vector<Item>::const_iterator i = items.begin(); i != items.end(); i++) {
-    const Item& item = *i;
-    if (item.alive) {
-      entities.push_back(&item);
+
+cnBool stPlaceLiveItems(const cnList* items, cnList* entities) {
+  cnListEachBegin(items, stItem, item) {
+    if (item->alive) {
+      // Store the address of the item, not a copy.
+      // And get a void pointer to it for consistency.
+      void* entity = item;
+      cnListPush(entities, &entity);
     }
-  }
-}
-
+  } cnEnd;
+  return cnTrue;
 }
