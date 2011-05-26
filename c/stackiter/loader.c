@@ -73,7 +73,7 @@ cnBool stLoad(char* name, cnList* states) {
     printf("Failed to open: %s\n", name);
     return cnFalse;
   }
-  printf("Opened: %s\n", name);
+  printf("Parsing %s ...\n", name);
   // TODO Init state.
   // Read lines.
   cnStringInit(&line);
@@ -94,10 +94,7 @@ cnBool stLoad(char* name, cnList* states) {
   if (!stPushState(&parser)) {
     result = cnFalse;
   }
-  // Report stats.
-  printf("Lines: %ld\n", lineCount);
-  printf("Items: %ld\n", parser.state.items.count);
-  printf("States: %ld\n", states->count);
+  // Clean up.
   cnStringDispose(&line);
   cnListDispose(&parser.indices);
   stStateDispose(&parser.state);

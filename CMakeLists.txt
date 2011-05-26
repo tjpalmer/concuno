@@ -17,6 +17,8 @@ set(
 
 set(cuncuno_INCLUDE_DIR ${cuncuno_SOURCE_DIR}/include)
 
+find_library(math_LIBRARY m)
+
 include_directories(
   #${cuncuno_INCLUDE_DIR}
   #${Eigen_INCLUDE_DIR}

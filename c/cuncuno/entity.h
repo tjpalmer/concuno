@@ -20,6 +20,9 @@ typedef struct cnSample {
 } cnSample;
 
 
+void cnSampleDispose(cnSample* sample);
+
+
 void cnSampleInit(cnSample* sample);
 
 

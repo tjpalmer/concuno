@@ -90,7 +90,7 @@ cnBool stChooseDropWhereLandOnOther(const cnList* states, cnList* samples) {
         // TODO more than one.
         // TODO What if more than one ungrasp occurs at the same state and
         // TODO each has a different result?
-        graspedId = ((stItem*)graspedItems.items[0])->id;
+        graspedId = (((stItem**)graspedItems.items)[0])->id;
         cnListClear(&graspedItems);
       } else if (formerHadGrasp) {
         ungraspState = state;

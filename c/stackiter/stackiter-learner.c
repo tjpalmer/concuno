@@ -5,6 +5,9 @@
 
 
 int main(int argc, char** argv) {
+  cnCount trueCount;
+  cnList samples;
+  stState* state;
   cnList states;
   int status = EXIT_FAILURE;
 
@@ -20,8 +23,21 @@ int main(int argc, char** argv) {
     printf("Failed to load file.\n");
     goto DISPOSE_STATES;
   }
+  printf("At end:\n");
+  state = cnListGet(&states, states.count - 1);
+  printf("%ld items\n", state->items.count);
+  printf("%ld states\n", states.count);
 
-  printf("Loaded.\n");
+  cnListInit(&samples, sizeof(cnSample));
+  if (!stChooseDropWhereLandOnOther(&states, &samples)) {
+    printf("Failed to choose samples.\n");
+    goto DISPOSE_SAMPLES;
+  }
+  trueCount = 0;
+  cnListEachBegin(&samples, cnSample, sample) {
+    trueCount += sample->label;
+  } cnEnd;
+  printf("%ld true of %ld samples", trueCount, samples.count);
 
   /*
     // Choose and label some samples.
@@ -72,6 +88,13 @@ int main(int argc, char** argv) {
   */
 
   status = EXIT_SUCCESS;
+
+DISPOSE_SAMPLES:
+
+  cnListEachBegin(&samples, cnSample, sample) {
+    cnSampleDispose(sample);
+  } cnEnd;
+  cnListDispose(&samples);
 
 DISPOSE_STATES:
 
