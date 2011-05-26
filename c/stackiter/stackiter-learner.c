@@ -37,7 +37,7 @@ int main(int argc, char** argv) {
   cnListEachBegin(&samples, cnSample, sample) {
     trueCount += sample->label;
   } cnEnd;
-  printf("%ld true of %ld samples", trueCount, samples.count);
+  printf("%ld true of %ld samples\n", trueCount, samples.count);
 
   /*
     // Choose and label some samples.
