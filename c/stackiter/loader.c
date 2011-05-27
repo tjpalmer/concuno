@@ -63,7 +63,6 @@ cnBool stLoad(char* name, cnList* states) {
   cnString line;
   cnCount lineCount, readCount;
   stParser parser;
-  stState state;
   parser.states = states;
   stStateInit(&parser.state);
   cnListInit(&parser.indices, sizeof(cnIndex));
@@ -363,7 +362,6 @@ stItem* stParserItem(stParser* parser, char* begin, char** end) {
 
 cnBool stPushState(stParser* parser) {
   // Save a copy of the current state.
-  cnBool result;
   stState state;
   if (!stStateCopy(&state, &parser->state)) {
     printf("Failed state copy.\n");

@@ -15,7 +15,7 @@ set(
   CACHE STRING "The directory for Eigen header files."
 )
 
-set(cuncuno_INCLUDE_DIR ${cuncuno_SOURCE_DIR}/include)
+#set(cuncuno_INCLUDE_DIR ${cuncuno_SOURCE_DIR}/include)
 
 find_library(math_LIBRARY m)
 
@@ -26,12 +26,13 @@ include_directories(
 )
 
 if(CMAKE_COMPILER_IS_GNUCC)
+  set(CMAKE_C_FLAGS "-Wall")
+  set(CMAKE_C_FLAGS_DEBUG "-pg")
   set(CMAKE_CXX_FLAGS "-Wall")
-  # set(CMAKE_CXX_FLAGS "-pg") # for profiling -- tie to debug, too?
+  set(CMAKE_CXX_FLAGS_DEBUG "-pg")
 endif(CMAKE_COMPILER_IS_GNUCC)
 
 subdirs(
   c
-  #src
-  #test
+  #cpp
 )
