@@ -6,7 +6,7 @@
 
 int main(int argc, char** argv) {
   cnCount trueCount;
-  cnList samples;
+  cnList bags;
   stState* state;
   cnList states;
   int status = EXIT_FAILURE;
@@ -28,16 +28,16 @@ int main(int argc, char** argv) {
   printf("%ld items\n", state->items.count);
   printf("%ld states\n", states.count);
 
-  cnListInit(&samples, sizeof(cnSample));
-  if (!stChooseDropWhereLandOnOther(&states, &samples)) {
+  cnListInit(&bags, sizeof(cnBag));
+  if (!stChooseDropWhereLandOnOther(&states, &bags)) {
     printf("Failed to choose samples.\n");
     goto DISPOSE_SAMPLES;
   }
   trueCount = 0;
-  cnListEachBegin(&samples, cnSample, sample) {
-    trueCount += sample->label;
+  cnListEachBegin(&bags, cnBag, bag) {
+    trueCount += bag->label;
   } cnEnd;
-  printf("%ld true of %ld samples\n", trueCount, samples.count);
+  printf("%ld true of %ld samples\n", trueCount, bags.count);
 
   /*
     cout
@@ -74,10 +74,10 @@ int main(int argc, char** argv) {
 
 DISPOSE_SAMPLES:
 
-  cnListEachBegin(&samples, cnSample, sample) {
-    cnSampleDispose(sample);
+  cnListEachBegin(&bags, cnBag, bag) {
+    cnBagDispose(bag);
   } cnEnd;
-  cnListDispose(&samples);
+  cnListDispose(&bags);
 
 DISPOSE_STATES:
 

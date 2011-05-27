@@ -21,7 +21,7 @@ cnFloat stNorm(const cnFloat* values, cnCount count);
 cnBool stPlaceLiveItems(const cnList* items, cnList* entities);
 
 
-cnBool stChooseDropWhereLandOnOther(const cnList* states, cnList* samples) {
+cnBool stChooseDropWhereLandOnOther(const cnList* states, cnList* bags) {
   cnBool result = cnTrue;
   cnBool formerHadGrasp = cnFalse;
   stId graspedId = -1;
@@ -58,19 +58,19 @@ cnBool stChooseDropWhereLandOnOther(const cnList* states, cnList* samples) {
         ungraspState = NULL;
         if (label == cnFalse || label == cnTrue) {
           // TODO How to allocate in place in the vector?
-          cnSample sampleSpace, *sample;
-          cnSampleInit(&sampleSpace);
-          if (!cnListPush(samples, &sampleSpace)) {
-            printf("Failed to push sample.\n");
+          cnBag bagStorage, *bag;
+          cnBagInit(&bagStorage);
+          if (!cnListPush(bags, &bagStorage)) {
+            printf("Failed to push bag.\n");
             result = cnFalse;
             break;
           }
-          // Now init the sample in the list.
-          sample = cnListGet(samples, samples->count - 1);
-          sample->label = label;
+          // Now init the bag in the list.
+          bag = cnListGet(bags, bags->count - 1);
+          bag->label = label;
           // If we defer placing entity pointers until after we've stored the
-          // sample itself, then cleanup from failure is easier.
-          if (!stPlaceLiveItems(&state->items, &sample->entities)) {
+          // bag itself, then cleanup from failure is easier.
+          if (!stPlaceLiveItems(&state->items, &bag->entities)) {
             printf("Failed to push entities.\n");
             result = cnFalse;
             break;

@@ -1,13 +1,13 @@
 #include "entity.h"
 
 
-void cnSampleDispose(cnSample* sample) {
-  cnListDispose(&sample->entities);
-  cnSampleInit(sample);
+void cnBagDispose(cnBag* bag) {
+  cnListDispose(&bag->entities);
+  cnBagInit(bag);
 }
 
 
-void cnSampleInit(cnSample* sample) {
-  sample->label = cnFalse;
-  cnListInit(&sample->entities, sizeof(void*));
+void cnBagInit(cnBag* bag) {
+  bag->label = cnFalse;
+  cnListInit(&bag->entities, sizeof(void*));
 }

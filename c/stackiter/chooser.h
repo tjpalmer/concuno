@@ -10,7 +10,7 @@
  * block dropped lands on another block (or at least doesn't land flat on
  * the ground).
  */
-cnBool stChooseDropWhereLandOnOther(const cnList* states, cnList* samples);
+cnBool stChooseDropWhereLandOnOther(const cnList* states, cnList* bags);
 
 
 #endif

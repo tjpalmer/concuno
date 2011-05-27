@@ -4,5 +4,6 @@
 #include "core.h"
 #include "entity.h"
 #include "io.h"
+#include "tree.h"
 
 #endif

@@ -5,7 +5,7 @@
 #include "core.h"
 
 
-typedef struct cnSample {
+typedef struct cnBag {
 
   // TODO id?
 
@@ -15,17 +15,17 @@ typedef struct cnSample {
   cnList entities;
 
   /**
-   * Positive or negative sample.
+   * Positive or negative bag.
    */
   cnBool label;
 
-} cnSample;
+} cnBag;
 
 
-void cnSampleDispose(cnSample* sample);
+void cnBagDispose(cnBag* bag);
 
 
-void cnSampleInit(cnSample* sample);
+void cnBagInit(cnBag* bag);
 
 
 #endif
