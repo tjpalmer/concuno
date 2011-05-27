@@ -27,6 +27,9 @@ cnBindingBagList* cnBindingBagListCreate(void) {
 
 
 void cnBindingBagListDrop(cnBindingBagList* list) {
+  if (!list) {
+    return;
+  }
   list->refCount--;
   if (list->refCount < 1) {
     if (list->refCount < 0) {
@@ -58,7 +61,7 @@ void cnNodeInit(cnNode* node, cnNodeType type) {
 void cnRootNodeDispose(cnRootNode* node) {
   cnNodeDispose(&node->node);
   // TODO Anything special?
-  cnRootNodeInit(&node);
+  cnRootNodeInit(node);
 }
 
 

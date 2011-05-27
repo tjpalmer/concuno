@@ -5,11 +5,12 @@
 
 
 int main(int argc, char** argv) {
-  cnCount trueCount;
   cnList bags;
   stState* state;
   cnList states;
   int status = EXIT_FAILURE;
+  cnRootNode tree;
+  cnCount trueCount;
 
   // Validate args.
   if (argc < 2) {
@@ -28,6 +29,7 @@ int main(int argc, char** argv) {
   printf("%ld items\n", state->items.count);
   printf("%ld states\n", states.count);
 
+  // Choose out the states we want to focus on.
   cnListInit(&bags, sizeof(cnBag));
   if (!stChooseDropWhereLandOnOther(&states, &bags)) {
     printf("Failed to choose samples.\n");
@@ -38,6 +40,9 @@ int main(int argc, char** argv) {
     trueCount += bag->label;
   } cnEnd;
   printf("%ld true of %ld samples\n", trueCount, bags.count);
+
+  // Set up the tree.
+  cnRootNodeInit(&tree);
 
   /*
     cout
@@ -71,6 +76,10 @@ int main(int argc, char** argv) {
   */
 
   status = EXIT_SUCCESS;
+
+DISPOSE_TREE:
+
+  cnRootNodeDispose(&tree);
 
 DISPOSE_SAMPLES:
 

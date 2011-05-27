@@ -135,6 +135,8 @@ cnBindingBagList* cnBindingBagListCreate(void);
  * Decrements refCount and disposes if at zero. If disposed, it disposes of the
  * bindingBags. It then frees the list itself.
  *
+ * If the list pointer is null, then this function does nothing.
+ *
  * TODO Generalize ref-counted types?
  */
 void cnBindingBagListDrop(cnBindingBagList* list);
