@@ -36,24 +36,24 @@ void cnListInit(cnList* list, cnCount itemSize) {
 }
 
 
-cnBool cnListPush(cnList* list, void* item) {
+void* cnListPush(cnList* list, void* item) {
   return cnListPushMulti(list, item, 1);
 }
 
 
-cnBool cnListPushAll(cnList* list, cnList* from) {
+void* cnListPushAll(cnList* list, cnList* from) {
   if (list->itemSize != from->itemSize) {
     printf(
       "list itemSize %ld != from itemSize %ld\n",
       list->itemSize, from->itemSize
     );
-    return cnFalse;
+    return NULL;
   }
   return cnListPushMulti(list, from->items, from->count);
 }
 
 
-cnBool cnListPushMulti(cnList* list, void* items, cnCount count) {
+void* cnListPushMulti(cnList* list, void* items, cnCount count) {
   cnCount needed = list->count + count;
   if (needed > list->reservedCount) {
     // Exponential growth to avoid slow pushing.
@@ -66,15 +66,16 @@ cnBool cnListPushMulti(cnList* list, void* items, cnCount count) {
     void* newItems = realloc(list->items, wanted * list->itemSize);
     if (!newItems) {
       // No memory for this.
-      return cnFalse;
+      return NULL;
     }
     // TODO Clear extra allocated memory?
     list->items = newItems;
     list->reservedCount = wanted;
   }
   list->count = needed;
-  memcpy(cnListGet(list, needed - count), items, list->itemSize * count);
-  return cnTrue;
+  return memcpy(
+    cnListGet(list, needed - count), items, list->itemSize * count
+  );
 }
 
 

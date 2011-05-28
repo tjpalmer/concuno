@@ -72,20 +72,28 @@ void cnListInit(cnList* list, cnCount itemSize);
 
 /**
  * Pushes a single item from the given address onto the list.
+ *
+ * Returns the destination pointer to the item just pushed, or NULL if failure.
  */
-cnBool cnListPush(cnList* list, void* item);
+void* cnListPush(cnList* list, void* item);
 
 
 /**
  * Pushes all of the from list onto the given list.
+ *
+ * Returns the destination pointer to the first item just pushed, or NULL if
+ * failure.
  */
-cnBool cnListPushAll(cnList* list, cnList* from);
+void* cnListPushAll(cnList* list, cnList* from);
 
 
 /**
  * Pushes count items onto the given list.
+ *
+ * Returns the destination pointer to the first item just pushed, or NULL if
+ * failure.
  */
-cnBool cnListPushMulti(cnList* list, void* items, cnCount count);
+void* cnListPushMulti(cnList* list, void* items, cnCount count);
 
 
 void cnListPut(cnList* list, cnIndex index, void* value);

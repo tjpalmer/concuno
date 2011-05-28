@@ -40,15 +40,19 @@ int main(int argc, char** argv) {
     trueCount += bag->label;
   } cnEnd;
   printf("%ld true of %ld samples\n", trueCount, bags.count);
+  // TODO Print mean number of items in chosen states?
+
+  // Set up schema.
+  cnSchema schema;
+  if (!stSchemaInit(&schema)) {
+    printf("Failed to init schema.");
+    goto DISPOSE_SAMPLES;
+  }
 
   // Set up the tree.
   cnRootNodeInit(&tree);
 
   /*
-    cout
-      << "Mean items in chosen states: " << (totalItems/samples.size()) << endl
-    ;
-
     // TODO Support copied and/or extended types???
     Type itemType(Entity2D::type());
     itemType.size = sizeof(Item);
@@ -76,6 +80,10 @@ int main(int argc, char** argv) {
   */
 
   status = EXIT_SUCCESS;
+
+DISPOSE_SCHEMA:
+
+  cnSchemaDispose(&schema);
 
 DISPOSE_TREE:
 

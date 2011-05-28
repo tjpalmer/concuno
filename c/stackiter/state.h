@@ -70,6 +70,14 @@ typedef struct stState {
 void stItemInit(stItem* item);
 
 
+/**
+ * Inits the schema from scratch to have everything needed for stackiter data.
+ *
+ * Dispose with cnSchemaDispose (since nothing special needed here).
+ */
+cnBool stSchemaInit(cnSchema* schema);
+
+
 void stStateDispose(stState* state);
 
 

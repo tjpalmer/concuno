@@ -64,6 +64,8 @@ struct cnType {
 
   cnList properties;
 
+  cnSchema* schema;
+
   cnCount size;
 
 };
@@ -87,7 +89,7 @@ void cnPropertyDispose(cnProperty* property);
 /**
  * Provides simple struct field access by offset.
  */
-void cnPropertyInitField(
+cnBool cnPropertyInitField(
   cnProperty* property, cnType* type, char* name, cnCount offset, cnCount count
 );
 
@@ -101,16 +103,18 @@ void cnSchemaDispose(cnSchema* schema);
 /**
  * Provides just float (double) type for now.
  */
-void cnSchemaInitDefault(cnSchema* schema);
+cnBool cnSchemaInitDefault(cnSchema* schema);
 
 
 /**
  * Disposes of all contained properties, too.
+ *
+ * Doesn't dispose of the schema. Schemas manage types, not vice versa.
  */
 void cnTypeDispose(cnType* type, char* name, cnCount size);
 
 
-void cnTypeInit(cnType* type, char* name, cnCount size);
+cnBool cnTypeInit(cnType* type, char* name, cnCount size);
 
 
 #endif

@@ -24,10 +24,19 @@ void stItemInit(stItem* item) {
 }
 
 
+cnBool stSchemaInit(cnSchema* schema) {
+  if (!cnSchemaInitDefault(schema)) {
+    return cnFalse;
+  }
+  // TODO Add the item type.
+  return cnTrue;
+}
+
+
 cnBool stStateCopy(stState* to, stState* from) {
   *to = *from;
   cnListInit(&to->items, to->items.itemSize);
-  return cnListPushAll(&to->items, &from->items);
+  return cnListPushAll(&to->items, &from->items) != NULL;
 }
 
 
