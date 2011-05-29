@@ -28,6 +28,34 @@ void* cnListEnd(const cnList* list) {
 }
 
 
+void* cnListExpand(cnList* list, cnCount count) {
+  void* formerEnd;
+  cnCount needed = list->count + count;
+  if (needed > list->reservedCount) {
+    // Exponential growth to avoid slow pushing.
+    cnCount wanted = 2 * list->reservedCount;
+    if (wanted < needed) {
+      // If pushing several, could go past 2 * current.
+      wanted = 2 * needed; // or just needed?
+    }
+    if (!wanted) wanted = 1;
+    void* newItems = realloc(list->items, wanted * list->itemSize);
+    if (!newItems) {
+      // No memory for this.
+      printf("Failed to expand list.");
+      return NULL;
+    }
+    // TODO Clear extra allocated memory?
+    list->items = newItems;
+    list->reservedCount = wanted;
+  }
+  // Get the end after possible reallocation and before changing count.
+  formerEnd = cnListEnd(list);
+  list->count = needed;
+  return formerEnd;
+}
+
+
 void cnListInit(cnList* list, cnCount itemSize) {
   list->count = 0;
   list->itemSize = itemSize;
@@ -54,28 +82,11 @@ void* cnListPushAll(cnList* list, cnList* from) {
 
 
 void* cnListPushMulti(cnList* list, void* items, cnCount count) {
-  cnCount needed = list->count + count;
-  if (needed > list->reservedCount) {
-    // Exponential growth to avoid slow pushing.
-    cnCount wanted = 2 * list->reservedCount;
-    if (wanted < needed) {
-      // If pushing several, could go past 2 * current.
-      wanted = 2 * needed; // or just needed?
-    }
-    if (!wanted) wanted = 1;
-    void* newItems = realloc(list->items, wanted * list->itemSize);
-    if (!newItems) {
-      // No memory for this.
-      return NULL;
-    }
-    // TODO Clear extra allocated memory?
-    list->items = newItems;
-    list->reservedCount = wanted;
+  void* formerEnd = cnListExpand(list, count);
+  if (formerEnd) {
+    memcpy(formerEnd, items, list->itemSize * count);
   }
-  list->count = needed;
-  return memcpy(
-    cnListGet(list, needed - count), items, list->itemSize * count
-  );
+  return formerEnd;
 }
 
 
@@ -142,5 +153,28 @@ cnBool cnStringPushChar(cnString* string, char c) {
   str = string->items;
   str[string->count - 2] = c;
   str[string->count - 1] = '\0';
+  return cnTrue;
+}
+
+
+cnBool cnStringPushStr(cnString* string, char* str) {
+  char* formerEnd;
+  cnBool wasEmpty = !string->reservedCount;
+  cnCount extra = strlen(str);
+  if (wasEmpty) {
+    // For the null char.
+    extra++;
+  }
+  // Make space.
+  formerEnd = cnListExpand(string, extra);
+  if (!formerEnd) {
+    return cnFalse;
+  }
+  if (!wasEmpty) {
+    // Overwrite the old null char.
+    formerEnd--;
+  }
+  // Copy including the null char, and we're done.
+  strcpy(formerEnd, str);
   return cnTrue;
 }

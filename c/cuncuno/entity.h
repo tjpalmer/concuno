@@ -107,11 +107,12 @@ cnBool cnSchemaInitDefault(cnSchema* schema);
 
 
 /**
- * Disposes of all contained properties, too.
+ * Disposes of all contained properties, too. Leaves name empty, size 0, and
+ * schema NULL.
  *
  * Doesn't dispose of the schema. Schemas manage types, not vice versa.
  */
-void cnTypeDispose(cnType* type, char* name, cnCount size);
+void cnTypeDispose(cnType* type);
 
 
 cnBool cnTypeInit(cnType* type, char* name, cnCount size);
