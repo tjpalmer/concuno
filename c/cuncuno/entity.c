@@ -15,15 +15,26 @@ void cnBagInit(cnBag* bag) {
 
 
 void cnPropertyDispose(cnProperty* property) {
-  property->count = 0;
+  // Dispose of extra data, as needed.
+  if (property->dispose) {
+    property->dispose(property);
+    property->dispose = NULL;
+  }
+  // Also 0 out the offset. As a union, this might be unneeded and/or
+  // insufficient, but here goes.
+  property->offset = 0;
+  property->data = NULL;
+  // Clear out the name.
   cnStringDispose(&property->name);
+  // Clear out the simple things.
+  property->count = 0;
   property->get = NULL;
   property->put = NULL;
   property->type = NULL;
 }
 
 void cnPropertyFieldGet(
-  cnProperty* property, const void* entity, void* storage
+  const cnProperty* property, const void* entity, void* storage
 ) {
   memcpy(
     storage,
@@ -35,6 +46,11 @@ void cnPropertyFieldGet(
 void cnPropertyFieldPut(
   const cnProperty* property, void* entity, const void* value
 ) {
+  memcpy(
+    ((char*)entity) + property->offset,
+    value,
+    property->count * property->type->size
+  );
 }
 
 cnBool cnPropertyInitField(
