@@ -1,3 +1,4 @@
+#include <string.h>
 #include "entity.h"
 
 
@@ -13,11 +14,52 @@ void cnBagInit(cnBag* bag) {
 }
 
 
+void cnPropertyDispose(cnProperty* property) {
+  property->count = 0;
+  cnStringDispose(&property->name);
+  property->get = NULL;
+  property->put = NULL;
+  property->type = NULL;
+}
+
+void cnPropertyFieldGet(
+  cnProperty* property, const void* entity, void* storage
+) {
+  memcpy(
+    storage,
+    ((char*)entity) + property->offset,
+    property->count * property->type->size
+  );
+}
+
+void cnPropertyFieldPut(
+  const cnProperty* property, void* entity, const void* value
+) {
+}
+
+cnBool cnPropertyInitField(
+  cnProperty* property, cnType* type, char* name, cnCount offset, cnCount count
+) {
+  cnStringInit(&property->name);
+  // TODO Preset all to nullishness, in case push fails?
+  if (!cnStringPushStr(&property->name, name)) {
+    return cnFalse;
+  }
+  property->count = count;
+  property->dispose = NULL;
+  property->get = cnPropertyFieldGet;
+  property->offset = offset;
+  property->put = cnPropertyFieldPut;
+  property->type = type;
+  return cnTrue;
+}
+
 void cnSchemaDispose(cnSchema* schema) {
   cnListEachBegin(&schema->types, cnType, type) {
     cnTypeDispose(type);
   } cnEnd;
   cnListDispose(&schema->types);
+  schema->floatType = NULL;
 }
 
 
@@ -28,6 +70,8 @@ cnBool cnSchemaInitDefault(cnSchema* schema) {
     return cnFalse;
   }
   cnTypeInit(type, "Float", sizeof(cnFloat));
+  type->schema = schema;
+  schema->floatType = type;
   return cnTrue;
 }
 
@@ -35,7 +79,7 @@ cnBool cnSchemaInitDefault(cnSchema* schema) {
 void cnTypeDispose(cnType* type) {
   cnStringDispose(&type->name);
   cnListEachBegin(&type->properties, cnProperty, property) {
-    // TODO cnPropertyDispose(property);
+    cnPropertyDispose(property);
   } cnEnd;
   cnListDispose(&type->properties);
   type->size = 0;

@@ -37,11 +37,30 @@ struct cnProperty {
    */
   cnCount count;
 
+  union {
+
+    /**
+     * For more abstract properties, as needed.
+     */
+    void* data;
+
+    /**
+     * For the common case of struct field access.
+     */
+    cnCount offset;
+
+  };
+
+  /**
+   * If not null, call this before finishing generic disposal.
+   */
+  void (*dispose)(const cnProperty* property);
+
   void (*get)(const cnProperty* property, const void* entity, void* storage);
 
   cnString name;
 
-  void (*put)(const cnProperty* property, const void* entity, void* storage);
+  void (*put)(const cnProperty* property, void* entity, const void* value);
 
   cnType* type;
 
@@ -52,6 +71,13 @@ struct cnProperty {
  * Provides functions for accessing entity attributes.
  */
 struct cnSchema {
+
+  /**
+   * Corresponds to cnFloat (double).
+   *
+   * Could be NULL if undefined for this schema.
+   */
+  cnType* floatType;
 
   cnList types;
 
