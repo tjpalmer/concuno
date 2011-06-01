@@ -30,8 +30,10 @@ void cnPropertyDispose(cnProperty* property) {
   property->count = 0;
   property->get = NULL;
   property->put = NULL;
+  property->topology = cnTopologyEuclidean;
   property->type = NULL;
 }
+
 
 void cnPropertyFieldGet(
   const cnProperty* property, const void* entity, void* storage
@@ -43,6 +45,7 @@ void cnPropertyFieldGet(
   );
 }
 
+
 void cnPropertyFieldPut(
   const cnProperty* property, void* entity, const void* value
 ) {
@@ -53,19 +56,23 @@ void cnPropertyFieldPut(
   );
 }
 
+
 cnBool cnPropertyInitField(
   cnProperty* property, cnType* type, char* name, cnCount offset, cnCount count
 ) {
+  // Safety items first.
   cnStringInit(&property->name);
-  // TODO Preset all to nullishness, in case push fails?
+  property->dispose = NULL;
+  // Now other things.
   if (!cnStringPushStr(&property->name, name)) {
+    cnPropertyDispose(property);
     return cnFalse;
   }
   property->count = count;
-  property->dispose = NULL;
   property->get = cnPropertyFieldGet;
   property->offset = offset;
   property->put = cnPropertyFieldPut;
+  property->topology = cnTopologyEuclidean;
   property->type = type;
   return cnTrue;
 }
@@ -83,10 +90,11 @@ cnBool cnSchemaInitDefault(cnSchema* schema) {
   cnType *type;
   cnListInit(&schema->types, sizeof(cnType));
   if (!(type = cnListExpand(&schema->types))) {
+    cnSchemaDispose(schema);
     return cnFalse;
   }
   if (!cnTypeInit(type, "Float", sizeof(cnFloat))) {
-    cnListDispose(&schema->types);
+    cnSchemaDispose(schema);
     return cnFalse;
   }
   type->schema = schema;
@@ -107,13 +115,15 @@ void cnTypeDispose(cnType* type) {
 
 
 cnBool cnTypeInit(cnType* type, char* name, cnCount size) {
+  // Put safety values first.
+  type->size = size;
+  // Let schema be set later, if wanted.
+  type->schema = NULL;
   cnStringInit(&type->name);
+  cnListInit(&type->properties, sizeof(cnProperty));
+  // Now try things that might fail.
   if (!cnStringPushStr(&type->name, name)) {
     return cnFalse;
   }
-  cnListInit(&type->properties, sizeof(cnProperty));
-  type->size = size;
-  // Let this be set later, if wanted.
-  type->schema = NULL;
   return cnTrue;
 }

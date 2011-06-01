@@ -81,30 +81,25 @@ int main(int argc, char** argv) {
 
   status = EXIT_SUCCESS;
 
-DISPOSE_SCHEMA:
-
+  DISPOSE_SCHEMA:
   cnSchemaDispose(&schema);
 
-DISPOSE_TREE:
-
+  DISPOSE_TREE:
   cnRootNodeDispose(&tree);
 
-DISPOSE_SAMPLES:
-
+  DISPOSE_SAMPLES:
   cnListEachBegin(&bags, cnBag, bag) {
     cnBagDispose(bag);
   } cnEnd;
   cnListDispose(&bags);
 
-DISPOSE_STATES:
-
+  DISPOSE_STATES:
   cnListEachBegin(&states, stState, state) {
     stStateDispose(state);
   } cnEnd;
   cnListDispose(&states);
 
-DONE:
-
+  DONE:
   return status;
 
 }

@@ -1,3 +1,4 @@
+#include <stddef.h>
 #include "state.h"
 
 
@@ -25,15 +26,30 @@ void stItemInit(stItem* item) {
 
 
 cnBool stSchemaInit(cnSchema* schema) {
-  cnType *type;
+  cnProperty* property;
+  cnType* type;
+
   if (!cnSchemaInitDefault(schema)) {
     return cnFalse;
   }
-  if (!(type = cnListExpand(&schema->types))) {
-    return cnFalse;
-  }
-  // TODO Init item type.
+
+  // Item type.
+  if (!(type = cnListExpand(&schema->types))) goto FAIL;
+  if (!cnTypeInit(type, "Item", sizeof(stItem))) goto FAIL;
+  type->schema = schema;
+
+  // Location property.
+  if (!(property = cnListExpand(&type->properties))) goto FAIL;
+  if (!cnPropertyInitField(
+    property, type, "Location", offsetof(stItem, location), 2
+  )) goto FAIL;
+
+  // Good to go.
   return cnTrue;
+
+  FAIL:
+  cnSchemaDispose(schema);
+  return cnFalse;
 }
 
 

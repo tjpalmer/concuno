@@ -22,11 +22,32 @@ typedef struct cnBag {
 } cnBag;
 
 
+typedef enum {
+
+  /**
+   * Also called standard or real product topology or such like. Just presumed
+   * open (to machine limits) R^N space here.
+   */
+  cnTopologyEuclidean,
+
+  // TODO Use general SpecialOrthogonal and SpecialEuclidean across different
+  // TODO dimensionalities?
+  //cnTopologyCircle,
+
+} cnTopology;
+
+
 struct cnProperty; typedef struct cnProperty cnProperty;
 struct cnSchema; typedef struct cnSchema cnSchema;
 struct cnType; typedef struct cnType cnType;
 
 struct cnProperty {
+
+  cnType* type;
+
+  cnString name;
+
+  cnTopology topology;
 
   /**
    * If this is an array/list property, says how many there are.
@@ -58,11 +79,7 @@ struct cnProperty {
 
   void (*get)(const cnProperty* property, const void* entity, void* storage);
 
-  cnString name;
-
   void (*put)(const cnProperty* property, void* entity, const void* value);
-
-  cnType* type;
 
 };
 
@@ -113,7 +130,10 @@ void cnPropertyDispose(cnProperty* property);
 
 
 /**
- * Provides simple struct field access by offset.
+ * Provides simple struct field access by offset. The topology is defaulted to
+ * Euclidean. Change after the fact for others.
+ *
+ * On failure, leaves the property in a stable (nulled out) state.
  */
 cnBool cnPropertyInitField(
   cnProperty* property, cnType* type, char* name, cnCount offset, cnCount count
@@ -128,6 +148,8 @@ void cnSchemaDispose(cnSchema* schema);
 
 /**
  * Provides just float (double) type for now.
+ *
+ * On failure, leaves the schema in a stable (nulled out) state.
  */
 cnBool cnSchemaInitDefault(cnSchema* schema);
 
@@ -141,6 +163,9 @@ cnBool cnSchemaInitDefault(cnSchema* schema);
 void cnTypeDispose(cnType* type);
 
 
+/**
+ * On failure, leaves the type in a stable (nulled out) state.
+ */
 cnBool cnTypeInit(cnType* type, char* name, cnCount size);
 
 
