@@ -65,12 +65,21 @@ void* cnListEnd(const cnList* list);
 
 
 /**
+ * Adds one item to the list with uninitialized contents, suitable for
+ * filling in after the fact.
+ *
+ * Returns a pointer to the beginning of the new space.
+ */
+void* cnListExpand(cnList* list);
+
+
+/**
  * Adds count items to the list with uninitialized contents, suitable for
  * filling in after the fact.
  *
  * Returns a pointer to the beginning of the new space.
  */
-void* cnListExpand(cnList* list, cnCount count);
+void* cnListExpandMulti(cnList* list, cnCount count);
 
 
 void* cnListGet(cnList* list, cnIndex index);

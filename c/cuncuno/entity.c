@@ -82,10 +82,13 @@ void cnSchemaDispose(cnSchema* schema) {
 cnBool cnSchemaInitDefault(cnSchema* schema) {
   cnType *type;
   cnListInit(&schema->types, sizeof(cnType));
-  if (!(type = cnListExpand(&schema->types, 1))) {
+  if (!(type = cnListExpand(&schema->types))) {
     return cnFalse;
   }
-  cnTypeInit(type, "Float", sizeof(cnFloat));
+  if (!cnTypeInit(type, "Float", sizeof(cnFloat))) {
+    cnListDispose(&schema->types);
+    return cnFalse;
+  }
   type->schema = schema;
   schema->floatType = type;
   return cnTrue;

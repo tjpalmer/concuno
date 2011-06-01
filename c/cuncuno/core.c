@@ -28,7 +28,11 @@ void* cnListEnd(const cnList* list) {
 }
 
 
-void* cnListExpand(cnList* list, cnCount count) {
+void* cnListExpand(cnList* list) {
+  return cnListExpandMulti(list, 1);
+}
+
+void* cnListExpandMulti(cnList* list, cnCount count) {
   void* formerEnd;
   cnCount needed = list->count + count;
   if (needed > list->reservedCount) {
@@ -82,7 +86,7 @@ void* cnListPushAll(cnList* list, cnList* from) {
 
 
 void* cnListPushMulti(cnList* list, void* items, cnCount count) {
-  void* formerEnd = cnListExpand(list, count);
+  void* formerEnd = cnListExpandMulti(list, count);
   if (formerEnd) {
     memcpy(formerEnd, items, list->itemSize * count);
   }
@@ -166,7 +170,7 @@ cnBool cnStringPushStr(cnString* string, char* str) {
     extra++;
   }
   // Make space.
-  formerEnd = cnListExpand(string, extra);
+  formerEnd = cnListExpandMulti(string, extra);
   if (!formerEnd) {
     return cnFalse;
   }
