@@ -32,6 +32,7 @@ void* cnListExpand(cnList* list) {
   return cnListExpandMulti(list, 1);
 }
 
+
 void* cnListExpandMulti(cnList* list, cnCount count) {
   void* formerEnd;
   cnCount needed = list->count + count;

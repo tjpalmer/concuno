@@ -25,10 +25,14 @@ void stItemInit(stItem* item) {
 
 
 cnBool stSchemaInit(cnSchema* schema) {
+  cnType *type;
   if (!cnSchemaInitDefault(schema)) {
     return cnFalse;
   }
-  // TODO Add the item type.
+  if (!(type = cnListExpand(&schema->types))) {
+    return cnFalse;
+  }
+  // TODO Init item type.
   return cnTrue;
 }
 
