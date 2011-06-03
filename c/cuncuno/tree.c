@@ -69,6 +69,6 @@ void cnRootNodeInit(cnRootNode* node) {
   cnNodeInit(&node->node, cnNodeTypeRoot);
   node->node.id = 0;
   node->kid = NULL;
-  node->mappingFunctions = NULL;
+  node->entityFunctions = NULL;
   node->nextId = 1;
 }

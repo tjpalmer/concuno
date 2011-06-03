@@ -82,7 +82,7 @@ typedef struct cnRootNode {
   /**
    * To be managed separately from the tree itself.
    */
-  cnList* mappingFunctions;
+  cnList* entityFunctions;
 
   cnIndex nextId;
 

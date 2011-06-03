@@ -6,6 +6,7 @@
 
 int main(int argc, char** argv) {
   cnList bags;
+  cnEntityFunction* entityFunction;
   cnList entityFunctions;
   cnSchema schema;
   stState* state;
@@ -13,6 +14,7 @@ int main(int argc, char** argv) {
   int status = EXIT_FAILURE;
   cnRootNode tree;
   cnCount trueCount;
+  cnType* itemType;
 
   // Validate args.
   if (argc < 2) {
@@ -46,14 +48,31 @@ int main(int argc, char** argv) {
 
   // Set up schema.
   if (!stSchemaInit(&schema)) {
-    printf("Failed to init schema.");
+    printf("Failed to init schema.\n");
     goto DISPOSE_SAMPLES;
   }
 
-  // TODO Set up entity functions.
+  // Set up entity functions.
+  cnListInit(&entityFunctions, sizeof(cnEntityFunction));
+  if (!(entityFunction = cnListExpand(&entityFunctions))) {
+    printf("Failed to expand functions.\n");
+    goto DISPOSE_SCHEMA;
+  }
+  // TODO Look up the type by name.
+  itemType = cnListGet(&schema.types, 1);
+  // TODO Look up the property by name.
+  if (!cnEntityFunctionInitProperty(
+    entityFunction, cnListGet(&itemType->properties, 0)
+  )) {
+    printf("Failed to init function.\n");
+    goto DISPOSE_FUNCTIONS;
+  }
+  // TODO cnEntityFunctionInitDifference(&diff, &base);
+  //printf("Function named %s.\n", cnStr(&entityFunction->name));
 
   // Set up the tree.
   cnRootNodeInit(&tree);
+  tree.entityFunctions = &entityFunctions;
 
   /*
     // TODO Support copied and/or extended types???
@@ -84,11 +103,17 @@ int main(int argc, char** argv) {
 
   status = EXIT_SUCCESS;
 
-  DISPOSE_SCHEMA:
-  cnSchemaDispose(&schema);
-
   DISPOSE_TREE:
   cnRootNodeDispose(&tree);
+
+  DISPOSE_FUNCTIONS:
+  cnListEachBegin(&entityFunctions, cnEntityFunction, function) {
+    cnEntityFunctionDispose(function);
+  } cnEnd;
+  cnListDispose(&entityFunctions);
+
+  DISPOSE_SCHEMA:
+  cnSchemaDispose(&schema);
 
   DISPOSE_SAMPLES:
   cnListEachBegin(&bags, cnBag, bag) {
