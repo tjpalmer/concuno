@@ -71,7 +71,10 @@ int main(int argc, char** argv) {
   //printf("Function named %s.\n", cnStr(&entityFunction->name));
 
   // Set up the tree.
-  cnRootNodeInit(&tree);
+  if (!cnRootNodeInit(&tree, cnTrue)) {
+    printf("Failed to init tree.\n");
+    goto DISPOSE_FUNCTIONS;
+  }
   tree.entityFunctions = &entityFunctions;
 
   /*
@@ -104,7 +107,7 @@ int main(int argc, char** argv) {
   status = EXIT_SUCCESS;
 
   DISPOSE_TREE:
-  cnRootNodeDispose(&tree);
+  cnNodeDispose(&tree.node);
 
   DISPOSE_FUNCTIONS:
   cnListEachBegin(&entityFunctions, cnEntityFunction, function) {

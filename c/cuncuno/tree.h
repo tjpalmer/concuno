@@ -147,6 +147,9 @@ cnBindingBagList* cnBindingBagListCreate(void);
 void cnBindingBagListDrop(cnBindingBagList* list);
 
 
+void cnLeafNodeInit(cnLeafNode* node);
+
+
 /**
  * You don't usually need to call this directly.
  */
@@ -159,10 +162,11 @@ void cnNodeDispose(cnNode* node);
 void cnNodeInit(cnNode* node, cnNodeType type);
 
 
-void cnRootNodeDispose(cnRootNode* node);
-
-
-void cnRootNodeInit(cnRootNode* node);
+/**
+ * Specify whether to add a leaf. That failing is the only reason root node
+ * init would fail.
+ */
+cnBool cnRootNodeInit(cnRootNode* node, cnBool addLeaf);
 
 
 #endif

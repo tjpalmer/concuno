@@ -2,6 +2,9 @@
 #include "tree.h"
 
 
+void cnRootNodeDispose(cnRootNode* node);
+
+
 void cnBindingDispose(cnBinding* binding) {
   // Just dispose of the list. The entities themselves live on.
   cnListDispose(&binding->entities);
@@ -43,10 +46,31 @@ void cnBindingBagListDrop(cnBindingBagList* list) {
 }
 
 
+void cnLeafNodeDispose(cnLeafNode* node) {
+  cnLeafNodeInit(node);
+}
+
+
+void cnLeafNodeInit(cnLeafNode* node) {
+  cnNodeInit(&node->node, cnNodeTypeLeaf);
+  node->probability = 0;
+}
+
+
 void cnNodeDispose(cnNode* node) {
-  // TODO Dispose of child nodes?
   cnBindingBagListDrop(node->bindingBagList);
-  cnNodeInit(node, node->type);
+  // TODO Dispose of child nodes.
+  switch (node->type) {
+  case cnNodeTypeLeaf:
+    cnLeafNodeDispose((cnLeafNode*)node);
+    break;
+  case cnNodeTypeRoot:
+    cnRootNodeDispose((cnRootNode*)node);
+    break;
+  default:
+    printf("I don't handle type %u yet.\n", node->type);
+    break;
+  }
 }
 
 
@@ -59,16 +83,29 @@ void cnNodeInit(cnNode* node, cnNodeType type) {
 
 
 void cnRootNodeDispose(cnRootNode* node) {
-  cnNodeDispose(&node->node);
-  // TODO Anything special?
-  cnRootNodeInit(node);
+  // Dispose of the kid.
+  if (node->kid) {
+    // TODO Unified drop?
+    cnNodeDispose(node->kid);
+    free(node->kid);
+  }
+  // TODO Anything else special?
+  cnRootNodeInit(node, cnFalse);
 }
 
 
-void cnRootNodeInit(cnRootNode* node) {
+cnBool cnRootNodeInit(cnRootNode* node, cnBool addLeaf) {
   cnNodeInit(&node->node, cnNodeTypeRoot);
   node->node.id = 0;
   node->kid = NULL;
   node->entityFunctions = NULL;
   node->nextId = 1;
+  if (addLeaf) {
+    // TODO Unified create?
+    cnLeafNode* leaf = malloc(sizeof(cnLeafNode));
+    if (!leaf) return cnFalse;
+    cnLeafNodeInit(leaf);
+    node->kid = &leaf->node;
+  }
+  return cnTrue;
 }
