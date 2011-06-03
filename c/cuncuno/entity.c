@@ -14,6 +14,47 @@ void cnBagInit(cnBag* bag) {
 }
 
 
+void cnEntityFunctionDispose(cnEntityFunction* function) {
+  if (function->dispose) {
+    function->dispose(function);
+    function->dispose = NULL;
+  }
+  cnStringDispose(&function->name);
+  function->data = NULL;
+  function->get = NULL;
+  function->outTopology = cnTopologyEuclidean;
+  function->outCount = 0;
+  function->outType = NULL;
+}
+
+
+void cnEntityFunctionPropertyGet(
+  const cnEntityFunction* function, const void *const *ins, void* outs
+) {
+  cnProperty* property = function->data;
+  property->get(property, *ins, outs);
+}
+
+
+cnBool cnEntityFunctionInitProperty(
+  cnEntityFunction* function, const cnProperty* property
+) {
+  function->data = (void*)property; // Treat as const anyway!
+  function->dispose = NULL;
+  function->inCount = 1;
+  function->outCount = property->count;
+  function->outTopology = property->topology;
+  function->outType = property->type;
+  function->get = cnEntityFunctionPropertyGet;
+  cnStringInit(&function->name);
+  // The one thing that can fail directly here.
+  if (!cnStringPushStr(&function->name, property->name.items)) {
+    return cnFalse;
+  }
+  return cnTrue;
+}
+
+
 void cnPropertyDispose(cnProperty* property) {
   // Dispose of extra data, as needed.
   if (property->dispose) {

@@ -79,6 +79,11 @@ typedef struct cnRootNode {
 
   cnNode* kid;
 
+  /**
+   * To be managed separately from the tree itself.
+   */
+  cnList* mappingFunctions;
+
   cnIndex nextId;
 
 } cnRootNode;

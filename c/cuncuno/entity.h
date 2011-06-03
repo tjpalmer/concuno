@@ -34,12 +34,53 @@ typedef enum {
   // TODO dimensionalities?
   //cnTopologyCircle,
 
+  // TODO The following is the power set, actually, but for discrete space
+  // TODO allows what we want for discrete properties, I think.
+  //cnTopologyDiscrete,
+
 } cnTopology;
 
 
+struct cnEntityFunction; typedef struct cnEntityFunction cnEntityFunction;
 struct cnProperty; typedef struct cnProperty cnProperty;
 struct cnSchema; typedef struct cnSchema cnSchema;
 struct cnType; typedef struct cnType cnType;
+
+
+/**
+ * Maps one or more entities to one or more values. Such functions should
+ * always be organized in a context where the entity type is understood or
+ * otherwise discernable by the function pointers here.
+ */
+struct cnEntityFunction {
+
+  void* data;
+
+  cnCount inCount;
+
+  cnString name;
+
+  cnCount outCount;
+
+  cnTopology outTopology;
+
+  cnType* outType;
+
+  /**
+   * If not null, call this before finishing generic disposal.
+   */
+  void (*dispose)(const cnEntityFunction* function);
+
+  /**
+   * Receives an array of pointers to entities, and provides an array of values
+   * whose individual sizes are given by outType.
+   */
+  void (*get)(
+    const cnEntityFunction* function, const void *const *ins, void* outs
+  );
+
+};
+
 
 struct cnProperty {
 
@@ -118,6 +159,17 @@ void cnBagDispose(cnBag* bag);
 
 
 void cnBagInit(cnBag* bag);
+
+
+void cnEntityFunctionDispose(cnEntityFunction* function);
+
+
+/**
+ * Creates an entity function that just performs a property get.
+ */
+cnBool cnEntityFunctionInitProperty(
+  cnEntityFunction* function, const cnProperty* property
+);
 
 
 /**

@@ -6,6 +6,8 @@
 
 int main(int argc, char** argv) {
   cnList bags;
+  cnList entityFunctions;
+  cnSchema schema;
   stState* state;
   cnList states;
   int status = EXIT_FAILURE;
@@ -43,11 +45,12 @@ int main(int argc, char** argv) {
   // TODO Print mean number of items in chosen states?
 
   // Set up schema.
-  cnSchema schema;
   if (!stSchemaInit(&schema)) {
     printf("Failed to init schema.");
     goto DISPOSE_SAMPLES;
   }
+
+  // TODO Set up entity functions.
 
   // Set up the tree.
   cnRootNodeInit(&tree);
