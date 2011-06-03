@@ -147,13 +147,14 @@ cnBindingBagList* cnBindingBagListCreate(void);
 void cnBindingBagListDrop(cnBindingBagList* list);
 
 
-void cnLeafNodeInit(cnLeafNode* node);
+cnLeafNode* cnLeafNodeCreate(void);
 
 
 /**
  * You don't usually need to call this directly.
  */
 void cnNodeDispose(cnNode* node);
+//void cnNodeDrop(cnNode* node); // or just void* ?
 
 
 /**

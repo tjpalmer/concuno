@@ -5,6 +5,9 @@
 void cnRootNodeDispose(cnRootNode* node);
 
 
+void cnLeafNodeInit(cnLeafNode* leaf);
+
+
 void cnBindingDispose(cnBinding* binding) {
   // Just dispose of the list. The entities themselves live on.
   cnListDispose(&binding->entities);
@@ -51,9 +54,18 @@ void cnLeafNodeDispose(cnLeafNode* node) {
 }
 
 
-void cnLeafNodeInit(cnLeafNode* node) {
-  cnNodeInit(&node->node, cnNodeTypeLeaf);
-  node->probability = 0;
+cnLeafNode* cnLeafNodeCreate(void) {
+  cnLeafNode* leaf = malloc(sizeof(cnLeafNode));
+  if (leaf) {
+    cnLeafNodeInit(leaf);
+  }
+  return leaf;
+}
+
+
+void cnLeafNodeInit(cnLeafNode* leaf) {
+  cnNodeInit(&leaf->node, cnNodeTypeLeaf);
+  leaf->probability = 0;
 }
 
 
@@ -101,11 +113,7 @@ cnBool cnRootNodeInit(cnRootNode* node, cnBool addLeaf) {
   node->entityFunctions = NULL;
   node->nextId = 1;
   if (addLeaf) {
-    // TODO Unified create?
-    cnLeafNode* leaf = malloc(sizeof(cnLeafNode));
-    if (!leaf) return cnFalse;
-    cnLeafNodeInit(leaf);
-    node->kid = &leaf->node;
+    node->kid = &cnLeafNodeCreate()->node;
   }
   return cnTrue;
 }
