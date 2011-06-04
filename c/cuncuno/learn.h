@@ -6,6 +6,36 @@
 
 
 /**
+ * The whole Learner thing is a placeholder. I can't imagine not wanting a few
+ * configuration options at some point.
+ */
+typedef struct cnLearner {
+  // TODO Learning options go here.
+} cnLearner;
+
+
+/**
+ * Cleans up whatever might be needed.
+ */
+void cnLearnerDispose(cnLearner* learner);
+
+
+/**
+ * Inits default options.
+ */
+void cnLearnerInit(cnLearner* learner);
+
+
+/**
+ * Expands the initial tree as much as possible.
+ *
+ * For now, it returns a new tree, as that's not very wasteful compared to
+ * everything else going on, and I think it will be easier to do this way.
+ */
+cnRootNode* cnLearnerLearn(cnLearner* learner, cnRootNode* initial);
+
+
+/**
  * Updates all the leaf probabilities in the tree.
  */
 void cnUpdateLeafProbabilities(cnRootNode* root);

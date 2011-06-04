@@ -8,12 +8,14 @@ int main(int argc, char** argv) {
   cnList bags;
   cnBindingBagList* bindingBags;
   cnEntityFunction *differenceFunction, *entityFunction;
+  cnLearner learner;
   cnList entityFunctions;
+  cnRootNode* learnedTree;
   cnSchema schema;
   stState* state;
   cnList states;
   int status = EXIT_FAILURE;
-  cnRootNode tree;
+  cnRootNode stubTree;
   cnCount trueCount;
   cnType* itemType;
 
@@ -81,11 +83,11 @@ int main(int argc, char** argv) {
   //printf("Function named %s.\n", cnStr(&differenceFunction->name));
 
   // Set up the tree.
-  if (!cnRootNodeInit(&tree, cnTrue)) {
+  if (!cnRootNodeInit(&stubTree, cnTrue)) {
     printf("Failed to init tree.\n");
     goto DISPOSE_FUNCTIONS;
   }
-  tree.entityFunctions = &entityFunctions;
+  stubTree.entityFunctions = &entityFunctions;
 
   // Propagate empty binding bags.
   if (!(bindingBags = cnBindingBagListCreate())) {
@@ -96,30 +98,20 @@ int main(int argc, char** argv) {
     printf("Failed to push bindings.\n");
     goto DROP_BINDING_BAGS;
   }
-  if (!cnNodePropagate(&tree.node, bindingBags)) {
+  if (!cnNodePropagate(&stubTree.node, bindingBags)) {
     printf("Failed to propagate bindings in stub tree.\n");
     goto DROP_BINDING_BAGS;
   }
 
-  // Report initial probability.
-  cnUpdateLeafProbabilities(&tree);
-
-  /*
-    // Simple test/profiling. TODO Try again with pointers support.
-    //    Function& blah(difference);
-    //    Float ab[] = {1.5, 3.0, 2.0, 0.3};
-    //    Float c[2];
-    //    for (Count i(0); i < 100000000; i++) {
-    //      blah(ab, c);
-    //      c[0] = ab[0] - ab[2];
-    //      c[1] = ab[1] - ab[3];
-    //    }
-    //    cout << "Result: " << c[0] << ", " << c[1] << endl;
-
-    learner.learn(samples);
-  */
+  // Learn a tree.
+  cnUpdateLeafProbabilities(&stubTree);
+  cnLearnerInit(&learner);
+  learnedTree = cnLearnerLearn(&learner, &stubTree);
 
   status = EXIT_SUCCESS;
+
+  DISPOSE_LEARNER:
+  cnLearnerDispose(&learner);
 
   DROP_BINDING_BAGS:
   // Could actually do this earlier, but we'll effectively hang onto this until
@@ -127,7 +119,7 @@ int main(int argc, char** argv) {
   cnBindingBagListDrop(&bindingBags);
 
   DISPOSE_TREE:
-  cnNodeDispose(&tree.node);
+  cnNodeDispose(&stubTree.node);
 
   DISPOSE_FUNCTIONS:
   cnListEachBegin(&entityFunctions, cnEntityFunction, function) {

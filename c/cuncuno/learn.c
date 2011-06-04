@@ -2,11 +2,26 @@
 #include "learn.h"
 
 
+void cnLearnerDispose(cnLearner* learner) {
+  // Nothing yet.
+}
+
+
+void cnLearnerInit(cnLearner* learner) {
+  // Nothing yet.
+}
+
+
+cnRootNode* cnLearnerLearn(cnLearner* learner, cnRootNode* initial) {
+  //
+}
+
+
 void cnUpdateLeafProbabilities(cnRootNode* root) {
   cnList leaves;
   cnListInit(&leaves, sizeof(cnLeafNode*));
   cnNodeLeaves(&root->node, &leaves);
-  printf("Found %ld leaves.\n", leaves.count);
+  //printf("Found %ld leaves.\n", leaves.count);
   cnListEachBegin(&leaves, cnLeafNode*, leaf) {
     // TODO Find proper assignment for each leaf considering the others.
     cnCount posCount = 0;
