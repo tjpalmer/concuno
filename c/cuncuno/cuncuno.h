@@ -3,6 +3,7 @@
 
 #include "core.h"
 #include "entity.h"
+#include "learn.h"
 #include "io.h"
 #include "tree.h"
 
