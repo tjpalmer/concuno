@@ -41,7 +41,8 @@ cnBool stSchemaInit(cnSchema* schema) {
   // Location property.
   if (!(property = cnListExpand(&type->properties))) goto FAIL;
   if (!cnPropertyInitField(
-    property, type, "Location", offsetof(stItem, location), 2
+    property, type, schema->floatType, "Location",
+    offsetof(stItem, location), 2
   )) goto FAIL;
 
   // Good to go.

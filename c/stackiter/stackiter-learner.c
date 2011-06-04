@@ -6,7 +6,7 @@
 
 int main(int argc, char** argv) {
   cnList bags;
-  cnEntityFunction* entityFunction;
+  cnEntityFunction *differenceFunction, *entityFunction;
   cnList entityFunctions;
   cnSchema schema;
   stState* state;
@@ -67,8 +67,16 @@ int main(int argc, char** argv) {
     printf("Failed to init function.\n");
     goto DISPOSE_FUNCTIONS;
   }
-  // TODO cnEntityFunctionInitDifference(&diff, &base);
-  //printf("Function named %s.\n", cnStr(&entityFunction->name));
+  // DifferenceLocation
+  if (!(differenceFunction = cnListExpand(&entityFunctions))) {
+    printf("Failed to expand functions.\n");
+    goto DISPOSE_FUNCTIONS;
+  }
+  if (!cnEntityFunctionInitDifference(differenceFunction, entityFunction)) {
+    printf("Failed to init difference.\n");
+    goto DISPOSE_FUNCTIONS;
+  }
+  //printf("Function named %s.\n", cnStr(&differenceFunction->name));
 
   // Set up the tree.
   if (!cnRootNodeInit(&tree, cnTrue)) {

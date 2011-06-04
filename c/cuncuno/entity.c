@@ -67,19 +67,21 @@ cnBool cnEntityFunctionInitDifference(
   function->data = (void*)base;
   function->dispose = NULL;
   function->inCount = 2;
+  cnStringInit(&function->name);
   function->outCount = base->outCount;
   function->outTopology = base->outTopology;
   // TODO Verify non-nulls?
+  //printf("outType: %s\n", cnStr(&base->outType->name));
   if (base->outType != base->outType->schema->floatType) {
     // TODO Supply a difference function for generic handling?
     printf("Only works for floats so far.\n");
     // If this dispose follows the nulled dispose pointer, we're okay.
+    // Oh, and init'd name is also important.
     cnEntityFunctionDispose(function);
     return cnFalse;
   }
   function->outType = base->outType;
   function->get = cnEntityFunctionGetDifference;
-  cnStringInit(&function->name);
   // Deal with this last, to make sure everything else is sane first.
   if (!cnStringPushStr(&function->name, "Difference")) {
     cnEntityFunctionDispose(function);
@@ -157,7 +159,8 @@ void cnPropertyFieldPut(
 
 
 cnBool cnPropertyInitField(
-  cnProperty* property, cnType* type, char* name, cnCount offset, cnCount count
+  cnProperty* property, cnType* containerType, cnType* type, char* name,
+  cnCount offset, cnCount count
 ) {
   // Safety items first.
   cnStringInit(&property->name);
@@ -167,6 +170,7 @@ cnBool cnPropertyInitField(
     cnPropertyDispose(property);
     return cnFalse;
   }
+  property->containerType = containerType;
   property->count = count;
   property->get = cnPropertyFieldGet;
   property->offset = offset;

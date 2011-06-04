@@ -84,6 +84,8 @@ struct cnEntityFunction {
 
 struct cnProperty {
 
+  cnType* containerType;
+
   cnType* type;
 
   cnString name;
@@ -193,7 +195,8 @@ void cnPropertyDispose(cnProperty* property);
  * On failure, leaves the property in a stable (nulled out) state.
  */
 cnBool cnPropertyInitField(
-  cnProperty* property, cnType* type, char* name, cnCount offset, cnCount count
+  cnProperty* property, cnType* containerType, cnType* type, char* name,
+  cnCount offset, cnCount count
 );
 
 
