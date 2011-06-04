@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <stdio.h>
 #include "tree.h"
 
@@ -92,7 +93,9 @@ cnLeafNode* cnLeafNodeCreate(void) {
 
 
 void cnNodeDispose(cnNode* node) {
-  // TODO Dispose of child nodes.
+  // Drop bindings while reference still here.
+  cnBindingBagListDrop(&node->bindingBagList);
+  // Disposes of child nodes in sub-dispose.
   switch (node->type) {
   case cnNodeTypeLeaf:
     cnLeafNodeDispose((cnLeafNode*)node);
@@ -105,7 +108,6 @@ void cnNodeDispose(cnNode* node) {
     break;
   }
   // Base node disposal.
-  cnBindingBagListDrop(&node->bindingBagList);
   cnNodeInit(node, node->type);
 }
 
@@ -113,6 +115,52 @@ void cnNodeDispose(cnNode* node) {
 void cnLeafNodeInit(cnLeafNode* leaf) {
   cnNodeInit(&leaf->node, cnNodeTypeLeaf);
   leaf->probability = 0;
+}
+
+
+cnNode** cnNodeKids(cnNode* node) {
+  switch (node->type) {
+  case cnNodeTypeLeaf:
+    return NULL;
+  case cnNodeTypeRoot:
+    return &((cnRootNode*)node)->kid;
+  case cnNodeTypeSplit:
+    return ((cnSplitNode*)node)->kids;
+  case cnNodeTypeVar:
+    return &((cnVarNode*)node)->kid;
+  default:
+    assert(cnFalse);
+    return NULL; // to avoid warnings.
+  }
+}
+
+
+cnCount cnNodeKidCount(cnNode* node) {
+  switch (node->type) {
+  case cnNodeTypeLeaf:
+    return 0;
+  case cnNodeTypeRoot:
+  case cnNodeTypeVar:
+    return 1;
+  case cnNodeTypeSplit:
+    return 3;
+  default:
+    assert(cnFalse);
+    return 0; // to avoid warnings.
+  }
+}
+
+
+void cnNodeLeaves(cnNode* node, cnList* leaves) {
+  cnCount count = cnNodeKidCount(node);
+  cnNode **kid = cnNodeKids(node), **end = kid + count;
+  for (; kid < end; kid++) {
+    if ((*kid)->type == cnNodeTypeLeaf) {
+      assert(cnListPush(leaves, kid));
+    } else {
+      cnNodeLeaves(*kid, leaves);
+    }
+  }
 }
 
 

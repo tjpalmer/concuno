@@ -53,7 +53,8 @@ void cnListDispose(cnList* list);
  * Terminate with cnEnd.
  */
 #define cnListEachBegin(list, Type, i) { \
-    Type *i, *end; \
+    Type *i; \
+    Type *end; \
     for (i = (list)->items, end = cnListEnd(list); i < end; i++)
 
 

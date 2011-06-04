@@ -89,6 +89,19 @@ typedef struct cnRootNode {
 } cnRootNode;
 
 
+typedef enum {
+
+  cnSplitYes,
+
+  cnSplitNo,
+
+  cnSplitErr,
+
+  cnSplitCount,
+
+} cnSplitIndex;
+
+
 /**
  * A node for making decisions about where to propagate bindings.
  */
@@ -96,11 +109,7 @@ typedef struct cnSplitNode {
 
   cnNode node;
 
-  cnNode* yes;
-
-  cnNode* no;
-
-  cnNode* err;
+  cnNode* kids[cnSplitCount];
 
 } cnSplitNode;
 
@@ -167,6 +176,21 @@ cnLeafNode* cnLeafNodeCreate(void);
  */
 void cnNodeDispose(cnNode* node);
 //void cnNodeDrop(cnNode* node); // or just void* ?
+
+
+/**
+ * Returns an array of pointers to kids.
+ */
+cnNode** cnNodeKids(cnNode* node);
+
+
+cnCount cnNodeKidCount(cnNode* node);
+
+
+/**
+ * Stores all leaves under this node in the given list.
+ */
+void cnNodeLeaves(cnNode* node, cnList* leaves);
 
 
 /**
