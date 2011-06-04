@@ -2,10 +2,18 @@
 #include "learn.h"
 
 
+cnRootNode* cnExpandAtLeaf(cnLearner* learner, cnLeafNode* node);
+
+
 /**
  * Updates all the leaf probabilities in the tree.
  */
 void cnUpdateLeafProbabilities(cnRootNode* root);
+
+
+cnRootNode* cnExpandAtLeaf(cnLearner* learner, cnLeafNode* node) {
+  return NULL;
+}
 
 
 void cnLearnerDispose(cnLearner* learner) {
@@ -19,9 +27,24 @@ void cnLearnerInit(cnLearner* learner) {
 
 
 cnRootNode* cnLearnerLearn(cnLearner* learner, cnRootNode* initial) {
-  // TODO Figure out the initial LL and such.
+  cnLeafNode* leaf;
   cnList leaves;
+  // Make sure leaf probs are up to date.
+  // TODO Figure out the initial LL and such.
   cnUpdateLeafProbabilities(initial);
+  /* TODO Loop this section. */ {
+    /* Pick a leaf to expand. */ {
+      // Get the leaves (over again, yes).
+      cnListInit(&leaves, sizeof(cnLeafNode*));
+      cnNodeLeaves(&initial->node, &leaves);
+      if (leaves.count < 1) return NULL;
+      // TODO Pick the best leaf instead of the first.
+      leaf = *(cnLeafNode**)leaves.items;
+      // Clean up list of leaves.
+      cnListDispose(&leaves);
+    }
+    return cnExpandAtLeaf(learner, leaf);
+  }
 }
 
 

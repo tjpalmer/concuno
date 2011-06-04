@@ -106,8 +106,16 @@ int main(int argc, char** argv) {
   // Learn a tree.
   cnLearnerInit(&learner);
   learnedTree = cnLearnerLearn(&learner, &stubTree);
+  if (!learnedTree) {
+    printf("No learned tree.\n");
+    goto DISPOSE_LEARNER;
+  }
 
   status = EXIT_SUCCESS;
+
+  // Dispose of the learned tree.
+  cnNodeDispose(&learnedTree->node);
+  free(learnedTree);
 
   DISPOSE_LEARNER:
   cnLearnerDispose(&learner);
