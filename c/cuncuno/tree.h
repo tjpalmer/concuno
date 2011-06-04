@@ -219,6 +219,12 @@ cnRootNode* cnNodeRoot(cnNode* node);
 
 
 /**
+ * Returns the number of var nodes in the tree above the given node.
+ */
+cnCount cnNodeVarDepth(cnNode* node);
+
+
+/**
  * Specify whether to add a leaf. That failing is the only reason root node
  * init would fail.
  */

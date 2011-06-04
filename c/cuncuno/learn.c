@@ -2,7 +2,7 @@
 #include "learn.h"
 
 
-cnRootNode* cnExpandAtLeaf(cnLearner* learner, cnLeafNode* node);
+cnRootNode* cnExpandAtLeaf(cnLearner* learner, cnLeafNode* leaf);
 
 
 /**
@@ -11,8 +11,21 @@ cnRootNode* cnExpandAtLeaf(cnLearner* learner, cnLeafNode* node);
 void cnUpdateLeafProbabilities(cnRootNode* root);
 
 
-cnRootNode* cnExpandAtLeaf(cnLearner* learner, cnLeafNode* node) {
-  return NULL;
+cnRootNode* cnExpandAtLeaf(cnLearner* learner, cnLeafNode* leaf) {
+  cnRootNode* bestYet = NULL;
+  cnRootNode* root = cnNodeRoot(&leaf->node);
+  cnCount varDepth = cnNodeVarDepth(&leaf->node);
+  // TODO Clone root and find leaf in new tree.
+  // TODO Safe to assume functions already sorted by arity?
+  cnListEachBegin(root->entityFunctions, cnEntityFunction, function) {
+    if (function->inCount > varDepth) {
+      cnCount varsNeeded = function->inCount - varDepth;
+      printf("Need %ld more vars.\n", varsNeeded);
+      // TODO Add vars as needed.
+    }
+    // TODO Add split on function.
+  } cnEnd;
+  return bestYet;
 }
 
 
@@ -37,7 +50,10 @@ cnRootNode* cnLearnerLearn(cnLearner* learner, cnRootNode* initial) {
       // Get the leaves (over again, yes).
       cnListInit(&leaves, sizeof(cnLeafNode*));
       cnNodeLeaves(&initial->node, &leaves);
-      if (leaves.count < 1) return NULL;
+      if (leaves.count < 1) {
+        printf("No leaves to expand.\n");
+        return NULL;
+      }
       // TODO Pick the best leaf instead of the first.
       leaf = *(cnLeafNode**)leaves.items;
       // Clean up list of leaves.

@@ -222,6 +222,16 @@ cnRootNode* cnNodeRoot(cnNode* node) {
 }
 
 
+cnCount cnNodeVarDepth(cnNode* node) {
+  cnCount depth = 0;
+  while (node->parent) {
+    node = node->parent;
+    depth += node->type == cnNodeTypeVar;
+  }
+  return depth;
+}
+
+
 void cnRootNodeDispose(cnRootNode* root) {
   // Dispose of the kid.
   if (root->kid) {
