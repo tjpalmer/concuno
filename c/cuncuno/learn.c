@@ -2,6 +2,12 @@
 #include "learn.h"
 
 
+/**
+ * Updates all the leaf probabilities in the tree.
+ */
+void cnUpdateLeafProbabilities(cnRootNode* root);
+
+
 void cnLearnerDispose(cnLearner* learner) {
   // Nothing yet.
 }
@@ -13,7 +19,9 @@ void cnLearnerInit(cnLearner* learner) {
 
 
 cnRootNode* cnLearnerLearn(cnLearner* learner, cnRootNode* initial) {
-  //
+  // TODO Figure out the initial LL and such.
+  cnList leaves;
+  cnUpdateLeafProbabilities(initial);
 }
 
 

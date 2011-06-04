@@ -188,21 +188,28 @@ cnCount cnNodeKidCount(cnNode* node);
 
 
 /**
- * Stores all leaves under this node in the given list.
- */
-void cnNodeLeaves(cnNode* node, cnList* leaves);
-
-
-/**
  * You don't usually need to call this directly.
  */
 void cnNodeInit(cnNode* node, cnNodeType type);
 
 
 /**
+ * Stores all leaves under this node in the given list.
+ */
+void cnNodeLeaves(cnNode* node, cnList* leaves);
+
+
+/**
  * Assigns the given bindings to this node, then propagates down.
  */
 cnBool cnNodePropagate(cnNode* node, cnBindingBagList* bindingBags);
+
+
+/**
+ * Replaces the kid at the index, if any, with the new kid, disposing of and
+ * freeing the old one if any.
+ */
+void cnNodePutKid(cnNode* parent, cnIndex k, cnNode* kid);
 
 
 /**

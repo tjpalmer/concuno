@@ -31,14 +31,12 @@ void cnLearnerInit(cnLearner* learner);
  *
  * For now, it returns a new tree, as that's not very wasteful compared to
  * everything else going on, and I think it will be easier to do this way.
+ *
+ * There still might be side effects to the initial tree, however.
+ *
+ * TODO Be more precise about side effects might exist.
  */
 cnRootNode* cnLearnerLearn(cnLearner* learner, cnRootNode* initial);
-
-
-/**
- * Updates all the leaf probabilities in the tree.
- */
-void cnUpdateLeafProbabilities(cnRootNode* root);
 
 
 #endif

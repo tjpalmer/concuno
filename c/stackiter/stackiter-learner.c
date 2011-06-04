@@ -104,7 +104,6 @@ int main(int argc, char** argv) {
   }
 
   // Learn a tree.
-  cnUpdateLeafProbabilities(&stubTree);
   cnLearnerInit(&learner);
   learnedTree = cnLearnerLearn(&learner, &stubTree);
 

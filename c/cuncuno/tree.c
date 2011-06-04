@@ -118,6 +118,14 @@ void cnLeafNodeInit(cnLeafNode* leaf) {
 }
 
 
+void cnNodeInit(cnNode* node, cnNodeType type) {
+  node->bindingBagList = NULL;
+  node->id = -1;
+  node->parent = NULL;
+  node->type = type;
+}
+
+
 cnNode** cnNodeKids(cnNode* node) {
   switch (node->type) {
   case cnNodeTypeLeaf:
@@ -183,11 +191,34 @@ cnBool cnNodePropagate(cnNode* node, cnBindingBagList* bindingBags) {
 }
 
 
-void cnNodeInit(cnNode* node, cnNodeType type) {
-  node->bindingBagList = NULL;
-  node->id = -1;
-  node->parent = NULL;
-  node->type = type;
+void cnNodePutKid(cnNode* parent, cnIndex k, cnNode* kid) {
+  cnNode** kids = cnNodeKids(parent);
+  cnNode* old = kids[k];
+  cnRootNode* root;
+  if (old) {
+    // TODO Combined drop?
+    cnNodeDispose(old);
+    free(old);
+  }
+  kids[k] = kid;
+  kid->parent = kid;
+  root = cnNodeRoot(parent);
+  if (root) {
+    // TODO Abstract the nextId update process?
+    kid->id = root->nextId;
+    root->nextId++;
+  }
+}
+
+
+cnRootNode* cnNodeRoot(cnNode* node) {
+  while (node->parent) {
+    node = node->parent;
+  }
+  if (node->type == cnNodeTypeRoot) {
+    return (cnRootNode*)node;
+  }
+  return NULL;
 }
 
 
@@ -210,7 +241,8 @@ cnBool cnRootNodeInit(cnRootNode* root, cnBool addLeaf) {
   root->entityFunctions = NULL;
   root->nextId = 1;
   if (addLeaf) {
-    root->kid = &cnLeafNodeCreate()->node;
+    cnNode* kid = &cnLeafNodeCreate()->node;
+    cnNodePutKid(&root->node, 0, kid);
     root->kid->parent = &root->node;
   }
   return cnTrue;
