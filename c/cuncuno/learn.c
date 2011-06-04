@@ -20,7 +20,9 @@ cnRootNode* cnExpandAtLeaf(cnLearner* learner, cnLeafNode* leaf) {
   cnListEachBegin(root->entityFunctions, cnEntityFunction, function) {
     if (function->inCount > varDepth) {
       cnCount varsNeeded = function->inCount - varDepth;
-      printf("Need %ld more vars.\n", varsNeeded);
+      printf(
+        "Need %ld more vars for %s.\n", varsNeeded, cnStr(&function->name)
+      );
       // TODO Add vars as needed.
     }
     // TODO Add split on function.
