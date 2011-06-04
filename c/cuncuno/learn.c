@@ -19,12 +19,17 @@ cnRootNode* cnExpandAtLeaf(cnLearner* learner, cnLeafNode* leaf) {
   // TODO Safe to assume functions already sorted by arity?
   cnListEachBegin(root->entityFunctions, cnEntityFunction, function) {
     if (function->inCount > varDepth) {
+      cnCount varsAdded;
       cnCount varsNeeded = function->inCount - varDepth;
       printf(
         "Need %ld more vars for %s.\n", varsNeeded, cnStr(&function->name)
       );
       // TODO Add vars as needed.
+      for (varsAdded = 0; varsAdded < varsNeeded; varsAdded++) {
+        // TODO Add vars.
+      }
     }
+    // TODO Clone before adding split??
     // TODO Add split on function.
   } cnEnd;
   return bestYet;
