@@ -6,6 +6,7 @@
 
 int main(int argc, char** argv) {
   cnList bags;
+  cnBindingBagList* bindingBags;
   cnEntityFunction *differenceFunction, *entityFunction;
   cnList entityFunctions;
   cnSchema schema;
@@ -53,6 +54,7 @@ int main(int argc, char** argv) {
   }
 
   // Set up entity functions.
+  // TODO Extract this setup, and make it easier to do.
   cnListInit(&entityFunctions, sizeof(cnEntityFunction));
   if (!(entityFunction = cnListExpand(&entityFunctions))) {
     printf("Failed to expand functions.\n");
@@ -85,19 +87,21 @@ int main(int argc, char** argv) {
   }
   tree.entityFunctions = &entityFunctions;
 
+  // Propagate empty binding bags.
+  if (!(bindingBags = cnBindingBagListCreate())) {
+    printf("Failed to create bindings.\n");
+    goto DISPOSE_TREE;
+  }
+  if (!cnBindingBagListPushBags(bindingBags, &bags)) {
+    printf("Failed to push bindings.\n");
+    goto DROP_BINDING_BAGS;
+  }
+  if (!cnNodePropagate(&tree.node, bindingBags)) {
+    printf("Failed to propagate bindings in stub tree.\n");
+    goto DROP_BINDING_BAGS;
+  }
+
   /*
-    // TODO Support copied and/or extended types???
-    Type itemType(Entity2D::type());
-    itemType.size = sizeof(Item);
-
-    Learner learner(itemType);
-    DifferenceFunction difference(itemType.system.$float().arrayType(2));
-    // TODO Once we have multiple attributes, how do we get location easily?
-    PointerFunction location(*itemType.attributes.front().get);
-    ComposedFunction differenceLocation(difference, location);
-    learner.functions.push_back(&location);
-    learner.functions.push_back(&differenceLocation);
-
     // Simple test/profiling. TODO Try again with pointers support.
     //    Function& blah(difference);
     //    Float ab[] = {1.5, 3.0, 2.0, 0.3};
@@ -113,6 +117,11 @@ int main(int argc, char** argv) {
   */
 
   status = EXIT_SUCCESS;
+
+  DROP_BINDING_BAGS:
+  // Could actually do this earlier, but we'll effectively hang onto this until
+  // the end anyway, so no big deal.
+  cnBindingBagListDrop(&bindingBags);
 
   DISPOSE_TREE:
   cnNodeDispose(&tree.node);

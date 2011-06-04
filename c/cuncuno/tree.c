@@ -15,12 +15,18 @@ void cnBindingDispose(cnBinding* binding) {
 
 
 void cnBindingBagDispose(cnBindingBag* bindingBag) {
+  bindingBag->bag = NULL;
   cnListEachBegin(&bindingBag->bindings, cnBinding, binding) {
     cnBindingDispose(binding);
   } cnEnd;
   cnListDispose(&bindingBag->bindings);
 }
 
+
+void cnBindingBagInit(cnBindingBag* bindingBag, cnBag* bag) {
+  bindingBag->bag = bag;
+  cnListInit(&bindingBag->bindings, sizeof(cnBinding));
+}
 
 cnBindingBagList* cnBindingBagListCreate(void) {
   cnBindingBagList* list = malloc(sizeof(cnBindingBagList));
@@ -32,20 +38,39 @@ cnBindingBagList* cnBindingBagListCreate(void) {
 }
 
 
-void cnBindingBagListDrop(cnBindingBagList* list) {
-  if (!list) {
+void cnBindingBagListDrop(cnBindingBagList** list) {
+  cnBindingBagList* direct = *list;
+  if (!direct) {
     return;
   }
-  list->refCount--;
-  if (list->refCount < 1) {
-    if (list->refCount < 0) {
-      printf("Negative refCount: %ld\n", list->refCount);
+  direct->refCount--;
+  if (direct->refCount < 1) {
+    if (direct->refCount < 0) {
+      printf("Negative refCount: %ld\n", direct->refCount);
     }
-    cnListEachBegin(&list->bindingBags, cnBindingBag, bindingBag) {
+    cnListEachBegin(&direct->bindingBags, cnBindingBag, bindingBag) {
       cnBindingBagDispose(bindingBag);
     } cnEnd;
-    free(list);
+    cnListDispose(&direct->bindingBags);
+    free(direct);
+    *list = NULL;
   }
+}
+
+
+cnBool cnBindingBagListPushBags(
+  cnBindingBagList* bindingBags, const cnList* bags
+) {
+  // Preallocate all the space we need.
+  cnBindingBag* bindingBag =
+    cnListExpandMulti(&bindingBags->bindingBags, bags->count);
+  if (!bindingBag) return cnFalse;
+  // Now init each one.
+  cnListEachBegin(bags, cnBag, bag) {
+    cnBindingBagInit(bindingBag, bag);
+    bindingBag++;
+  } cnEnd;
+  return cnTrue;
 }
 
 
@@ -63,14 +88,8 @@ cnLeafNode* cnLeafNodeCreate(void) {
 }
 
 
-void cnLeafNodeInit(cnLeafNode* leaf) {
-  cnNodeInit(&leaf->node, cnNodeTypeLeaf);
-  leaf->probability = 0;
-}
-
-
 void cnNodeDispose(cnNode* node) {
-  cnBindingBagListDrop(node->bindingBagList);
+  cnBindingBagListDrop(&node->bindingBagList);
   // TODO Dispose of child nodes.
   switch (node->type) {
   case cnNodeTypeLeaf:
@@ -83,6 +102,18 @@ void cnNodeDispose(cnNode* node) {
     printf("I don't handle type %u yet.\n", node->type);
     break;
   }
+}
+
+
+void cnLeafNodeInit(cnLeafNode* leaf) {
+  cnNodeInit(&leaf->node, cnNodeTypeLeaf);
+  leaf->probability = 0;
+}
+
+
+cnBool cnNodePropagate(cnNode* node, cnBindingBagList* bindingBags) {
+  // TODO Do something based on node type.
+  return cnTrue;
 }
 
 

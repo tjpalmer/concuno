@@ -129,6 +129,9 @@ void cnBindingDispose(cnBinding* binding);
 void cnBindingBagDispose(cnBindingBag* bindingBag);
 
 
+void cnBindingBagInit(cnBindingBag* bindingBag, cnBag* bag);
+
+
 /**
  * Creates a new binding bag list, with a ref count of 1.
  *
@@ -136,15 +139,24 @@ void cnBindingBagDispose(cnBindingBag* bindingBag);
  */
 cnBindingBagList* cnBindingBagListCreate(void);
 
+
+/**
+ * Push on the bags as new empty bindings on the given list.
+ */
+cnBool cnBindingBagListPushBags(
+  cnBindingBagList* bindingBags, const cnList* bags
+);
+
+
 /**
  * Decrements refCount and disposes if at zero. If disposed, it disposes of the
- * bindingBags. It then frees the list itself.
+ * bindingBags. It then frees the list itself, and sets the pointer to null.
  *
  * If the list pointer is null, then this function does nothing.
  *
  * TODO Generalize ref-counted types?
  */
-void cnBindingBagListDrop(cnBindingBagList* list);
+void cnBindingBagListDrop(cnBindingBagList** list);
 
 
 cnLeafNode* cnLeafNodeCreate(void);
@@ -161,6 +173,9 @@ void cnNodeDispose(cnNode* node);
  * You don't usually need to call this directly.
  */
 void cnNodeInit(cnNode* node, cnNodeType type);
+
+
+cnBool cnNodePropagate(cnNode* node, cnBindingBagList* bindingBags);
 
 
 /**
