@@ -101,6 +101,9 @@ int main(int argc, char** argv) {
     goto DROP_BINDING_BAGS;
   }
 
+  // Report initial probability.
+  cnUpdateLeafProbabilities(&tree);
+
   /*
     // Simple test/profiling. TODO Try again with pointers support.
     //    Function& blah(difference);

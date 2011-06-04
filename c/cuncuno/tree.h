@@ -141,14 +141,6 @@ cnBindingBagList* cnBindingBagListCreate(void);
 
 
 /**
- * Push on the bags as new empty bindings on the given list.
- */
-cnBool cnBindingBagListPushBags(
-  cnBindingBagList* bindingBags, const cnList* bags
-);
-
-
-/**
  * Decrements refCount and disposes if at zero. If disposed, it disposes of the
  * bindingBags. It then frees the list itself, and sets the pointer to null.
  *
@@ -157,6 +149,14 @@ cnBool cnBindingBagListPushBags(
  * TODO Generalize ref-counted types?
  */
 void cnBindingBagListDrop(cnBindingBagList** list);
+
+
+/**
+ * Push on the bags as new empty bindings on the given list.
+ */
+cnBool cnBindingBagListPushBags(
+  cnBindingBagList* bindingBags, const cnList* bags
+);
 
 
 cnLeafNode* cnLeafNodeCreate(void);
@@ -175,14 +175,23 @@ void cnNodeDispose(cnNode* node);
 void cnNodeInit(cnNode* node, cnNodeType type);
 
 
+/**
+ * Assigns the given bindings to this node, then propagates down.
+ */
 cnBool cnNodePropagate(cnNode* node, cnBindingBagList* bindingBags);
+
+
+/**
+ * Returns the node at the top of this tree if a root node and null otherwise.
+ */
+cnRootNode* cnNodeRoot(cnNode* node);
 
 
 /**
  * Specify whether to add a leaf. That failing is the only reason root node
  * init would fail.
  */
-cnBool cnRootNodeInit(cnRootNode* node, cnBool addLeaf);
+cnBool cnRootNodeInit(cnRootNode* root, cnBool addLeaf);
 
 
 #endif

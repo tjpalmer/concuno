@@ -2,7 +2,10 @@
 #include "tree.h"
 
 
-void cnRootNodeDispose(cnRootNode* node);
+void cnRootNodeDispose(cnRootNode* root);
+
+
+void cnRootNodePropagate(cnRootNode* root);
 
 
 void cnLeafNodeInit(cnLeafNode* leaf);
@@ -89,7 +92,6 @@ cnLeafNode* cnLeafNodeCreate(void) {
 
 
 void cnNodeDispose(cnNode* node) {
-  cnBindingBagListDrop(&node->bindingBagList);
   // TODO Dispose of child nodes.
   switch (node->type) {
   case cnNodeTypeLeaf:
@@ -102,6 +104,9 @@ void cnNodeDispose(cnNode* node) {
     printf("I don't handle type %u yet.\n", node->type);
     break;
   }
+  // Base node disposal.
+  cnBindingBagListDrop(&node->bindingBagList);
+  cnNodeInit(node, node->type);
 }
 
 
@@ -112,7 +117,20 @@ void cnLeafNodeInit(cnLeafNode* leaf) {
 
 
 cnBool cnNodePropagate(cnNode* node, cnBindingBagList* bindingBags) {
-  // TODO Do something based on node type.
+  // TODO Or just push them onto any existing?
+  node->bindingBagList = bindingBags;
+  bindingBags->refCount++;
+  switch (node->type) {
+  case cnNodeTypeLeaf:
+    // Nothing to do for leaf nodes.
+    break;
+  case cnNodeTypeRoot:
+    cnRootNodePropagate((cnRootNode*)node);
+    break;
+  default:
+    printf("I don't handle type %u yet.\n", node->type);
+    break;
+  }
   return cnTrue;
 }
 
@@ -125,26 +143,34 @@ void cnNodeInit(cnNode* node, cnNodeType type) {
 }
 
 
-void cnRootNodeDispose(cnRootNode* node) {
+void cnRootNodeDispose(cnRootNode* root) {
   // Dispose of the kid.
-  if (node->kid) {
+  if (root->kid) {
     // TODO Unified drop?
-    cnNodeDispose(node->kid);
-    free(node->kid);
+    cnNodeDispose(root->kid);
+    free(root->kid);
   }
   // TODO Anything else special?
-  cnRootNodeInit(node, cnFalse);
+  cnRootNodeInit(root, cnFalse);
 }
 
 
-cnBool cnRootNodeInit(cnRootNode* node, cnBool addLeaf) {
-  cnNodeInit(&node->node, cnNodeTypeRoot);
-  node->node.id = 0;
-  node->kid = NULL;
-  node->entityFunctions = NULL;
-  node->nextId = 1;
+cnBool cnRootNodeInit(cnRootNode* root, cnBool addLeaf) {
+  cnNodeInit(&root->node, cnNodeTypeRoot);
+  root->node.id = 0;
+  root->kid = NULL;
+  root->entityFunctions = NULL;
+  root->nextId = 1;
   if (addLeaf) {
-    node->kid = &cnLeafNodeCreate()->node;
+    root->kid = &cnLeafNodeCreate()->node;
+    root->kid->parent = &root->node;
   }
   return cnTrue;
+}
+
+
+void cnRootNodePropagate(cnRootNode* root) {
+  if (root->kid) {
+    cnNodePropagate(root->kid, root->node.bindingBagList);
+  }
 }

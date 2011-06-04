@@ -5,6 +5,7 @@ headers = \
 	c/cuncuno/core.h \
 	c/cuncuno/cuncuno.h \
 	c/cuncuno/entity.h \
+	c/cuncuno/learn.h \
 	c/cuncuno/io.h \
 	c/cuncuno/tree.h \
 	c/stackiter/chooser.h \
@@ -16,6 +17,7 @@ sources = \
 	c/cuncuno/core.c \
 	c/cuncuno/entity.c \
 	c/cuncuno/io.c \
+	c/cuncuno/learn.c \
 	c/cuncuno/tree.c \
 	c/stackiter/chooser.c \
 	c/stackiter/loader.c \
