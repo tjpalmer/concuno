@@ -164,6 +164,11 @@ void cnBagInit(cnBag* bag);
 void cnEntityFunctionDispose(cnEntityFunction* function);
 
 
+cnBool cnEntityFunctionInitDifference(
+  cnEntityFunction* function, const cnEntityFunction* base
+);
+
+
 /**
  * Creates an entity function that just performs a property get.
  */

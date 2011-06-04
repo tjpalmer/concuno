@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <string.h>
 #include "entity.h"
 
@@ -28,11 +29,67 @@ void cnEntityFunctionDispose(cnEntityFunction* function) {
 }
 
 
-void cnEntityFunctionPropertyGet(
+void cnEntityFunctionGetDifference(
+  const cnEntityFunction* function, const void *const *ins, void* outs
+) {
+  // TODO Remove float assumption here.
+  cnIndex i;
+  cnEntityFunction* base = function->data;
+  cnFloat* x = malloc(function->outCount * sizeof(cnFloat));
+  cnFloat* result = outs;
+  if (!x) {
+    // TODO Some way to report errors. Just zero out for now.
+    for (i = 0; i < function->outCount; i++) {
+      result[i] = 0;
+    }
+    return;
+  }
+  base->get(base, ins, result);
+  base->get(base, ins + 1, x);
+  for (i = 0; i < function->outCount; i++) {
+    result[i] -= x[i];
+  }
+  free(x);
+}
+
+
+void cnEntityFunctionGetProperty(
   const cnEntityFunction* function, const void *const *ins, void* outs
 ) {
   cnProperty* property = function->data;
   property->get(property, *ins, outs);
+}
+
+
+cnBool cnEntityFunctionInitDifference(
+  cnEntityFunction* function, const cnEntityFunction* base
+) {
+  function->data = (void*)base;
+  function->dispose = NULL;
+  function->inCount = 2;
+  function->outCount = base->outCount;
+  function->outTopology = base->outTopology;
+  // TODO Verify non-nulls?
+  if (base->outType != base->outType->schema->floatType) {
+    // TODO Supply a difference function for generic handling?
+    printf("Only works for floats so far.\n");
+    // If this dispose follows the nulled dispose pointer, we're okay.
+    cnEntityFunctionDispose(function);
+    return cnFalse;
+  }
+  function->outType = base->outType;
+  function->get = cnEntityFunctionGetDifference;
+  cnStringInit(&function->name);
+  // Deal with this last, to make sure everything else is sane first.
+  if (!cnStringPushStr(&function->name, "Difference")) {
+    cnEntityFunctionDispose(function);
+    return cnFalse;
+  }
+  if (!cnStringPushStr(&function->name, cnStr((cnString*)&base->name))) {
+    cnEntityFunctionDispose(function);
+    return cnFalse;
+  }
+  return cnTrue;
 }
 
 
@@ -45,10 +102,11 @@ cnBool cnEntityFunctionInitProperty(
   function->outCount = property->count;
   function->outTopology = property->topology;
   function->outType = property->type;
-  function->get = cnEntityFunctionPropertyGet;
+  function->get = cnEntityFunctionGetProperty;
   cnStringInit(&function->name);
   // The one thing that can fail directly here.
-  if (!cnStringPushStr(&function->name, property->name.items)) {
+  if (!cnStringPushStr(&function->name, cnStr((cnString*)&property->name))) {
+    cnEntityFunctionDispose(function);
     return cnFalse;
   }
   return cnTrue;
