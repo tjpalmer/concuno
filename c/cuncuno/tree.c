@@ -12,6 +12,9 @@ void cnRootNodeDispose(cnRootNode* root);
 void cnRootNodePropagate(cnRootNode* root);
 
 
+void cnVarNodeDispose(cnVarNode* var);
+
+
 cnBool cnVarNodeInit(cnVarNode* var, cnBool addLeaf);
 
 
@@ -106,6 +109,9 @@ void cnNodeDispose(cnNode* node) {
   case cnNodeTypeRoot:
     cnRootNodeDispose((cnRootNode*)node);
     break;
+  case cnNodeTypeVar:
+    cnVarNodeDispose((cnVarNode*)node);
+    break;
   default:
     printf("I don't handle type %u yet.\n", node->type);
     break;
@@ -118,6 +124,17 @@ void cnNodeDispose(cnNode* node) {
 void cnLeafNodeInit(cnLeafNode* leaf) {
   cnNodeInit(&leaf->node, cnNodeTypeLeaf);
   leaf->probability = 0;
+}
+
+
+void cnNodeAttachDeep(cnRootNode* root, cnNode* node) {
+  cnNode** kid = cnNodeKids(node);
+  cnNode** end = kid + cnNodeKidCount(node);
+  node->id = root->nextId;
+  root->nextId++;
+  for (; kid < end; kid++) {
+    cnNodeAttachDeep(root, *kid);
+  }
 }
 
 
@@ -187,7 +204,7 @@ cnBool cnNodePropagate(cnNode* node, cnBindingBagList* bindingBags) {
     cnRootNodePropagate((cnRootNode*)node);
     break;
   default:
-    printf("I don't handle type %u yet.\n", node->type);
+    printf("I don't handle type %u yet for prop.\n", node->type);
     break;
   }
   return cnTrue;
@@ -207,9 +224,20 @@ void cnNodePutKid(cnNode* parent, cnIndex k, cnNode* kid) {
   kid->parent = parent;
   root = cnNodeRoot(parent);
   if (root) {
-    // TODO Abstract the nextId update process?
-    kid->id = root->nextId;
-    root->nextId++;
+    cnNodeAttachDeep(root, kid);
+  }
+}
+
+
+void cnNodeReplaceKid(cnNode* oldKid, cnNode* newKid) {
+  cnCount k;
+  cnCount kidCount = cnNodeKidCount(oldKid->parent);
+  cnNode** kid = cnNodeKids(oldKid->parent);
+  for (k = 0; k < kidCount; k++, kid++) {
+    if (*kid == oldKid) {
+      cnNodePutKid(oldKid->parent, k, newKid);
+      break;
+    }
   }
 }
 
@@ -279,8 +307,21 @@ cnVarNode* cnVarNodeCreate(cnBool addLeaf) {
 }
 
 
+void cnVarNodeDispose(cnVarNode* var) {
+  // Dispose of the kid.
+  if (var->kid) {
+    // TODO Unified drop?
+    cnNodeDispose(var->kid);
+    free(var->kid);
+  }
+  // TODO Anything else special?
+  cnVarNodeInit(var, cnFalse);
+}
+
+
 cnBool cnVarNodeInit(cnVarNode* var, cnBool addLeaf) {
   cnNodeInit(&var->node, cnNodeTypeVar);
+  var->kid = NULL;
   if (addLeaf) {
     cnLeafNode* leaf = cnLeafNodeCreate();
     if (!leaf) {

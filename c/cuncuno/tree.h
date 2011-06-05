@@ -34,7 +34,8 @@ typedef struct cnBindingBagList {
 
 
 typedef enum {
-  cnNodeTypeNone, cnNodeTypeRoot, cnNodeTypeVar, cnNodeTypeSplit, cnNodeTypeLeaf
+  cnNodeTypeNone, cnNodeTypeRoot, cnNodeTypeLeaf, cnNodeTypeSplit,
+  cnNodeTypeVar
 } cnNodeType;
 
 
@@ -210,6 +211,12 @@ cnBool cnNodePropagate(cnNode* node, cnBindingBagList* bindingBags);
  * freeing the old one if any.
  */
 void cnNodePutKid(cnNode* parent, cnIndex k, cnNode* kid);
+
+
+/**
+ * Replaces the given old kid with the new kid, disposing of the old.
+ */
+void cnNodeReplaceKid(cnNode* oldKid, cnNode* newKid);
 
 
 /**

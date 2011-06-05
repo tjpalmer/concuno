@@ -22,7 +22,7 @@ cnRootNode* cnExpandAtLeaf(cnLearner* learner, cnLeafNode* leaf) {
   cnCount varDepth = cnNodeVarDepth(&leaf->node);
 
   // Find the min and max arity.
-  // TODO Sort by arity?
+  // TODO Sort by arity? Or assume priority given by order?
   cnListEachBegin(root->entityFunctions, cnEntityFunction, function) {
     if (function->inCount < minArity) {
       minArity = function->inCount;
@@ -46,9 +46,13 @@ cnRootNode* cnExpandAtLeaf(cnLearner* learner, cnLeafNode* leaf) {
   // Start added vars from low to high. Allow up to as many new vars as we have
   // arity for functions.
   for (varsAdded = minNewVarCount; varsAdded <= maxArity; varsAdded++) {
-    // TODO cnVarNode* var = cnVarNodeCreate();
-    // TODO Replace leaf with this.
+    cnVarNode* var = cnVarNodeCreate(cnTrue);
+    // TODO Check for null var!
+    cnNodeReplaceKid(&leaf->node, &var->node);
+    // TODO Propagate.
+    leaf = *(cnLeafNode**)cnNodeKids(&var->node);
     varDepth++;
+    // TODO Loop on arities to guarantee increasing order by arity?
     cnListEachBegin(root->entityFunctions, cnEntityFunction, function) {
       if (function->inCount > varDepth) {
         printf(
@@ -69,7 +73,6 @@ cnRootNode* cnExpandAtLeaf(cnLearner* learner, cnLeafNode* leaf) {
       // TODO Add split on function.
     } cnEnd;
   }
-
 
   return bestYet;
 }
