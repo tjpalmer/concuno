@@ -231,4 +231,7 @@ cnCount cnNodeVarDepth(cnNode* node);
 cnBool cnRootNodeInit(cnRootNode* root, cnBool addLeaf);
 
 
+cnVarNode* cnVarNodeCreate(cnBool addLeaf);
+
+
 #endif

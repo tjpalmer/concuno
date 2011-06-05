@@ -3,13 +3,16 @@
 #include "tree.h"
 
 
+void cnLeafNodeInit(cnLeafNode* leaf);
+
+
 void cnRootNodeDispose(cnRootNode* root);
 
 
 void cnRootNodePropagate(cnRootNode* root);
 
 
-void cnLeafNodeInit(cnLeafNode* leaf);
+cnBool cnVarNodeInit(cnVarNode* var, cnBool addLeaf);
 
 
 void cnBindingDispose(cnBinding* binding) {
@@ -201,7 +204,7 @@ void cnNodePutKid(cnNode* parent, cnIndex k, cnNode* kid) {
     free(old);
   }
   kids[k] = kid;
-  kid->parent = kid;
+  kid->parent = parent;
   root = cnNodeRoot(parent);
   if (root) {
     // TODO Abstract the nextId update process?
@@ -251,9 +254,11 @@ cnBool cnRootNodeInit(cnRootNode* root, cnBool addLeaf) {
   root->entityFunctions = NULL;
   root->nextId = 1;
   if (addLeaf) {
-    cnNode* kid = &cnLeafNodeCreate()->node;
-    cnNodePutKid(&root->node, 0, kid);
-    root->kid->parent = &root->node;
+    cnLeafNode* leaf = cnLeafNodeCreate();
+    if (!leaf) {
+      return cnFalse;
+    }
+    cnNodePutKid(&root->node, 0, &leaf->node);
   }
   return cnTrue;
 }
@@ -263,4 +268,25 @@ void cnRootNodePropagate(cnRootNode* root) {
   if (root->kid) {
     cnNodePropagate(root->kid, root->node.bindingBagList);
   }
+}
+
+
+cnVarNode* cnVarNodeCreate(cnBool addLeaf) {
+  cnVarNode* var = malloc(sizeof(cnVarNode));
+  if (!var) return cnFalse;
+  cnVarNodeInit(var, addLeaf);
+  return var;
+}
+
+
+cnBool cnVarNodeInit(cnVarNode* var, cnBool addLeaf) {
+  cnNodeInit(&var->node, cnNodeTypeVar);
+  if (addLeaf) {
+    cnLeafNode* leaf = cnLeafNodeCreate();
+    if (!leaf) {
+      return cnFalse;
+    }
+    cnNodePutKid(&var->node, 0, &leaf->node);
+  }
+  return cnTrue;
 }
