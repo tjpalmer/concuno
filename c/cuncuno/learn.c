@@ -41,6 +41,20 @@ typedef struct cnExpansion {
 cnRootNode* cnExpandedTree(cnLearner* learner, cnExpansion* expansion);
 
 
+cnBool cnPushExpansionsByIndices(
+  cnList(cnExpansion)* expansions, cnExpansion* prototype, cnCount varDepth
+);
+
+
+/**
+ * Recursively push new expansions
+ */
+cnBool cnRecurseExpansions(
+  cnList(cnExpansion)* expansions, cnExpansion* prototype, cnCount varDepth,
+  cnIndex* indices, cnCount filledCount
+);
+
+
 cnRootNode* cnTryExpansionsAtLeaf(cnLearner* learner, cnLeafNode* leaf);
 
 
@@ -64,6 +78,157 @@ cnRootNode* cnExpandedTree(cnLearner* learner, cnExpansion* expansion) {
   // TODO Optimize split.
   // TODO Return new tree.
   return NULL;
+}
+
+
+void cnLearnerDispose(cnLearner* learner) {
+  // Nothing yet.
+}
+
+
+void cnLearnerInit(cnLearner* learner) {
+  // Nothing yet.
+}
+
+
+cnRootNode* cnLearnerLearn(cnLearner* learner, cnRootNode* initial) {
+  cnLeafNode* leaf;
+  cnList(cnLeafNode*) leaves;
+  // Make sure leaf probs are up to date.
+  // TODO Figure out the initial LL and such.
+  cnUpdateLeafProbabilities(initial);
+  /* TODO Loop this section. */ {
+    /* Pick a leaf to expand. */ {
+      // Get the leaves (over again, yes).
+      cnListInit(&leaves, sizeof(cnLeafNode*));
+      cnNodeLeaves(&initial->node, &leaves);
+      if (leaves.count < 1) {
+        printf("No leaves to expand.\n");
+        return NULL;
+      }
+      // TODO Pick the best leaf instead of the first.
+      leaf = *(cnLeafNode**)leaves.items;
+      // Clean up list of leaves.
+      cnListDispose(&leaves);
+    }
+    return cnTryExpansionsAtLeaf(learner, leaf);
+  }
+}
+
+
+cnBool cnLoopArity(
+  cnList(cnExpansion)* expansions, cnExpansion* prototype, cnCount varDepth,
+  cnIndex* indices, cnIndex index, cnCount filledCount
+) {
+  cnIndex a;
+  cnCount arity = prototype->function->inCount;
+  for (a = 0; a < arity; a++) {
+    if (indices[a] < 0) {
+      indices[a] = index;
+      if (!cnRecurseExpansions(
+        expansions, prototype, varDepth, indices, filledCount + 1
+      )) {
+        return cnFalse;
+      }
+      indices[a] = -1;
+    }
+  }
+  return cnTrue;
+}
+
+cnBool cnPushExpansionsByIndices(
+  cnList(cnExpansion)* expansions, cnExpansion* prototype, cnCount varDepth
+) {
+  // TODO Validate counts match up? Or just trust context since this function
+  // TODO is private to this file?
+  cnCount arity = prototype->function->inCount;
+  cnIndex* index;
+  cnIndex* indices = malloc(arity * sizeof(cnIndex));
+  cnIndex* end = indices + arity;
+  cnBool result;
+  if (!indices) {
+    printf("Failed to allocate indices.\n");
+    return cnFalse;
+  }
+  // Init to -1 as "not assigned".
+  for (index = indices; index < end; index++) {
+    *index = -1;
+  }
+  // TODO Consider symmetry on functions for new vars?
+  result = cnRecurseExpansions(
+    expansions, prototype, varDepth, indices, varDepth - prototype->newVarCount
+  );
+  free(indices);
+  return result;
+}
+
+
+cnBool cnRecurseExpansions(
+  cnList(cnExpansion)* expansions, cnExpansion* prototype, cnCount varDepth,
+  cnIndex* indices, cnCount filledCount
+) {
+  cnIndex a;
+  cnCount arity = prototype->function->inCount;
+  cnIndex index = arity - prototype->newVarCount + filledCount;
+  //printf("cnRecurseExpansions(..., %ld, ..., %ld)\n", varDepth, filledCount);
+  //printf("Index: %ld\n", index);
+  //printf("Indices: ");
+  //for (a = 0; a < arity; a++) {
+  //  printf("%ld%s ", indices[a], indices[a] == index ? "*" : "");
+  //}
+  //printf("\n");
+  if (filledCount >= arity) {
+    // All filled up. Push an expansion with the given indices.
+    // TODO Consider symmetry on functions for new vars?
+    if (!(prototype->varIndices = malloc(arity * sizeof(cnIndex)))) {
+      return cnFalse;
+    }
+    if (!cnListPush(expansions, prototype)) {
+      free(prototype->varIndices);
+      return cnFalse;
+    }
+    // Revert the prototype.
+    prototype->varIndices = NULL;
+    //printf("Done.\n");
+    return cnTrue;
+  }
+  // Check if committed are used up.
+  if (index >= varDepth) {
+    //printf("Past committed.\n");
+    // Got to the end of committed vars, so go back to the beginning.
+    cnCount uncommittedCount = varDepth - prototype->newVarCount;
+    for (index = 0; index < uncommittedCount; index++) {
+      // See if we've already used this index.
+      // TODO Replace this loop on indices with something constant time?
+      cnBool used = cnFalse;
+      for (a = 0; a < arity; a++) {
+        if (indices[a] == index) {
+          used = cnTrue;
+          break;
+        }
+      }
+      if (!used) {
+        // Index not used. Try all the remaining spots for it.
+        // Note that the recursive call here is slightly different than for the
+        // loop below on committed vars. That makes it awkward to combine in
+        // one.
+        if (!cnLoopArity(
+          expansions, prototype, varDepth, indices, index, filledCount
+        )) {
+          return cnFalse;
+        }
+      }
+    }
+  } else {
+    //printf("Still committed.\n");
+    // Still on committed variables. This index gets a spot for sure.
+    if (!cnLoopArity(
+      expansions, prototype, varDepth, indices, index, filledCount
+    )) {
+      return cnFalse;
+    }
+  }
+  return cnTrue;
 }
 
 
@@ -104,7 +269,7 @@ cnRootNode* cnTryExpansionsAtLeaf(cnLearner* learner, cnLeafNode* leaf) {
   // Start added vars from low to high. Allow up to as many new vars as we have
   // arity for functions.
   for (newVarCount = minNewVarCount; newVarCount <= maxArity; newVarCount++) {
-    cnExpansion* expansion;
+    cnExpansion expansion;
     varDepth++;
     cnListEachBegin(root->entityFunctions, cnEntityFunction, function) {
       if (function->inCount > varDepth) {
@@ -122,22 +287,20 @@ cnRootNode* cnTryExpansionsAtLeaf(cnLearner* learner, cnLeafNode* leaf) {
         );
         continue;
       }
-      // TODO This should be a loop here of some sort.
-      // TODO Find all available permutations of vars, committing new vars.
-      if (!(expansion = cnListExpand(&expansions))) {
-        printf("Failed to allocate expansion.\n");
+      // Init a prototype expansion, then push index permutations.
+      expansion.function = function;
+      expansion.leaf = leaf;
+      expansion.newVarCount = newVarCount;
+      expansion.varIndices = NULL;
+      if (!cnPushExpansionsByIndices(&expansions, &expansion, varDepth)) {
+        printf("Failed to push expansions.\n");
         goto DONE;
       }
-      expansion->function = function;
-      expansion->leaf = leaf;
-      expansion->newVarCount = newVarCount;
-      // TODO The actual array of vars.
-      expansion->varIndices = NULL;
     } cnEnd;
   }
 
-  // TODO Sort by arity? Or assume priority given by order?
-  // TODO Some kind of heuristic?
+  // TODO Sort by arity? Or assume priority given by order? Some kind of
+  // TODO heuristic?
   printf("Need to try %ld expansions.\n", expansions.count);
   cnListEachBegin(&expansions, cnExpansion, expansion) {
     cnRootNode* expanded = cnExpandedTree(learner, expansion);
@@ -151,41 +314,6 @@ cnRootNode* cnTryExpansionsAtLeaf(cnLearner* learner, cnLeafNode* leaf) {
   } cnEnd;
   cnListDispose(&expansions);
   return bestYet;
-}
-
-
-void cnLearnerDispose(cnLearner* learner) {
-  // Nothing yet.
-}
-
-
-void cnLearnerInit(cnLearner* learner) {
-  // Nothing yet.
-}
-
-
-cnRootNode* cnLearnerLearn(cnLearner* learner, cnRootNode* initial) {
-  cnLeafNode* leaf;
-  cnList(cnLeafNode*) leaves;
-  // Make sure leaf probs are up to date.
-  // TODO Figure out the initial LL and such.
-  cnUpdateLeafProbabilities(initial);
-  /* TODO Loop this section. */ {
-    /* Pick a leaf to expand. */ {
-      // Get the leaves (over again, yes).
-      cnListInit(&leaves, sizeof(cnLeafNode*));
-      cnNodeLeaves(&initial->node, &leaves);
-      if (leaves.count < 1) {
-        printf("No leaves to expand.\n");
-        return NULL;
-      }
-      // TODO Pick the best leaf instead of the first.
-      leaf = *(cnLeafNode**)leaves.items;
-      // Clean up list of leaves.
-      cnListDispose(&leaves);
-    }
-    return cnTryExpansionsAtLeaf(learner, leaf);
-  }
 }
 
 
