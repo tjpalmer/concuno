@@ -10,9 +10,9 @@ typedef struct cnBag {
   // TODO id?
 
   /**
-   * List of void pointers here.
+   * Pointers to entities, defined entirely by properties and entity functions.
    */
-  cnList entities;
+  cnList(void*) entities;
 
   /**
    * Positive or negative bag.
@@ -139,7 +139,7 @@ struct cnSchema {
    */
   cnType* floatType;
 
-  cnList types;
+  cnList(cnType) types;
 
 };
 
@@ -148,7 +148,7 @@ struct cnType {
 
   cnString name;
 
-  cnList properties;
+  cnList(cnProperty) properties;
 
   cnSchema* schema;
 

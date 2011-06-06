@@ -60,7 +60,7 @@ typedef struct stState {
 
   cnBool cleared;
 
-  cnList items;
+  cnList(stState) items;
 
   double time;
 

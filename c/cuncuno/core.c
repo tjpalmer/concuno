@@ -3,18 +3,18 @@
 #include "core.h"
 
 
-void cnListClear(cnList* list) {
+void cnListClear(cnListAny* list) {
   list->count = 0;
 }
 
 
-void cnListDispose(cnList* list) {
+void cnListDispose(cnListAny* list) {
   free(list->items);
   cnListInit(list, list->itemSize);
 }
 
 
-void* cnListGet(cnList* list, cnIndex index) {
+void* cnListGet(cnListAny* list, cnIndex index) {
   // TODO Support negative indexes from back?
   if (index < 0 || index >= list->count) {
     return NULL;
@@ -23,17 +23,17 @@ void* cnListGet(cnList* list, cnIndex index) {
 }
 
 
-void* cnListEnd(const cnList* list) {
+void* cnListEnd(const cnListAny* list) {
   return ((char*)list->items) + (list->count * list->itemSize);
 }
 
 
-void* cnListExpand(cnList* list) {
+void* cnListExpand(cnListAny* list) {
   return cnListExpandMulti(list, 1);
 }
 
 
-void* cnListExpandMulti(cnList* list, cnCount count) {
+void* cnListExpandMulti(cnListAny* list, cnCount count) {
   void* formerEnd;
   cnCount needed = list->count + count;
   if (needed > list->reservedCount) {
@@ -61,7 +61,7 @@ void* cnListExpandMulti(cnList* list, cnCount count) {
 }
 
 
-void cnListInit(cnList* list, cnCount itemSize) {
+void cnListInit(cnListAny* list, cnCount itemSize) {
   list->count = 0;
   list->itemSize = itemSize;
   list->items = NULL;
@@ -69,12 +69,12 @@ void cnListInit(cnList* list, cnCount itemSize) {
 }
 
 
-void* cnListPush(cnList* list, void* item) {
+void* cnListPush(cnListAny* list, void* item) {
   return cnListPushMulti(list, item, 1);
 }
 
 
-void* cnListPushAll(cnList* list, cnList* from) {
+void* cnListPushAll(cnListAny* list, cnListAny* from) {
   if (list->itemSize != from->itemSize) {
     printf(
       "list itemSize %ld != from itemSize %ld\n",
@@ -86,7 +86,7 @@ void* cnListPushAll(cnList* list, cnList* from) {
 }
 
 
-void* cnListPushMulti(cnList* list, void* items, cnCount count) {
+void* cnListPushMulti(cnListAny* list, void* items, cnCount count) {
   void* formerEnd = cnListExpandMulti(list, count);
   if (formerEnd) {
     memcpy(formerEnd, items, list->itemSize * count);
@@ -95,7 +95,7 @@ void* cnListPushMulti(cnList* list, void* items, cnCount count) {
 }
 
 
-void cnListRemove(cnList* list, cnIndex index) {
+void cnListRemove(cnListAny* list, cnIndex index) {
   char *begin = cnListGet(list, index);
   if (!begin) {
     printf("Bad index for remove: %ld\n", index);

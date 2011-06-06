@@ -6,7 +6,7 @@
 /**
  * Finds items grasped in the state, and returns whether any were found.
  */
-cnBool stFindGraspedItems(const stState* state, cnList* items);
+cnBool stFindGraspedItems(const stState* state, cnList(stItem*)* items);
 
 
 cnBool stOnGround(const stItem* item);
@@ -18,15 +18,19 @@ cnFloat stNorm(const cnFloat* values, cnCount count);
 /**
  * Place pointers to alive items into the entities vector.
  */
-cnBool stPlaceLiveItems(const cnList* items, cnList* entities);
+cnBool stPlaceLiveItems(
+  const cnList(stItem)* items, cnList(stItem*)* entities
+);
 
 
-cnBool stChooseDropWhereLandOnOther(const cnList* states, cnList* bags) {
+cnBool stChooseDropWhereLandOnOther(
+  const cnList(stState)* states, cnList(cnBag)* bags
+) {
   cnBool result = cnTrue;
   cnBool formerHadGrasp = cnFalse;
   stId graspedId = -1;
   const stState* ungraspState = NULL;
-  cnList graspedItems;
+  cnList(stItem*) graspedItems;
   cnListInit(&graspedItems, sizeof(stItem*));
   cnListEachBegin(states, stState, state) {
     if (ungraspState) {
@@ -57,16 +61,14 @@ cnBool stChooseDropWhereLandOnOther(const cnList* states, cnList* bags) {
       if (settled) {
         ungraspState = NULL;
         if (label == cnFalse || label == cnTrue) {
-          // TODO How to allocate in place in the vector?
-          cnBag bagStorage, *bag;
-          cnBagInit(&bagStorage);
-          if (!cnListPush(bags, &bagStorage)) {
+          cnBag* bag;
+          if (!(bag = cnListExpand(bags))) {
             printf("Failed to push bag.\n");
             result = cnFalse;
             break;
           }
           // Now init the bag in the list.
-          bag = cnListGet(bags, bags->count - 1);
+          cnBagInit(bag);
           bag->label = label;
           // If we defer placing entity pointers until after we've stored the
           // bag itself, then cleanup from failure is easier.
@@ -103,7 +105,7 @@ cnBool stChooseDropWhereLandOnOther(const cnList* states, cnList* bags) {
 }
 
 
-cnBool stFindGraspedItems(const stState* state, cnList* items) {
+cnBool stFindGraspedItems(const stState* state, cnList(stItem*)* items) {
   cnListEachBegin(&state->items, stItem, item) {
     if (item->grasped) {
       if (items) {
@@ -137,7 +139,9 @@ cnBool stOnGround(const stItem* item) {
 }
 
 
-cnBool stPlaceLiveItems(const cnList* items, cnList* entities) {
+cnBool stPlaceLiveItems(
+  const cnList(stItem)* items, cnList(stItem*)* entities
+) {
   cnListEachBegin(items, stItem, item) {
     if (item->alive) {
       // Store the address of the item, not a copy.

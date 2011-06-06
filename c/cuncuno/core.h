@@ -29,22 +29,28 @@ typedef struct cnList {
   cnCount itemSize;
   void* items;
   cnCount reservedCount;
-} cnList;
+} cnListAny;
+
+
+/**
+ * Faux generics. Use this rather than cnListAny, when you can.
+ */
+#define cnList(Type) cnListAny
 
 
 /**
  * Null-terminated UTF-8 string.
  */
-typedef cnList cnString;
+typedef cnList(char) cnString;
 
 
 /**
  * Sets the count to 0, but leaves space allocated.
  */
-void cnListClear(cnList* list);
+void cnListClear(cnListAny* list);
 
 
-void cnListDispose(cnList* list);
+void cnListDispose(cnListAny* list);
 
 
 /**
@@ -54,15 +60,15 @@ void cnListDispose(cnList* list);
  */
 #define cnListEachBegin(list, Type, i) { \
     Type *i; \
-    Type *end; \
-    for (i = (list)->items, end = cnListEnd(list); i < end; i++)
+    Type *end = cnListEnd(list); \
+    for (i = (list)->items; i < end; i++)
 
 
 /**
  * The address right after the end of the list. Useful for iteration, but don't
  * try to store anything here.
  */
-void* cnListEnd(const cnList* list);
+void* cnListEnd(const cnListAny* list);
 
 
 /**
@@ -71,7 +77,7 @@ void* cnListEnd(const cnList* list);
  *
  * Returns a pointer to the beginning of the new space.
  */
-void* cnListExpand(cnList* list);
+void* cnListExpand(cnListAny* list);
 
 
 /**
@@ -80,13 +86,13 @@ void* cnListExpand(cnList* list);
  *
  * Returns a pointer to the beginning of the new space.
  */
-void* cnListExpandMulti(cnList* list, cnCount count);
+void* cnListExpandMulti(cnListAny* list, cnCount count);
 
 
-void* cnListGet(cnList* list, cnIndex index);
+void* cnListGet(cnListAny* list, cnIndex index);
 
 
-void cnListInit(cnList* list, cnCount itemSize);
+void cnListInit(cnListAny* list, cnCount itemSize);
 
 
 /**
@@ -94,7 +100,7 @@ void cnListInit(cnList* list, cnCount itemSize);
  *
  * Returns the destination pointer to the item just pushed, or NULL if failure.
  */
-void* cnListPush(cnList* list, void* item);
+void* cnListPush(cnListAny* list, void* item);
 
 
 /**
@@ -103,7 +109,7 @@ void* cnListPush(cnList* list, void* item);
  * Returns the destination pointer to the first item just pushed, or NULL if
  * failure.
  */
-void* cnListPushAll(cnList* list, cnList* from);
+void* cnListPushAll(cnListAny* list, cnListAny* from);
 
 
 /**
@@ -112,17 +118,17 @@ void* cnListPushAll(cnList* list, cnList* from);
  * Returns the destination pointer to the first item just pushed, or NULL if
  * failure.
  */
-void* cnListPushMulti(cnList* list, void* items, cnCount count);
+void* cnListPushMulti(cnListAny* list, void* items, cnCount count);
 
 
-void cnListPut(cnList* list, cnIndex index, void* value);
+void cnListPut(cnListAny* list, cnIndex index, void* value);
 
 
 /**
  * Does not reduce memory usage nor change the address of items. The count is
  * reduced by one and the item at the index is deleted from the array.
  */
-void cnListRemove(cnList* list, cnIndex index);
+void cnListRemove(cnListAny* list, cnIndex index);
 
 
 char* cnStr(cnString* string);

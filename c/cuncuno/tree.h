@@ -6,7 +6,7 @@
 
 
 typedef struct cnBinding {
-  cnList entities;
+  cnList(void*) entities;
 } cnBinding;
 
 
@@ -14,14 +14,14 @@ typedef struct cnBindingBag {
 
   cnBag* bag;
 
-  cnList bindings;
+  cnList(cnBinding) bindings;
 
 } cnBindingBag;
 
 
 typedef struct cnBindingBagList {
 
-  cnList bindingBags;
+  cnList(cnBindingBag) bindingBags;
 
   /**
    * Reference counting because we'd like to share binding lists across lots of
@@ -83,7 +83,7 @@ typedef struct cnRootNode {
   /**
    * To be managed separately from the tree itself.
    */
-  cnList* entityFunctions;
+  cnList(cnEntityFunction)* entityFunctions;
 
   cnIndex nextId;
 
@@ -165,7 +165,7 @@ void cnBindingBagListDrop(cnBindingBagList** list);
  * Push on the bags as new empty bindings on the given list.
  */
 cnBool cnBindingBagListPushBags(
-  cnBindingBagList* bindingBags, const cnList* bags
+  cnBindingBagList* bindingBags, const cnList(cnBag)* bags
 );
 
 
@@ -197,7 +197,7 @@ void cnNodeInit(cnNode* node, cnNodeType type);
 /**
  * Stores all leaves under this node in the given list.
  */
-void cnNodeLeaves(cnNode* node, cnList* leaves);
+void cnNodeLeaves(cnNode* node, cnList(cnLeafNode*)* leaves);
 
 
 /**

@@ -5,15 +5,15 @@
 
 
 int main(int argc, char** argv) {
-  cnList bags;
+  cnList(cnBag) bags;
   cnBindingBagList* bindingBags;
   cnEntityFunction *differenceFunction, *entityFunction;
   cnLearner learner;
-  cnList entityFunctions;
+  cnList(cnEntityFunction) entityFunctions;
   cnRootNode* learnedTree;
   cnSchema schema;
   stState* state;
-  cnList states;
+  cnList(stState) states;
   int status = EXIT_FAILURE;
   cnRootNode stubTree;
   cnCount trueCount;

@@ -3,6 +3,17 @@
 #include "learn.h"
 
 
+typedef struct cnExpansion {
+
+  cnLeafNode* leaf;
+
+  cnCount newVarCount;
+
+  cnList(cnIndex) varIndices;
+
+} cnExpansion;
+
+
 cnRootNode* cnExpandAtLeaf(cnLearner* learner, cnLeafNode* leaf);
 
 
@@ -90,7 +101,7 @@ void cnLearnerInit(cnLearner* learner) {
 
 cnRootNode* cnLearnerLearn(cnLearner* learner, cnRootNode* initial) {
   cnLeafNode* leaf;
-  cnList leaves;
+  cnList(cnLeafNode*) leaves;
   // Make sure leaf probs are up to date.
   // TODO Figure out the initial LL and such.
   cnUpdateLeafProbabilities(initial);
@@ -114,7 +125,7 @@ cnRootNode* cnLearnerLearn(cnLearner* learner, cnRootNode* initial) {
 
 
 void cnUpdateLeafProbabilities(cnRootNode* root) {
-  cnList leaves;
+  cnList(cnLeafNode*) leaves;
   cnListInit(&leaves, sizeof(cnLeafNode*));
   cnNodeLeaves(&root->node, &leaves);
   //printf("Found %ld leaves.\n", leaves.count);

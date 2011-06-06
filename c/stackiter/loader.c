@@ -8,9 +8,9 @@
 
 
 typedef struct stParser {
-  cnList indices;
+  cnList(cnIndex) indices;
   stState state;
-  cnList* states;
+  cnList(stState)* states;
 } stParser;
 
 
@@ -57,7 +57,7 @@ stItem* stParserItem(stParser* parser, char* begin, char** end);
 cnBool stPushState(stParser* parser);
 
 
-cnBool stLoad(char* name, cnList* states) {
+cnBool stLoad(char* name, cnList(stState)* states) {
   cnBool result = cnTrue;
   int closeError;
   cnString line;
@@ -139,7 +139,7 @@ cnBool stHandleDestroy(stParser* parser, char* args) {
   stId id = strtol(args, &args, 10);
   cnIndex* index = (cnIndex*)cnListGet(&parser->indices, id);
   cnIndex* indices = parser->indices.items;
-  cnList* items;
+  cnList(stItem)* items;
   stItem *item, *endItem;
   if (!index) {
     printf("Bad id: %ld\n", id);

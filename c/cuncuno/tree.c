@@ -69,7 +69,7 @@ void cnBindingBagListDrop(cnBindingBagList** list) {
 
 
 cnBool cnBindingBagListPushBags(
-  cnBindingBagList* bindingBags, const cnList* bags
+  cnBindingBagList* bindingBags, const cnList(cnBag)* bags
 ) {
   // Preallocate all the space we need.
   cnBindingBag* bindingBag =
@@ -179,7 +179,7 @@ cnCount cnNodeKidCount(cnNode* node) {
 }
 
 
-void cnNodeLeaves(cnNode* node, cnList* leaves) {
+void cnNodeLeaves(cnNode* node, cnList(cnLeafNode*)* leaves) {
   cnCount count = cnNodeKidCount(node);
   cnNode **kid = cnNodeKids(node), **end = kid + count;
   for (; kid < end; kid++) {
