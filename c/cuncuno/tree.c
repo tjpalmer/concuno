@@ -99,6 +99,9 @@ cnLeafNode* cnLeafNodeCreate(void) {
 
 
 void cnNodeDispose(cnNode* node) {
+  if (!node) {
+    return;
+  }
   // Drop bindings while reference still here.
   cnBindingBagListDrop(&node->bindingBagList);
   // Disposes of child nodes in sub-dispose.

@@ -173,10 +173,13 @@ cnLeafNode* cnLeafNodeCreate(void);
 
 
 /**
- * You don't usually need to call this directly.
+ * Disposes of the given node, not freeing it. However, all its descendants are
+ * both disposed of and freed.
+ *
+ * If node is null, this function does nothing.
  */
 void cnNodeDispose(cnNode* node);
-//void cnNodeDrop(cnNode* node); // or just void* ?
+// TODO void cnNodeDrop(cnNode* node); instead or also?
 
 
 /**

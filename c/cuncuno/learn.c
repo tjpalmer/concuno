@@ -3,18 +3,45 @@
 #include "learn.h"
 
 
+/**
+ * An expansion that replaces a leaf in the tree, adding a split that
+ * optionally follows multiple new vars.
+ */
 typedef struct cnExpansion {
 
+  /**
+   * The function to use at the split node.
+   */
+  cnEntityFunction* function;
+
+  /**
+   * The leaf to expand.
+   */
   cnLeafNode* leaf;
 
+  /**
+   * The number of new var nodes to add before the split.
+   */
   cnCount newVarCount;
 
-  cnList(cnIndex) varIndices;
+  /**
+   * Which var indices (counting from the root down) to use in the split.
+   */
+  cnIndex* varIndices;
 
 } cnExpansion;
 
 
-cnRootNode* cnExpandAtLeaf(cnLearner* learner, cnLeafNode* leaf);
+/**
+ * Returns a new tree with the expansion applied, optimized (so to speak)
+ * according to the SMRF algorithm.
+ *
+ * TODO This might represent the best of multiple attempts at optimization.
+ */
+cnRootNode* cnExpandedTree(cnLearner* learner, cnExpansion* expansion);
+
+
+cnRootNode* cnTryExpansionsAtLeaf(cnLearner* learner, cnLeafNode* leaf);
 
 
 /**
@@ -23,17 +50,37 @@ cnRootNode* cnExpandAtLeaf(cnLearner* learner, cnLeafNode* leaf);
 void cnUpdateLeafProbabilities(cnRootNode* root);
 
 
-cnRootNode* cnExpandAtLeaf(cnLearner* learner, cnLeafNode* leaf) {
+cnRootNode* cnExpandedTree(cnLearner* learner, cnExpansion* expansion) {
+  // TODO Loop across multiple inits/attempts?
   cnCount varsAdded;
+  for (varsAdded = 0; varsAdded < expansion->newVarCount; varsAdded++) {
+    // TODO cnVarNode* var = cnVarNodeCreate(cnTrue);
+    // TODO Check for null var!
+    // TODO cnNodeReplaceKid(&leaf->node, &var->node);
+    // TODO Propagate.
+    // TODO leaf = *(cnLeafNode**)cnNodeKids(&var->node);
+  }
+  // TODO Split node.
+  // TODO Optimize split.
+  // TODO Return new tree.
+  return NULL;
+}
+
+
+cnRootNode* cnTryExpansionsAtLeaf(cnLearner* learner, cnLeafNode* leaf) {
   cnRootNode* bestYet = NULL;
-  cnRootNode* root = cnNodeRoot(&leaf->node);
+  cnList(cnExpansion) expansions;
   cnCount maxArity = 0;
   cnCount minArity = LONG_MAX;
   cnCount minNewVarCount;
+  cnCount newVarCount;
+  cnRootNode* root = cnNodeRoot(&leaf->node);
   cnCount varDepth = cnNodeVarDepth(&leaf->node);
 
+  // Make a list of expansions. They can then be sorted, etc.
+  cnListInit(&expansions, sizeof(cnExpansion));
+
   // Find the min and max arity.
-  // TODO Sort by arity? Or assume priority given by order?
   cnListEachBegin(root->entityFunctions, cnEntityFunction, function) {
     if (function->inCount < minArity) {
       minArity = function->inCount;
@@ -56,14 +103,9 @@ cnRootNode* cnExpandAtLeaf(cnLearner* learner, cnLeafNode* leaf) {
 
   // Start added vars from low to high. Allow up to as many new vars as we have
   // arity for functions.
-  for (varsAdded = minNewVarCount; varsAdded <= maxArity; varsAdded++) {
-    cnVarNode* var = cnVarNodeCreate(cnTrue);
-    // TODO Check for null var!
-    cnNodeReplaceKid(&leaf->node, &var->node);
-    // TODO Propagate.
-    leaf = *(cnLeafNode**)cnNodeKids(&var->node);
+  for (newVarCount = minNewVarCount; newVarCount <= maxArity; newVarCount++) {
+    cnExpansion* expansion;
     varDepth++;
-    // TODO Loop on arities to guarantee increasing order by arity?
     cnListEachBegin(root->entityFunctions, cnEntityFunction, function) {
       if (function->inCount > varDepth) {
         printf(
@@ -72,19 +114,42 @@ cnRootNode* cnExpandAtLeaf(cnLearner* learner, cnLeafNode* leaf) {
         );
         continue;
       }
-      if (function->inCount < varsAdded) {
+      if (function->inCount < newVarCount) {
         // We've already added more vars than we need for this one.
         printf(
           "Added %ld too many vars for %s.\n",
-          varsAdded - function->inCount, cnStr(&function->name)
+          newVarCount - function->inCount, cnStr(&function->name)
         );
         continue;
       }
-      // TODO Clone before adding split??
-      // TODO Add split on function.
+      // TODO This should be a loop here of some sort.
+      // TODO Find all available permutations of vars, committing new vars.
+      if (!(expansion = cnListExpand(&expansions))) {
+        printf("Failed to allocate expansion.\n");
+        goto DONE;
+      }
+      expansion->function = function;
+      expansion->leaf = leaf;
+      expansion->newVarCount = newVarCount;
+      // TODO The actual array of vars.
+      expansion->varIndices = NULL;
     } cnEnd;
   }
 
+  // TODO Sort by arity? Or assume priority given by order?
+  // TODO Some kind of heuristic?
+  printf("Need to try %ld expansions.\n", expansions.count);
+  cnListEachBegin(&expansions, cnExpansion, expansion) {
+    cnRootNode* expanded = cnExpandedTree(learner, expansion);
+    // TODO Evaluate LL to see if it's the best yet. If not ...
+    cnNodeDispose((cnNode*)expanded);
+  } cnEnd;
+
+  DONE:
+  cnListEachBegin(&expansions, cnExpansion, expansion) {
+    free(expansion->varIndices);
+  } cnEnd;
+  cnListDispose(&expansions);
   return bestYet;
 }
 
@@ -119,7 +184,7 @@ cnRootNode* cnLearnerLearn(cnLearner* learner, cnRootNode* initial) {
       // Clean up list of leaves.
       cnListDispose(&leaves);
     }
-    return cnExpandAtLeaf(learner, leaf);
+    return cnTryExpansionsAtLeaf(learner, leaf);
   }
 }
 
