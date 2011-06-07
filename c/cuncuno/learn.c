@@ -74,6 +74,7 @@ cnRootNode* cnExpandedTree(cnLearner* learner, cnExpansion* expansion) {
   cnNode* parent;
   cnRootNode* root = cnNodeRoot(&expansion->leaf->node);
   cnCount varsAdded;
+  printf("Expanding on "); cnPrintExpansion(expansion);
   root = (cnRootNode*)cnTreeCopy(&root->node);
   if (!root) {
     return NULL;
@@ -228,7 +229,6 @@ cnBool cnRecurseExpansions(
       free(prototype->varIndices);
       return cnFalse;
     }
-    printf("Pushed: "); cnPrintExpansion(prototype);
     // Revert the prototype.
     prototype->varIndices = NULL;
     //printf("Done.\n");
