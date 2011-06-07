@@ -185,6 +185,13 @@ void cnNodeDispose(cnNode* node);
 
 
 /**
+ * Searches depth first under the given node to find the node with the given
+ * id, returning a pointer to that node if found or else null.
+ */
+cnNode* cnNodeFindById(cnNode* node, cnIndex id);
+
+
+/**
  * Returns an array of pointers to kids.
  */
 cnNode** cnNodeKids(cnNode* node);

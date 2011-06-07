@@ -143,6 +143,23 @@ void cnNodeAttachDeep(cnRootNode* root, cnNode* node) {
 }
 
 
+cnNode* cnNodeFindById(cnNode* node, cnIndex id) {
+  if (node->id == id) {
+    return node;
+  } else {
+    cnNode* found = NULL;
+    cnNode** kid = cnNodeKids(node);
+    cnNode** end = kid + cnNodeKidCount(node);
+    for (; kid < end; kid++) {
+      if ((found = cnNodeFindById(*kid, id))) {
+        return found;
+      }
+    }
+    return NULL;
+  }
+}
+
+
 void cnNodeInit(cnNode* node, cnNodeType type) {
   node->bindingBagList = NULL;
   node->id = -1;
@@ -310,10 +327,10 @@ void cnRootNodePropagate(cnRootNode* root) {
 
 
 cnNode* cnTreeCopy(cnNode* node) {
-  // TODO Extract node size to separate function?
   cnNode* copy;
   cnNode** end;
   cnNode** kid;
+  // TODO Extract node size to separate function?
   cnCount nodeSize;
   switch (node->type) {
   case cnNodeTypeLeaf:
@@ -342,6 +359,7 @@ cnNode* cnTreeCopy(cnNode* node) {
   end = kid + cnNodeKidCount(copy);
   for (; kid < end; kid++) {
     *kid = cnTreeCopy(*kid);
+    (*kid)->parent = copy;
   }
   // TODO Handle any custom parts!?!
   return copy;

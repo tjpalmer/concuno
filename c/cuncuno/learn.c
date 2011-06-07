@@ -70,17 +70,28 @@ cnBool cnUpdateLeafProbabilities(cnRootNode* root);
 
 cnRootNode* cnExpandedTree(cnLearner* learner, cnExpansion* expansion) {
   // TODO Loop across multiple inits/attempts?
+  cnLeafNode* leaf;
+  cnNode* parent;
   cnRootNode* root = cnNodeRoot(&expansion->leaf->node);
   cnCount varsAdded;
   root = (cnRootNode*)cnTreeCopy(&root->node);
+  if (!root) {
+    return NULL;
+  }
+  leaf = (cnLeafNode*)cnNodeFindById(&root->node, expansion->leaf->node.id);
+  parent = leaf->node.parent;
   for (varsAdded = 0; varsAdded < expansion->newVarCount; varsAdded++) {
-    // TODO cnVarNode* var = cnVarNodeCreate(cnTrue);
-    // TODO Check for null var!
-    // TODO cnNodeReplaceKid(&leaf->node, &var->node);
-    // TODO Propagate.
-    // TODO leaf = *(cnLeafNode**)cnNodeKids(&var->node);
+    cnVarNode* var = cnVarNodeCreate(cnTrue);
+    if (!var) {
+      cnNodeDispose(&root->node);
+      free(root);
+      return NULL;
+    }
+    cnNodeReplaceKid(&leaf->node, &var->node);
+    leaf = *(cnLeafNode**)cnNodeKids(&var->node);
   }
   // TODO Split node.
+  // TODO Propagate from parent (splitting into error at first).
   // TODO Optimize split.
   // TODO Return new tree.
   return root;
