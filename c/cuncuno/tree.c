@@ -10,7 +10,7 @@ void cnLeafNodeInit(cnLeafNode* leaf);
 void cnRootNodeDispose(cnRootNode* root);
 
 
-void cnRootNodePropagate(cnRootNode* root);
+cnBool cnRootNodePropagate(cnRootNode* root);
 
 
 void cnSplitNodeDispose(cnSplitNode* split);
@@ -25,24 +25,20 @@ void cnVarNodeDispose(cnVarNode* var);
 cnBool cnVarNodeInit(cnVarNode* var, cnBool addLeaf);
 
 
-void cnBindingDispose(cnBinding* binding) {
-  // Just dispose of the list. The entities themselves live on.
-  cnListDispose(&binding->entities);
-}
+cnBool cnVarNodePropagate(cnVarNode* var);
 
 
 void cnBindingBagDispose(cnBindingBag* bindingBag) {
   bindingBag->bag = NULL;
-  cnListEachBegin(&bindingBag->bindings, cnBinding, binding) {
-    cnBindingDispose(binding);
-  } cnEnd;
   cnListDispose(&bindingBag->bindings);
 }
 
 
-void cnBindingBagInit(cnBindingBag* bindingBag, cnBag* bag) {
+void cnBindingBagInit(
+  cnBindingBag* bindingBag, cnBag* bag, cnCount entityCount
+) {
   bindingBag->bag = bag;
-  cnListInit(&bindingBag->bindings, sizeof(cnBinding));
+  cnListInit(&bindingBag->bindings, entityCount * sizeof(void*));
 }
 
 
@@ -85,7 +81,7 @@ cnBool cnBindingBagListPushBags(
   if (!bindingBag) return cnFalse;
   // Now init each one.
   cnListEachBegin(bags, cnBag, bag) {
-    cnBindingBagInit(bindingBag, bag);
+    cnBindingBagInit(bindingBag, bag, 0);
     bindingBag++;
   } cnEnd;
   return cnTrue;
@@ -236,20 +232,24 @@ cnBool cnNodeLeaves(cnNode* node, cnList(cnLeafNode*)* leaves) {
 
 cnBool cnNodePropagate(cnNode* node, cnBindingBagList* bindingBags) {
   // TODO Or just push them onto any existing?
+  if (node->bindingBagList) {
+    cnBindingBagListDrop(&node->bindingBagList);
+  }
   node->bindingBagList = bindingBags;
   bindingBags->refCount++;
+  // Sub-propagate.
   switch (node->type) {
   case cnNodeTypeLeaf:
     // Nothing to do for leaf nodes.
-    break;
+    return cnTrue;
   case cnNodeTypeRoot:
-    cnRootNodePropagate((cnRootNode*)node);
-    break;
+    return cnRootNodePropagate((cnRootNode*)node);
+  case cnNodeTypeVar:
+    return cnVarNodePropagate((cnVarNode*)node);
   default:
     printf("I don't handle type %u yet for prop.\n", node->type);
-    break;
+    return cnFalse;
   }
-  return cnTrue;
 }
 
 
@@ -330,10 +330,11 @@ cnBool cnRootNodeInit(cnRootNode* root, cnBool addLeaf) {
 }
 
 
-void cnRootNodePropagate(cnRootNode* root) {
+cnBool cnRootNodePropagate(cnRootNode* root) {
   if (root->kid) {
-    cnNodePropagate(root->kid, root->node.bindingBagList);
+    return cnNodePropagate(root->kid, root->node.bindingBagList);
   }
+  return cnTrue;
 }
 
 
@@ -454,5 +455,33 @@ cnBool cnVarNodeInit(cnVarNode* var, cnBool addLeaf) {
     }
     cnNodePutKid(&var->node, 0, &leaf->node);
   }
+  return cnTrue;
+}
+
+
+cnBool cnVarNodePropagate(cnVarNode* var) {
+  cnBindingBagList* bindingBagsIn = var->node.bindingBagList;
+  cnBindingBagList* bindingBagsOut = cnBindingBagListCreate();
+  if (!bindingBagsOut) {
+    return cnFalse;
+  }
+  // Preallocate all the bindingBag space we need.
+  cnBindingBag* bindingBagOut = cnListExpandMulti(
+    &bindingBagsOut->bindingBags, bindingBagsIn->bindingBags.count
+  );
+  if (!bindingBagOut) return cnFalse;
+  cnListEachBegin(&bindingBagsIn->bindingBags, cnBindingBag, bindingBagIn) {
+    cnBindingBagInit(
+      bindingBagOut, bindingBagIn->bag, bindingBagIn->entityCount + 1
+    );
+    cnListEachBegin(&bindingBagIn->bindings, void*, entitiesIn) {
+      // TODO Push expanded bindings.
+    } cnEnd;
+    bindingBagOut++;
+  } cnEnd;
+  if (var->kid) {
+    //cnNodePropagate(var->kid, var->node.bindingBagList);
+  }
+  cnBindingBagListDrop(&bindingBagsOut);
   return cnTrue;
 }

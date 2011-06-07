@@ -5,16 +5,23 @@
 #include "entity.h"
 
 
-typedef struct cnBinding {
-  cnList(void*) entities;
-} cnBinding;
+/**
+ * An arbitrary length array of entity pointers.
+ */
+typedef void** cnBinding;
 
 
 typedef struct cnBindingBag {
 
   cnBag* bag;
 
+  /**
+   * Actually, this is stored in compact form of equal numbers of entities per
+   * binding.
+   */
   cnList(cnBinding) bindings;
+
+  cnCount entityCount;
 
 } cnBindingBag;
 
@@ -128,18 +135,17 @@ typedef struct cnVarNode {
 
 
 /**
- * Disposes of the entity list but not the entities themselves.
- */
-void cnBindingDispose(cnBinding* binding);
-
-
-/**
- * Disposes of the bindings but not the bag.
+ * Disposes of the bindings but not the entities nor the bag.
  */
 void cnBindingBagDispose(cnBindingBag* bindingBag);
 
 
-void cnBindingBagInit(cnBindingBag* bindingBag, cnBag* bag);
+/**
+ * Creates binding bags where each binding references entityCount entities.
+ */
+void cnBindingBagInit(
+  cnBindingBag* bindingBag, cnBag* bag, cnCount entityCount
+);
 
 
 /**
