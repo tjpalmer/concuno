@@ -70,7 +70,9 @@ cnBool cnUpdateLeafProbabilities(cnRootNode* root);
 
 cnRootNode* cnExpandedTree(cnLearner* learner, cnExpansion* expansion) {
   // TODO Loop across multiple inits/attempts?
+  cnRootNode* root = cnNodeRoot(&expansion->leaf->node);
   cnCount varsAdded;
+  root = (cnRootNode*)cnTreeCopy(&root->node);
   for (varsAdded = 0; varsAdded < expansion->newVarCount; varsAdded++) {
     // TODO cnVarNode* var = cnVarNodeCreate(cnTrue);
     // TODO Check for null var!
@@ -81,7 +83,7 @@ cnRootNode* cnExpandedTree(cnLearner* learner, cnExpansion* expansion) {
   // TODO Split node.
   // TODO Optimize split.
   // TODO Return new tree.
-  return NULL;
+  return root;
 }
 
 
@@ -333,8 +335,12 @@ cnRootNode* cnTryExpansionsAtLeaf(cnLearner* learner, cnLeafNode* leaf) {
   printf("Need to try %ld expansions.\n", expansions.count);
   cnListEachBegin(&expansions, cnExpansion, expansion) {
     cnRootNode* expanded = cnExpandedTree(learner, expansion);
+    if (!expanded) {
+      goto DONE;
+    }
     // TODO Evaluate LL to see if it's the best yet. If not ...
     cnNodeDispose((cnNode*)expanded);
+    free(expanded);
   } cnEnd;
 
   DONE:

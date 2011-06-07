@@ -177,6 +177,8 @@ cnLeafNode* cnLeafNodeCreate(void);
  * both disposed of and freed.
  *
  * If node is null, this function does nothing.
+ *
+ * TODO Rename to cnTreeDispose to clarify deep nature of disposal?
  */
 void cnNodeDispose(cnNode* node);
 // TODO void cnNodeDrop(cnNode* node); instead or also?
@@ -239,6 +241,13 @@ cnCount cnNodeVarDepth(cnNode* node);
  * init would fail.
  */
 cnBool cnRootNodeInit(cnRootNode* root, cnBool addLeaf);
+
+
+/**
+ * Copies this node and all under, except the bindings. (TODO Keep the models?)
+ * Original references to bindings are kept to avoid excessive data copying.
+ */
+cnNode* cnTreeCopy(cnNode* node);
 
 
 cnVarNode* cnVarNodeCreate(cnBool addLeaf);

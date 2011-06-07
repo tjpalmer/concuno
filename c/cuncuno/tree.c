@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <stdio.h>
+#include <string.h>
 #include "tree.h"
 
 
@@ -305,6 +306,45 @@ void cnRootNodePropagate(cnRootNode* root) {
   if (root->kid) {
     cnNodePropagate(root->kid, root->node.bindingBagList);
   }
+}
+
+
+cnNode* cnTreeCopy(cnNode* node) {
+  // TODO Extract node size to separate function?
+  cnNode* copy;
+  cnNode** end;
+  cnNode** kid;
+  cnCount nodeSize;
+  switch (node->type) {
+  case cnNodeTypeLeaf:
+    nodeSize = sizeof(cnLeafNode);
+    break;
+  case cnNodeTypeRoot:
+    nodeSize = sizeof(cnRootNode);
+    break;
+  case cnNodeTypeSplit:
+    nodeSize = sizeof(cnSplitNode);
+    break;
+  case cnNodeTypeVar:
+    nodeSize = sizeof(cnVarNode);
+    break;
+  default:
+    printf("No copy for type %u.\n", node->type);
+    return NULL;
+  }
+  copy = malloc(nodeSize);
+  memcpy(copy, node, nodeSize);
+  if (copy->bindingBagList) {
+    copy->bindingBagList->refCount++;
+  }
+  // Recursively copy.
+  kid = cnNodeKids(copy);
+  end = kid + cnNodeKidCount(copy);
+  for (; kid < end; kid++) {
+    *kid = cnTreeCopy(*kid);
+  }
+  // TODO Handle any custom parts!?!
+  return copy;
 }
 
 
