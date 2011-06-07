@@ -38,6 +38,7 @@ void cnBindingBagInit(cnBindingBag* bindingBag, cnBag* bag) {
   cnListInit(&bindingBag->bindings, sizeof(cnBinding));
 }
 
+
 cnBindingBagList* cnBindingBagListCreate(void) {
   cnBindingBagList* list = malloc(sizeof(cnBindingBagList));
   if (list) {
@@ -182,16 +183,21 @@ cnCount cnNodeKidCount(cnNode* node) {
 }
 
 
-void cnNodeLeaves(cnNode* node, cnList(cnLeafNode*)* leaves) {
+cnBool cnNodeLeaves(cnNode* node, cnList(cnLeafNode*)* leaves) {
   cnCount count = cnNodeKidCount(node);
   cnNode **kid = cnNodeKids(node), **end = kid + count;
   for (; kid < end; kid++) {
     if ((*kid)->type == cnNodeTypeLeaf) {
-      assert(cnListPush(leaves, kid));
+      if (!cnListPush(leaves, kid)) {
+        return cnFalse;
+      }
     } else {
-      cnNodeLeaves(*kid, leaves);
+      if (!cnNodeLeaves(*kid, leaves)) {
+        return cnFalse;
+      }
     }
   }
+  return cnTrue;
 }
 
 

@@ -1,5 +1,6 @@
 #include <limits.h>
 #include <stdio.h>
+#include <string.h>
 #include "learn.h"
 
 
@@ -41,6 +42,9 @@ typedef struct cnExpansion {
 cnRootNode* cnExpandedTree(cnLearner* learner, cnExpansion* expansion);
 
 
+void cnPrintExpansion(cnExpansion* expansion);
+
+
 cnBool cnPushExpansionsByIndices(
   cnList(cnExpansion)* expansions, cnExpansion* prototype, cnCount varDepth
 );
@@ -61,7 +65,7 @@ cnRootNode* cnTryExpansionsAtLeaf(cnLearner* learner, cnLeafNode* leaf);
 /**
  * Updates all the leaf probabilities in the tree.
  */
-void cnUpdateLeafProbabilities(cnRootNode* root);
+cnBool cnUpdateLeafProbabilities(cnRootNode* root);
 
 
 cnRootNode* cnExpandedTree(cnLearner* learner, cnExpansion* expansion) {
@@ -96,12 +100,18 @@ cnRootNode* cnLearnerLearn(cnLearner* learner, cnRootNode* initial) {
   cnList(cnLeafNode*) leaves;
   // Make sure leaf probs are up to date.
   // TODO Figure out the initial LL and such.
-  cnUpdateLeafProbabilities(initial);
+  if (!cnUpdateLeafProbabilities(initial)) {
+    printf("Failed to update leaf probabilities.\n");
+    return NULL;
+  }
   /* TODO Loop this section. */ {
     /* Pick a leaf to expand. */ {
       // Get the leaves (over again, yes).
       cnListInit(&leaves, sizeof(cnLeafNode*));
-      cnNodeLeaves(&initial->node, &leaves);
+      if (!cnNodeLeaves(&initial->node, &leaves)) {
+        printf("Failed to gather leaves.\n");
+        return NULL;
+      }
       if (leaves.count < 1) {
         printf("No leaves to expand.\n");
         return NULL;
@@ -135,6 +145,23 @@ cnBool cnLoopArity(
   }
   return cnTrue;
 }
+
+
+void cnPrintExpansion(cnExpansion* expansion) {
+  cnIndex i;
+  printf("%s(", cnStr(&expansion->function->name));
+  for (i = 0; i < expansion->function->inCount; i++) {
+    if (i > 0) {
+      printf(", ");
+    }
+    printf("%ld", expansion->varIndices[i]);
+  }
+  printf(
+    ") at node %ld with %ld new vars.\n",
+    expansion->leaf->node.id, expansion->newVarCount
+  );
+}
+
 
 cnBool cnPushExpansionsByIndices(
   cnList(cnExpansion)* expansions, cnExpansion* prototype, cnCount varDepth
@@ -183,10 +210,12 @@ cnBool cnRecurseExpansions(
     if (!(prototype->varIndices = malloc(arity * sizeof(cnIndex)))) {
       return cnFalse;
     }
+    memcpy(prototype->varIndices, indices, arity * sizeof(cnIndex));
     if (!cnListPush(expansions, prototype)) {
       free(prototype->varIndices);
       return cnFalse;
     }
+    printf("Pushed: "); cnPrintExpansion(prototype);
     // Revert the prototype.
     prototype->varIndices = NULL;
     //printf("Done.\n");
@@ -273,18 +302,18 @@ cnRootNode* cnTryExpansionsAtLeaf(cnLearner* learner, cnLeafNode* leaf) {
     varDepth++;
     cnListEachBegin(root->entityFunctions, cnEntityFunction, function) {
       if (function->inCount > varDepth) {
-        printf(
-          "Need %ld more vars for %s.\n",
-          function->inCount - varDepth, cnStr(&function->name)
-        );
+        //printf(
+        //  "Need %ld more vars for %s.\n",
+        //  function->inCount - varDepth, cnStr(&function->name)
+        //);
         continue;
       }
       if (function->inCount < newVarCount) {
         // We've already added more vars than we need for this one.
-        printf(
-          "Added %ld too many vars for %s.\n",
-          newVarCount - function->inCount, cnStr(&function->name)
-        );
+        //printf(
+        //  "Added %ld too many vars for %s.\n",
+        //  newVarCount - function->inCount, cnStr(&function->name)
+        //);
         continue;
       }
       // Init a prototype expansion, then push index permutations.
@@ -317,10 +346,14 @@ cnRootNode* cnTryExpansionsAtLeaf(cnLearner* learner, cnLeafNode* leaf) {
 }
 
 
-void cnUpdateLeafProbabilities(cnRootNode* root) {
+cnBool cnUpdateLeafProbabilities(cnRootNode* root) {
+  cnBool result = cnTrue;
   cnList(cnLeafNode*) leaves;
   cnListInit(&leaves, sizeof(cnLeafNode*));
-  cnNodeLeaves(&root->node, &leaves);
+  if (!cnNodeLeaves(&root->node, &leaves)) {
+    result = cnFalse;
+    goto DONE;
+  }
   //printf("Found %ld leaves.\n", leaves.count);
   cnListEachBegin(&leaves, cnLeafNode*, leaf) {
     // TODO Find proper assignment for each leaf considering the others.
@@ -336,5 +369,7 @@ void cnUpdateLeafProbabilities(cnRootNode* root) {
     (*leaf)->probability = posCount / (cnFloat)total;
     //printf("Leaf with prob: %lf\n", (*leaf)->probability);
   } cnEnd;
+  DONE:
   cnListDispose(&leaves);
+  return result;
 }

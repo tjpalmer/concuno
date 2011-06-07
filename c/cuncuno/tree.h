@@ -200,7 +200,7 @@ void cnNodeInit(cnNode* node, cnNodeType type);
 /**
  * Stores all leaves under this node in the given list.
  */
-void cnNodeLeaves(cnNode* node, cnList(cnLeafNode*)* leaves);
+cnBool cnNodeLeaves(cnNode* node, cnList(cnLeafNode*)* leaves);
 
 
 /**
