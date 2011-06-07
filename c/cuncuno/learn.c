@@ -85,17 +85,23 @@ cnRootNode* cnExpandedTree(cnLearner* learner, cnExpansion* expansion) {
   for (varsAdded = 0; varsAdded < expansion->newVarCount; varsAdded++) {
     cnVarNode* var = cnVarNodeCreate(cnTrue);
     if (!var) {
-      cnNodeDrop(&root->node);
-      return NULL;
+      goto ERROR;
     }
     cnNodeReplaceKid(&leaf->node, &var->node);
     leaf = *(cnLeafNode**)cnNodeKids(&var->node);
   }
-  // TODO Split node.
+  if (!(split = cnSplitNodeCreate(cnTrue))) {
+    goto ERROR;
+  }
+  cnNodeReplaceKid(&leaf->node, &split->node);
   // TODO Propagate from parent (splitting into error at first).
   // TODO Optimize split.
   // TODO Return new tree.
   return root;
+
+  ERROR:
+  cnNodeDrop(&root->node);
+  return NULL;
 }
 
 

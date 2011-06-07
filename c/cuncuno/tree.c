@@ -13,6 +13,12 @@ void cnRootNodeDispose(cnRootNode* root);
 void cnRootNodePropagate(cnRootNode* root);
 
 
+void cnSplitNodeDispose(cnSplitNode* split);
+
+
+cnBool cnSplitNodeInit(cnSplitNode* split, cnBool addLeaves);
+
+
 void cnVarNodeDispose(cnVarNode* var);
 
 
@@ -111,6 +117,9 @@ void cnNodeDispose(cnNode* node) {
   case cnNodeTypeLeaf:
     cnLeafNodeDispose((cnLeafNode*)node);
     break;
+  case cnNodeTypeSplit:
+    cnSplitNodeDispose((cnSplitNode*)node);
+    break;
   case cnNodeTypeRoot:
     cnRootNodeDispose((cnRootNode*)node);
     break;
@@ -118,7 +127,7 @@ void cnNodeDispose(cnNode* node) {
     cnVarNodeDispose((cnVarNode*)node);
     break;
   default:
-    printf("I don't handle type %u yet.\n", node->type);
+    printf("I don't handle type %u.\n", node->type);
     break;
   }
   // Base node disposal.
@@ -328,6 +337,52 @@ void cnRootNodePropagate(cnRootNode* root) {
 }
 
 
+cnSplitNode* cnSplitNodeCreate(cnBool addLeaves) {
+  cnSplitNode* split = malloc(sizeof(cnSplitNode));
+  if (!split) return cnFalse;
+  if (!cnSplitNodeInit(split, addLeaves)) {
+    free(split);
+    return NULL;
+  }
+  return split;
+}
+
+
+void cnSplitNodeDispose(cnSplitNode* split) {
+  // Dispose of the kids.
+  cnNode** kid = split->kids;
+  cnNode** end = split->kids + cnSplitCount;
+  for (; kid < end; kid++) {
+    cnNodeDrop(*kid);
+  }
+  // TODO Anything else special?
+  cnSplitNodeInit(split, cnFalse);
+}
+
+
+cnBool cnSplitNodeInit(cnSplitNode* split, cnBool addLeaves) {
+  cnNode** kid;
+  cnNode** end = split->kids + cnSplitCount;
+  cnNodeInit(&split->node, cnNodeTypeSplit);
+  // Init to null for convenience and safety.
+  for (kid = split->kids; kid < end; kid++) {
+    *kid = NULL;
+  }
+  if (addLeaves) {
+    cnIndex k;
+    for (kid = split->kids, k = 0; kid < end; kid++, k++) {
+      cnLeafNode* leaf = cnLeafNodeCreate();
+      if (!leaf) {
+        cnNodeDispose(&split->node);
+        return cnFalse;
+      }
+      cnNodePutKid(&split->node, k, &leaf->node);
+    }
+  }
+  return cnTrue;
+}
+
+
 cnNode* cnTreeCopy(cnNode* node) {
   cnNode* copy;
   cnNode** end;
@@ -371,7 +426,10 @@ cnNode* cnTreeCopy(cnNode* node) {
 cnVarNode* cnVarNodeCreate(cnBool addLeaf) {
   cnVarNode* var = malloc(sizeof(cnVarNode));
   if (!var) return cnFalse;
-  cnVarNodeInit(var, addLeaf);
+  if (!cnVarNodeInit(var, addLeaf)) {
+    free(var);
+    return NULL;
+  }
   return var;
 }
 

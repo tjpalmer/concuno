@@ -259,6 +259,9 @@ cnCount cnNodeVarDepth(cnNode* node);
 cnBool cnRootNodeInit(cnRootNode* root, cnBool addLeaf);
 
 
+cnSplitNode* cnSplitNodeCreate(cnBool addLeaves);
+
+
 /**
  * Copies this node and all under, except the bindings. (TODO Keep the models?)
  * Original references to bindings are kept to avoid excessive data copying.
