@@ -114,8 +114,7 @@ int main(int argc, char** argv) {
   status = EXIT_SUCCESS;
 
   // Dispose of the learned tree.
-  cnNodeDispose(&learnedTree->node);
-  free(learnedTree);
+  cnNodeDrop(&learnedTree->node);
 
   DISPOSE_LEARNER:
   cnLearnerDispose(&learner);

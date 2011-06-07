@@ -126,6 +126,12 @@ void cnNodeDispose(cnNode* node) {
 }
 
 
+void cnNodeDrop(cnNode* node) {
+  cnNodeDispose(node);
+  free(node);
+}
+
+
 void cnLeafNodeInit(cnLeafNode* leaf) {
   cnNodeInit(&leaf->node, cnNodeTypeLeaf);
   leaf->probability = 0;
@@ -243,9 +249,7 @@ void cnNodePutKid(cnNode* parent, cnIndex k, cnNode* kid) {
   cnNode* old = kids[k];
   cnRootNode* root;
   if (old) {
-    // TODO Combined drop?
-    cnNodeDispose(old);
-    free(old);
+    cnNodeDrop(old);
   }
   kids[k] = kid;
   kid->parent = parent;
@@ -293,9 +297,7 @@ cnCount cnNodeVarDepth(cnNode* node) {
 void cnRootNodeDispose(cnRootNode* root) {
   // Dispose of the kid.
   if (root->kid) {
-    // TODO Unified drop?
-    cnNodeDispose(root->kid);
-    free(root->kid);
+    cnNodeDrop(root->kid);
   }
   // TODO Anything else special?
   cnRootNodeInit(root, cnFalse);
@@ -377,9 +379,7 @@ cnVarNode* cnVarNodeCreate(cnBool addLeaf) {
 void cnVarNodeDispose(cnVarNode* var) {
   // Dispose of the kid.
   if (var->kid) {
-    // TODO Unified drop?
-    cnNodeDispose(var->kid);
-    free(var->kid);
+    cnNodeDrop(var->kid);
   }
   // TODO Anything else special?
   cnVarNodeInit(var, cnFalse);

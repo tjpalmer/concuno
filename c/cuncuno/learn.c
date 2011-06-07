@@ -72,6 +72,7 @@ cnRootNode* cnExpandedTree(cnLearner* learner, cnExpansion* expansion) {
   // TODO Loop across multiple inits/attempts?
   cnLeafNode* leaf;
   cnNode* parent;
+  cnSplitNode* split;
   cnRootNode* root = cnNodeRoot(&expansion->leaf->node);
   cnCount varsAdded;
   printf("Expanding on "); cnPrintExpansion(expansion);
@@ -84,8 +85,7 @@ cnRootNode* cnExpandedTree(cnLearner* learner, cnExpansion* expansion) {
   for (varsAdded = 0; varsAdded < expansion->newVarCount; varsAdded++) {
     cnVarNode* var = cnVarNodeCreate(cnTrue);
     if (!var) {
-      cnNodeDispose(&root->node);
-      free(root);
+      cnNodeDrop(&root->node);
       return NULL;
     }
     cnNodeReplaceKid(&leaf->node, &var->node);
@@ -350,8 +350,7 @@ cnRootNode* cnTryExpansionsAtLeaf(cnLearner* learner, cnLeafNode* leaf) {
       goto DONE;
     }
     // TODO Evaluate LL to see if it's the best yet. If not ...
-    cnNodeDispose((cnNode*)expanded);
-    free(expanded);
+    cnNodeDrop(&expanded->node);
   } cnEnd;
 
   DONE:

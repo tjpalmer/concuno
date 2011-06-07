@@ -181,7 +181,16 @@ cnLeafNode* cnLeafNodeCreate(void);
  * TODO Rename to cnTreeDispose to clarify deep nature of disposal?
  */
 void cnNodeDispose(cnNode* node);
-// TODO void cnNodeDrop(cnNode* node); instead or also?
+
+
+/**
+ * Disposes of and frees the given node and all its descendants.
+ *
+ * TODO Get rid of init/dispose on nodes from public interface?
+ *
+ * TODO Rename to cnTreeDrop to clarify deep nature of the drop?
+ */
+void cnNodeDrop(cnNode* node);
 
 
 /**
