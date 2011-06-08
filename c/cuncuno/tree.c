@@ -38,6 +38,7 @@ void cnBindingBagInit(
   cnBindingBag* bindingBag, cnBag* bag, cnCount entityCount
 ) {
   bindingBag->bag = bag;
+  bindingBag->entityCount = entityCount;
   cnListInit(&bindingBag->bindings, entityCount * sizeof(void*));
 }
 
@@ -474,9 +475,7 @@ cnBool cnVarNodeInit(cnVarNode* var, cnBool addLeaf) {
 
 
 cnBool cnVarNodePropagate(cnVarNode* var) {
-  //cnCount bindingsInCount = 0;
   cnCount bindingsOutCount = 0;
-  //cnCount bindingsBagsInCount = 0;
   cnBindingBagList* bindingBagsIn = var->node.bindingBagList;
   cnBindingBagList* bindingBagsOut = cnBindingBagListCreate();
   if (!bindingBagsOut) {
@@ -489,7 +488,6 @@ cnBool cnVarNodePropagate(cnVarNode* var) {
   if (!bindingBagOut) return cnFalse;
   cnListEachBegin(&bindingBagsIn->bindingBags, cnBindingBag, bindingBagIn) {
     cnIndex b;
-    //bindingsBagsInCount++;
     cnBindingBagInit(
       bindingBagOut, bindingBagIn->bag, bindingBagIn->entityCount + 1
     );
@@ -497,7 +495,7 @@ cnBool cnVarNodePropagate(cnVarNode* var) {
     // Use custom looping because of our abusive 2D-ish array.
     for (b = 0; b < bindingBagIn->bindings.count; b++) {
       void** entitiesIn = cnListGet(&bindingBagIn->bindings, b);
-      //bindingsInCount++;
+      cnBool anyLeft = cnFalse;
       // Find the entities to add on.
       cnListEachBegin(&bindingBagIn->bag->entities, void*, entityOut) {
         cnBool found = cnFalse;
@@ -511,6 +509,7 @@ cnBool cnVarNodePropagate(cnVarNode* var) {
           }
         }
         if (!found) {
+          anyLeft = cnTrue;
           bindingsOutCount++;
           // Didn't find it. Push a new binding with the new entity.
           void** entitiesOut = cnListExpand(&bindingBagOut->bindings);
@@ -525,15 +524,28 @@ cnBool cnVarNodePropagate(cnVarNode* var) {
           entitiesOut[bindingBagIn->entityCount] = *entityOut;
         }
       } cnEnd;
-      // TODO Push a null if none found.
+      if (!anyLeft) {
+        bindingsOutCount++;
+        // Push a dummy binding for later errors since no entities remained.
+        // TODO Is it worth extracting a function to avoid this bit of
+        // TODO duplication?
+        void** entitiesOut = cnListExpand(&bindingBagOut->bindings);
+        // For the zero length arrays, I'm not sure if memcpy from null is
+        // okay, so check that first.
+        if (entitiesIn) {
+          memcpy(
+            entitiesOut, entitiesIn, bindingBagIn->entityCount * sizeof(void*)
+          );
+        }
+        // Here be the dummy!
+        entitiesOut[bindingBagIn->entityCount] = NULL;
+      }
     }
     bindingBagOut++;
   } cnEnd;
-  //printf("bindingsInCount: %ld\n", bindingsInCount);
-  //printf("bindingsBagsInCount: %ld\n", bindingsBagsInCount);
   printf("bindingsOutCount: %ld\n", bindingsOutCount);
   if (var->kid) {
-    // TODO Also record it here in var?
+    // TODO Also record it here in this var as bindingBagsOut?
     // TODO If not, only calculate when there's a kid.
     cnNodePropagate(var->kid, bindingBagsOut);
   }
