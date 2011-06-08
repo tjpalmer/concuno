@@ -45,6 +45,60 @@ typedef cnList(char) cnString;
 
 
 /**
+ * Stores an ND array of items.
+ */
+typedef struct cnGridAny {
+
+  /**
+   * The count for each dimension, and dims.count is the number of dimensions.
+   *
+   * It is safest not to modify these values directly, so that consistency with
+   * the data can be maintained.
+   *
+   * TODO Matlab style or Numpy style?
+   */
+  cnList(cnCount) dims;
+
+  /**
+   * Value item storage. Note that values.count must equal the product of the
+   * dimensions. There is some redundancy in this, but it's convenient enough.
+   *
+   * It is safest not to resize the values directly, so that consistency with
+   * the dims can be maintained. Modifying the actual values should be
+   * reasonably safe, however.
+   */
+  cnListAny values;
+
+} cnGridAny;
+
+
+/**
+ * Faux generics. Use this rather than cnGridAny, when you can.
+ */
+#define cnGrid(Type) cnGridAny
+
+
+/**
+ * Inits the dims and values to empty lists.
+ */
+void cnGridInit(cnGridAny* grid);
+
+
+/**
+ * Inits the dims to the number of rows and columns specified, and preallocates
+ * the space requested.
+ */
+cnBool cnGridInit2d(cnGridAny* grid, cnCount nrows, cnCount ncols);
+
+
+/**
+ * Inits the dims to a copy of the dims given, and preallocates the space
+ * requested.
+ */
+cnBool cnGridInitNd(cnGridAny* grid, const cnList(cnCount)* dims);
+
+
+/**
  * Sets the count to 0, but leaves space allocated.
  */
 void cnListClear(cnListAny* list);
