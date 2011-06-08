@@ -42,6 +42,9 @@ typedef struct cnExpansion {
 cnRootNode* cnExpandedTree(cnLearner* learner, cnExpansion* expansion);
 
 
+cnBool cnLearnSplitModel(cnLearner* learner, cnSplitNode* split);
+
+
 void cnPrintExpansion(cnExpansion* expansion);
 
 
@@ -76,31 +79,59 @@ cnRootNode* cnExpandedTree(cnLearner* learner, cnExpansion* expansion) {
   cnRootNode* root = cnNodeRoot(&expansion->leaf->node);
   cnCount varsAdded;
   printf("Expanding on "); cnPrintExpansion(expansion);
+
+  // Create a copied tree to work with.
   root = (cnRootNode*)cnTreeCopy(&root->node);
   if (!root) {
+    printf("No tree copy for expansion.\n");
     return NULL;
   }
   leaf = (cnLeafNode*)cnNodeFindById(&root->node, expansion->leaf->node.id);
   parent = leaf->node.parent;
+
+  // Add requested vars.
   for (varsAdded = 0; varsAdded < expansion->newVarCount; varsAdded++) {
     cnVarNode* var = cnVarNodeCreate(cnTrue);
     if (!var) {
+      printf("No var %ld for expansion.\n", varsAdded);
       goto ERROR;
     }
     cnNodeReplaceKid(&leaf->node, &var->node);
     leaf = *(cnLeafNode**)cnNodeKids(&var->node);
   }
+
+  // Add the split, and provide the bindings from the old parent.
+  // TODO Just always propagate from the root?
+  // TODO Don't bother even to store bindings??? How fast is it, usually?
   if (!(split = cnSplitNodeCreate(cnTrue))) {
     goto ERROR;
   }
   cnNodeReplaceKid(&leaf->node, &split->node);
   cnNodePropagate(parent, NULL);
-  // TODO Propagate from parent (splitting into error at first).
-  // TODO Optimize split.
-  // TODO Return new tree.
+
+  // Configure the split, and learn a model (distribution, threshold).
+  split->function = expansion->function;
+  // Could just borrow the indices, but that makes management more complicated.
+  // TODO Array malloc/copy function?
+  split->varIndices = malloc(split->function->inCount * sizeof(cnIndex));
+  if (!split->varIndices) {
+    printf("No var indices for expansion.\n");
+    goto ERROR;
+  }
+  memcpy(
+    split->varIndices, expansion->varIndices,
+    split->function->inCount * sizeof(cnIndex)
+  );
+  if (!cnLearnSplitModel(learner, split)) {
+    printf("No split learned for expansion.\n");
+    goto ERROR;
+  }
+
+  // Return the new tree.
   return root;
 
   ERROR:
+  // Just destroy the whole tree copy for now in case of any error.
   cnNodeDrop(&root->node);
   return NULL;
 }
@@ -113,6 +144,11 @@ void cnLearnerDispose(cnLearner* learner) {
 
 void cnLearnerInit(cnLearner* learner) {
   // Nothing yet.
+}
+
+
+cnBool cnLearnSplitModel(cnLearner* learner, cnSplitNode* split) {
+  return cnTrue;
 }
 
 
@@ -357,6 +393,8 @@ cnRootNode* cnTryExpansionsAtLeaf(cnLearner* learner, cnLeafNode* leaf) {
       goto DONE;
     }
     // TODO Evaluate LL to see if it's the best yet. If not ...
+    // TODO Consider paired randomization test with validation set for
+    // TODO significance test.
     cnNodeDrop(&expanded->node);
   } cnEnd;
 

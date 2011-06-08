@@ -119,6 +119,10 @@ typedef struct cnSplitNode {
 
   cnNode* kids[cnSplitCount];
 
+  cnEntityFunction* function;
+
+  cnIndex* varIndices;
+
 } cnSplitNode;
 
 

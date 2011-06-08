@@ -19,6 +19,9 @@ void cnSplitNodeDispose(cnSplitNode* split);
 cnBool cnSplitNodeInit(cnSplitNode* split, cnBool addLeaves);
 
 
+cnBool cnSplitNodePropagate(cnSplitNode* split);
+
+
 void cnVarNodeDispose(cnVarNode* var);
 
 
@@ -251,15 +254,14 @@ cnBool cnNodePropagate(cnNode* node, cnBindingBagList* bindingBags) {
   // Sub-propagate.
   switch (node->type) {
   case cnNodeTypeLeaf:
-    // Nothing to do for leaf nodes.
+    // Nothing more to do for leaf nodes.
     return cnTrue;
   case cnNodeTypeSplit:
-    // TODO Handle these.
-    printf("I don't handle splits yet for prop.\n");
-    return cnTrue;
+    return cnSplitNodePropagate((cnSplitNode*)node);
   case cnNodeTypeRoot:
     return cnRootNodePropagate((cnRootNode*)node);
   case cnNodeTypeVar:
+    // TODO Indicate whether the incomings are new in case we cached outgoings?
     return cnVarNodePropagate((cnVarNode*)node);
   default:
     printf("I don't handle type %u for prop.\n", node->type);
@@ -371,6 +373,7 @@ void cnSplitNodeDispose(cnSplitNode* split) {
   for (; kid < end; kid++) {
     cnNodeDrop(*kid);
   }
+  free(split->varIndices);
   // TODO Anything else special?
   cnSplitNodeInit(split, cnFalse);
 }
@@ -381,6 +384,8 @@ cnBool cnSplitNodeInit(cnSplitNode* split, cnBool addLeaves) {
   cnNode** end = split->kids + cnSplitCount;
   cnNodeInit(&split->node, cnNodeTypeSplit);
   // Init to null for convenience and safety.
+  split->function = NULL;
+  split->varIndices = NULL;
   for (kid = split->kids; kid < end; kid++) {
     *kid = NULL;
   }
@@ -394,6 +399,18 @@ cnBool cnSplitNodeInit(cnSplitNode* split, cnBool addLeaves) {
       }
       cnNodePutKid(&split->node, k, &leaf->node);
     }
+  }
+  return cnTrue;
+}
+
+
+cnBool cnSplitNodePropagate(cnSplitNode* split) {
+  // TODO Split to proper kids.
+  printf("Splitting only to err for now.\n");
+  if (split->kids[cnSplitErr]) {
+    return cnNodePropagate(
+      split->kids[cnSplitErr], split->node.bindingBagList
+    );
   }
   return cnTrue;
 }
