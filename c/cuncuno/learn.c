@@ -94,6 +94,7 @@ cnRootNode* cnExpandedTree(cnLearner* learner, cnExpansion* expansion) {
     goto ERROR;
   }
   cnNodeReplaceKid(&leaf->node, &split->node);
+  cnNodePropagate(parent, NULL);
   // TODO Propagate from parent (splitting into error at first).
   // TODO Optimize split.
   // TODO Return new tree.

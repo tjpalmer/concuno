@@ -82,6 +82,8 @@ cnBool cnBindingBagListPushBags(
   // Now init each one.
   cnListEachBegin(bags, cnBag, bag) {
     cnBindingBagInit(bindingBag, bag, 0);
+    // Have a fake empty binding. Note that this is abusive. Alternatives?
+    bindingBag->bindings.count++;
     bindingBag++;
   } cnEnd;
   return cnTrue;
@@ -232,22 +234,34 @@ cnBool cnNodeLeaves(cnNode* node, cnList(cnLeafNode*)* leaves) {
 
 cnBool cnNodePropagate(cnNode* node, cnBindingBagList* bindingBags) {
   // TODO Or just push them onto any existing?
-  if (node->bindingBagList) {
-    cnBindingBagListDrop(&node->bindingBagList);
+  if (!bindingBags) {
+    bindingBags = node->bindingBagList;
+    if (!bindingBags) {
+      // Still nothing. Force nothing on down?
+      return cnFalse;
+    }
+  } else {
+    if (node->bindingBagList) {
+      cnBindingBagListDrop(&node->bindingBagList);
+    }
+    node->bindingBagList = bindingBags;
+    bindingBags->refCount++;
   }
-  node->bindingBagList = bindingBags;
-  bindingBags->refCount++;
   // Sub-propagate.
   switch (node->type) {
   case cnNodeTypeLeaf:
     // Nothing to do for leaf nodes.
+    return cnTrue;
+  case cnNodeTypeSplit:
+    // TODO Handle these.
+    printf("I don't handle splits yet for prop.\n");
     return cnTrue;
   case cnNodeTypeRoot:
     return cnRootNodePropagate((cnRootNode*)node);
   case cnNodeTypeVar:
     return cnVarNodePropagate((cnVarNode*)node);
   default:
-    printf("I don't handle type %u yet for prop.\n", node->type);
+    printf("I don't handle type %u for prop.\n", node->type);
     return cnFalse;
   }
 }
@@ -460,6 +474,9 @@ cnBool cnVarNodeInit(cnVarNode* var, cnBool addLeaf) {
 
 
 cnBool cnVarNodePropagate(cnVarNode* var) {
+  //cnCount bindingsInCount = 0;
+  cnCount bindingsOutCount = 0;
+  //cnCount bindingsBagsInCount = 0;
   cnBindingBagList* bindingBagsIn = var->node.bindingBagList;
   cnBindingBagList* bindingBagsOut = cnBindingBagListCreate();
   if (!bindingBagsOut) {
@@ -471,16 +488,54 @@ cnBool cnVarNodePropagate(cnVarNode* var) {
   );
   if (!bindingBagOut) return cnFalse;
   cnListEachBegin(&bindingBagsIn->bindingBags, cnBindingBag, bindingBagIn) {
+    cnIndex b;
+    //bindingsBagsInCount++;
     cnBindingBagInit(
       bindingBagOut, bindingBagIn->bag, bindingBagIn->entityCount + 1
     );
-    cnListEachBegin(&bindingBagIn->bindings, void*, entitiesIn) {
-      // TODO Push expanded bindings.
-    } cnEnd;
+    // Find each binding to expand.
+    // Use custom looping because of our abusive 2D-ish array.
+    for (b = 0; b < bindingBagIn->bindings.count; b++) {
+      void** entitiesIn = cnListGet(&bindingBagIn->bindings, b);
+      //bindingsInCount++;
+      // Find the entities to add on.
+      cnListEachBegin(&bindingBagIn->bag->entities, void*, entityOut) {
+        cnBool found = cnFalse;
+        void** entityIn = entitiesIn;
+        void** entitiesInEnd = entityIn + bindingBagIn->entityCount;
+        for (; entityIn < entitiesInEnd; entityIn++) {
+          if (*entityIn == *entityOut) {
+            // Already used.
+            found = cnTrue;
+            break;
+          }
+        }
+        if (!found) {
+          bindingsOutCount++;
+          // Didn't find it. Push a new binding with the new entity.
+          void** entitiesOut = cnListExpand(&bindingBagOut->bindings);
+          // For the zero length arrays, I'm not sure if memcpy from null is
+          // okay, so check that first.
+          if (entitiesIn) {
+            memcpy(
+              entitiesOut, entitiesIn,
+              bindingBagIn->entityCount * sizeof(void*)
+            );
+          }
+          entitiesOut[bindingBagIn->entityCount] = *entityOut;
+        }
+      } cnEnd;
+      // TODO Push a null if none found.
+    }
     bindingBagOut++;
   } cnEnd;
+  //printf("bindingsInCount: %ld\n", bindingsInCount);
+  //printf("bindingsBagsInCount: %ld\n", bindingsBagsInCount);
+  printf("bindingsOutCount: %ld\n", bindingsOutCount);
   if (var->kid) {
-    //cnNodePropagate(var->kid, var->node.bindingBagList);
+    // TODO Also record it here in var?
+    // TODO If not, only calculate when there's a kid.
+    cnNodePropagate(var->kid, bindingBagsOut);
   }
   cnBindingBagListDrop(&bindingBagsOut);
   return cnTrue;

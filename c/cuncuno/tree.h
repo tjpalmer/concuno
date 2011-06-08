@@ -229,6 +229,8 @@ cnBool cnNodeLeaves(cnNode* node, cnList(cnLeafNode*)* leaves);
 
 /**
  * Assigns the given bindings to this node, then propagates down.
+ *
+ * If null bindingBags, repropagate the currently stored ones, if any.
  */
 cnBool cnNodePropagate(cnNode* node, cnBindingBagList* bindingBags);
 
