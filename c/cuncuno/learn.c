@@ -33,6 +33,19 @@ typedef struct cnExpansion {
 } cnExpansion;
 
 
+typedef struct cnValueBag {
+
+  cnBag* bag;
+
+  cnEntityFunction* function;
+
+  void* valueMatrix;
+
+  // Or cnGridAny values; ??
+
+} cnValueBag;
+
+
 /**
  * Returns a new tree with the expansion applied, optimized (so to speak)
  * according to the SMRF algorithm.
@@ -148,6 +161,9 @@ void cnLearnerInit(cnLearner* learner) {
 
 
 cnBool cnLearnSplitModel(cnLearner* learner, cnSplitNode* split) {
+  cnCount bagCount = split->node.bindingBagList->bindingBags.count;
+  cnValueBag* valueBags = malloc(bagCount * sizeof(cnValueBag));
+  free(valueBags);
   return cnTrue;
 }
 
