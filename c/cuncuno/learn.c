@@ -152,7 +152,7 @@ cnBool cnLearnSplitModel(cnLearner* learner, cnSplitNode* split) {
 }
 
 
-cnRootNode* cnLearnerLearn(cnLearner* learner, cnRootNode* initial) {
+cnRootNode* cnLearnTree(cnLearner* learner, cnRootNode* initial) {
   cnLeafNode* leaf;
   cnList(cnLeafNode*) leaves;
   // Make sure leaf probs are up to date.

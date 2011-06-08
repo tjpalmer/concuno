@@ -36,7 +36,7 @@ void cnLearnerInit(cnLearner* learner);
  *
  * TODO Be more precise about side effects might exist.
  */
-cnRootNode* cnLearnerLearn(cnLearner* learner, cnRootNode* initial);
+cnRootNode* cnLearnTree(cnLearner* learner, cnRootNode* initial);
 
 
 #endif

@@ -105,7 +105,7 @@ int main(int argc, char** argv) {
 
   // Learn a tree.
   cnLearnerInit(&learner);
-  learnedTree = cnLearnerLearn(&learner, &stubTree);
+  learnedTree = cnLearnTree(&learner, &stubTree);
   if (!learnedTree) {
     printf("No learned tree.\n");
     goto DISPOSE_LEARNER;
