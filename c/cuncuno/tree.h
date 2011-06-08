@@ -179,6 +179,15 @@ cnBool cnBindingBagListPushBags(
 );
 
 
+/**
+ * Determines if the binding represented by the entities is valid (has no null
+ * entity pointers).
+ *
+ * TODO If entities were a sized 2D grid, we could avoid the count here.
+ */
+cnBool cnBindingValid(cnCount entityCount, void** entities);
+
+
 cnLeafNode* cnLeafNodeCreate(void);
 
 

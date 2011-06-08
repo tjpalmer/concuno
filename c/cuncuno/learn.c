@@ -37,9 +37,19 @@ typedef struct cnValueBag {
 
   cnBag* bag;
 
-  cnEntityFunction* function;
+  /**
+   * Number of items (values) per vector.
+   */
+  cnCount itemCount;
 
+  cnCount itemSize;
+
+  /**
+   * One vector at a time.
+   */
   void* valueMatrix;
+
+  cnCount vectorCount;
 
   // Or cnGridAny values; ??
 
@@ -161,10 +171,73 @@ void cnLearnerInit(cnLearner* learner) {
 
 
 cnBool cnLearnSplitModel(cnLearner* learner, cnSplitNode* split) {
-  cnCount bagCount = split->node.bindingBagList->bindingBags.count;
-  cnValueBag* valueBags = malloc(bagCount * sizeof(cnValueBag));
+  cnBool result = cnFalse;
+
+  // TODO The whole value-bag building process needs to move to tree and away
+  // TODO from learn, because it's needed just for standard propagation.
+  cnList(cnBindingBag)* bindingBags = &split->node.bindingBagList->bindingBags;
+  cnCount validBindingsCount = 0;
+  cnValueBag* valueBag;
+  cnValueBag* valueBags = malloc(bindingBags->count * sizeof(cnValueBag));
+  cnValueBag* valueBagsEnd = valueBags + bindingBags->count;
+
+  // Init first for safety.
+  valueBag = valueBags;
+  cnListEachBegin(bindingBags, cnBindingBag, bindingBag) {
+    valueBag->bag = bindingBag->bag;
+    valueBag->itemCount = split->function->outCount;
+    valueBag->itemSize = split->function->outType->size;
+    valueBag->valueMatrix = NULL;
+    valueBag->vectorCount = 0;
+    // Find out how many valid bindings we have.
+    cnListEachBegin(&bindingBag->bindings, void*, entities) {
+      // TODO Always do 1-to-1 bindings to value vectors?
+      // TODO If not, how to keep correspondence?
+      // TODO Maybe that's a difference. When learning, we don't care about the
+      // TODO dummies at all. But when splitting, there needs to be some way to
+      // TODO track it.
+      // TODO Ponder the matter.
+      if (cnBindingValid(bindingBag->entityCount, entities)) {
+        valueBag->vectorCount++;
+      }
+    } cnEnd;
+    validBindingsCount += valueBag->vectorCount;
+    // Next bag.
+    valueBag++;
+  } cnEnd;
+  printf("Need to build %ld values.\n", validBindingsCount);
+
+  // Now build the values.
+  valueBag = valueBags;
+  cnListEachBegin(bindingBags, cnBindingBag, bindingBag) {
+    // First allocate.
+    valueBag->valueMatrix = malloc(
+      valueBag->vectorCount * valueBag->itemCount * valueBag->itemSize
+    );
+    if (!valueBag->valueMatrix) {
+      printf("No value matrix.\n");
+      goto DROP_VALUE_BAGS;
+    }
+    // Now fill.
+    cnListEachBegin(&bindingBag->bindings, void*, entities) {
+      if (cnBindingValid(bindingBag->entityCount, entities)) {
+        // TODO Call the function.
+      }
+    } cnEnd;
+    validBindingsCount += valueBag->vectorCount;
+    // Next bag.
+    valueBag++;
+  } cnEnd;
+
+  // It all worked.
+  result = cnTrue;
+
+  DROP_VALUE_BAGS:
+  for (valueBag = valueBags; valueBag < valueBagsEnd; valueBag++) {
+    free(valueBag->valueMatrix);
+  }
   free(valueBags);
-  return cnTrue;
+  return result;
 }
 
 

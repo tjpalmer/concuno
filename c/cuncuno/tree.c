@@ -94,6 +94,19 @@ cnBool cnBindingBagListPushBags(
 }
 
 
+cnBool cnBindingValid(cnCount entityCount, void** entities) {
+  void** entity = entities;
+  void** end = entities + entityCount;
+  for (; entity < end; entity++) {
+    if (!*entity) {
+      // Bogus/dummy binding.
+      return cnFalse;
+    }
+  }
+  return cnTrue;
+}
+
+
 void cnLeafNodeDispose(cnLeafNode* node) {
   cnLeafNodeInit(node);
 }
@@ -560,7 +573,7 @@ cnBool cnVarNodePropagate(cnVarNode* var) {
     }
     bindingBagOut++;
   } cnEnd;
-  printf("bindingsOutCount: %ld\n", bindingsOutCount);
+  //printf("bindingsOutCount: %ld\n", bindingsOutCount);
   if (var->kid) {
     // TODO Also record it here in this var as bindingBagsOut?
     // TODO If not, only calculate when there's a kid.
