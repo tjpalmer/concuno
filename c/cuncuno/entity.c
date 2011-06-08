@@ -33,6 +33,8 @@ void cnEntityFunctionGetDifference(
   const cnEntityFunction* function, const void *const *ins, void* outs
 ) {
   // TODO Remove float assumption here.
+  // TODO If we dodge reentrance support, could have a preallocated array
+  // TODO available to avoid the malloc/free action.
   cnIndex i;
   cnEntityFunction* base = function->data;
   cnFloat* x = malloc(function->outCount * sizeof(cnFloat));

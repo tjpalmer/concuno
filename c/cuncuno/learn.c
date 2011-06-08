@@ -210,6 +210,7 @@ cnBool cnLearnSplitModel(cnLearner* learner, cnSplitNode* split) {
   // Now build the values.
   valueBag = valueBags;
   cnListEachBegin(bindingBags, cnBindingBag, bindingBag) {
+    void* values;
     // First allocate.
     valueBag->valueMatrix = malloc(
       valueBag->vectorCount * valueBag->itemCount * valueBag->itemSize
@@ -219,9 +220,13 @@ cnBool cnLearnSplitModel(cnLearner* learner, cnSplitNode* split) {
       goto DROP_VALUE_BAGS;
     }
     // Now fill.
+    values = valueBag->valueMatrix;
     cnListEachBegin(&bindingBag->bindings, void*, entities) {
       if (cnBindingValid(bindingBag->entityCount, entities)) {
-        // TODO Call the function.
+        split->function->get(
+          split->function, (const void *const *)entities, values
+        );
+        values = ((char*)values) + valueBag->itemCount * valueBag->itemSize;
       }
     } cnEnd;
     validBindingsCount += valueBag->vectorCount;
