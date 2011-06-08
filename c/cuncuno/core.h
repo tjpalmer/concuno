@@ -108,7 +108,9 @@ void cnListDispose(cnListAny* list);
 
 
 /**
- * Perform the action for each item. Variable i will be of type Type*.
+ * Perform the action for each item. Variable i will be of type Type*. The loop
+ * increment uses itemSize explicitly so that sizeof(Type) doesn't necessarily
+ * have to match. That is, you can pick whatever pointer type you want.
  *
  * Terminate with cnEnd.
  */
