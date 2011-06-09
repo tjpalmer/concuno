@@ -8,6 +8,9 @@
 // TODO Probability distributions go here, too.
 
 
+void cnVectorCov(void);
+
+
 /**
  * Put the max of count vectors of the given size from in into out.
  *

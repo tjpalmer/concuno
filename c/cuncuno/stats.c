@@ -1,4 +1,14 @@
+#include <cblas.h>
 #include "stats.h"
+
+
+void cnVectorCov(void) {
+  // TODO
+  //cblas_dgemm(
+  //  CblasColMajor, CblasNoTrans, CblasTrans, size, count, size,
+  //  1, in, size, in, count, 0, NULL, 0
+  //);
+}
 
 
 cnFloat* cnVectorMax(cnCount size, cnFloat* out, cnCount count, cnFloat* in) {
