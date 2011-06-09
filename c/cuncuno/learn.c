@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <string.h>
 #include "learn.h"
+#include "mat.h"
+#include "stats.h"
 
 
 /**
@@ -69,6 +71,106 @@ cnRootNode* cnTryExpansionsAtLeaf(cnLearner* learner, cnLeafNode* leaf);
  * Updates all the leaf probabilities in the tree.
  */
 cnBool cnUpdateLeafProbabilities(cnRootNode* root);
+
+
+void cnBuildInitialKernel(cnTopology topology, cnList(cnValueBag)* valueBags) {
+  cnFloat* positiveVector;
+  cnFloat* positiveVectors = NULL;
+  cnCount positiveVectorCount;
+  cnFloat* matrixEnd;
+  cnCount valueCount = 0; // per vector.
+  cnFloat* vector;
+
+  if (topology != cnTopologyEuclidean) {
+    printf("I handle only Euclidean right now, not %u.\n", topology);
+    return;
+  }
+
+  // Count good, positive vectors.
+  positiveVectorCount = 0;
+  printf("valueBags->count: %ld\n", valueBags->count);
+  if (valueBags->count > 0) {
+    valueCount = ((cnValueBag*)valueBags->items)->itemCount;
+  }
+  printf("valueCount: %ld\n", valueCount);
+  cnListEachBegin(valueBags, cnValueBag, valueBag) {
+    // Just use the positives for the initial kernel.
+    if (!valueBag->bag->label) continue;
+    vector = valueBag->valueMatrix;
+    matrixEnd = vector + valueBag->vectorCount * valueCount;
+    for (; vector < matrixEnd; vector += valueCount) {
+      cnBool allGood = cnTrue;
+      cnFloat* value = vector;
+      cnFloat* vectorEnd = vector + valueCount;
+      for (value = vector; value < vectorEnd; value++) {
+        if (cnIsNaN(*value)) {
+          allGood = cnFalse;
+          break;
+        }
+      }
+      positiveVectorCount += allGood;
+    }
+  } cnEnd;
+
+  if (!positiveVectorCount) {
+    printf("I need vectors to work with!\n");
+    return;
+  }
+
+  // Make a matrix of the positive, good vectors.
+  positiveVectors = malloc(positiveVectorCount * valueCount * sizeof(cnFloat));
+  if (!positiveVectors) {
+    goto DONE;
+  }
+  positiveVector = positiveVectors;
+  cnListEachBegin(valueBags, cnValueBag, valueBag) {
+    // Just use the positives for the initial kernel.
+    if (!valueBag->bag->label) continue;
+    vector = valueBag->valueMatrix;
+    matrixEnd = vector + valueBag->vectorCount * valueCount;
+    for (; vector < matrixEnd; vector += valueCount) {
+      cnBool allGood = cnTrue;
+      cnFloat *value = vector, *positiveValue = positiveVector;
+      cnFloat* vectorEnd = vector + valueCount;
+      for (value = vector; value < vectorEnd; value++, positiveValue++) {
+        if (cnIsNaN(*value)) {
+          allGood = cnFalse;
+          break;
+        }
+        *positiveValue = *value;
+      }
+      if (allGood) {
+        // Move to the next.
+        positiveVector += valueCount;
+      }
+    }
+  } cnEnd;
+
+  printf(
+    "Got a %ld by %ld matrix of positive vectors.\n",
+    valueCount, positiveVectorCount
+  );
+  {
+    // TODO Actually create a Gaussian PDF.
+    cnFloat* stat = malloc(valueCount * sizeof(cnFloat));
+    if (!stat) goto DONE;
+    printf("Max, mean of positives: ");
+    cnVectorPrint(
+      valueCount,
+      cnVectorMax(valueCount, stat, positiveVectorCount, positiveVectors)
+    );
+    printf(", ");
+    cnVectorPrint(
+      valueCount,
+      cnVectorMean(valueCount, stat, positiveVectorCount, positiveVectors)
+    );
+    printf("\n");
+    free(stat);
+  }
+
+  DONE:
+  free(positiveVectors);
+}
 
 
 cnRootNode* cnExpandedTree(cnLearner* learner, cnExpansion* expansion) {
@@ -157,6 +259,7 @@ cnBool cnLearnSplitModel(cnLearner* learner, cnSplitNode* split) {
   }
 
   // It all worked.
+  cnBuildInitialKernel(split->function->outTopology, &valueBags);
   // TODO Learn a model already.
   result = cnTrue;
 

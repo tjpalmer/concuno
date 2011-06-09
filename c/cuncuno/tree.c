@@ -432,8 +432,6 @@ cnBool cnSplitNodePropagate(cnSplitNode* split) {
 cnBool cnSplitNodeValueBags(
   cnSplitNode* split, cnList(cnValueBag)* valueBags //, TODO Dummies?
 ) {
-  cnBool result = cnFalse;
-
   void** args = NULL;
   cnList(cnBindingBag)* bindingBags = &split->node.bindingBagList->bindingBags;
   cnCount validBindingsCount = 0;
@@ -476,7 +474,7 @@ cnBool cnSplitNodeValueBags(
     );
     if (!valueBag->valueMatrix) {
       printf("No value matrix.\n");
-      goto DONE;
+      goto FAIL;
     }
     // Now fill.
     values = valueBag->valueMatrix;
@@ -497,18 +495,16 @@ cnBool cnSplitNodeValueBags(
   } cnEnd;
 
   // It all worked.
-  result = cnTrue;
-
-  DONE:
   free(args);
-  for (valueBag = valueBags->items; valueBag < valueBagsEnd; valueBag++) {
+  return cnTrue;
+
+  FAIL:
+  free(args);
+  cnListEachBegin(valueBags, cnValueBag, valueBag) {
     free(valueBag->valueMatrix);
-    // TODO Standard dispose function?
-    valueBag->valueMatrix = NULL;
-    valueBag->bag = NULL;
-  }
-  valueBags->count = 0;
-  return result;
+  } cnEnd;
+  cnListDispose(valueBags);
+  return cnFalse;
 }
 
 
