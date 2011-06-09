@@ -1,6 +1,12 @@
+#include <math.h>
 #include <stdio.h>
 #include <string.h>
 #include "core.h"
+
+
+cnBool cnIsNaN(cnFloat x) {
+  return x != x;
+}
 
 
 void cnListClear(cnListAny* list) {
@@ -108,6 +114,16 @@ void cnListRemove(cnListAny* list, cnIndex index) {
   memmove(
     begin, begin + list->itemSize, (list->count - index) * list->itemSize
   );
+}
+
+
+cnFloat cnNaN(void) {
+  // TODO Something more efficient but still portable?
+  static cnFloat nan = -1;
+  if (nan < 0) {
+    nan = strtod("NAN", NULL);
+  }
+  return nan;
 }
 
 

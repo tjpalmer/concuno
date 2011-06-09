@@ -30,7 +30,7 @@ void cnEntityFunctionDispose(cnEntityFunction* function) {
 
 
 void cnEntityFunctionGetDifference(
-  const cnEntityFunction* function, const void *const *ins, void* outs
+  cnEntityFunction* function, void** ins, void* outs
 ) {
   // TODO Remove float assumption here.
   // TODO If we dodge reentrance support, could have a preallocated array
@@ -56,10 +56,22 @@ void cnEntityFunctionGetDifference(
 
 
 void cnEntityFunctionGetProperty(
-  const cnEntityFunction* function, const void *const *ins, void* outs
+  cnEntityFunction* function, void** ins, void* outs
 ) {
   cnProperty* property = function->data;
-  property->get(property, *ins, outs);
+  if (!*ins) {
+    // Provide NaNs for floats when no input given.
+    // TODO Anything for other types? Error result?
+    if (function->outType == function->outType->schema->floatType) {
+      cnFloat nan = cnNaN();
+      cnIndex o;
+      for (o = 0; o < function->outCount; o++) {
+        ((cnFloat*)outs)[o] = nan;
+      }
+    }
+  } else {
+    property->get(property, *ins, outs);
+  }
 }
 
 

@@ -75,9 +75,7 @@ struct cnEntityFunction {
    * Receives an array of pointers to entities, and provides an array of values
    * whose individual sizes are given by outType.
    */
-  void (*get)(
-    const cnEntityFunction* function, const void *const *ins, void* outs
-  );
+  void (*get)(cnEntityFunction* function, void** ins, void* outs);
 
 };
 

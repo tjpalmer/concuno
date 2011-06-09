@@ -434,8 +434,7 @@ cnBool cnSplitNodeValueBags(
 ) {
   cnBool result = cnFalse;
 
-  // TODO The whole value-bag building process needs to move to tree and away
-  // TODO from learn, because it's needed just for standard propagation.
+  void** args = NULL;
   cnList(cnBindingBag)* bindingBags = &split->node.bindingBagList->bindingBags;
   cnCount validBindingsCount = 0;
   cnValueBag* valueBag;
@@ -457,19 +456,9 @@ cnBool cnSplitNodeValueBags(
     valueBag->itemCount = split->function->outCount;
     valueBag->itemSize = split->function->outType->size;
     valueBag->valueMatrix = NULL;
-    valueBag->vectorCount = 0;
-    // Find out how many valid bindings we have.
-    cnListEachBegin(&bindingBag->bindings, void*, entities) {
-      // TODO Always do 1-to-1 bindings to value vectors?
-      // TODO If not, how to keep correspondence?
-      // TODO Maybe that's a difference. When learning, we don't care about the
-      // TODO dummies at all. But when splitting, there needs to be some way to
-      // TODO track it.
-      // TODO Ponder the matter.
-      if (cnBindingValid(bindingBag->entityCount, entities)) {
-        valueBag->vectorCount++;
-      }
-    } cnEnd;
+    // Null (dummy bindings) will yield NaN as needed.
+    // TODO What about for non-float outputs???
+    valueBag->vectorCount = bindingBag->bindings.count;
     validBindingsCount += valueBag->vectorCount;
     // Next bag.
     valueBag++;
@@ -477,6 +466,7 @@ cnBool cnSplitNodeValueBags(
   printf("Need to build %ld values.\n", validBindingsCount);
 
   // Now build the values.
+  args = malloc(split->function->inCount * sizeof(void*));
   valueBag = valueBags->items;
   cnListEachBegin(bindingBags, cnBindingBag, bindingBag) {
     void* values;
@@ -486,19 +476,22 @@ cnBool cnSplitNodeValueBags(
     );
     if (!valueBag->valueMatrix) {
       printf("No value matrix.\n");
-      goto DROP_VALUE_BAGS;
+      goto DONE;
     }
     // Now fill.
     values = valueBag->valueMatrix;
     cnListEachBegin(&bindingBag->bindings, void*, entities) {
-      if (cnBindingValid(bindingBag->entityCount, entities)) {
-        split->function->get(
-          split->function, (const void *const *)entities, values
-        );
-        values = ((char*)values) + valueBag->itemCount * valueBag->itemSize;
+      // Gather the arguments.
+      cnIndex a;
+      for (a = 0; a < split->function->inCount; a++) {
+        args[a] = entities[split->varIndices[a]];
       }
+      // Call the function.
+      // TODO Check for errors once we provide such things.
+      split->function->get(split->function, args, values);
+      // Move to the next vector.
+      values = ((char*)values) + valueBag->itemCount * valueBag->itemSize;
     } cnEnd;
-    validBindingsCount += valueBag->vectorCount;
     // Next bag.
     valueBag++;
   } cnEnd;
@@ -506,7 +499,8 @@ cnBool cnSplitNodeValueBags(
   // It all worked.
   result = cnTrue;
 
-  DROP_VALUE_BAGS:
+  DONE:
+  free(args);
   for (valueBag = valueBags->items; valueBag < valueBagsEnd; valueBag++) {
     free(valueBag->valueMatrix);
     // TODO Standard dispose function?

@@ -99,6 +99,12 @@ cnBool cnGridInitNd(cnGridAny* grid, const cnList(cnCount)* dims);
 
 
 /**
+ * Returns whether x is NaN.
+ */
+cnBool cnIsNaN(cnFloat x);
+
+
+/**
  * Sets the count to 0, but leaves space allocated.
  */
 void cnListClear(cnListAny* list);
@@ -187,6 +193,12 @@ void cnListPut(cnListAny* list, cnIndex index, void* value);
  * reduced by one and the item at the index is deleted from the array.
  */
 void cnListRemove(cnListAny* list, cnIndex index);
+
+
+/**
+ * Quiet NaN (not a number).
+ */
+cnFloat cnNaN(void);
 
 
 char* cnStr(cnString* string);
