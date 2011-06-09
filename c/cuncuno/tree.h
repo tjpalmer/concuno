@@ -40,6 +40,32 @@ typedef struct cnBindingBagList {
 } cnBindingBagList;
 
 
+/**
+ * A bag of vectors (or whatever) of values for a bag.
+ */
+typedef struct cnValueBag {
+
+  cnBag* bag;
+
+  /**
+   * Number of items (values) per vector.
+   */
+  cnCount itemCount;
+
+  cnCount itemSize;
+
+  /**
+   * One vector at a time.
+   */
+  void* valueMatrix;
+
+  cnCount vectorCount;
+
+  // Or cnGridAny values; ??
+
+} cnValueBag;
+
+
 typedef enum {
   cnNodeTypeNone, cnNodeTypeRoot, cnNodeTypeLeaf, cnNodeTypeSplit,
   cnNodeTypeVar
@@ -281,6 +307,15 @@ cnBool cnRootNodeInit(cnRootNode* root, cnBool addLeaf);
 
 
 cnSplitNode* cnSplitNodeCreate(cnBool addLeaves);
+
+
+/**
+ * Fills the list of value bags with values according to the bindings and the
+ * function at this node.
+ */
+cnBool cnSplitNodeValueBags(
+  cnSplitNode* split, cnList(cnValueBag)* valueBags //, TODO Dummies?
+);
 
 
 /**
