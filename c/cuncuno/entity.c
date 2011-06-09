@@ -40,9 +40,10 @@ void cnEntityFunctionGetDifference(
   cnFloat* x = malloc(function->outCount * sizeof(cnFloat));
   cnFloat* result = outs;
   if (!x) {
-    // TODO Some way to report errors. Just zero out for now.
+    // TODO Some way to report errors. Just NaN out for now.
+    cnFloat nan = cnNaN();
     for (i = 0; i < function->outCount; i++) {
-      result[i] = 0;
+      result[i] = nan;
     }
     return;
   }

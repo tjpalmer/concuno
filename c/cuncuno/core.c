@@ -5,7 +5,12 @@
 
 
 cnBool cnIsNaN(cnFloat x) {
-  return x != x;
+  // TODO _isnan for Windows?
+  #ifdef isnan
+    return isnan(x);
+  #else
+    return x != x;
+  #endif
 }
 
 
