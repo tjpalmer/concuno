@@ -17,6 +17,10 @@ set(
 
 #set(cuncuno_INCLUDE_DIR ${cuncuno_SOURCE_DIR}/include)
 
+# TODO Use Eigen blas?
+find_library(blas_LIBRARY atlas)
+find_library(cblas_LIBRARY cblas)
+find_library(lapack_LIBRARY lapack)
 find_library(math_LIBRARY m)
 
 include_directories(
