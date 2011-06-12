@@ -192,7 +192,7 @@ void cnBuildInitialKernel(cnTopology topology, cnList(cnValueBag)* valueBags) {
         cnListEachBegin(valueBags, cnValueBag, valueBag2) {
           cnFloat minDistance = HUGE_VAL;
           cnFloat* vector2 = valueBag2->valueMatrix;
-          cnFloat* matrixEnd2 = vector + valueBag2->vectorCount * valueCount;
+          cnFloat* matrixEnd2 = vector2 + valueBag2->vectorCount * valueCount;
           for (; vector2 < matrixEnd2; vector2 += valueCount) {
             cnFloat distance = 0;
             cnFloat* value2;
