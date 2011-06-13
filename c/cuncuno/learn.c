@@ -1,4 +1,5 @@
 #include <limits.h>
+#include <math.h>
 #include <stdio.h>
 #include <string.h>
 #include "learn.h"
@@ -166,6 +167,60 @@ void cnBuildInitialKernel(cnTopology topology, cnList(cnValueBag)* valueBags) {
     );
     printf("\n");
     free(stat);
+  }
+
+  // Semi-dd-ish benchmarking.
+  {
+    cnFloat sumNegMin = 0, sumPosMin = 0;
+    cnCount posBagCount = 0, maxPosBags = 2;
+    cnListEachBegin(valueBags, cnValueBag, valueBag) {
+      if (!valueBag->bag->label) continue;
+      if (posBagCount++ >= maxPosBags) break;
+      vector = valueBag->valueMatrix;
+      matrixEnd = vector + valueBag->vectorCount * valueCount;
+      for (; vector < matrixEnd; vector += valueCount) {
+        cnBool allGood = cnTrue;
+        cnFloat* value = vector;
+        cnFloat* vectorEnd = vector + valueCount;
+        for (value = vector; value < vectorEnd; value++) {
+          if (cnIsNaN(*value)) {
+            allGood = cnFalse;
+            break;
+          }
+        }
+        if (!allGood) continue;
+        cnListEachBegin(valueBags, cnValueBag, valueBag2) {
+          cnFloat minDistance = HUGE_VAL;
+          cnFloat* vector2 = valueBag2->valueMatrix;
+          cnFloat* matrixEnd2 = vector2 + valueBag2->vectorCount * valueCount;
+          for (; vector2 < matrixEnd2; vector2 += valueCount) {
+            cnFloat distance = 0;
+            cnFloat* value2;
+            for (
+              value = vector, value2 = vector2;
+              value < vectorEnd;
+              value++, value2++
+            ) {
+              cnFloat diff = *value - *value2;
+              distance += diff * diff;
+            }
+            if (distance < minDistance) {
+              minDistance = distance;
+            }
+          }
+          // TODO Real dd stuff.
+          if (minDistance < HUGE_VAL) {
+            if (valueBag2->bag->label) {
+              sumPosMin += minDistance;
+            } else {
+              sumNegMin += minDistance;
+            }
+          }
+        } cnEnd;
+        printf("(p: %.0le, n: %.0le) ", sumPosMin, sumNegMin);
+      }
+    } cnEnd;
+    //printf("\n");
   }
 
   DONE:
