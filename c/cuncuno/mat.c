@@ -9,6 +9,6 @@ void cnVectorPrint(cnCount size, cnFloat* values){
     if (value > values) {
       printf(" ");
     }
-    printf("%le", *value);
+    printf("%.4le", *value);
   }
 }

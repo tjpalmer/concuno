@@ -171,14 +171,17 @@ void cnBuildInitialKernel(cnTopology topology, cnList(cnValueBag)* valueBags) {
 
   // Semi-dd-ish benchmarking.
   {
-    cnFloat sumNegMin = 0, sumPosMin = 0;
-    cnCount posBagCount = 0, maxPosBags = 2;
+    cnCount posBagCount = 0, maxPosBags = 4;
+    cnFloat bestSumYet = HUGE_VAL;
+    printf("DD-ish: ");
     cnListEachBegin(valueBags, cnValueBag, valueBag) {
       if (!valueBag->bag->label) continue;
       if (posBagCount++ >= maxPosBags) break;
+      printf("B ");
       vector = valueBag->valueMatrix;
       matrixEnd = vector + valueBag->vectorCount * valueCount;
       for (; vector < matrixEnd; vector += valueCount) {
+        cnFloat sumNegMin = 0, sumPosMin = 0;
         cnBool allGood = cnTrue;
         cnFloat* value = vector;
         cnFloat* vectorEnd = vector + valueCount;
@@ -211,16 +214,25 @@ void cnBuildInitialKernel(cnTopology topology, cnList(cnValueBag)* valueBags) {
           // TODO Real dd stuff.
           if (minDistance < HUGE_VAL) {
             if (valueBag2->bag->label) {
+              // This is actually a negative log probability.
               sumPosMin += minDistance;
             } else {
+              // Further is better for negatives.
+              minDistance = -log(1 - exp(-minDistance));
               sumNegMin += minDistance;
             }
           }
         } cnEnd;
-        printf("(p: %.0le, n: %.0le) ", sumPosMin, sumNegMin);
+        // Print and check.
+        if (sumPosMin + sumNegMin < bestSumYet) {
+          printf("(");
+          cnVectorPrint(valueCount, vector);
+          printf(": %.4le) ", sumPosMin + sumNegMin);
+          bestSumYet = sumPosMin + sumNegMin;
+        }
       }
     } cnEnd;
-    //printf("\n");
+    printf("\n");
   }
 
   DONE:
