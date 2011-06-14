@@ -129,9 +129,10 @@ void cnListShuffle(cnListAny* list) {
   // http://en.wikipedia.org/wiki/Fisher%E2%80%93Yates_shuffle#
   // The_modern_algorithm
   cnIndex i;
-  for (i = list->count; i >= 1; i--) {
+  for (i = list->count - 1; i >= 1; i--) {
     // Find where we're going.
     cnIndex j = rand() % (i + 1);
+    if (i == j) continue;
     void* a = ((char*)list->items) + (i * list->itemSize);
     void* b = ((char*)list->items) + (j * list->itemSize);
     // Perform the swap.
