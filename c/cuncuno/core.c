@@ -122,6 +122,28 @@ void cnListRemove(cnListAny* list, cnIndex index) {
 }
 
 
+void cnListShuffle(cnListAny* list) {
+  // I'd rather just do simple copies than fancy n-byte xors.
+  void* buffer = malloc(list->itemSize);
+  // Fisher-Yates shuffling from:
+  // http://en.wikipedia.org/wiki/Fisher%E2%80%93Yates_shuffle#
+  // The_modern_algorithm
+  cnIndex i;
+  for (i = list->count; i >= 1; i--) {
+    // Find where we're going.
+    cnIndex j = rand() % (i + 1);
+    void* a = ((char*)list->items) + (i * list->itemSize);
+    void* b = ((char*)list->items) + (j * list->itemSize);
+    // Perform the swap.
+    memcpy(buffer, a, list->itemSize);
+    memcpy(a, b, list->itemSize);
+    memcpy(b, buffer, list->itemSize);
+  }
+  // All done.
+  free(buffer);
+}
+
+
 cnFloat cnNaN(void) {
   // TODO Something more efficient but still portable?
   static cnFloat nan = -1;

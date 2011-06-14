@@ -37,7 +37,8 @@ temp:
 	mkdir temp
 
 temp/stackiter-test: temp $(sources) $(headers)
-	tcc -Wall -Ic -o temp/stackiter-test $(sources) -lcblas -latlas -lm
+	tcc -Wall -Ic -o temp/stackiter-test $(sources) -lm
+	# -lcblas -latlas -lm
 
 test: temp/stackiter-test
 	temp/stackiter-test temp/stackiter-20101105-171808-671_drop-from-25.log

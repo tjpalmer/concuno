@@ -46,8 +46,11 @@ int main(int argc, char** argv) {
   cnListEachBegin(&bags, cnBag, bag) {
     trueCount += bag->label;
   } cnEnd;
+  // TODO Also print mean number of items in chosen states?
   printf("%ld true of %ld samples\n", trueCount, bags.count);
-  // TODO Print mean number of items in chosen states?
+  // Shuffle bags, with controlled seed (and my own generator?).
+  // TODO Shuffle here copies more than just single pointers.
+  cnListShuffle(&bags);
 
   // Set up schema.
   if (!stSchemaInit(&schema)) {

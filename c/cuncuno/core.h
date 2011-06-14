@@ -196,6 +196,16 @@ void cnListRemove(cnListAny* list, cnIndex index);
 
 
 /**
+ * Shuffles the list.
+ *
+ * TODO Pass in a rand stream.
+ *
+ * TODO Simple unit test of this would be nice.
+ */
+void cnListShuffle(cnListAny* list);
+
+
+/**
  * Quiet NaN (not a number).
  */
 cnFloat cnNaN(void);
