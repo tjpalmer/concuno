@@ -1,5 +1,5 @@
-#include <cblas.h>
-#include <clapack.h>
+//#include <cblas.h>
+//#include <clapack.h>
 #include "stats.h"
 
 

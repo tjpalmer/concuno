@@ -9,7 +9,7 @@ add_executable(
 target_link_libraries(
   stackiter-learner
   cuncuno
-  ${blas_LIBRARY}
-  ${cblas_LIBRARY}
+  #${blas_LIBRARY}
+  #${cblas_LIBRARY}
   ${math_LIBRARY}
 )
