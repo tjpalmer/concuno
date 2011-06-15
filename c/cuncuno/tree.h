@@ -41,29 +41,41 @@ typedef struct cnBindingBagList {
 
 
 /**
- * A bag of vectors (or whatever) of values for a bag.
+ * A set of points for a bag, in some topology, given by some entity function.
+ * For discrete topologies, the term "point" is abusive, but I still like it
+ * better than other options considered.
+ *
+ * Each point is presumed to be an array (all of the same length) of
+ * homogeneous values, therefore representable as a matrix. Most commonly, each
+ * point is a point in n-dimensional Euclidean space, but each could also be a
+ * rotation angle, a quaternion, a category ID, or something else.
  */
-typedef struct cnValueBag {
+typedef struct cnPointBag {
 
   cnBag* bag;
 
   /**
-   * Number of items (values) per vector.
+   * The total number of points in the bag.
    */
-  cnCount itemCount;
-
-  cnCount itemSize;
+  cnCount pointCount;
 
   /**
-   * One vector at a time.
+   * One point at a time.
    */
-  void* valueMatrix;
+  void* pointMatrix;
+  // Or cnGridAny points; ??
 
-  cnCount vectorCount;
+  /**
+   * Number of homogeneous values per point.
+   */
+  cnCount valueCount;
 
-  // Or cnGridAny values; ??
+  /**
+   * The size of each value.
+   */
+  cnCount valueSize;
 
-} cnValueBag;
+} cnPointBag;
 
 
 typedef enum {
@@ -313,8 +325,8 @@ cnSplitNode* cnSplitNodeCreate(cnBool addLeaves);
  * Fills the list of value bags with values according to the bindings and the
  * function at this node.
  */
-cnBool cnSplitNodeValueBags(
-  cnSplitNode* split, cnList(cnValueBag)* valueBags //, TODO Dummies?
+cnBool cnSplitNodePointBags(
+  cnSplitNode* split, cnList(cnPointBag)* valueBags //, TODO Dummies?
 );
 
 

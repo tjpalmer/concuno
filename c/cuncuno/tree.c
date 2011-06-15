@@ -429,55 +429,55 @@ cnBool cnSplitNodePropagate(cnSplitNode* split) {
 }
 
 
-cnBool cnSplitNodeValueBags(
-  cnSplitNode* split, cnList(cnValueBag)* valueBags //, TODO Dummies?
+cnBool cnSplitNodePointBags(
+  cnSplitNode* split, cnList(cnPointBag)* pointBags //, TODO Dummies?
 ) {
   void** args = NULL;
   cnList(cnBindingBag)* bindingBags = &split->node.bindingBagList->bindingBags;
   cnCount validBindingsCount = 0;
-  cnValueBag* valueBag;
-  cnValueBag* valueBagsEnd;
+  cnPointBag* pointBag;
+  cnPointBag* pointBagsEnd;
 
   // Init first for safety.
-  if (valueBags->count) {
-    printf("Start with empty valueBags, not %ld!\n", valueBags->count);
+  if (pointBags->count) {
+    printf("Start with empty pointBags, not %ld!\n", pointBags->count);
     return cnFalse;
   }
-  if (!cnListExpandMulti(valueBags, bindingBags->count)) {
+  if (!cnListExpandMulti(pointBags, bindingBags->count)) {
     return cnFalse;
   }
-  valueBagsEnd = cnListEnd(valueBags);
-  valueBag = valueBags->items;
+  pointBagsEnd = cnListEnd(pointBags);
+  pointBag = pointBags->items;
   cnListEachBegin(bindingBags, cnBindingBag, bindingBag) {
     // TODO Standard init function?
-    valueBag->bag = bindingBag->bag;
-    valueBag->itemCount = split->function->outCount;
-    valueBag->itemSize = split->function->outType->size;
-    valueBag->valueMatrix = NULL;
+    pointBag->bag = bindingBag->bag;
+    pointBag->valueCount = split->function->outCount;
+    pointBag->valueSize = split->function->outType->size;
+    pointBag->pointMatrix = NULL;
     // Null (dummy bindings) will yield NaN as needed.
     // TODO What about for non-float outputs???
-    valueBag->vectorCount = bindingBag->bindings.count;
-    validBindingsCount += valueBag->vectorCount;
+    pointBag->pointCount = bindingBag->bindings.count;
+    validBindingsCount += pointBag->pointCount;
     // Next bag.
-    valueBag++;
+    pointBag++;
   } cnEnd;
   printf("Need to build %ld values.\n", validBindingsCount);
 
   // Now build the values.
   args = malloc(split->function->inCount * sizeof(void*));
-  valueBag = valueBags->items;
+  pointBag = pointBags->items;
   cnListEachBegin(bindingBags, cnBindingBag, bindingBag) {
     void* values;
     // First allocate.
-    valueBag->valueMatrix = malloc(
-      valueBag->vectorCount * valueBag->itemCount * valueBag->itemSize
+    pointBag->pointMatrix = malloc(
+      pointBag->pointCount * pointBag->valueCount * pointBag->valueSize
     );
-    if (!valueBag->valueMatrix) {
+    if (!pointBag->pointMatrix) {
       printf("No value matrix.\n");
       goto FAIL;
     }
     // Now fill.
-    values = valueBag->valueMatrix;
+    values = pointBag->pointMatrix;
     cnListEachBegin(&bindingBag->bindings, void*, entities) {
       // Gather the arguments.
       cnIndex a;
@@ -488,10 +488,10 @@ cnBool cnSplitNodeValueBags(
       // TODO Check for errors once we provide such things.
       split->function->get(split->function, args, values);
       // Move to the next vector.
-      values = ((char*)values) + valueBag->itemCount * valueBag->itemSize;
+      values = ((char*)values) + pointBag->valueCount * pointBag->valueSize;
     } cnEnd;
     // Next bag.
-    valueBag++;
+    pointBag++;
   } cnEnd;
 
   // It all worked.
@@ -500,10 +500,10 @@ cnBool cnSplitNodeValueBags(
 
   FAIL:
   free(args);
-  cnListEachBegin(valueBags, cnValueBag, valueBag) {
-    free(valueBag->valueMatrix);
+  cnListEachBegin(pointBags, cnPointBag, pointBag) {
+    free(pointBag->pointMatrix);
   } cnEnd;
-  cnListDispose(valueBags);
+  cnListDispose(pointBags);
   return cnFalse;
 }
 

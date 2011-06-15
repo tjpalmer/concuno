@@ -43,7 +43,7 @@ typedef struct cnExpansion {
  * TODO for deciding what's too close or not?
  */
 cnFloat* cnBestPointByDiverseDensity(
-  cnTopology topology, cnList(cnValueBag)* valueBags
+  cnTopology topology, cnList(cnPointBag)* pointBags
 );
 
 
@@ -84,7 +84,7 @@ cnBool cnRecurseExpansions(
  * TODO Provide a list of all contained positive points at end.
  */
 void cnSearchFill(
-  cnTopology topology, cnList(cnValueBag)* valueBags, cnFloat* searchStart
+  cnTopology topology, cnList(cnPointBag)* pointBags, cnFloat* searchStart
 );
 
 
@@ -97,7 +97,7 @@ cnRootNode* cnTryExpansionsAtLeaf(cnLearner* learner, cnLeafNode* leaf);
 cnBool cnUpdateLeafProbabilities(cnRootNode* root);
 
 
-void cnBuildInitialKernel(cnTopology topology, cnList(cnValueBag)* valueBags) {
+void cnBuildInitialKernel(cnTopology topology, cnList(cnPointBag)* pointBags) {
   cnFloat* positiveVector;
   cnFloat* positiveVectors = NULL;
   cnCount positiveVectorCount;
@@ -112,16 +112,16 @@ void cnBuildInitialKernel(cnTopology topology, cnList(cnValueBag)* valueBags) {
 
   // Count good, positive vectors.
   positiveVectorCount = 0;
-  printf("valueBags->count: %ld\n", valueBags->count);
-  if (valueBags->count > 0) {
-    valueCount = ((cnValueBag*)valueBags->items)->itemCount;
+  printf("pointBags->count: %ld\n", pointBags->count);
+  if (pointBags->count > 0) {
+    valueCount = ((cnPointBag*)pointBags->items)->valueCount;
   }
   printf("valueCount: %ld\n", valueCount);
-  cnListEachBegin(valueBags, cnValueBag, valueBag) {
+  cnListEachBegin(pointBags, cnPointBag, pointBag) {
     // Just use the positives for the initial kernel.
-    if (!valueBag->bag->label) continue;
-    vector = valueBag->valueMatrix;
-    matrixEnd = vector + valueBag->vectorCount * valueCount;
+    if (!pointBag->bag->label) continue;
+    vector = pointBag->pointMatrix;
+    matrixEnd = vector + pointBag->pointCount * valueCount;
     for (; vector < matrixEnd; vector += valueCount) {
       cnBool allGood = cnTrue;
       cnFloat* value = vector;
@@ -147,11 +147,11 @@ void cnBuildInitialKernel(cnTopology topology, cnList(cnValueBag)* valueBags) {
     goto DONE;
   }
   positiveVector = positiveVectors;
-  cnListEachBegin(valueBags, cnValueBag, valueBag) {
+  cnListEachBegin(pointBags, cnPointBag, pointBag) {
     // Just use the positives for the initial kernel.
-    if (!valueBag->bag->label) continue;
-    vector = valueBag->valueMatrix;
-    matrixEnd = vector + valueBag->vectorCount * valueCount;
+    if (!pointBag->bag->label) continue;
+    vector = pointBag->pointMatrix;
+    matrixEnd = vector + pointBag->pointCount * valueCount;
     for (; vector < matrixEnd; vector += valueCount) {
       cnBool allGood = cnTrue;
       cnFloat *value = vector, *positiveValue = positiveVector;
@@ -198,20 +198,20 @@ void cnBuildInitialKernel(cnTopology topology, cnList(cnValueBag)* valueBags) {
 
 
 cnFloat* cnBestPointByDiverseDensity(
-  cnTopology topology, cnList(cnValueBag)* valueBags
+  cnTopology topology, cnList(cnPointBag)* pointBags
 ) {
   cnFloat* bestPoint = NULL;
   cnFloat bestSumYet = HUGE_VAL;
   cnCount posBagCount = 0, maxPosBags = 4;
   cnCount valueCount =
-    valueBags->count ? ((cnValueBag*)valueBags->items)->itemCount : 0;
+    pointBags->count ? ((cnPointBag*)pointBags->items)->valueCount : 0;
   printf("DD-ish: %ld --- ", valueCount);
-  cnListEachBegin(valueBags, cnValueBag, valueBag) {
-    if (!valueBag->bag->label) continue;
+  cnListEachBegin(pointBags, cnPointBag, pointBag) {
+    if (!pointBag->bag->label) continue;
     if (posBagCount++ >= maxPosBags) break;
     printf("B ");
-    cnFloat* vector = valueBag->valueMatrix;
-    cnFloat* matrixEnd = vector + valueBag->vectorCount * valueCount;
+    cnFloat* vector = pointBag->pointMatrix;
+    cnFloat* matrixEnd = vector + pointBag->pointCount * valueCount;
     for (; vector < matrixEnd; vector += valueCount) {
       cnFloat sumNegMin = 0, sumPosMin = 0;
       cnBool allGood = cnTrue;
@@ -224,10 +224,10 @@ cnFloat* cnBestPointByDiverseDensity(
         }
       }
       if (!allGood) continue;
-      cnListEachBegin(valueBags, cnValueBag, valueBag2) {
+      cnListEachBegin(pointBags, cnPointBag, pointBag2) {
         cnFloat minDistance = HUGE_VAL;
-        cnFloat* vector2 = valueBag2->valueMatrix;
-        cnFloat* matrixEnd2 = vector2 + valueBag2->vectorCount * valueCount;
+        cnFloat* vector2 = pointBag2->pointMatrix;
+        cnFloat* matrixEnd2 = vector2 + pointBag2->pointCount * valueCount;
         for (; vector2 < matrixEnd2; vector2 += valueCount) {
           cnFloat distance = 0;
           cnFloat* value2;
@@ -246,7 +246,7 @@ cnFloat* cnBestPointByDiverseDensity(
         // TODO Base on specialized kernel?
         // TODO Support non-Euclidean topologies.
         if (minDistance < HUGE_VAL) {
-          if (valueBag2->bag->label) {
+          if (pointBag2->bag->label) {
             // This is actually a negative log probability.
             sumPosMin += minDistance;
           } else {
@@ -350,28 +350,28 @@ void cnLearnerInit(cnLearner* learner) {
 cnBool cnLearnSplitModel(cnLearner* learner, cnSplitNode* split) {
   cnFloat* searchStart;
   cnBool result = cnFalse;
-  cnList(cnValueBag) valueBags;
+  cnList(cnPointBag) pointBags;
 
-  cnListInit(&valueBags, sizeof(cnValueBag));
-  if (!cnSplitNodeValueBags(split, &valueBags)) {
+  cnListInit(&pointBags, sizeof(cnPointBag));
+  if (!cnSplitNodePointBags(split, &pointBags)) {
     goto DISPOSE_VALUE_BAGS;
   }
 
   // It all worked.
-  cnBuildInitialKernel(split->function->outTopology, &valueBags);
+  cnBuildInitialKernel(split->function->outTopology, &pointBags);
   searchStart =
-    cnBestPointByDiverseDensity(split->function->outTopology, &valueBags);
-  cnSearchFill(split->function->outTopology, &valueBags, searchStart);
+    cnBestPointByDiverseDensity(split->function->outTopology, &pointBags);
+  cnSearchFill(split->function->outTopology, &pointBags, searchStart);
   // TODO Learn a model already.
   result = cnTrue;
 
   // DROP_VALUE_BAGS:
-  cnListEachBegin(&valueBags, cnValueBag, valueBag) {
-    free(valueBag->valueMatrix);
+  cnListEachBegin(&pointBags, cnPointBag, pointBag) {
+    free(pointBag->pointMatrix);
   } cnEnd;
 
   DISPOSE_VALUE_BAGS:
-  cnListDispose(&valueBags);
+  cnListDispose(&pointBags);
   return result;
 }
 
@@ -542,14 +542,14 @@ cnBool cnRecurseExpansions(
 
 
 void cnSearchFill(
-  cnTopology topology, cnList(cnValueBag)* valueBags, cnFloat* searchStart
+  cnTopology topology, cnList(cnPointBag)* pointBags, cnFloat* searchStart
 ) {
   cnCount valueCount =
-    valueBags->count ? ((cnValueBag*)valueBags->items)->itemCount : 0;
+    pointBags->count ? ((cnPointBag*)pointBags->items)->valueCount : 0;
   printf("Starting search at: ");
   cnVectorPrint(valueCount, searchStart);
   printf("\n");
-  // TODO cnListEachBegin(valueBags, ...
+  // TODO cnListEachBegin(pointBags, ...
 }
 
 
