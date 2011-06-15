@@ -37,6 +37,17 @@ typedef struct cnExpansion {
 
 
 /**
+ * Hack to get the best point based on pseudo diverse density.
+ *
+ * TODO Provide more than one starting point? Or will KS flood fill be best
+ * TODO for deciding what's too close or not?
+ */
+cnFloat* cnBestPointByDiverseDensity(
+  cnTopology topology, cnList(cnValueBag)* valueBags
+);
+
+
+/**
  * Returns a new tree with the expansion applied, optimized (so to speak)
  * according to the SMRF algorithm.
  *
@@ -62,6 +73,18 @@ cnBool cnPushExpansionsByIndices(
 cnBool cnRecurseExpansions(
   cnList(cnExpansion)* expansions, cnExpansion* prototype, cnCount varDepth,
   cnIndex* indices, cnCount filledCount
+);
+
+
+/**
+ * Perform a fill search by expanding isotropically from each point, limiting
+ * by the metric, going to furthest points contained and spreading them. Min
+ * distance from control points to each bag are maintained.
+ *
+ * TODO Provide a list of all contained positive points at end.
+ */
+void cnSearchFill(
+  cnTopology topology, cnList(cnValueBag)* valueBags, cnFloat* searchStart
 );
 
 
@@ -169,74 +192,82 @@ void cnBuildInitialKernel(cnTopology topology, cnList(cnValueBag)* valueBags) {
     free(stat);
   }
 
-  // Semi-dd-ish benchmarking.
-  {
-    cnCount posBagCount = 0, maxPosBags = 4;
-    cnFloat bestSumYet = HUGE_VAL;
-    printf("DD-ish: ");
-    cnListEachBegin(valueBags, cnValueBag, valueBag) {
-      if (!valueBag->bag->label) continue;
-      if (posBagCount++ >= maxPosBags) break;
-      printf("B ");
-      vector = valueBag->valueMatrix;
-      matrixEnd = vector + valueBag->vectorCount * valueCount;
-      for (; vector < matrixEnd; vector += valueCount) {
-        cnFloat sumNegMin = 0, sumPosMin = 0;
-        cnBool allGood = cnTrue;
-        cnFloat* value = vector;
-        cnFloat* vectorEnd = vector + valueCount;
-        for (value = vector; value < vectorEnd; value++) {
-          if (cnIsNaN(*value)) {
-            allGood = cnFalse;
-            break;
-          }
-        }
-        if (!allGood) continue;
-        cnListEachBegin(valueBags, cnValueBag, valueBag2) {
-          cnFloat minDistance = HUGE_VAL;
-          cnFloat* vector2 = valueBag2->valueMatrix;
-          cnFloat* matrixEnd2 = vector2 + valueBag2->vectorCount * valueCount;
-          for (; vector2 < matrixEnd2; vector2 += valueCount) {
-            cnFloat distance = 0;
-            cnFloat* value2;
-            for (
-              value = vector, value2 = vector2;
-              value < vectorEnd;
-              value++, value2++
-            ) {
-              cnFloat diff = *value - *value2;
-              distance += diff * diff;
-            }
-            if (distance < minDistance) {
-              minDistance = distance;
-            }
-          }
-          // TODO Real dd stuff.
-          if (minDistance < HUGE_VAL) {
-            if (valueBag2->bag->label) {
-              // This is actually a negative log probability.
-              sumPosMin += minDistance;
-            } else {
-              // Further is better for negatives.
-              minDistance = -log(1 - exp(-minDistance));
-              sumNegMin += minDistance;
-            }
-          }
-        } cnEnd;
-        // Print and check.
-        if (sumPosMin + sumNegMin < bestSumYet) {
-          printf("(");
-          cnVectorPrint(valueCount, vector);
-          printf(": %.4le) ", sumPosMin + sumNegMin);
-          bestSumYet = sumPosMin + sumNegMin;
-        }
-      }
-    } cnEnd;
-    printf("\n");
-  }
-
   DONE:
   free(positiveVectors);
+}
+
+
+cnFloat* cnBestPointByDiverseDensity(
+  cnTopology topology, cnList(cnValueBag)* valueBags
+) {
+  cnFloat* bestPoint = NULL;
+  cnFloat bestSumYet = HUGE_VAL;
+  cnCount posBagCount = 0, maxPosBags = 4;
+  cnCount valueCount =
+    valueBags->count ? ((cnValueBag*)valueBags->items)->itemCount : 0;
+  printf("DD-ish: %ld --- ", valueCount);
+  cnListEachBegin(valueBags, cnValueBag, valueBag) {
+    if (!valueBag->bag->label) continue;
+    if (posBagCount++ >= maxPosBags) break;
+    printf("B ");
+    cnFloat* vector = valueBag->valueMatrix;
+    cnFloat* matrixEnd = vector + valueBag->vectorCount * valueCount;
+    for (; vector < matrixEnd; vector += valueCount) {
+      cnFloat sumNegMin = 0, sumPosMin = 0;
+      cnBool allGood = cnTrue;
+      cnFloat* value;
+      cnFloat* vectorEnd = vector + valueCount;
+      for (value = vector; value < vectorEnd; value++) {
+        if (cnIsNaN(*value)) {
+          allGood = cnFalse;
+          break;
+        }
+      }
+      if (!allGood) continue;
+      cnListEachBegin(valueBags, cnValueBag, valueBag2) {
+        cnFloat minDistance = HUGE_VAL;
+        cnFloat* vector2 = valueBag2->valueMatrix;
+        cnFloat* matrixEnd2 = vector2 + valueBag2->vectorCount * valueCount;
+        for (; vector2 < matrixEnd2; vector2 += valueCount) {
+          cnFloat distance = 0;
+          cnFloat* value2;
+          for (
+            value = vector, value2 = vector2;
+            value < vectorEnd;
+            value++, value2++
+          ) {
+            cnFloat diff = *value - *value2;
+            distance += diff * diff;
+          }
+          if (distance < minDistance) {
+            minDistance = distance;
+          }
+        }
+        // TODO Base on specialized kernel?
+        // TODO Support non-Euclidean topologies.
+        if (minDistance < HUGE_VAL) {
+          if (valueBag2->bag->label) {
+            // This is actually a negative log probability.
+            sumPosMin += minDistance;
+          } else {
+            // Further is better for negatives.
+            minDistance = -log(1 - exp(-minDistance));
+            sumNegMin += minDistance;
+          }
+        }
+      } cnEnd;
+      // Print and check.
+      if (sumPosMin + sumNegMin < bestSumYet) {
+        printf("(");
+        cnVectorPrint(valueCount, vector);
+        printf(": %.4le) ", sumPosMin + sumNegMin);
+        bestPoint = vector;
+        bestSumYet = sumPosMin + sumNegMin;
+      }
+    }
+  } cnEnd;
+  printf("\n");
+  return bestPoint;
 }
 
 
@@ -317,6 +348,7 @@ void cnLearnerInit(cnLearner* learner) {
 
 
 cnBool cnLearnSplitModel(cnLearner* learner, cnSplitNode* split) {
+  cnFloat* searchStart;
   cnBool result = cnFalse;
   cnList(cnValueBag) valueBags;
 
@@ -327,6 +359,9 @@ cnBool cnLearnSplitModel(cnLearner* learner, cnSplitNode* split) {
 
   // It all worked.
   cnBuildInitialKernel(split->function->outTopology, &valueBags);
+  searchStart =
+    cnBestPointByDiverseDensity(split->function->outTopology, &valueBags);
+  cnSearchFill(split->function->outTopology, &valueBags, searchStart);
   // TODO Learn a model already.
   result = cnTrue;
 
@@ -503,6 +538,18 @@ cnBool cnRecurseExpansions(
     }
   }
   return cnTrue;
+}
+
+
+void cnSearchFill(
+  cnTopology topology, cnList(cnValueBag)* valueBags, cnFloat* searchStart
+) {
+  cnCount valueCount =
+    valueBags->count ? ((cnValueBag*)valueBags->items)->itemCount : 0;
+  printf("Starting search at: ");
+  cnVectorPrint(valueCount, searchStart);
+  printf("\n");
+  // TODO cnListEachBegin(valueBags, ...
 }
 
 
