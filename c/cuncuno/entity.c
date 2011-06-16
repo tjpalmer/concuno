@@ -37,7 +37,7 @@ void cnEntityFunctionGetDifference(
   // TODO available to avoid the malloc/free action.
   cnIndex i;
   cnEntityFunction* base = function->data;
-  cnFloat* x = malloc(function->outCount * sizeof(cnFloat));
+  cnFloat* x = cnStackAlloc(function->outCount * sizeof(cnFloat));
   cnFloat* result = outs;
   if (!x) {
     // TODO Some way to report errors. Just NaN out for now.
@@ -52,7 +52,7 @@ void cnEntityFunctionGetDifference(
   for (i = 0; i < function->outCount; i++) {
     result[i] -= x[i];
   }
-  free(x);
+  //free(x);
 }
 
 

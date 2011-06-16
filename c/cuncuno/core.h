@@ -211,6 +211,9 @@ void cnListShuffle(cnListAny* list);
 cnFloat cnNaN(void);
 
 
+void* cnStackAlloc(cnCount byteCount);
+
+
 char* cnStr(cnString* string);
 
 
