@@ -33,10 +33,9 @@ void cnEntityFunctionGetDifference(
   cnEntityFunction* function, void** ins, void* outs
 ) {
   // TODO Remove float assumption here.
-  // TODO If we dodge reentrance support, could have a preallocated array
-  // TODO available to avoid the malloc/free action.
   cnIndex i;
   cnEntityFunction* base = function->data;
+  // Vectors are assumed small, so use stack memory.
   cnFloat* x = cnStackAlloc(function->outCount * sizeof(cnFloat));
   cnFloat* result = outs;
   if (!x) {
@@ -52,7 +51,7 @@ void cnEntityFunctionGetDifference(
   for (i = 0; i < function->outCount; i++) {
     result[i] -= x[i];
   }
-  //free(x);
+  cnStackFree(x);
 }
 
 

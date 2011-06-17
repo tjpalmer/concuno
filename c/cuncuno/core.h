@@ -211,7 +211,25 @@ void cnListShuffle(cnListAny* list);
 cnFloat cnNaN(void);
 
 
-void* cnStackAlloc(cnCount byteCount);
+/**
+ * Allocates the given number of bytes on the stack, if that's supported by the
+ * platform. Otherwise allocates the memory on the heap.
+ *
+ * It could return null for failure in some cases. In others, stack overflow
+ * might occur undetected. Use only for space expected to be small.
+ *
+ * TODO _malloca and/or _alloca on Windows?
+ */
+#define cnStackAlloc(byteCount) alloca(byteCount)
+
+
+/**
+ * Frees the memory allocated by cnStackAlloc. Does nothing in most cases for
+ * memory actually allocated on the stack.
+ *
+ * TODO _freea on Windows?
+ */
+#define cnStackFree(memory)
 
 
 char* cnStr(cnString* string);

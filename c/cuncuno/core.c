@@ -155,12 +155,6 @@ cnFloat cnNaN(void) {
 }
 
 
-void* cnStackAlloc(cnCount byteCount) {
-  // TODO Something else for Windows (_alloca).
-  return alloca(byteCount);
-}
-
-
 char* cnStr(cnString* string) {
   return string->items ? (char*)string->items : (char*)"";
 }
