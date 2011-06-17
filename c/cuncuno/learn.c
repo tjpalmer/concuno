@@ -8,6 +8,18 @@
 
 
 /**
+ * Tracks the distance to a bag.
+ */
+typedef struct cnBagDistance {
+
+  cnPointBag* bag;
+
+  cnFloat distance;
+
+} cnBagDistance;
+
+
+/**
  * An expansion that replaces a leaf in the tree, adding a split that
  * optionally follows multiple new vars.
  */
@@ -45,6 +57,22 @@ typedef struct cnExpansion {
 cnFloat* cnBestPointByDiverseDensity(
   cnTopology topology, cnList(cnPointBag)* pointBags
 );
+
+
+/**
+ * Choose a threshold on the following distances to maximize the "noisy-and
+ * noisy-or" metric, assuming that this determination is the only thing that
+ * matters (no leaves elsewhere).
+ */
+cnFloat cnChooseThreshold(
+  cnBagDistance* distances, cnBagDistance* distancesEnd
+);
+
+
+/**
+ * A comparison function usable for qsort.
+ */
+int cnCompareBagDistances(const void* a, const void* b);
 
 
 /**
@@ -205,13 +233,13 @@ cnFloat* cnBestPointByDiverseDensity(
   cnCount posBagCount = 0, maxPosBags = 4;
   cnCount valueCount =
     pointBags->count ? ((cnPointBag*)pointBags->items)->valueCount : 0;
-  printf("DD-ish: %ld --- ", valueCount);
+  printf("DD-ish: ");
   cnListEachBegin(pointBags, cnPointBag, pointBag) {
+    cnFloat* vector = pointBag->pointMatrix;
+    cnFloat* matrixEnd = vector + pointBag->pointCount * valueCount;
     if (!pointBag->bag->label) continue;
     if (posBagCount++ >= maxPosBags) break;
     printf("B ");
-    cnFloat* vector = pointBag->pointMatrix;
-    cnFloat* matrixEnd = vector + pointBag->pointCount * valueCount;
     for (; vector < matrixEnd; vector += valueCount) {
       cnFloat sumNegMin = 0, sumPosMin = 0;
       cnBool allGood = cnTrue;
@@ -268,6 +296,72 @@ cnFloat* cnBestPointByDiverseDensity(
   } cnEnd;
   printf("\n");
   return bestPoint;
+}
+
+
+cnFloat cnChooseThreshold(
+  cnBagDistance* distances, cnBagDistance* distancesEnd
+) {
+  // TODO Just allow sorting the original data instead of malloc here?
+  cnCount bagCount = distancesEnd - distances;
+  cnBagDistance* distance;
+  cnBagDistance** dists = malloc(bagCount * sizeof(cnBagDistance*));
+  cnBagDistance** dist;
+  cnBagDistance** distsEnd = dists + bagCount;
+  cnCount negTrueCount = 0;
+  cnCount posTrueCount = 0;
+  // TODO Error bags (with no non-dummy bindings) will have infinite distance
+  // TODO here. We should keep them out of the counts.
+  cnFloat trueProb = cnNaN();
+  cnFloat falseProb = cnNaN();
+
+  if (!dists) {
+    // No good.
+    printf("Failed to allocate dists.\n");
+    return cnNaN();
+  }
+
+  // Init the pointer array.
+  dist = dists;
+  for (distance = distances; distance < distancesEnd; distance++) {
+    if (distance->distance < HUGE_VAL) {
+      // It's not an error case, so include it.
+      *dist = distance;
+      dist++;
+    } else {
+      // Error case. Fewer relevant bags than expected.
+      // We might have allocated more space than needed for dists, but it's not
+      // likely a huge gap, unless we have lots of dummy bindings.
+      // TODO Is err probability relevant to the grand metric here?
+      // TODO If so, count pos and neg errs.
+      distsEnd--;
+    }
+  }
+
+  // Sort it.
+  qsort(dists, distsEnd - dists, sizeof(cnBagDistance*), cnCompareBagDistances);
+
+  // Now go through the list, calculating effective probabilities and the
+  // decision metric to find the optimal threshold.
+  for (dist = dists; dist < distsEnd; dist++) {
+    distance = *dist;
+    if (distance->bag->bag->label) {
+      posTrueCount++;
+    } else {
+      negTrueCount++;
+    }
+  }
+
+  // Free the pointer array, and return the threshold distance found.
+  free(dists);
+  return 0;
+}
+
+
+int cnCompareBagDistances(const void* a, const void* b) {
+  cnBagDistance* bagA = *(cnBagDistance**)a;
+  cnBagDistance* bagB = *(cnBagDistance**)b;
+  return bagA->distance - bagB->distance;
 }
 
 
@@ -546,10 +640,60 @@ void cnSearchFill(
 ) {
   cnCount valueCount =
     pointBags->count ? ((cnPointBag*)pointBags->items)->valueCount : 0;
+  cnBagDistance* distance;
+  cnBagDistance* distances = malloc(pointBags->count * sizeof(cnBagDistance));
+  cnBagDistance* distancesEnd = distances + pointBags->count;
+  cnFloat* searchStartEnd = searchStart + valueCount;
+  if (!distances) {
+    // TODO Error result?
+    return;
+  }
+  // Init distances to infinity.
+  // TODO In iterative fill, these need to retain their former values.
+  distance = distances;
+  cnListEachBegin(pointBags, cnPointBag, pointBag) {
+    distance->bag = pointBag;
+    distance->distance = HUGE_VAL;
+    distance++;
+  } cnEnd;
+  // TODO Do I really want a search start?
   printf("Starting search at: ");
   cnVectorPrint(valueCount, searchStart);
   printf("\n");
-  // TODO cnListEachBegin(pointBags, ...
+  // Narrow the distance to each bag.
+  for (distance = distances; distance < distancesEnd; distance++) {
+    cnPointBag* pointBag = distance->bag;
+    cnFloat* point = pointBag->pointMatrix;
+    cnFloat* pointsEnd = point + pointBag->pointCount * valueCount;
+    if (!distance->distance) continue; // Done with this one.
+    // Look at each point in the bag.
+    for (; point < pointsEnd; point += valueCount) {
+      cnFloat currentDistance = 0;
+      cnFloat* startValue;
+      cnFloat* value;
+      for (
+        startValue = searchStart, value = point;
+        startValue < searchStartEnd;
+        startValue++, value++
+      ) {
+        // TODO Other distance metrics.
+        cnFloat diff = *startValue - *value;
+        currentDistance += diff * diff;
+      }
+      if (currentDistance < distance->distance) {
+        // New min found.
+        // If currentDistance were NaN, the above < should fail, so we don't
+        // expect to see any NaNs here.
+        distance->distance = currentDistance;
+      }
+    }
+  }
+
+  // Find the right threshold for these distances and bag labels.
+  cnChooseThreshold(distances, distancesEnd);
+
+  // Clean up.
+  free(distances);
 }
 
 
