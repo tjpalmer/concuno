@@ -308,12 +308,16 @@ cnFloat cnChooseThreshold(
   cnBagDistance** dists = malloc(bagCount * sizeof(cnBagDistance*));
   cnBagDistance** dist;
   cnBagDistance** distsEnd = dists + bagCount;
-  cnCount negTrueCount = 0;
-  cnCount posTrueCount = 0;
-  // TODO Error bags (with no non-dummy bindings) will have infinite distance
-  // TODO here. We should keep them out of the counts.
-  cnFloat trueProb = cnNaN();
-  cnFloat falseProb = cnNaN();
+  cnCount negFalseCount = 0; // Negatives called false (aka true negatives).
+  cnCount negTrueCount = 0; // Negatives called true (aka false positives).
+  cnCount posTotalCount = 0;
+  cnCount posFalseCount = 0; // Positives called false (aka false negatives).
+  cnCount posTrueCount = 0; // Positives called true (aka true positives).
+  cnFloat bestMetric = -HUGE_VAL;
+  cnFloat metric;
+  cnFloat trueProb;
+  cnFloat falseProb;
+  cnFloat threshold = 0;
 
   if (!dists) {
     // No good.
@@ -326,6 +330,11 @@ cnFloat cnChooseThreshold(
   for (distance = distances; distance < distancesEnd; distance++) {
     if (distance->distance < HUGE_VAL) {
       // It's not an error case, so include it.
+      if (distance->bag->bag->label) {
+        // Count the positives.
+        posTotalCount++;
+      }
+      // Reference the distance, and move on.
       *dist = distance;
       dist++;
     } else {
@@ -337,9 +346,11 @@ cnFloat cnChooseThreshold(
       distsEnd--;
     }
   }
+  // Update the count now to the ones we care about.
+  bagCount = distsEnd - dists;
 
   // Sort it.
-  qsort(dists, distsEnd - dists, sizeof(cnBagDistance*), cnCompareBagDistances);
+  qsort(dists, bagCount, sizeof(cnBagDistance*), cnCompareBagDistances);
 
   // Now go through the list, calculating effective probabilities and the
   // decision metric to find the optimal threshold.
@@ -350,11 +361,29 @@ cnFloat cnChooseThreshold(
     } else {
       negTrueCount++;
     }
+    // Dependent stats.
+    posFalseCount = posTotalCount - posTrueCount;
+    negFalseCount = bagCount - posTotalCount - negTrueCount;
+    // Update the probs at each step.
+    trueProb = posTrueCount / (cnFloat)(posTrueCount + negTrueCount);
+    falseProb = posFalseCount / (cnFloat)(posFalseCount + negFalseCount);
+    // Calculate our log metric.
+    metric = 0;
+    if (posTrueCount) metric += posTrueCount * log(trueProb);
+    if (negTrueCount) metric += negTrueCount * log(1 - trueProb);
+    if (posFalseCount) metric += posFalseCount * log(falseProb);
+    if (negFalseCount) metric += negFalseCount * log(1 - falseProb);
+    if (metric > bestMetric) {
+      // printf("(%.2lg vs. %.2lg: %.2lg) ", trueProb, falseProb, metric);
+      bestMetric = metric;
+      threshold = distance->distance;
+    }
   }
+  printf("Best thresh: %.4lg (%.4lg)\n", threshold, bestMetric);
 
   // Free the pointer array, and return the threshold distance found.
   free(dists);
-  return 0;
+  return threshold;
 }
 
 
