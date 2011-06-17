@@ -315,8 +315,8 @@ cnFloat cnChooseThreshold(
   cnCount posTrueCount = 0; // Positives called true (aka true positives).
   cnFloat bestMetric = -HUGE_VAL;
   cnFloat metric;
-  cnFloat trueProb;
-  cnFloat falseProb;
+  cnFloat trueProb, bestTrueProb = cnNaN();
+  cnFloat falseProb, bestFalseProb = cnNaN();
   cnFloat threshold = 0;
 
   if (!dists) {
@@ -377,9 +377,14 @@ cnFloat cnChooseThreshold(
       // printf("(%.2lg vs. %.2lg: %.2lg) ", trueProb, falseProb, metric);
       bestMetric = metric;
       threshold = distance->distance;
+      bestTrueProb = trueProb;
+      bestFalseProb = falseProb;
     }
   }
-  printf("Best thresh: %.4lg (%.4lg)\n", threshold, bestMetric);
+  printf(
+    "Best thresh: %.4lg (%.2lg, %.2lg: %.4lg)\n",
+    threshold, bestTrueProb, bestFalseProb, bestMetric
+  );
 
   // Free the pointer array, and return the threshold distance found.
   free(dists);
