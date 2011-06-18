@@ -396,18 +396,19 @@ cnFloat cnChooseThreshold(
       // TODO Is err probability relevant to the grand metric here?
       // TODO If so, count pos and neg errs.
       distsEnd -= 2;
+      bagCount--;
     }
   }
   // Update the count now to the ones we care about.
-  bagCount = distsEnd - dists;
   negTotalCount = bagCount - posTotalCount;
   // And they are all outside the threshold so far.
   posFalseCount = posTotalCount;
   negFalseCount = negTotalCount;
+  printf("Totals: %ld %ld\n", posTotalCount, negTotalCount);
 
   // Sort it.
   qsort(
-    dists, bagCount,
+    dists, distsEnd - dists,
     sizeof(cnChooseThreshold_Distance), cnChooseThreshold_Compare
   );
 
@@ -451,9 +452,9 @@ cnFloat cnChooseThreshold(
     // TODO Is the highest prob really always best to make highest?
     // TODO Should I try fully both ways to see?
     trueProb = (posTrueCount + posBothCount) /
-      (cnFloat)(posTrueCount + posBothCount + negTrueCount + negBothCount);
+      (cnFloat)(posTrueCount + negTrueCount + posBothCount + negBothCount);
     falseProb = (posFalseCount + posBothCount) /
-      (cnFloat)(posFalseCount + posBothCount + negFalseCount + negBothCount);
+      (cnFloat)(posFalseCount + negFalseCount + posBothCount + negBothCount);
     // Figure out which one really is the max.
     if (trueProb > falseProb) {
       // True wins the boths. Revert false.
