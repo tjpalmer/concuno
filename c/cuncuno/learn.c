@@ -348,6 +348,7 @@ cnFloat cnChooseThreshold(
   cnCount posFalseCount = 0; // Positives fully outside.
   cnCount posTotalCount = 0; // Total count of positives.
   cnCount posTrueCount = 0; // Positives fully inside.
+  cnCount trueCount, falseCount; // Count of bags inside or outside.
   cnCount bestTrueCount = 0, bestFalseCount = 0;
   cnFloat bestMetric = -HUGE_VAL;
   cnFloat metric;
@@ -450,18 +451,20 @@ cnFloat cnChooseThreshold(
     }
     // Calculate optimistic probabilities for both leaves. Assume both max.
     // TODO Is the highest prob really always best to make highest?
-    // TODO Should I try fully both ways to see?
-    trueProb = (posTrueCount + posBothCount) /
-      (cnFloat)(posTrueCount + negTrueCount + posBothCount + negBothCount);
-    falseProb = (posFalseCount + posBothCount) /
-      (cnFloat)(posFalseCount + negFalseCount + posBothCount + negBothCount);
+    // TODO Should I try fully both ways to see? Do math to prove?
+    trueCount = posTrueCount + negTrueCount + posBothCount + negBothCount;
+    falseCount = posFalseCount + negFalseCount + posBothCount + negBothCount;
+    trueProb = (posTrueCount + posBothCount) / (cnFloat)trueCount;
+    falseProb = (posFalseCount + posBothCount) / (cnFloat)falseCount;
     // Figure out which one really is the max.
     if (trueProb > falseProb) {
       // True wins the boths. Revert false.
-      falseProb = posFalseCount / (cnFloat)(posFalseCount + negFalseCount);
+      falseCount -= posBothCount + negBothCount;
+      falseProb = posFalseCount / (cnFloat)falseCount;
     } else {
       // False wins the boths. Revert true.
-      trueProb = posTrueCount / (cnFloat)(posTrueCount + negTrueCount);
+      trueCount -= posBothCount + negBothCount;
+      trueProb = posTrueCount / (cnFloat)trueCount;
     }
     // Calculate our log metric.
     metric = 0;
@@ -470,25 +473,18 @@ cnFloat cnChooseThreshold(
     if (posFalseCount) metric += posFalseCount * log(falseProb);
     if (negFalseCount) metric += negFalseCount * log(1 - falseProb);
     if (metric > bestMetric) {
-      // printf("(%.2lg vs. %.2lg: %.2lg) ", trueProb, falseProb, metric);
+      printf(
+        "Thresh: %.4lg (%.2lg of %ld, %.2lg of %ld: %.4lg)\n",
+        threshold, trueProb, trueCount, falseProb, falseCount, metric
+      );
       bestMetric = metric;
       threshold = dist->edge == cnChooseThreshold_Near ?
         dist->distance->near : dist->distance->far;
       bestTrueProb = trueProb;
       bestFalseProb = falseProb;
       // # of max in each leaf.
-      bestFalseCount = posFalseCount + negFalseCount;
-      bestTrueCount = posTrueCount + negTrueCount;
-      if (trueProb > falseProb) {
-        bestTrueCount += posBothCount + negBothCount;
-      } else {
-        bestFalseCount += posBothCount + negBothCount;
-      }
-      printf(
-        "Best thresh yet: %.4lg (%.2lg of %ld, %.2lg of %ld: %.4lg)\n",
-        threshold, bestTrueProb, bestTrueCount, bestFalseProb, bestFalseCount,
-        bestMetric
-      );
+      bestFalseCount = falseCount;
+      bestTrueCount = trueCount;
     }
   }
   if (cnFalse) {
