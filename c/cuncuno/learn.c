@@ -332,6 +332,7 @@ int cnChooseThreshold_Compare(const void* a, const void* b) {
 cnFloat cnChooseThreshold(
   cnBagDistance* distances, cnBagDistance* distancesEnd
 ) {
+  //  FILE* file = fopen("cnChooseThreshold.log", "w");
   // TODO Just allow sorting the original data instead of malloc here?
   cnCount bagCount = distancesEnd - distances;
   cnBagDistance* distance;
@@ -481,11 +482,11 @@ cnFloat cnChooseThreshold(
     if (negAsTrueCount) metric += negAsTrueCount * log(1 - trueProb);
     if (posAsFalseCount) metric += posAsFalseCount * log(falseProb);
     if (negAsFalseCount) metric += negAsFalseCount * log(1 - falseProb);
-    /*printf(
-      "Thresh: %.4lg (%.2lg of %ld, %.2lg of %ld: %.4lg)\n",
-      cnChooseThreshold_EdgeDist(dist),
-      trueProb, trueCount, falseProb, falseCount, metric
-    );*/
+    //    fprintf(file,
+    //      "%lg %lg %ld %lg %ld %lg\n",
+    //      sqrt(cnChooseThreshold_EdgeDist(dist)),
+    //      trueProb, trueCount, falseProb, falseCount, metric
+    //    );
     if (metric > bestMetric) {
       threshold = cnChooseThreshold_EdgeDist(dist);
       if (dist < distsEnd) {
@@ -510,6 +511,7 @@ cnFloat cnChooseThreshold(
 
   // Free the pointer array, and return the threshold distance found.
   free(dists);
+  //  fclose(file);
   return threshold;
 }
 
