@@ -8,13 +8,24 @@
 
 
 /**
- * Tracks the distance to a bag.
+ * Tracks the distance to a bag from some point.
  */
 typedef struct cnBagDistance {
 
+  /**
+   * The bag in question, in case you want details (like the label).
+   */
   cnPointBag* bag;
 
-  cnFloat distance;
+  /**
+   * The farthest distance in this bag.
+   */
+  cnFloat far;
+
+  /**
+   * The nearest distance in this bag.
+   */
+  cnFloat near;
 
 } cnBagDistance;
 
@@ -67,12 +78,6 @@ cnFloat* cnBestPointByDiverseDensity(
 cnFloat cnChooseThreshold(
   cnBagDistance* distances, cnBagDistance* distancesEnd
 );
-
-
-/**
- * A comparison function usable for qsort.
- */
-int cnCompareBagDistances(const void* a, const void* b);
 
 
 /**
@@ -299,20 +304,51 @@ cnFloat* cnBestPointByDiverseDensity(
 }
 
 
+/**
+ * We need to track near and far distances in a nice sorted list. This lets us
+ * do that.
+ */
+typedef enum {
+  cnChooseThreshold_Both, cnChooseThreshold_Far, cnChooseThreshold_Near
+} cnChooseThreshold_Edge;
+
+typedef struct {
+  cnBagDistance* distance;
+  cnChooseThreshold_Edge edge;
+} cnChooseThreshold_Distance;
+
+int cnChooseThreshold_Compare(const void* a, const void* b) {
+  // Easy access to distance info. Using the cast as a const_cast, really.
+  cnChooseThreshold_Distance* bagA = (void*)a;
+  cnChooseThreshold_Distance* bagB = (void*)b;
+  // The distances themselves. For both, we can use either.
+  cnFloat distA = bagA->edge == cnChooseThreshold_Near ?
+    bagA->distance->near : bagA->distance->far;
+  cnFloat distB = bagB->edge == cnChooseThreshold_Near ?
+    bagB->distance->near : bagB->distance->far;
+  // Actual comparison.
+  return distA - distB;
+}
+
 cnFloat cnChooseThreshold(
   cnBagDistance* distances, cnBagDistance* distancesEnd
 ) {
   // TODO Just allow sorting the original data instead of malloc here?
   cnCount bagCount = distancesEnd - distances;
   cnBagDistance* distance;
-  cnBagDistance** dists = malloc(bagCount * sizeof(cnBagDistance*));
-  cnBagDistance** dist;
-  cnBagDistance** distsEnd = dists + bagCount;
-  cnCount negFalseCount = 0; // Negatives called false (aka true negatives).
-  cnCount negTrueCount = 0; // Negatives called true (aka false positives).
-  cnCount posTotalCount = 0;
-  cnCount posFalseCount = 0; // Positives called false (aka false negatives).
-  cnCount posTrueCount = 0; // Positives called true (aka true positives).
+  cnChooseThreshold_Distance* dists =
+    malloc(2 * bagCount * sizeof(cnChooseThreshold_Distance));
+  cnChooseThreshold_Distance* dist;
+  cnChooseThreshold_Distance* distsEnd = dists + 2 * bagCount;
+  cnCount negBothCount = 0; // Negatives on both sides of the threshold.
+  cnCount negFalseCount = 0; // Negatives fully outside.
+  cnCount negTotalCount = 0; // Total count of negatives.
+  cnCount negTrueCount = 0; // Negatives fully inside.
+  cnCount posBothCount = 0; // Positives on both sides.
+  cnCount posFalseCount = 0; // Positives fully outside.
+  cnCount posTotalCount = 0; // Total count of positives.
+  cnCount posTrueCount = 0; // Positives fully inside.
+  cnCount bestTrueCount = 0, bestFalseCount = 0;
   cnFloat bestMetric = -HUGE_VAL;
   cnFloat metric;
   cnFloat trueProb, bestTrueProb = cnNaN();
@@ -328,45 +364,104 @@ cnFloat cnChooseThreshold(
   // Init the pointer array.
   dist = dists;
   for (distance = distances; distance < distancesEnd; distance++) {
-    if (distance->distance < HUGE_VAL) {
+    if (distance->near < HUGE_VAL) {
       // It's not an error case, so include it.
       if (distance->bag->bag->label) {
         // Count the positives.
         posTotalCount++;
       }
       // Reference the distance, and move on.
-      *dist = distance;
+      dist->distance = distance;
+      if (distance->near == distance->far) {
+        dist->edge = cnChooseThreshold_Both;
+        // In these cases, we don't store both sides. Just a single "Both".
+        // Technically, we could, but complication just shifts. In this case,
+        // it would move to the compare function that would need to make sure
+        // to sort nears before fars.
+        distsEnd--;
+      } else {
+        // Put in the near side.
+        dist->edge = cnChooseThreshold_Near;
+        // And the far.
+        dist++;
+        dist->distance = distance;
+        dist->edge = cnChooseThreshold_Far;
+      }
+      // Move on.
       dist++;
     } else {
-      // Error case. Fewer relevant bags than expected.
+      // Error case. Leave out both near and far ends.
       // We might have allocated more space than needed for dists, but it's not
       // likely a huge gap, unless we have lots of dummy bindings.
       // TODO Is err probability relevant to the grand metric here?
       // TODO If so, count pos and neg errs.
-      distsEnd--;
+      distsEnd -= 2;
     }
   }
   // Update the count now to the ones we care about.
   bagCount = distsEnd - dists;
+  negTotalCount = bagCount - posTotalCount;
+  // And they are all outside the threshold so far.
+  posFalseCount = posTotalCount;
+  negFalseCount = negTotalCount;
 
   // Sort it.
-  qsort(dists, bagCount, sizeof(cnBagDistance*), cnCompareBagDistances);
+  qsort(
+    dists, bagCount,
+    sizeof(cnChooseThreshold_Distance), cnChooseThreshold_Compare
+  );
 
   // Now go through the list, calculating effective probabilities and the
   // decision metric to find the optimal threshold.
   for (dist = dists; dist < distsEnd; dist++) {
-    distance = *dist;
-    if (distance->bag->bag->label) {
-      posTrueCount++;
+    if (dist->distance->bag->bag->label) {
+      // Change positive counts depending on leading, trailing, or both.
+      switch (dist->edge) {
+      case cnChooseThreshold_Both:
+        posFalseCount--;
+        posTrueCount++;
+        break;
+      case cnChooseThreshold_Far:
+        posBothCount--;
+        posTrueCount++;
+        break;
+      case cnChooseThreshold_Near:
+        posBothCount++;
+        posFalseCount--;
+        break;
+      }
     } else {
-      negTrueCount++;
+      // Change negative counts depending on leading, trailing, or both.
+      switch (dist->edge) {
+      case cnChooseThreshold_Both:
+        negFalseCount--;
+        negTrueCount++;
+        break;
+      case cnChooseThreshold_Far:
+        negBothCount--;
+        negTrueCount++;
+        break;
+      case cnChooseThreshold_Near:
+        negBothCount++;
+        negFalseCount--;
+        break;
+      }
     }
-    // Dependent stats.
-    posFalseCount = posTotalCount - posTrueCount;
-    negFalseCount = bagCount - posTotalCount - negTrueCount;
-    // Update the probs at each step.
-    trueProb = posTrueCount / (cnFloat)(posTrueCount + negTrueCount);
-    falseProb = posFalseCount / (cnFloat)(posFalseCount + negFalseCount);
+    // Calculate optimistic probabilities for both leaves. Assume both max.
+    // TODO Is the highest prob really always best to make highest?
+    // TODO Should I try fully both ways to see?
+    trueProb = (posTrueCount + posBothCount) /
+      (cnFloat)(posTrueCount + posBothCount + negTrueCount + negBothCount);
+    falseProb = (posFalseCount + posBothCount) /
+      (cnFloat)(posFalseCount + posBothCount + negFalseCount + negBothCount);
+    // Figure out which one really is the max.
+    if (trueProb > falseProb) {
+      // True wins the boths. Revert false.
+      falseProb = posFalseCount / (cnFloat)(posFalseCount + negFalseCount);
+    } else {
+      // False wins the boths. Revert true.
+      trueProb = posTrueCount / (cnFloat)(posTrueCount + negTrueCount);
+    }
     // Calculate our log metric.
     metric = 0;
     if (posTrueCount) metric += posTrueCount * log(trueProb);
@@ -376,26 +471,30 @@ cnFloat cnChooseThreshold(
     if (metric > bestMetric) {
       // printf("(%.2lg vs. %.2lg: %.2lg) ", trueProb, falseProb, metric);
       bestMetric = metric;
-      threshold = distance->distance;
+      threshold = distance->near;
       bestTrueProb = trueProb;
       bestFalseProb = falseProb;
+      if (trueProb > falseProb) {
+        bestFalseCount = posTrueCount + negTrueCount;
+        bestTrueCount =
+          posTrueCount + posBothCount + negTrueCount + negBothCount;
+      } else {
+        bestFalseCount =
+          posFalseCount + posBothCount + negFalseCount + negBothCount;
+        bestFalseCount =
+          posFalseCount + negFalseCount;
+      }
     }
   }
   printf(
-    "Best thresh: %.4lg (%.2lg, %.2lg: %.4lg)\n",
-    threshold, bestTrueProb, bestFalseProb, bestMetric
+    "Best thresh: %.4lg (%.2lg of %ld, %.2lg of %ld: %.4lg)\n",
+    threshold, bestTrueProb, bestTrueCount, bestFalseProb, bestFalseCount,
+    bestMetric
   );
 
   // Free the pointer array, and return the threshold distance found.
   free(dists);
   return threshold;
-}
-
-
-int cnCompareBagDistances(const void* a, const void* b) {
-  cnBagDistance* bagA = *(cnBagDistance**)a;
-  cnBagDistance* bagB = *(cnBagDistance**)b;
-  return bagA->distance - bagB->distance;
 }
 
 
@@ -687,7 +786,9 @@ void cnSearchFill(
   distance = distances;
   cnListEachBegin(pointBags, cnPointBag, pointBag) {
     distance->bag = pointBag;
-    distance->distance = HUGE_VAL;
+    // Min is really 0, but -1 lets us see unchanged values.
+    distance->far = -1;
+    distance->near = HUGE_VAL;
     distance++;
   } cnEnd;
   // TODO Do I really want a search start?
@@ -699,7 +800,7 @@ void cnSearchFill(
     cnPointBag* pointBag = distance->bag;
     cnFloat* point = pointBag->pointMatrix;
     cnFloat* pointsEnd = point + pointBag->pointCount * valueCount;
-    if (!distance->distance) continue; // Done with this one.
+    if (!distance->near) continue; // Done with this one.
     // Look at each point in the bag.
     for (; point < pointsEnd; point += valueCount) {
       cnFloat currentDistance = 0;
@@ -714,12 +815,25 @@ void cnSearchFill(
         cnFloat diff = *startValue - *value;
         currentDistance += diff * diff;
       }
-      if (currentDistance < distance->distance) {
+      if (currentDistance > distance->far) {
+        // New max found.
+        // If currentDistance were NaN, the above > should fail, so we don't
+        // expect to see any NaNs here.
+        distance->far = currentDistance;
+      }
+      if (currentDistance < distance->near) {
         // New min found.
         // If currentDistance were NaN, the above < should fail, so we don't
         // expect to see any NaNs here.
-        distance->distance = currentDistance;
+        distance->near = currentDistance;
       }
+    }
+  }
+
+  // Flip any unset fars also to infinity.
+  for (distance = distances; distance < distancesEnd; distance++) {
+    if (distance->far < 0) {
+      distance->far = HUGE_VAL;
     }
   }
 
