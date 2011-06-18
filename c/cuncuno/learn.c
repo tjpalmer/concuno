@@ -471,26 +471,32 @@ cnFloat cnChooseThreshold(
     if (metric > bestMetric) {
       // printf("(%.2lg vs. %.2lg: %.2lg) ", trueProb, falseProb, metric);
       bestMetric = metric;
-      threshold = distance->near;
+      threshold = dist->edge == cnChooseThreshold_Near ?
+        dist->distance->near : dist->distance->far;
       bestTrueProb = trueProb;
       bestFalseProb = falseProb;
+      // # of max in each leaf.
+      bestFalseCount = posFalseCount + negFalseCount;
+      bestTrueCount = posTrueCount + negTrueCount;
       if (trueProb > falseProb) {
-        bestFalseCount = posTrueCount + negTrueCount;
-        bestTrueCount =
-          posTrueCount + posBothCount + negTrueCount + negBothCount;
+        bestTrueCount += posBothCount + negBothCount;
       } else {
-        bestFalseCount =
-          posFalseCount + posBothCount + negFalseCount + negBothCount;
-        bestFalseCount =
-          posFalseCount + negFalseCount;
+        bestFalseCount += posBothCount + negBothCount;
       }
+      printf(
+        "Best thresh yet: %.4lg (%.2lg of %ld, %.2lg of %ld: %.4lg)\n",
+        threshold, bestTrueProb, bestTrueCount, bestFalseProb, bestFalseCount,
+        bestMetric
+      );
     }
   }
-  printf(
-    "Best thresh: %.4lg (%.2lg of %ld, %.2lg of %ld: %.4lg)\n",
-    threshold, bestTrueProb, bestTrueCount, bestFalseProb, bestFalseCount,
-    bestMetric
-  );
+  if (cnFalse) {
+    printf(
+      "Best thresh: %.4lg (%.2lg of %ld, %.2lg of %ld: %.4lg)\n",
+      threshold, bestTrueProb, bestTrueCount, bestFalseProb, bestFalseCount,
+      bestMetric
+    );
+  }
 
   // Free the pointer array, and return the threshold distance found.
   free(dists);
