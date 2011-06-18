@@ -348,6 +348,8 @@ cnFloat cnChooseThreshold(
   cnCount posFalseCount = 0; // Positives fully outside.
   cnCount posTotalCount = 0; // Total count of positives.
   cnCount posTrueCount = 0; // Positives fully inside.
+  cnCount negAsTrueCount, negAsFalseCount; // Neg count effectively in or out.
+  cnCount posAsTrueCount, posAsFalseCount; // Pos count effectively in or out.
   cnCount trueCount, falseCount; // Count of bags inside or outside.
   cnCount bestTrueCount = 0, bestFalseCount = 0;
   cnFloat bestMetric = -HUGE_VAL;
@@ -452,26 +454,34 @@ cnFloat cnChooseThreshold(
     // Calculate optimistic probabilities for both leaves. Assume both max.
     // TODO Is the highest prob really always best to make highest?
     // TODO Should I try fully both ways to see? Do math to prove?
-    trueCount = posTrueCount + negTrueCount + posBothCount + negBothCount;
-    falseCount = posFalseCount + negFalseCount + posBothCount + negBothCount;
-    trueProb = (posTrueCount + posBothCount) / (cnFloat)trueCount;
-    falseProb = (posFalseCount + posBothCount) / (cnFloat)falseCount;
+    posAsTrueCount = posTrueCount + posBothCount;
+    posAsFalseCount = posFalseCount + posBothCount;
+    negAsTrueCount = negTrueCount + negBothCount;
+    negAsFalseCount = negFalseCount + negBothCount;
+    trueCount = posAsTrueCount + negAsTrueCount;
+    falseCount = posAsFalseCount + negAsFalseCount;
+    trueProb = posAsTrueCount / (cnFloat)trueCount;
+    falseProb = posAsFalseCount / (cnFloat)falseCount;
     // Figure out which one really is the max.
     if (trueProb > falseProb) {
       // True wins the boths. Revert false.
-      falseCount -= posBothCount + negBothCount;
+      posAsFalseCount -= posBothCount;
+      negAsFalseCount -= negBothCount;
+      falseCount = posAsFalseCount + negAsFalseCount;
       falseProb = posFalseCount / (cnFloat)falseCount;
     } else {
       // False wins the boths. Revert true.
-      trueCount -= posBothCount + negBothCount;
+      posAsTrueCount -= posBothCount;
+      negAsTrueCount -= negBothCount;
+      trueCount = posAsTrueCount + negAsTrueCount;
       trueProb = posTrueCount / (cnFloat)trueCount;
     }
     // Calculate our log metric.
     metric = 0;
-    if (posTrueCount) metric += posTrueCount * log(trueProb);
-    if (negTrueCount) metric += negTrueCount * log(1 - trueProb);
-    if (posFalseCount) metric += posFalseCount * log(falseProb);
-    if (negFalseCount) metric += negFalseCount * log(1 - falseProb);
+    if (posAsTrueCount) metric += posAsTrueCount * log(trueProb);
+    if (negAsTrueCount) metric += negAsTrueCount * log(1 - trueProb);
+    if (posAsFalseCount) metric += posAsFalseCount * log(falseProb);
+    if (negAsFalseCount) metric += negAsFalseCount * log(1 - falseProb);
     if (metric > bestMetric) {
       printf(
         "Thresh: %.4lg (%.2lg of %ld, %.2lg of %ld: %.4lg)\n",
