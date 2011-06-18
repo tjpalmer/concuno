@@ -317,17 +317,16 @@ typedef struct {
   cnChooseThreshold_Edge edge;
 } cnChooseThreshold_Distance;
 
-int cnChooseThreshold_Compare(const void* a, const void* b) {
-  // Easy access to distance info. Using the cast as a const_cast, really.
-  cnChooseThreshold_Distance* bagA = (void*)a;
-  cnChooseThreshold_Distance* bagB = (void*)b;
+cnFloat cnChooseThreshold_EdgeDist(const cnChooseThreshold_Distance* dist) {
   // The distances themselves. For both, we can use either.
-  cnFloat distA = bagA->edge == cnChooseThreshold_Near ?
-    bagA->distance->near : bagA->distance->far;
-  cnFloat distB = bagB->edge == cnChooseThreshold_Near ?
-    bagB->distance->near : bagB->distance->far;
-  // Actual comparison.
-  return distA - distB;
+  return dist->edge == cnChooseThreshold_Near ?
+    dist->distance->near : dist->distance->far;
+}
+
+int cnChooseThreshold_Compare(const void* a, const void* b) {
+  cnFloat distA = cnChooseThreshold_EdgeDist(a);
+  cnFloat distB = cnChooseThreshold_EdgeDist(b);
+  return distA > distB ? 1 : distA == distB ? 0 : -1;
 }
 
 cnFloat cnChooseThreshold(
@@ -407,7 +406,7 @@ cnFloat cnChooseThreshold(
   // And they are all outside the threshold so far.
   posFalseCount = posTotalCount;
   negFalseCount = negTotalCount;
-  printf("Totals: %ld %ld\n", posTotalCount, negTotalCount);
+  printf("Totals: %ld %ld (%d %ld)\n", posTotalCount, negTotalCount, distsEnd - dists, bagCount);
 
   // Sort it.
   qsort(
@@ -482,14 +481,18 @@ cnFloat cnChooseThreshold(
     if (negAsTrueCount) metric += negAsTrueCount * log(1 - trueProb);
     if (posAsFalseCount) metric += posAsFalseCount * log(falseProb);
     if (negAsFalseCount) metric += negAsFalseCount * log(1 - falseProb);
+    /*printf(
+      "Thresh: %.4lg (%.2lg of %ld, %.2lg of %ld: %.4lg)\n",
+      cnChooseThreshold_EdgeDist(dist),
+      trueProb, trueCount, falseProb, falseCount, metric
+    );*/
     if (metric > bestMetric) {
-      printf(
-        "Thresh: %.4lg (%.2lg of %ld, %.2lg of %ld: %.4lg)\n",
-        threshold, trueProb, trueCount, falseProb, falseCount, metric
-      );
+      threshold = cnChooseThreshold_EdgeDist(dist);
+      if (dist < distsEnd) {
+        // Actually go halfway to the next, if there is one.
+        threshold = (threshold + cnChooseThreshold_EdgeDist(dist + 1)) / 2;
+      }
       bestMetric = metric;
-      threshold = dist->edge == cnChooseThreshold_Near ?
-        dist->distance->near : dist->distance->far;
       bestTrueProb = trueProb;
       bestFalseProb = falseProb;
       // # of max in each leaf.
@@ -497,7 +500,7 @@ cnFloat cnChooseThreshold(
       bestTrueCount = trueCount;
     }
   }
-  if (cnFalse) {
+  if (cnTrue) {
     printf(
       "Best thresh: %.4lg (%.2lg of %ld, %.2lg of %ld: %.4lg)\n",
       threshold, bestTrueProb, bestTrueCount, bestFalseProb, bestFalseCount,
