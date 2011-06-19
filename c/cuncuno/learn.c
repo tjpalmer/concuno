@@ -92,6 +92,9 @@ cnRootNode* cnExpandedTree(cnLearner* learner, cnExpansion* expansion);
 cnBool cnLearnSplitModel(cnLearner* learner, cnSplitNode* split);
 
 
+void cnLogPointBags(cnSplitNode* split, cnList(cnPointBag)* pointBags);
+
+
 void cnPrintExpansion(cnExpansion* expansion);
 
 
@@ -212,12 +215,12 @@ void cnBuildInitialKernel(cnTopology topology, cnList(cnPointBag)* pointBags) {
     cnFloat* stat = malloc(valueCount * sizeof(cnFloat));
     if (!stat) goto DONE;
     printf("Max, mean of positives: ");
-    cnVectorPrint(
+    cnVectorPrint(stdout,
       valueCount,
       cnVectorMax(valueCount, stat, positiveVectorCount, positiveVectors)
     );
     printf(", ");
-    cnVectorPrint(
+    cnVectorPrint(stdout,
       valueCount,
       cnVectorMean(valueCount, stat, positiveVectorCount, positiveVectors)
     );
@@ -292,7 +295,7 @@ cnFloat* cnBestPointByDiverseDensity(
       // Print and check.
       if (sumPosMin + sumNegMin < bestSumYet) {
         printf("(");
-        cnVectorPrint(valueCount, vector);
+        cnVectorPrint(stdout, valueCount, vector);
         printf(": %.4le) ", sumPosMin + sumNegMin);
         bestPoint = vector;
         bestSumYet = sumPosMin + sumNegMin;
@@ -599,8 +602,9 @@ cnBool cnLearnSplitModel(cnLearner* learner, cnSplitNode* split) {
 
   cnListInit(&pointBags, sizeof(cnPointBag));
   if (!cnSplitNodePointBags(split, &pointBags)) {
-    goto DISPOSE_VALUE_BAGS;
+    goto DISPOSE_POINT_BAGS;
   }
+  //cnLogPointBags(split, &pointBags);
 
   // It all worked.
   cnBuildInitialKernel(split->function->outTopology, &pointBags);
@@ -610,12 +614,12 @@ cnBool cnLearnSplitModel(cnLearner* learner, cnSplitNode* split) {
   // TODO Learn a model already.
   result = cnTrue;
 
-  // DROP_VALUE_BAGS:
+  // DROP_POINT_BAGS:
   cnListEachBegin(&pointBags, cnPointBag, pointBag) {
     free(pointBag->pointMatrix);
   } cnEnd;
 
-  DISPOSE_VALUE_BAGS:
+  DISPOSE_POINT_BAGS:
   cnListDispose(&pointBags);
   return result;
 }
@@ -649,6 +653,46 @@ cnRootNode* cnLearnTree(cnLearner* learner, cnRootNode* initial) {
     }
     return cnTryExpansionsAtLeaf(learner, leaf);
   }
+}
+
+
+void cnLogPointBags(cnSplitNode* split, cnList(cnPointBag)* pointBags) {
+  // TODO More filled out name. Easiest way to allocate as building?
+  FILE *file;
+  cnString name;
+
+  // Prepare file name, and open/create output file.
+  cnStringInit(&name);
+  if (!cnListPushAll(&name, &split->function->name)) {
+    cnStringDispose(&name);
+    // TODO Error code.
+    return;
+  }
+  // TODO Param indices.
+  if (!cnStringPushStr(&name, ".log")) {
+    cnStringDispose(&name);
+    // TODO Error code.
+    return;
+  }
+  file = fopen(cnStr(&name), "w");
+  cnStringDispose(&name);
+  if (!file) {
+    return;
+  }
+
+  // Print out the data.
+  cnListEachBegin(pointBags, cnPointBag, pointBag) {
+    cnFloat* point = pointBag->pointMatrix;
+    cnFloat* pointsEnd = point + pointBag->pointCount + pointBag->valueCount;
+    for (; point < pointsEnd; point++) {
+      cnVectorPrint(file, pointBag->valueCount, point);
+      fprintf(file, " %u", pointBag->bag->label);
+      fprintf(file, "\n");
+    }
+  } cnEnd;
+
+  // All done.
+  fclose(file);
 }
 
 
@@ -811,7 +855,7 @@ void cnSearchFill(
   } cnEnd;
   // TODO Do I really want a search start?
   printf("Starting search at: ");
-  cnVectorPrint(valueCount, searchStart);
+  cnVectorPrint(stdout, valueCount, searchStart);
   printf("\n");
   // Narrow the distance to each bag.
   for (distance = distances; distance < distancesEnd; distance++) {

@@ -7,8 +7,10 @@
 
 #include "core.h"
 
+#include <stdio.h>
 
-void cnVectorPrint(cnCount size, cnFloat* values);
+
+void cnVectorPrint(FILE* file, cnCount size, cnFloat* values);
 
 
 #endif

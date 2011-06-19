@@ -2,13 +2,13 @@
 #include "mat.h"
 
 
-void cnVectorPrint(cnCount size, cnFloat* values){
+void cnVectorPrint(FILE* file, cnCount size, cnFloat* values){
   // TODO Awesomer printing a la Matlab or better?
   cnFloat *value = values, *end = values + size;
   for (; value < end; value++) {
     if (value > values) {
-      printf(" ");
+      fprintf(file, " ");
     }
-    printf("%.4le", *value);
+    fprintf(file, "%.4le", *value);
   }
 }
