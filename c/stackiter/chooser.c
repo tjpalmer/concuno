@@ -59,7 +59,6 @@ cnBool stChooseDropWhereLandOnOther(
         }
       }
       if (settled) {
-        ungraspState = NULL;
         if (label == cnFalse || label == cnTrue) {
           cnBag* bag;
           if (!(bag = cnListExpand(bags))) {
@@ -72,12 +71,13 @@ cnBool stChooseDropWhereLandOnOther(
           bag->label = label;
           // If we defer placing entity pointers until after we've stored the
           // bag itself, then cleanup from failure is easier.
-          if (!stPlaceLiveItems(&state->items, &bag->entities)) {
+          if (!stPlaceLiveItems(&ungraspState->items, &bag->entities)) {
             printf("Failed to push entities.\n");
             result = cnFalse;
             break;
           }
         }
+        ungraspState = NULL;
       }
     } else {
       cnBool hasGrasp;
