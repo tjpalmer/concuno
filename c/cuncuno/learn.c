@@ -683,7 +683,7 @@ void cnLogPointBags(cnSplitNode* split, cnList(cnPointBag)* pointBags) {
   // Print out the data.
   cnListEachBegin(pointBags, cnPointBag, pointBag) {
     cnFloat* point = pointBag->pointMatrix;
-    cnFloat* pointsEnd = point + pointBag->pointCount + pointBag->valueCount;
+    cnFloat* pointsEnd = point + pointBag->pointCount * pointBag->valueCount;
     for (; point < pointsEnd; point += pointBag->valueCount) {
       cnVectorPrint(file, pointBag->valueCount, point);
       fprintf(file, " %u", pointBag->bag->label);
