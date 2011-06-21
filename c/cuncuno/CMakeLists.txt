@@ -1,4 +1,4 @@
-add_library(cuncuno SHARED
+add_library(cuncuno STATIC
   core.c
   entity.c
   learn.c

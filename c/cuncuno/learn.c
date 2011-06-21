@@ -982,8 +982,7 @@ void cnSearchFill(
         startValue++, value++
       ) {
         // TODO Other distance metrics.
-        cnFloat diff = *startValue;
-        diff -= *value;
+        cnFloat diff = *startValue - *value;
         currentDistance += diff * diff;
       }
       if (currentDistance > distance->far) {
