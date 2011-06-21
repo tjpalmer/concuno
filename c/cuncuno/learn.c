@@ -593,7 +593,7 @@ cnFloat cnChooseThreshold(
     //    fprintf(file,
     //      "%lg %lg %ld %lg %ld %lg\n",
     //      sqrt(cnChooseThreshold_EdgeDist(dist)),
-    //      trueProb, trueCount, falseProb, falseCount, metric
+    //      trueProb, trueCount, falseProb, falseCount, currentScore
     //    );
     if (currentScore > bestScore) {
       threshold = cnChooseThreshold_EdgeDist(dist);
