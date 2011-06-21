@@ -60,7 +60,7 @@ typedef struct cnExpansion {
 
 
 /**
- * Hack to get the best point based on pseudo diverse density.
+ * Get the best point based on pseudo diverse density.
  *
  * TODO Provide more than one starting point? Or will KS flood fill be best
  * TODO for deciding what's too close or not?
@@ -71,12 +71,22 @@ cnFloat* cnBestPointByDiverseDensity(
 
 
 /**
+ * Get the best point based on thresholding by the grand score.
+ */
+cnFloat* cnBestPointByScore(cnTopology topology, cnList(cnPointBag)* pointBags);
+
+
+/**
  * Choose a threshold on the following distances to maximize the "noisy-and
  * noisy-or" metric, assuming that this determination is the only thing that
  * matters (no leaves elsewhere).
+ *
+ * If score is not null, assign the highest score to it. Also consider any
+ * previously held values to be the highest previously. Therefore, if you
+ * provide a pointer, make sure it's meaningful or else -HUGE_VAL.
  */
 cnFloat cnChooseThreshold(
-  cnBagDistance* distances, cnBagDistance* distancesEnd
+  cnBagDistance* distances, cnBagDistance* distancesEnd, cnFloat* score
 );
 
 
@@ -120,7 +130,8 @@ cnBool cnRecurseExpansions(
  * TODO Provide a list of all contained positive points at end.
  */
 void cnSearchFill(
-  cnTopology topology, cnList(cnPointBag)* pointBags, cnFloat* searchStart
+  cnTopology topology, cnList(cnPointBag)* pointBags, cnFloat* searchStart,
+  cnFloat* score
 );
 
 
@@ -307,6 +318,52 @@ cnFloat* cnBestPointByDiverseDensity(
 }
 
 
+cnFloat* cnBestPointByScore(
+  cnTopology topology, cnList(cnPointBag)* pointBags
+) {
+  cnFloat* bestPoint = NULL;
+  cnFloat bestScore = -HUGE_VAL, score = bestScore;
+  cnCount negBagCount = 0, posBagCount = 0, maxEitherBags = 2;
+  cnCount valueCount =
+    pointBags->count ? ((cnPointBag*)pointBags->items)->valueCount : 0;
+  printf("Score-ish: ");
+  cnListEachBegin(pointBags, cnPointBag, pointBag) {
+    if (posBagCount >= maxEitherBags && negBagCount >= maxEitherBags) break;
+    cnFloat* point = pointBag->pointMatrix;
+    cnFloat* matrixEnd = point + pointBag->pointCount * valueCount;
+    if (pointBag->bag->label) {
+      if (posBagCount++ >= maxEitherBags) continue;
+    } else {
+      if (negBagCount++ >= maxEitherBags) continue;
+    }
+    printf("B%c ", pointBag->bag->label ? '+' : '-');
+    for (; point < matrixEnd; point += valueCount) {
+      cnBool allGood = cnTrue;
+      cnFloat* value;
+      cnFloat* pointEnd = point + valueCount;
+      for (value = point; value < pointEnd; value++) {
+        if (cnIsNaN(*value)) {
+          allGood = cnFalse;
+          break;
+        }
+      }
+      if (!allGood) continue;
+      cnSearchFill(topology, pointBags, point, &score);
+      // Print and check.
+      if (score > bestScore) {
+        printf("(");
+        cnVectorPrint(stdout, valueCount, point);
+        printf(": %.4le) ", score);
+        bestPoint = point;
+        bestScore = score;
+      }
+    }
+  } cnEnd;
+  printf("\n");
+  return bestPoint;
+}
+
+
 /**
  * We need to track near and far distances in a nice sorted list. This lets us
  * do that.
@@ -333,7 +390,7 @@ int cnChooseThreshold_Compare(const void* a, const void* b) {
 }
 
 cnFloat cnChooseThreshold(
-  cnBagDistance* distances, cnBagDistance* distancesEnd
+  cnBagDistance* distances, cnBagDistance* distancesEnd, cnFloat* score
 ) {
   //  FILE* file = fopen("cnChooseThreshold.log", "w");
   // TODO Just allow sorting the original data instead of malloc here?
@@ -355,11 +412,14 @@ cnFloat cnChooseThreshold(
   cnCount posAsTrueCount, posAsFalseCount; // Pos count effectively in or out.
   cnCount trueCount, falseCount; // Count of bags inside or outside.
   cnCount bestTrueCount = 0, bestFalseCount = 0;
-  cnFloat bestMetric = -HUGE_VAL;
-  cnFloat metric;
+  cnFloat bestScore, currentScore;
   cnFloat trueProb, bestTrueProb = cnNaN();
   cnFloat falseProb, bestFalseProb = cnNaN();
   cnFloat threshold = 0;
+
+  // Starting out assuming the worst. This actually log score, by the way.
+  bestScore = score ? *score : -HUGE_VAL;
+  //if (score) *score = bestScore;
 
   if (!dists) {
     // No good.
@@ -399,8 +459,12 @@ cnFloat cnChooseThreshold(
       // Error case. Leave out both near and far ends.
       // We might have allocated more space than needed for dists, but it's not
       // likely a huge gap, unless we have lots of dummy bindings.
-      // TODO Is err probability relevant to the grand metric here?
-      // TODO If so, count pos and neg errs.
+      // TODO Is err probability relevant to the grand metric here? Here, it's
+      // TODO just about bags with only err so far. We've ignored the case where
+      // TODO only some bindings are err. They could impact, but just let those
+      // TODO be considered as foreign leaves at some point, not kids. A big
+      // TODO loop could prune those bags in later rounds if the err leaf picks
+      // TODO them up.
       distsEnd -= 2;
       bagCount--;
     }
@@ -410,7 +474,7 @@ cnFloat cnChooseThreshold(
   // And they are all outside the threshold so far.
   posFalseCount = posTotalCount;
   negFalseCount = negTotalCount;
-  printf("Totals: %ld %ld (%d %ld)\n", posTotalCount, negTotalCount, distsEnd - dists, bagCount);
+  //printf("Totals: %ld %ld (%d %ld)\n", posTotalCount, negTotalCount, distsEnd - dists, bagCount);
 
   // Sort it.
   qsort(
@@ -480,11 +544,11 @@ cnFloat cnChooseThreshold(
       trueProb = posTrueCount / (cnFloat)trueCount;
     }
     // Calculate our log metric.
-    metric = 0;
-    if (posAsTrueCount) metric += posAsTrueCount * log(trueProb);
-    if (negAsTrueCount) metric += negAsTrueCount * log(1 - trueProb);
-    if (posAsFalseCount) metric += posAsFalseCount * log(falseProb);
-    if (negAsFalseCount) metric += negAsFalseCount * log(1 - falseProb);
+    currentScore = 0;
+    if (posAsTrueCount) currentScore += posAsTrueCount * log(trueProb);
+    if (negAsTrueCount) currentScore += negAsTrueCount * log(1 - trueProb);
+    if (posAsFalseCount) currentScore += posAsFalseCount * log(falseProb);
+    if (negAsFalseCount) currentScore += negAsFalseCount * log(1 - falseProb);
     if (cnFalse) {
       // Reverse above for test.
       // If my tests are correct, it can give a higher metric.
@@ -512,12 +576,16 @@ cnFloat cnChooseThreshold(
       if (negAsTrueCount) otherMetric += negAsTrueCount * log(1 - trueProb);
       if (posAsFalseCount) otherMetric += posAsFalseCount * log(falseProb);
       if (negAsFalseCount) otherMetric += negAsFalseCount * log(1 - falseProb);
-      if (metric == otherMetric) {
-        printf("=");
-      } else if (otherMetric - metric > 1) {
-        printf("(%.2lg > %.2lg: %.2lg; %.2lf of %ld, %.2lf of %ld) ", otherMetric, metric, otherMetric - metric, trueProb, trueCount, falseProb, falseCount);
-      } else if (otherMetric > metric) {
-        printf(">");
+      if (currentScore == otherMetric) {
+        //        printf("=");
+      } else if (otherMetric - currentScore > 1) {
+        //        printf(
+        //          "(%.2lg > %.2lg: %.2lg; %.2lf of %ld, %.2lf of %ld) ",
+        //          otherMetric, currentScore, otherMetric - currentScore,
+        //          trueProb, trueCount, falseProb, falseCount
+        //        );
+      } else if (otherMetric > currentScore) {
+        //        printf(">");
       } else {
         //printf("<");
       }
@@ -527,13 +595,13 @@ cnFloat cnChooseThreshold(
     //      sqrt(cnChooseThreshold_EdgeDist(dist)),
     //      trueProb, trueCount, falseProb, falseCount, metric
     //    );
-    if (metric > bestMetric) {
+    if (currentScore > bestScore) {
       threshold = cnChooseThreshold_EdgeDist(dist);
       if (dist < distsEnd) {
         // Actually go halfway to the next, if there is one.
         threshold = (threshold + cnChooseThreshold_EdgeDist(dist + 1)) / 2;
       }
-      bestMetric = metric;
+      bestScore = currentScore;
       bestTrueProb = trueProb;
       bestFalseProb = falseProb;
       // # of max in each leaf.
@@ -541,16 +609,17 @@ cnFloat cnChooseThreshold(
       bestTrueCount = trueCount;
     }
   }
-  if (cnTrue) {
+  if (cnTrue && !cnIsNaN(bestTrueProb)) {
     printf(
       "Best thresh: %.4lg (%.2lg of %ld, %.2lg of %ld: %.4lg)\n",
       threshold, bestTrueProb, bestTrueCount, bestFalseProb, bestFalseCount,
-      bestMetric
+      bestScore
     );
   }
 
-  // Free the pointer array, and return the threshold distance found.
+  // Free the pointer array, provide the score if wanted, and return the thresh.
   free(dists);
+  if (score) *score = bestScore;
   //  fclose(file);
   return threshold;
 }
@@ -646,8 +715,9 @@ cnBool cnLearnSplitModel(cnLearner* learner, cnSplitNode* split) {
   // It all worked.
   cnBuildInitialKernel(split->function->outTopology, &pointBags);
   searchStart =
-    cnBestPointByDiverseDensity(split->function->outTopology, &pointBags);
-  cnSearchFill(split->function->outTopology, &pointBags, searchStart);
+    //cnBestPointByDiverseDensity(split->function->outTopology, &pointBags);
+    cnBestPointByScore(split->function->outTopology, &pointBags);
+  cnSearchFill(split->function->outTopology, &pointBags, searchStart, NULL);
   // TODO Learn a model already.
   result = cnTrue;
 
@@ -868,7 +938,8 @@ cnBool cnRecurseExpansions(
 
 
 void cnSearchFill(
-  cnTopology topology, cnList(cnPointBag)* pointBags, cnFloat* searchStart
+  cnTopology topology, cnList(cnPointBag)* pointBags, cnFloat* searchStart,
+  cnFloat* score
 ) {
   cnCount valueCount =
     pointBags->count ? ((cnPointBag*)pointBags->items)->valueCount : 0;
@@ -891,9 +962,9 @@ void cnSearchFill(
     distance++;
   } cnEnd;
   // TODO Do I really want a search start?
-  printf("Starting search at: ");
-  cnVectorPrint(stdout, valueCount, searchStart);
-  printf("\n");
+  //  printf("Starting search at: ");
+  //  cnVectorPrint(stdout, valueCount, searchStart);
+  //  printf("\n");
   // Narrow the distance to each bag.
   for (distance = distances; distance < distancesEnd; distance++) {
     cnPointBag* pointBag = distance->bag;
@@ -911,7 +982,8 @@ void cnSearchFill(
         startValue++, value++
       ) {
         // TODO Other distance metrics.
-        cnFloat diff = *startValue - *value;
+        cnFloat diff = *startValue;
+        diff -= *value;
         currentDistance += diff * diff;
       }
       if (currentDistance > distance->far) {
@@ -937,7 +1009,7 @@ void cnSearchFill(
   }
 
   // Find the right threshold for these distances and bag labels.
-  cnChooseThreshold(distances, distancesEnd);
+  cnChooseThreshold(distances, distancesEnd, score);
 
   // Clean up.
   free(distances);
