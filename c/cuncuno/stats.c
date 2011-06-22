@@ -3,6 +3,43 @@
 #include "stats.h"
 
 
+cnBool cnFunctionEvaluateMahalanobisDistance(
+  cnFunction* function, void* in, void* out
+) {
+  *((cnFloat*)out) = cnMahalanobisDistance(function->data, in);
+  // Always good.
+  return cnTrue;
+}
+
+
+void cnFunctionInitMahalanobisDistance(
+  cnFunction* function, cnGaussian* gaussian
+) {
+  function->data = gaussian;
+  function->evaluate = cnFunctionEvaluateMahalanobisDistance;
+}
+
+
+cnFloat cnMahalanobisDistance(cnGaussian* gaussian, cnFloat* point) {
+  cnFloat distance = 0;
+  cnCount dims = gaussian->dims;
+  cnFloat* mean = gaussian->mean;
+  cnFloat* meanEnd = mean + dims;
+  // TODO Covariance.
+  cnFloat *meanValue, *pointValue;
+  for (
+    meanValue = mean, pointValue = point;
+    meanValue < meanEnd;
+    meanValue++, pointValue++
+  ) {
+    cnFloat diff = *pointValue - *meanValue;
+    // TODO Apply covariance scaling.
+    distance += diff * diff;
+  }
+  return distance;
+}
+
+
 void cnVectorCov(void) {
   // TODO
   //cblas_dgemm(

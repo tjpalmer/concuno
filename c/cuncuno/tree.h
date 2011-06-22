@@ -161,6 +161,8 @@ typedef struct cnSplitNode {
 
   cnIndex* varIndices;
 
+  cnPredicate* classifier;
+
 } cnSplitNode;
 
 

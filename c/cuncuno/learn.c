@@ -145,20 +145,20 @@ cnBool cnUpdateLeafProbabilities(cnRootNode* root);
 
 
 void cnBuildInitialKernel(cnTopology topology, cnList(cnPointBag)* pointBags) {
-  cnFloat* positiveVector;
-  cnFloat* positiveVectors = NULL;
-  cnCount positiveVectorCount;
+  cnFloat* positivePoint;
+  cnFloat* positivePoints = NULL;
+  cnCount positivePointCount;
   cnFloat* matrixEnd;
-  cnCount valueCount = 0; // per vector.
-  cnFloat* vector;
+  cnCount valueCount = 0; // per point.
+  cnFloat* point;
 
   if (topology != cnTopologyEuclidean) {
     printf("I handle only Euclidean right now, not %u.\n", topology);
     return;
   }
 
-  // Count good, positive vectors.
-  positiveVectorCount = 0;
+  // Count good, positive points.
+  positivePointCount = 0;
   printf("pointBags->count: %ld\n", pointBags->count);
   if (pointBags->count > 0) {
     valueCount = ((cnPointBag*)pointBags->items)->valueCount;
@@ -167,43 +167,43 @@ void cnBuildInitialKernel(cnTopology topology, cnList(cnPointBag)* pointBags) {
   cnListEachBegin(pointBags, cnPointBag, pointBag) {
     // Just use the positives for the initial kernel.
     if (!pointBag->bag->label) continue;
-    vector = pointBag->pointMatrix;
-    matrixEnd = vector + pointBag->pointCount * valueCount;
-    for (; vector < matrixEnd; vector += valueCount) {
+    point = pointBag->pointMatrix;
+    matrixEnd = point + pointBag->pointCount * valueCount;
+    for (; point < matrixEnd; point += valueCount) {
       cnBool allGood = cnTrue;
-      cnFloat* value = vector;
-      cnFloat* vectorEnd = vector + valueCount;
-      for (value = vector; value < vectorEnd; value++) {
+      cnFloat* value = point;
+      cnFloat* pointEnd = point + valueCount;
+      for (value = point; value < pointEnd; value++) {
         if (cnIsNaN(*value)) {
           allGood = cnFalse;
           break;
         }
       }
-      positiveVectorCount += allGood;
+      positivePointCount += allGood;
     }
   } cnEnd;
 
-  if (!positiveVectorCount) {
-    printf("I need vectors to work with!\n");
+  if (!positivePointCount) {
+    printf("I need points to work with!\n");
     return;
   }
 
-  // Make a matrix of the positive, good vectors.
-  positiveVectors = malloc(positiveVectorCount * valueCount * sizeof(cnFloat));
-  if (!positiveVectors) {
+  // Make a matrix of the positive, good points.
+  positivePoints = malloc(positivePointCount * valueCount * sizeof(cnFloat));
+  if (!positivePoints) {
     goto DONE;
   }
-  positiveVector = positiveVectors;
+  positivePoint = positivePoints;
   cnListEachBegin(pointBags, cnPointBag, pointBag) {
     // Just use the positives for the initial kernel.
     if (!pointBag->bag->label) continue;
-    vector = pointBag->pointMatrix;
-    matrixEnd = vector + pointBag->pointCount * valueCount;
-    for (; vector < matrixEnd; vector += valueCount) {
+    point = pointBag->pointMatrix;
+    matrixEnd = point + pointBag->pointCount * valueCount;
+    for (; point < matrixEnd; point += valueCount) {
       cnBool allGood = cnTrue;
-      cnFloat *value = vector, *positiveValue = positiveVector;
-      cnFloat* vectorEnd = vector + valueCount;
-      for (value = vector; value < vectorEnd; value++, positiveValue++) {
+      cnFloat *value = point, *positiveValue = positivePoint;
+      cnFloat* pointEnd = point + valueCount;
+      for (value = point; value < pointEnd; value++, positiveValue++) {
         if (cnIsNaN(*value)) {
           allGood = cnFalse;
           break;
@@ -212,14 +212,14 @@ void cnBuildInitialKernel(cnTopology topology, cnList(cnPointBag)* pointBags) {
       }
       if (allGood) {
         // Move to the next.
-        positiveVector += valueCount;
+        positivePoint += valueCount;
       }
     }
   } cnEnd;
 
   printf(
-    "Got a %ld by %ld matrix of positive vectors.\n",
-    valueCount, positiveVectorCount
+    "Got a %ld by %ld matrix of positive points.\n",
+    valueCount, positivePointCount
   );
   {
     // TODO Actually create a Gaussian PDF.
@@ -228,19 +228,19 @@ void cnBuildInitialKernel(cnTopology topology, cnList(cnPointBag)* pointBags) {
     printf("Max, mean of positives: ");
     cnVectorPrint(stdout,
       valueCount,
-      cnVectorMax(valueCount, stat, positiveVectorCount, positiveVectors)
+      cnVectorMax(valueCount, stat, positivePointCount, positivePoints)
     );
     printf(", ");
     cnVectorPrint(stdout,
       valueCount,
-      cnVectorMean(valueCount, stat, positiveVectorCount, positiveVectors)
+      cnVectorMean(valueCount, stat, positivePointCount, positivePoints)
     );
     printf("\n");
     free(stat);
   }
 
   DONE:
-  free(positiveVectors);
+  free(positivePoints);
 }
 
 
@@ -254,17 +254,17 @@ cnFloat* cnBestPointByDiverseDensity(
     pointBags->count ? ((cnPointBag*)pointBags->items)->valueCount : 0;
   printf("DD-ish: ");
   cnListEachBegin(pointBags, cnPointBag, pointBag) {
-    cnFloat* vector = pointBag->pointMatrix;
-    cnFloat* matrixEnd = vector + pointBag->pointCount * valueCount;
+    cnFloat* point = pointBag->pointMatrix;
+    cnFloat* matrixEnd = point + pointBag->pointCount * valueCount;
     if (!pointBag->bag->label) continue;
     if (posBagCount++ >= maxPosBags) break;
     printf("B ");
-    for (; vector < matrixEnd; vector += valueCount) {
+    for (; point < matrixEnd; point += valueCount) {
       cnFloat sumNegMin = 0, sumPosMin = 0;
       cnBool allGood = cnTrue;
       cnFloat* value;
-      cnFloat* vectorEnd = vector + valueCount;
-      for (value = vector; value < vectorEnd; value++) {
+      cnFloat* pointEnd = point + valueCount;
+      for (value = point; value < pointEnd; value++) {
         if (cnIsNaN(*value)) {
           allGood = cnFalse;
           break;
@@ -273,14 +273,14 @@ cnFloat* cnBestPointByDiverseDensity(
       if (!allGood) continue;
       cnListEachBegin(pointBags, cnPointBag, pointBag2) {
         cnFloat minDistance = HUGE_VAL;
-        cnFloat* vector2 = pointBag2->pointMatrix;
-        cnFloat* matrixEnd2 = vector2 + pointBag2->pointCount * valueCount;
-        for (; vector2 < matrixEnd2; vector2 += valueCount) {
+        cnFloat* point2 = pointBag2->pointMatrix;
+        cnFloat* matrixEnd2 = point2 + pointBag2->pointCount * valueCount;
+        for (; point2 < matrixEnd2; point2 += valueCount) {
           cnFloat distance = 0;
           cnFloat* value2;
           for (
-            value = vector, value2 = vector2;
-            value < vectorEnd;
+            value = point, value2 = point2;
+            value < pointEnd;
             value++, value2++
           ) {
             cnFloat diff = *value - *value2;
@@ -306,9 +306,9 @@ cnFloat* cnBestPointByDiverseDensity(
       // Print and check.
       if (sumPosMin + sumNegMin < bestSumYet) {
         printf("(");
-        cnVectorPrint(stdout, valueCount, vector);
+        cnVectorPrint(stdout, valueCount, point);
         printf(": %.4le) ", sumPosMin + sumNegMin);
-        bestPoint = vector;
+        bestPoint = point;
         bestSumYet = sumPosMin + sumNegMin;
       }
     }

@@ -42,6 +42,8 @@ typedef enum {
 
 
 struct cnEntityFunction; typedef struct cnEntityFunction cnEntityFunction;
+struct cnFunction; typedef struct cnFunction cnFunction;
+struct cnPredicate; typedef struct cnPredicate cnPredicate;
 struct cnProperty; typedef struct cnProperty cnProperty;
 struct cnSchema; typedef struct cnSchema cnSchema;
 struct cnType; typedef struct cnType cnType;
@@ -76,6 +78,48 @@ struct cnEntityFunction {
    * whose individual sizes are given by outType.
    */
   void (*get)(cnEntityFunction* function, void** ins, void* outs);
+
+};
+
+
+/**
+ * Just a generic function with private data. The meaning depends on context.
+ */
+struct cnFunction {
+
+  void* data;
+
+  // TODO Name or types or anything?
+
+  void (*dispose)(cnFunction* function);
+
+  /**
+   * Return value indicates status.
+   */
+  cnBool (*evaluate)(cnFunction* function, void* in, void* out);
+
+};
+
+
+/**
+ * A binary classifier. TODO Better name? More concrete?
+ */
+struct cnPredicate {
+
+  void* data;
+
+  //  cnCount inCount;
+  //
+  //  cnTopology inTopology;
+  //
+  //  cnType* inType;
+
+  /**
+   * Classify the given value (point, bag, ...) as true or false.
+   *
+   * TODO Error indicated by result other than true or false? Maybe too sneaky.
+   */
+  cnBool (*evaluate)(const cnPredicate* predicate, void* in);
 
 };
 
@@ -116,7 +160,7 @@ struct cnProperty {
   /**
    * If not null, call this before finishing generic disposal.
    */
-  void (*dispose)(const cnProperty* property);
+  void (*dispose)(cnProperty* property);
 
   void (*get)(const cnProperty* property, const void* entity, void* storage);
 
@@ -174,6 +218,11 @@ cnBool cnEntityFunctionInitDifference(
  */
 cnBool cnEntityFunctionInitProperty(
   cnEntityFunction* function, const cnProperty* property
+);
+
+
+cnBool cnPredicateInitDistanceThreshold(
+  cnPredicate* predicate, cnFunction* distanceFunction, cnFloat threshold
 );
 
 
