@@ -25,15 +25,13 @@ typedef struct cnGaussian {
 /**
  * Provides a Mahalanobis distance metric based on a Gaussian distribution.
  */
-void cnFunctionInitMahalanobisDistance(
-  cnFunction* function, cnGaussian* gaussian
-);
+cnFunction* cnFunctionCreateMahalanobisDistance(cnGaussian* gaussian);
 
 
 /**
  * Frees the mean and cov, setting them to NULL and dims to zero.
  */
-void cnGaussianDispose(cnGaussian* gaussian, cnCount dims, cnFloat* mean);
+void cnGaussianDispose(cnGaussian* gaussian);
 
 
 /**

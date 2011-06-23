@@ -251,6 +251,7 @@ cnBool cnNodeLeaves(cnNode* node, cnList(cnLeafNode*)* leaves) {
 
 cnBool cnNodePropagate(cnNode* node, cnBindingBagList* bindingBags) {
   // TODO Or just push them onto any existing?
+  // TODO Change just to returning bindings instead of storing them?
   if (!bindingBags) {
     bindingBags = node->bindingBagList;
     if (!bindingBags) {
@@ -386,6 +387,10 @@ void cnSplitNodeDispose(cnSplitNode* split) {
   for (; kid < end; kid++) {
     cnNodeDrop(*kid);
   }
+  if (split->predicate) {
+    cnPredicateDrop(split->predicate);
+    split->predicate = NULL;
+  }
   free(split->varIndices);
   // TODO Anything else special?
   cnSplitNodeInit(split, cnFalse);
@@ -398,6 +403,7 @@ cnBool cnSplitNodeInit(cnSplitNode* split, cnBool addLeaves) {
   cnNodeInit(&split->node, cnNodeTypeSplit);
   // Init to null for convenience and safety.
   split->function = NULL;
+  split->predicate = NULL;
   split->varIndices = NULL;
   for (kid = split->kids; kid < end; kid++) {
     *kid = NULL;

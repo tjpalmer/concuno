@@ -1,5 +1,6 @@
 //#include <cblas.h>
 //#include <clapack.h>
+#include <string.h>
 #include "stats.h"
 
 
@@ -12,11 +13,44 @@ cnBool cnFunctionEvaluateMahalanobisDistance(
 }
 
 
-void cnFunctionInitMahalanobisDistance(
-  cnFunction* function, cnGaussian* gaussian
-) {
+void cnFunctionCreateMahalanobisDistance_Dispose(cnFunction* function) {
+  cnGaussianDispose(function->data);
+  free(function->data);
+}
+
+cnFunction* cnFunctionCreateMahalanobisDistance(cnGaussian* gaussian) {
+  cnFunction* function = malloc(sizeof(cnFunction));
+  if (!function) return NULL;
   function->data = gaussian;
+  function->dispose = cnFunctionCreateMahalanobisDistance_Dispose;
   function->evaluate = cnFunctionEvaluateMahalanobisDistance;
+  return function;
+}
+
+
+void cnGaussianDispose(cnGaussian* gaussian) {
+  free(gaussian->cov);
+  free(gaussian->mean);
+  gaussian->cov = NULL;
+  gaussian->mean = NULL;
+  gaussian->dims = 0;
+}
+
+
+cnBool cnGaussianInit(cnGaussian* gaussian, cnCount dims, cnFloat* mean) {
+  // Make space.
+  gaussian->cov = malloc(dims * dims * sizeof(cnFloat));
+  gaussian->mean = malloc(dims * sizeof(cnFloat));
+  if (!(gaussian->cov && gaussian->mean)) goto FAIL;
+  // Store values.
+  gaussian->dims = dims;
+  memcpy(gaussian->mean, mean, dims * sizeof(cnFloat));
+  // Good to go.
+  return cnTrue;
+  // Or not.
+  FAIL:
+  cnGaussianDispose(gaussian);
+  return cnFalse;
 }
 
 

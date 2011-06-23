@@ -114,12 +114,14 @@ struct cnPredicate {
   //
   //  cnType* inType;
 
+  void (*dispose)(cnPredicate* predicate);
+
   /**
    * Classify the given value (point, bag, ...) as true or false.
    *
    * TODO Error indicated by result other than true or false? Maybe too sneaky.
    */
-  cnBool (*evaluate)(const cnPredicate* predicate, void* in);
+  cnBool (*evaluate)(cnPredicate* predicate, void* in);
 
 };
 
@@ -221,8 +223,23 @@ cnBool cnEntityFunctionInitProperty(
 );
 
 
-cnBool cnPredicateInitDistanceThreshold(
-  cnPredicate* predicate, cnFunction* distanceFunction, cnFloat threshold
+/**
+ * Disposes of and frees the function if not null.
+ */
+void cnFunctionDrop(cnFunction* function);
+
+
+/**
+ * Disposes of and frees the predicate if not null.
+ */
+void cnPredicateDrop(cnPredicate* predicate);
+
+
+/**
+ * The distanceFunction will be dropped with this predicate.
+ */
+cnPredicate* cnPredicateCreateDistanceThreshold(
+  cnFunction* distanceFunction, cnFloat threshold
 );
 
 

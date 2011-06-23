@@ -99,6 +99,9 @@ struct cnNode {
 
   cnNode* parent;
 
+  /**
+   * TODO Change just to returning bindings instead of storing them?
+   */
   cnBindingBagList* bindingBagList;
 
 };
@@ -157,11 +160,17 @@ typedef struct cnSplitNode {
 
   cnNode* kids[cnSplitCount];
 
+  /**
+   * Not owned by this node.
+   */
   cnEntityFunction* function;
 
   cnIndex* varIndices;
 
-  cnPredicate* classifier;
+  /**
+   * Owned by this node and dropped with this node if not null.
+   */
+  cnPredicate* predicate;
 
 } cnSplitNode;
 
@@ -284,6 +293,8 @@ cnBool cnNodeLeaves(cnNode* node, cnList(cnLeafNode*)* leaves);
  * Assigns the given bindings to this node, then propagates down.
  *
  * If null bindingBags, repropagate the currently stored ones, if any.
+ *
+ * TODO Change just to returning bindings instead of storing them?
  */
 cnBool cnNodePropagate(cnNode* node, cnBindingBagList* bindingBags);
 

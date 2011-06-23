@@ -127,11 +127,19 @@ cnBool cnRecurseExpansions(
  * by the metric, going to furthest points contained and spreading them. Min
  * distance from control points to each bag are maintained.
  *
+ * If a score is passed in, all scores less than it are ignored, and the final
+ * value is changed to the best score found.
+ *
+ * On the other hand, threshold is only a return value, if the given pointer is
+ * not null.
+ *
  * TODO Provide a list of all contained positive points at end.
+ *
+ * TODO Actually, all I do here is find distances then pick a threshold.
  */
 void cnSearchFill(
   cnTopology topology, cnList(cnPointBag)* pointBags, cnFloat* searchStart,
-  cnFloat* score
+  cnFloat* score, cnFloat* threshold
 );
 
 
@@ -348,7 +356,7 @@ cnFloat* cnBestPointByScore(
         }
       }
       if (!allGood) continue;
-      cnSearchFill(topology, pointBags, point, &score);
+      cnSearchFill(topology, pointBags, point, &score, NULL);
       // Print and check.
       if (score > bestScore) {
         printf("(");
@@ -702,7 +710,11 @@ void cnLearnerInit(cnLearner* learner) {
 
 
 cnBool cnLearnSplitModel(cnLearner* learner, cnSplitNode* split) {
+  // TODO Other topologies, etc.
+  cnFunction* distanceFunction;
+  cnGaussian* gaussian;
   cnFloat* searchStart;
+  cnFloat threshold;
   cnBool result = cnFalse;
   cnList(cnPointBag) pointBags;
 
@@ -712,20 +724,51 @@ cnBool cnLearnSplitModel(cnLearner* learner, cnSplitNode* split) {
   }
   //cnLogPointBags(split, &pointBags);
 
-  // It all worked.
+  // We got points. Try to learn something.
   cnBuildInitialKernel(split->function->outTopology, &pointBags);
   searchStart =
     //cnBestPointByDiverseDensity(split->function->outTopology, &pointBags);
     cnBestPointByScore(split->function->outTopology, &pointBags);
-  cnSearchFill(split->function->outTopology, &pointBags, searchStart, NULL);
-  // TODO Learn a model already.
-  result = cnTrue;
+  // TODO Determine better center and shape.
+  // TODO Check for errors.
+  cnSearchFill(
+    split->function->outTopology, &pointBags, searchStart, NULL, &threshold
+  );
 
-  // DROP_POINT_BAGS:
+  // We have an answer. Record it.
+  // TODO Probably make the Gaussian earlier. It should be part of learning.
+  // TODO
+  // TODO Gaussian/Mahalanobis should be private to learning algorithm and
+  // TODO specific to Euclidean topology. So probably have it built during
+  // TODO learning. That is, learning could return a predicate.
+  gaussian = malloc(sizeof(cnGaussian));
+  if (!gaussian) goto DISPOSE_POINT_BAGS;
+  if (!cnGaussianInit(
+    gaussian, split->function->outCount, searchStart
+  )) goto FREE_GAUSSIAN;
+  distanceFunction = cnFunctionCreateMahalanobisDistance(gaussian);
+  if (!distanceFunction) goto DISPOSE_GAUSSIAN;
+  split->predicate = cnPredicateCreateDistanceThreshold(
+    distanceFunction, threshold
+  );
+  if (!split->predicate) goto DROP_DISTANCE_FUNCTION;
+  // Good to go. Skip to the "do always" cleanup.
+  result = cnTrue;
+  goto DROP_POINT_BAGS;
+
+  // Cleanup only for error cases.
+  DROP_DISTANCE_FUNCTION:
+  cnFunctionDrop(distanceFunction);
+  DISPOSE_GAUSSIAN:
+  cnGaussianDispose(gaussian);
+  FREE_GAUSSIAN:
+  free(gaussian);
+
+  // Cleanup no matter what.
+  DROP_POINT_BAGS:
   cnListEachBegin(&pointBags, cnPointBag, pointBag) {
     free(pointBag->pointMatrix);
   } cnEnd;
-
   DISPOSE_POINT_BAGS:
   cnListDispose(&pointBags);
   return result;
@@ -939,7 +982,7 @@ cnBool cnRecurseExpansions(
 
 void cnSearchFill(
   cnTopology topology, cnList(cnPointBag)* pointBags, cnFloat* searchStart,
-  cnFloat* score
+  cnFloat* score, cnFloat* threshold
 ) {
   cnCount valueCount =
     pointBags->count ? ((cnPointBag*)pointBags->items)->valueCount : 0;
@@ -947,10 +990,13 @@ void cnSearchFill(
   cnBagDistance* distances = malloc(pointBags->count * sizeof(cnBagDistance));
   cnBagDistance* distancesEnd = distances + pointBags->count;
   cnFloat* searchStartEnd = searchStart + valueCount;
+  cnFloat thresholdStorage;
   if (!distances) {
     // TODO Error result?
     return;
   }
+  // For convenience, point threshold at least somewhere.
+  if (!threshold) threshold = &thresholdStorage;
   // Init distances to infinity.
   // TODO In iterative fill, these need to retain their former values.
   distance = distances;
@@ -1008,7 +1054,7 @@ void cnSearchFill(
   }
 
   // Find the right threshold for these distances and bag labels.
-  cnChooseThreshold(distances, distancesEnd, score);
+  *threshold = cnChooseThreshold(distances, distancesEnd, score);
 
   // Clean up.
   free(distances);

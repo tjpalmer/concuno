@@ -129,6 +129,77 @@ cnBool cnEntityFunctionInitProperty(
 }
 
 
+void cnFunctionDrop(cnFunction* function) {
+  if (function) {
+    if (function->dispose) {
+      function->dispose(function);
+    }
+    free(function);
+  }
+}
+
+
+void cnPredicateDrop(cnPredicate* predicate) {
+  if (predicate) {
+    if (predicate->dispose) {
+      predicate->dispose(predicate);
+    }
+    free(predicate);
+  }
+}
+
+
+typedef struct {
+  cnFunction* distanceFunction;
+  cnFloat threshold;
+} cnPredicateCreateDistanceThreshold_Data;
+
+void cnPredicateCreateDistanceThreshold_Dispose(cnPredicate* predicate) {
+  cnPredicateCreateDistanceThreshold_Data* data = predicate->data;
+  cnFunctionDrop(data->distanceFunction);
+  free(data);
+  predicate->data = NULL;
+  predicate->dispose = NULL;
+  predicate->evaluate = NULL;
+}
+
+cnBool cnPredicateCreateDistanceThreshold_Evaluate(
+  cnPredicate* predicate, void* in
+) {
+  cnPredicateCreateDistanceThreshold_Data* data = predicate->data;
+  cnFloat distance;
+  if (
+    !data->distanceFunction->evaluate(data->distanceFunction, in, &distance)
+  ) {
+    // TODO Something better than this abuse.
+    return -1;
+  }
+  return distance < data->threshold;
+}
+
+cnPredicate* cnPredicateCreateDistanceThreshold(
+  cnFunction* distanceFunction, cnFloat threshold
+) {
+  cnPredicate* predicate = malloc(sizeof(cnPredicate));
+  cnPredicateCreateDistanceThreshold_Data* data;
+  if (!predicate) {
+    return NULL;
+  }
+  data = malloc(sizeof(cnPredicateCreateDistanceThreshold_Data));
+  if (!data) {
+    free(predicate);
+    return NULL;
+  }
+  // Good to go.
+  data->distanceFunction = distanceFunction;
+  data->threshold = threshold;
+  predicate->data = data;
+  predicate->dispose = cnPredicateCreateDistanceThreshold_Dispose;
+  predicate->evaluate = cnPredicateCreateDistanceThreshold_Evaluate;
+  return predicate;
+}
+
+
 void cnPropertyDispose(cnProperty* property) {
   // Dispose of extra data, as needed.
   if (property->dispose) {
