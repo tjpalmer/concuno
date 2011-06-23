@@ -425,19 +425,81 @@ cnBool cnSplitNodeInit(cnSplitNode* split, cnBool addLeaves) {
 
 cnBool cnSplitNodePropagate(cnSplitNode* split) {
   // TODO Split to proper kids.
-  printf("Splitting only to err for now.\n");
-  if (split->kids[cnSplitErr]) {
-    return cnNodePropagate(
-      split->kids[cnSplitErr], split->node.bindingBagList
-    );
+  cnSplitIndex splitIndex;
+  cnBindingBag* bindingBag;
+  cnList(cnPointBag) pointBags;
+  cnNode* yes = split->kids[cnSplitYes];
+  cnNode* no = split->kids[cnSplitNo];
+  cnNode* err = split->kids[cnSplitErr];
+  cnCount counts[cnSplitCount];
+  for (splitIndex = 0; splitIndex < cnSplitCount; splitIndex++) {
+    counts[splitIndex] = 0;
   }
+
+  // See if we have what we need for splitting.
+  if (!(yes && no && err)) {
+    printf("No kids for splitting!\n");
+    return cnFalse;
+  }
+  if (!split->predicate) {
+    printf("No predicate, so splitting only to err.\n");
+    return cnNodePropagate(err, split->node.bindingBagList);
+  }
+
+  // We have a predicate and kids.
+  // We can actually do something (if we can allocate space and so on).
+  cnListInit(&pointBags, sizeof(cnPointBag));
+  if (!cnSplitNodePointBags(split, &pointBags)) {
+    printf("Failed to get point bags.\n");
+    cnListDispose(&pointBags);
+    return cnFalse;
+  }
+
+  // Got the data. Try the split.
+  bindingBag = split->node.bindingBagList->bindingBags.items;
+  cnListEachBegin(&pointBags, cnPointBag, pointBag) {
+    cnFloat* point = pointBag->pointMatrix;
+    cnFloat* pointsEnd = point + pointBag->pointCount * pointBag->valueCount;
+    for (; point < pointsEnd; point += pointBag->valueCount) {
+      // Check for error.
+      cnBool allGood = cnTrue;
+      cnFloat* value = point;
+      cnFloat* pointEnd = point + split->function->outCount;
+      // TODO Let the function tell us instead of explicitly checking bad?
+      for (value = point; value < pointEnd; value++) {
+        if (cnIsNaN(*value)) {
+          allGood = cnFalse;
+          break;
+        }
+      }
+      if (!allGood) {
+        splitIndex = cnSplitErr;
+      } else {
+        splitIndex = split->predicate->evaluate(split->predicate, point) ?
+          cnSplitYes : cnSplitNo;
+      }
+      counts[splitIndex]++;
+    }
+    bindingBag++;
+  } cnEnd;
+
+  // Report. TODO Build binding bags for prop.
+  printf("Split counts:");
+  for (splitIndex = 0; splitIndex < cnSplitCount; splitIndex++) {
+    printf(" %ld", counts[splitIndex]);
+  }
+  printf("\n");
+
+  // Clean up.
+  cnListEachBegin(&pointBags, cnPointBag, pointBag) {
+    free(pointBag->pointMatrix);
+  } cnEnd;
+  cnListDispose(&pointBags);
   return cnTrue;
 }
 
 
-cnBool cnSplitNodePointBags(
-  cnSplitNode* split, cnList(cnPointBag)* pointBags //, TODO Dummies?
-) {
+cnBool cnSplitNodePointBags(cnSplitNode* split, cnList(cnPointBag)* pointBags) {
   void** args = NULL;
   cnList(cnBindingBag)* bindingBags = &split->node.bindingBagList->bindingBags;
   cnCount validBindingsCount = 0;

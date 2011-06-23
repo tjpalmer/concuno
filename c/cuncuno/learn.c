@@ -742,27 +742,35 @@ cnBool cnLearnSplitModel(cnLearner* learner, cnSplitNode* split) {
   // TODO specific to Euclidean topology. So probably have it built during
   // TODO learning. That is, learning could return a predicate.
   gaussian = malloc(sizeof(cnGaussian));
-  if (!gaussian) goto DISPOSE_POINT_BAGS;
+  if (!gaussian) {
+    goto DROP_POINT_BAGS;
+  }
   if (!cnGaussianInit(
     gaussian, split->function->outCount, searchStart
-  )) goto FREE_GAUSSIAN;
+  )) {
+    free(gaussian);
+    goto DROP_POINT_BAGS;
+  }
   distanceFunction = cnFunctionCreateMahalanobisDistance(gaussian);
-  if (!distanceFunction) goto DISPOSE_GAUSSIAN;
+  if (!distanceFunction) {
+    cnGaussianDispose(gaussian);
+    goto DROP_POINT_BAGS;
+  }
   split->predicate = cnPredicateCreateDistanceThreshold(
     distanceFunction, threshold
   );
-  if (!split->predicate) goto DROP_DISTANCE_FUNCTION;
+  if (!split->predicate) {
+    cnFunctionDrop(distanceFunction);
+    goto DROP_POINT_BAGS;
+  }
+  // Propagate for official leaf prob calculation.
+  if (!cnNodePropagate(&split->node, NULL)) {
+    // Leave the predicate around for later inspection and cleanup.
+    goto DROP_POINT_BAGS;
+  }
   // Good to go. Skip to the "do always" cleanup.
   result = cnTrue;
   goto DROP_POINT_BAGS;
-
-  // Cleanup only for error cases.
-  DROP_DISTANCE_FUNCTION:
-  cnFunctionDrop(distanceFunction);
-  DISPOSE_GAUSSIAN:
-  cnGaussianDispose(gaussian);
-  FREE_GAUSSIAN:
-  free(gaussian);
 
   // Cleanup no matter what.
   DROP_POINT_BAGS:
