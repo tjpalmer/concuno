@@ -521,15 +521,19 @@ cnBool cnSplitNodePropagate(cnSplitNode* split) {
   } cnEnd;
 
   // Report. TODO Build binding bags for prop.
-  printf("Split counts:");
+  printf("Split counts: ");
   for (splitIndex = 0; splitIndex < cnSplitCount; splitIndex++) {
     if (!cnNodePropagate(split->kids[splitIndex], kidBagLists[splitIndex])) {
       printf("Split kid prop failed. Now what?\n");
       // TODO Real cleanup.
     }
+    if (splitIndex) printf(", ");
+    printf(
+      "%ld bags with %ld bindings",
+      kidBagLists[splitIndex]->bindingBags.count, counts[splitIndex]
+    );
     // The kid has it. Drop it here.
     cnBindingBagListDrop(&kidBagLists[splitIndex]);
-    printf(" %ld", counts[splitIndex]);
   }
   printf("\n");
 

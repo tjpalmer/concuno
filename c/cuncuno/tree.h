@@ -26,6 +26,13 @@ typedef struct cnBindingBag {
 } cnBindingBag;
 
 
+/**
+ * Leaves (and whatever else) store the bag lists, and trees get cloned, so
+ * these are reference counted for convenient management.
+ *
+ * TODO Change to reprop every time and stop storing? Then would point to which
+ * TODO leaf and called cnLeafBindingBags?
+ */
 typedef struct cnBindingBagList {
 
   cnList(cnBindingBag) bindingBags;
