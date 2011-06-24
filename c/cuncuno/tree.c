@@ -427,6 +427,7 @@ cnBool cnSplitNodePropagate(cnSplitNode* split) {
   // TODO Split to proper kids.
   cnSplitIndex splitIndex;
   cnBindingBag* bindingBag;
+  cnBindingBagList* kidBagLists[cnSplitCount];
   cnList(cnPointBag) pointBags;
   cnNode* yes = split->kids[cnSplitYes];
   cnNode* no = split->kids[cnSplitNo];
@@ -434,6 +435,7 @@ cnBool cnSplitNodePropagate(cnSplitNode* split) {
   cnCount counts[cnSplitCount];
   for (splitIndex = 0; splitIndex < cnSplitCount; splitIndex++) {
     counts[splitIndex] = 0;
+    kidBagLists[splitIndex] = NULL;
   }
 
   // See if we have what we need for splitting.
@@ -455,12 +457,33 @@ cnBool cnSplitNodePropagate(cnSplitNode* split) {
     return cnFalse;
   }
 
+  // Got the data. Set up the kids' bags.
+  for (splitIndex = 0; splitIndex < cnSplitCount; splitIndex++) {
+    kidBagLists[splitIndex] = cnBindingBagListCreate();
+    if (!kidBagLists[splitIndex]) {
+      // One failed, just drop them all. Nulls are ignored.
+      for (splitIndex = 0; splitIndex < cnSplitCount; splitIndex++) {
+        cnBindingBagListDrop(kidBagLists + splitIndex);
+      }
+      return cnFalse;
+    }
+  }
+
   // Got the data. Try the split.
   bindingBag = split->node.bindingBagList->bindingBags.items;
   cnListEachBegin(&pointBags, cnPointBag, pointBag) {
+    cnBindingBag* bagsOut[cnSplitCount];
+    cnBinding bindingIn = bindingBag->bindings.items;
     cnFloat* point = pointBag->pointMatrix;
     cnFloat* pointsEnd = point + pointBag->pointCount * pointBag->valueCount;
-    for (; point < pointsEnd; point += pointBag->valueCount) {
+    // Null out potential bags until we know we need them.
+    for (splitIndex = 0; splitIndex < cnSplitCount; splitIndex++) {
+      bagsOut[splitIndex] = NULL;
+    }
+    for (;
+      point < pointsEnd;
+      point += pointBag->valueCount, bindingIn += bindingBag->entityCount
+    ) {
       // Check for error.
       cnBool allGood = cnTrue;
       cnFloat* value = point;
@@ -475,9 +498,23 @@ cnBool cnSplitNodePropagate(cnSplitNode* split) {
       if (!allGood) {
         splitIndex = cnSplitErr;
       } else {
+        // TODO Deal with error cases.
         splitIndex = split->predicate->evaluate(split->predicate, point) ?
           cnSplitYes : cnSplitNo;
       }
+      if (!bagsOut[splitIndex]) {
+        bagsOut[splitIndex] =
+          cnListExpand(&kidBagLists[splitIndex]->bindingBags);
+        if (!bagsOut[splitIndex]) {
+          // TODO What kind of cleanup?
+          printf("That bag list totally didn't get allocated.\n");
+          // Let it crash for now. TODO Error out properly.
+        }
+        cnBindingBagInit(
+          bagsOut[splitIndex], pointBag->bag, bindingBag->entityCount
+        );
+      }
+      cnListPush(&bagsOut[splitIndex]->bindings, bindingIn);
       counts[splitIndex]++;
     }
     bindingBag++;
@@ -486,6 +523,12 @@ cnBool cnSplitNodePropagate(cnSplitNode* split) {
   // Report. TODO Build binding bags for prop.
   printf("Split counts:");
   for (splitIndex = 0; splitIndex < cnSplitCount; splitIndex++) {
+    if (!cnNodePropagate(split->kids[splitIndex], kidBagLists[splitIndex])) {
+      printf("Split kid prop failed. Now what?\n");
+      // TODO Real cleanup.
+    }
+    // The kid has it. Drop it here.
+    cnBindingBagListDrop(&kidBagLists[splitIndex]);
     printf(" %ld", counts[splitIndex]);
   }
   printf("\n");
