@@ -526,6 +526,16 @@ cnFloat cnChooseThreshold(
         break;
       }
     }
+    // See if the next dist is the same as the current. This seems an odd case,
+    // but I've seen it make a difference.
+    if (dist + 1 < distsEnd) {
+      if (
+        cnChooseThreshold_EdgeDist(dist) == cnChooseThreshold_EdgeDist(dist + 1)
+      ) {
+        // They are equal, so they can't be separated. Move on.
+        continue;
+      }
+    }
     // Calculate optimistic probabilities for both leaves. Assume both max.
     // TODO Is the highest prob really always best to make highest?
     // TODO Should I try fully both ways to see? Do math to prove?
