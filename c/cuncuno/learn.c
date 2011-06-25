@@ -619,7 +619,7 @@ cnFloat cnChooseThreshold(
   }
   if (cnTrue && !cnIsNaN(bestTrueProb)) {
     printf(
-      "Best thresh: %.4lg (%.2lg of %ld, %.2lg of %ld: %.4lg)\n",
+      "Best thresh: %.9lg (%.2lg of %ld, %.2lg of %ld: %.4lg)\n",
       threshold, bestTrueProb, bestTrueCount, bestFalseProb, bestFalseCount,
       bestScore
     );
@@ -688,6 +688,10 @@ cnRootNode* cnExpandedTree(cnLearner* learner, cnExpansion* expansion) {
     printf("No split learned for expansion.\n");
     goto ERROR;
   }
+  if (!cnUpdateLeafProbabilities(root)) {
+    printf("Failed to update probabilities.\n");
+    goto ERROR;
+  }
 
   // Return the new tree.
   return root;
@@ -734,6 +738,7 @@ cnBool cnLearnSplitModel(cnLearner* learner, cnSplitNode* split) {
   cnSearchFill(
     split->function->outTopology, &pointBags, searchStart, NULL, &threshold
   );
+  printf("Threshold: %lg\n", threshold);
 
   // We have an answer. Record it.
   // TODO Probably make the Gaussian earlier. It should be part of learning.
@@ -1167,7 +1172,7 @@ cnBool cnUpdateLeafProbabilities(cnRootNode* root) {
     result = cnFalse;
     goto DONE;
   }
-  //printf("Found %ld leaves.\n", leaves.count);
+  printf("Found %ld leaves.\n", leaves.count);
   cnListEachBegin(&leaves, cnLeafNode*, leaf) {
     // TODO Find proper assignment for each leaf considering the others.
     cnCount posCount = 0;
@@ -1180,7 +1185,7 @@ cnBool cnUpdateLeafProbabilities(cnRootNode* root) {
       } cnEnd;
     }
     (*leaf)->probability = posCount / (cnFloat)total;
-    //printf("Leaf with prob: %lf\n", (*leaf)->probability);
+    printf("Leaf with prob: %lf of %ld\n", (*leaf)->probability, total);
   } cnEnd;
   DONE:
   cnListDispose(&leaves);

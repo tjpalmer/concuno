@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
+#include "mat.h"
 #include "tree.h"
 
 
@@ -532,6 +533,19 @@ cnBool cnSplitNodePropagate(cnSplitNode* split) {
       "%ld bags with %ld bindings",
       kidBagLists[splitIndex]->bindingBags.count, counts[splitIndex]
     );
+    //    if (splitIndex == cnSplitNo) {
+    //      cnListEachBegin(
+    //        &kidBagLists[splitIndex]->bindingBags, cnBindingBag, bindingBag
+    //      ) {
+    //        if (bindingBag->bindings.count == 1) {
+    //          cnFloat* out = cnStackAlloc(split->function->outCount * sizeof(cnFloat));
+    //          split->function->get(split->function, bindingBag->bindings.items, out);
+    //          printf(" [");
+    //          cnVectorPrint(stdout, split->function->outCount, out);
+    //          printf("]");
+    //        }
+    //      } cnEnd;
+    //    }
     // The kid has it. Drop it here.
     cnBindingBagListDrop(&kidBagLists[splitIndex]);
   }

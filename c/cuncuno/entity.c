@@ -174,7 +174,9 @@ cnBool cnPredicateCreateDistanceThreshold_Evaluate(
     // TODO Something better than this abuse.
     return -1;
   }
-  return distance < data->threshold;
+  // TODO I'd prefer <, but need better a handling of bulks of equal distances
+  // TODO in threshold choosing. I've hit the problem before.
+  return distance <= data->threshold;
 }
 
 cnPredicate* cnPredicateCreateDistanceThreshold(
