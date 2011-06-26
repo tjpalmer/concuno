@@ -1177,26 +1177,52 @@ cnRootNode* cnTryExpansionsAtLeaf(cnLearner* learner, cnLeafNode* leaf) {
 cnBool cnUpdateLeafProbabilities(cnRootNode* root) {
   cnBool result = cnTrue;
   cnList(cnLeafNode*) leaves;
+  // TODO Loop around grabbing the max each time, then prune binding bags.
+  // TODO Perhaps loop through bags, assuming same order in all, to speed the
+  // TODO match up.
+  // TODO Faster might be to force the same sorting order on all, giving n log
+  // TODO n, but where all comparison for later loops would be faster. Also
+  // TODO makes fewer assumptions, but I think all the code elsewhere preserves
+  // TODO order anyway.
   cnListInit(&leaves, sizeof(cnLeafNode*));
   if (!cnNodeLeaves(&root->node, &leaves)) {
     result = cnFalse;
     goto DONE;
   }
   printf("Found %ld leaves.\n", leaves.count);
-  cnListEachBegin(&leaves, cnLeafNode*, leaf) {
-    // TODO Find proper assignment for each leaf considering the others.
-    cnCount posCount = 0;
-    cnCount total = 0;
-    cnBindingBagList* bindingBags = (*leaf)->node.bindingBagList;
-    if (bindingBags) {
-      total += bindingBags->bindingBags.count;
-      cnListEachBegin(&bindingBags->bindingBags, cnBindingBag, bindingBag) {
-        posCount += bindingBag->bag->label;
-      } cnEnd;
-    }
-    (*leaf)->probability = posCount / (cnFloat)total;
-    printf("Leaf with prob: %lf of %ld\n", (*leaf)->probability, total);
-  } cnEnd;
+  while (leaves.count) {
+    cnLeafNode* maxLeaf = NULL;
+    cnIndex maxLeafIndex = -1;
+    cnFloat maxProb = -1;
+    cnListEachBegin(&leaves, cnLeafNode*, leaf) {
+      // TODO Find proper assignment for each leaf considering the others.
+      cnCount posCount = 0;
+      cnCount total = 0;
+      cnBindingBagList* bindingBags = (*leaf)->node.bindingBagList;
+      if (bindingBags) {
+        total = bindingBags->bindingBags.count;
+        cnListEachBegin(&bindingBags->bindingBags, cnBindingBag, bindingBag) {
+          posCount += bindingBag->bag->label;
+        } cnEnd;
+      }
+      // Assign optimistic probability, assuming 0 for no evidence.
+      // TODO Without evidence, what's the best prior probability?
+      (*leaf)->probability = total ? posCount / (cnFloat)total : 0;
+      if ((*leaf)->probability > maxProb) {
+        maxProb = (*leaf)->probability;
+        maxLeaf = *leaf;
+        maxLeafIndex = leaf - (cnLeafNode**)leaves.items;
+      }
+    } cnEnd;
+    printf(
+      "Leaf with prob: %lf of %ld\n",
+      maxLeaf->probability,
+      maxLeaf->node.bindingBagList ?
+        maxLeaf->node.bindingBagList->bindingBags.count : 0
+    );
+    cnListRemove(&leaves, maxLeafIndex);
+    // TODO Remove same bags from other leaves.
+  }
   DONE:
   cnListDispose(&leaves);
   return result;
