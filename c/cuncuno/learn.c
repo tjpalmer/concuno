@@ -1209,6 +1209,8 @@ cnBool cnUpdateLeafProbabilities(cnRootNode* root) {
       // TODO Without evidence, what's the best prior probability?
       (*leaf)->probability = total ? posCount / (cnFloat)total : 0;
       if ((*leaf)->probability > maxProb) {
+        // Let the highest probability win.
+        // TODO Let the highest individual score win? Compare the math on this.
         maxProb = (*leaf)->probability;
         maxLeaf = *leaf;
         maxLeafIndex = leaf - (cnLeafNode**)leaves.items;
@@ -1221,8 +1223,101 @@ cnBool cnUpdateLeafProbabilities(cnRootNode* root) {
         maxLeaf->node.bindingBagList->bindingBags.count : 0
     );
     cnListRemove(&leaves, maxLeafIndex);
-    // TODO Remove same bags from other leaves.
+    /* Remove same bags from other leaves. */ {
+      // Pointers for walking through bags.
+      cnBindingBag* maxBindingBag = maxLeaf->node.bindingBagList ?
+        maxLeaf->node.bindingBagList->bindingBags.items : NULL;
+      cnBindingBag** otherBindingBags;
+      cnBindingBag** otherBindingBag;
+      cnBindingBag** otherBindingBagsEnd;
+      // There aren't any bindings in the max? Well, move on.
+      if (!maxBindingBag) continue;
+      // Make space for the walking pointers.
+      otherBindingBags = cnStackAlloc(leaves.count * sizeof(cnBindingBag*));
+      if (!otherBindingBags) goto DONE;
+      otherBindingBagsEnd = otherBindingBags + leaves.count;
+      // Init the pointers for each leaf, so we can walk the lists in sync.
+      for (
+        otherBindingBag = otherBindingBags;
+        otherBindingBag < otherBindingBagsEnd;
+        otherBindingBag++
+      ) {
+        cnLeafNode* otherLeaf = *(cnLeafNode**)cnListGet(
+          &leaves, otherBindingBag - otherBindingBags
+        );
+        *otherBindingBag = otherLeaf->node.bindingBagList ?
+          otherLeaf->node.bindingBagList->bindingBags.items : NULL;
+      }
+      // Now sweep across all bags for all leaves in order.
+      cnListEachBegin(
+        &root->node.bindingBagList->bindingBags, cnBindingBag, bindingBag
+      ) {
+        cnBag* bag = bindingBag->bag;
+        // First check for the bag in the max leaf.
+        if (bag == maxBindingBag->bag) {
+          // It's there. Remove it from others.
+          for (
+            otherBindingBag = otherBindingBags;
+            otherBindingBag < otherBindingBagsEnd;
+            otherBindingBag++
+          ) {
+            cnLeafNode* otherLeaf = *(cnLeafNode**)cnListGet(
+              &leaves, otherBindingBag - otherBindingBags
+            );
+            if (
+              *otherBindingBag &&
+              *otherBindingBag < (cnBindingBag*)cnListEnd(
+                &otherLeaf->node.bindingBagList->bindingBags
+              ) &&
+              bag == (*otherBindingBag)->bag
+            ) {
+              // It's a match. Dispose of the binding bag, then remove it.
+              cnBindingBagDispose(*otherBindingBag);
+              cnListRemove(
+                &otherLeaf->node.bindingBagList->bindingBags,
+                *otherBindingBag -
+                  (cnBindingBag*)otherLeaf->node.bindingBagList->
+                    bindingBags.items
+              );
+            }
+          }
+          // Advance the max-leaf bag counter.
+          maxBindingBag++;
+          // And see if we're done.
+          if (
+            maxBindingBag >= (cnBindingBag*)cnListEnd(
+              &maxLeaf->node.bindingBagList->bindingBags
+            )
+          ) break;
+        } else {
+          // It's not in the max. Just advance past it in others.
+          for (
+            otherBindingBag = otherBindingBags;
+            otherBindingBag < otherBindingBagsEnd;
+            otherBindingBag++
+          ) {
+            cnLeafNode* otherLeaf = *(cnLeafNode**)cnListGet(
+              &leaves, otherBindingBag - otherBindingBags
+            );
+            if (
+              *otherBindingBag &&
+              *otherBindingBag < (cnBindingBag*)cnListEnd(
+                &otherLeaf->node.bindingBagList->bindingBags
+              ) &&
+              bag == (*otherBindingBag)->bag
+            ) {
+              // It's a match. Move past it.
+              (*otherBindingBag)++;
+            }
+          }
+        }
+      } cnEnd;
+      cnStackFree(otherBindingBags);
+    }
   }
+  // We finished.
+  result = cnTrue;
+
   DONE:
   cnListDispose(&leaves);
   return result;
