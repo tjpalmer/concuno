@@ -94,7 +94,7 @@ cnBool stChooseDropWhereLandOnOther(
         // TODO each has a different result?
         graspedId = (((stItem**)graspedItems.items)[0])->id;
         cnListClear(&graspedItems);
-      } else if (formerHadGrasp) {
+      } else if (formerHadGrasp && !state->cleared) {
         ungraspState = state;
       }
       formerHadGrasp = hasGrasp;
