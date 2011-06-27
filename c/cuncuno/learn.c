@@ -331,7 +331,7 @@ cnFloat* cnBestPointByScore(
 ) {
   cnFloat* bestPoint = NULL;
   cnFloat bestScore = -HUGE_VAL, score = bestScore;
-  cnCount negBagCount = 0, posBagCount = 0, maxEitherBags = 2;
+  cnCount negBagCount = 0, posBagCount = 0, maxEitherBags = 4;
   cnCount valueCount =
     pointBags->count ? ((cnPointBag*)pointBags->items)->valueCount : 0;
   printf("Score-ish: ");
