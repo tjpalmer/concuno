@@ -1,13 +1,13 @@
 add_executable(
-  stackiter-learner
-  stackiter-learner.c
-  chooser.c
-  loader.c
+  stackiter-learn
+  stackiter-learn.c
+  choose.c
+  load.c
   state.c
 )
 
 target_link_libraries(
-  stackiter-learner
+  stackiter-learn
   cuncuno
   #${blas_LIBRARY}
   #${cblas_LIBRARY}

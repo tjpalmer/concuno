@@ -3,8 +3,8 @@
 
 #include <cuncuno.h>
 
-#include "chooser.h"
-#include "loader.h"
+#include "choose.h"
+#include "load.h"
 #include "state.h"
 
 #endif

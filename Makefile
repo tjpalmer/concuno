@@ -10,9 +10,9 @@ headers = \
 	c/cuncuno/mat.h \
 	c/cuncuno/stats.h \
 	c/cuncuno/tree.h \
-	c/stackiter/chooser.h \
-	c/stackiter/loader.h \
-	c/stackiter/stackiter-learner.h \
+	c/stackiter/choose.h \
+	c/stackiter/load.h \
+	c/stackiter/stackiter-learn.h \
 	c/stackiter/state.h
 
 sources = \
@@ -23,9 +23,9 @@ sources = \
 	c/cuncuno/mat.c \
 	c/cuncuno/stats.c \
 	c/cuncuno/tree.c \
-	c/stackiter/chooser.c \
-	c/stackiter/loader.c \
-	c/stackiter/stackiter-learner.c \
+	c/stackiter/choose.c \
+	c/stackiter/load.c \
+	c/stackiter/stackiter-learn.c \
 	c/stackiter/state.c
 
 build: temp/stackiter-test
