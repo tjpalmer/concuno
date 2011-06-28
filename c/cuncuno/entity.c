@@ -15,22 +15,7 @@ void cnBagInit(cnBag* bag) {
 }
 
 
-void cnEntityFunctionDrop(cnEntityFunction* function) {
-  if (function->dispose) {
-    function->dispose(function);
-    function->dispose = NULL;
-  }
-  cnStringDispose(&function->name);
-  function->data = NULL;
-  function->get = NULL;
-  function->outTopology = cnTopologyEuclidean;
-  function->outCount = 0;
-  function->outType = NULL;
-  free(function);
-}
-
-
-void cnEntityFunctionGetDifference(
+void cnEntityFunctionCreateDifference_Get(
   cnEntityFunction* function, void** ins, void* outs
 ) {
   // TODO Remove float assumption here.
@@ -56,26 +41,6 @@ void cnEntityFunctionGetDifference(
 }
 
 
-void cnEntityFunctionGetProperty(
-  cnEntityFunction* function, void** ins, void* outs
-) {
-  cnProperty* property = function->data;
-  if (!*ins) {
-    // Provide NaNs for floats when no input given.
-    // TODO Anything for other types? Error result?
-    if (function->outType == function->outType->schema->floatType) {
-      cnFloat nan = cnNaN();
-      cnIndex o;
-      for (o = 0; o < function->outCount; o++) {
-        ((cnFloat*)outs)[o] = nan;
-      }
-    }
-  } else {
-    property->get(property, *ins, outs);
-  }
-}
-
-
 cnEntityFunction* cnEntityFunctionCreateDifference(
   const cnEntityFunction* base
 ) {
@@ -98,7 +63,7 @@ cnEntityFunction* cnEntityFunctionCreateDifference(
     return NULL;
   }
   function->outType = base->outType;
-  function->get = cnEntityFunctionGetDifference;
+  function->get = cnEntityFunctionCreateDifference_Get;
   // Deal with this last, to make sure everything else is sane first.
   if (!cnStringPushStr(&function->name, "Difference")) {
     cnEntityFunctionDrop(function);
@@ -112,6 +77,26 @@ cnEntityFunction* cnEntityFunctionCreateDifference(
 }
 
 
+void cnEntityFunctionCreateProperty_Get(
+  cnEntityFunction* function, void** ins, void* outs
+) {
+  cnProperty* property = function->data;
+  if (!*ins) {
+    // Provide NaNs for floats when no input given.
+    // TODO Anything for other types? Error result?
+    if (function->outType == function->outType->schema->floatType) {
+      cnFloat nan = cnNaN();
+      cnIndex o;
+      for (o = 0; o < function->outCount; o++) {
+        ((cnFloat*)outs)[o] = nan;
+      }
+    }
+  } else {
+    property->get(property, *ins, outs);
+  }
+}
+
+
 cnEntityFunction* cnEntityFunctionCreateProperty(const cnProperty* property) {
   cnEntityFunction* function = malloc(sizeof(cnEntityFunction));
   if (!function) return NULL;
@@ -121,7 +106,7 @@ cnEntityFunction* cnEntityFunctionCreateProperty(const cnProperty* property) {
   function->outCount = property->count;
   function->outTopology = property->topology;
   function->outType = property->type;
-  function->get = cnEntityFunctionGetProperty;
+  function->get = cnEntityFunctionCreateProperty_Get;
   cnStringInit(&function->name);
   // The one thing that can fail directly here.
   if (!cnStringPushStr(&function->name, cnStr((cnString*)&property->name))) {
@@ -129,6 +114,21 @@ cnEntityFunction* cnEntityFunctionCreateProperty(const cnProperty* property) {
     return NULL;
   }
   return function;
+}
+
+
+void cnEntityFunctionDrop(cnEntityFunction* function) {
+  if (function->dispose) {
+    function->dispose(function);
+    function->dispose = NULL;
+  }
+  cnStringDispose(&function->name);
+  function->data = NULL;
+  function->get = NULL;
+  function->outTopology = cnTopologyEuclidean;
+  function->outCount = 0;
+  function->outType = NULL;
+  free(function);
 }
 
 

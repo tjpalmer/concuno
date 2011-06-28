@@ -207,9 +207,6 @@ void cnBagDispose(cnBag* bag);
 void cnBagInit(cnBag* bag);
 
 
-void cnEntityFunctionDrop(cnEntityFunction* function);
-
-
 cnEntityFunction* cnEntityFunctionCreateDifference(
   const cnEntityFunction* base
 );
@@ -219,6 +216,9 @@ cnEntityFunction* cnEntityFunctionCreateDifference(
  * Creates an entity function that just performs a property get.
  */
 cnEntityFunction* cnEntityFunctionCreateProperty(const cnProperty* property);
+
+
+void cnEntityFunctionDrop(cnEntityFunction* function);
 
 
 /**
