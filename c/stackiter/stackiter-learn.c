@@ -9,7 +9,7 @@ int main(int argc, char** argv) {
   cnBindingBagList* bindingBags;
   cnEntityFunction *differenceFunction, *entityFunction;
   cnLearner learner;
-  cnList(cnEntityFunction) entityFunctions;
+  cnList(cnEntityFunction*) entityFunctions;
   cnRootNode* learnedTree;
   cnSchema schema;
   stState* state;
@@ -60,35 +60,57 @@ int main(int argc, char** argv) {
 
   // Set up entity functions.
   // TODO Extract this setup, and make it easier to do.
-  cnListInit(&entityFunctions, sizeof(cnEntityFunction));
-  if (!(entityFunction = cnListExpand(&entityFunctions))) {
-    printf("Failed to expand functions.\n");
-    goto DISPOSE_SCHEMA;
-  }
+  cnListInit(&entityFunctions, sizeof(cnEntityFunction*));
   // TODO Look up the type by name.
   itemType = cnListGet(&schema.types, 1);
+  // Location.
   // TODO Look up the property by name.
-  if (!cnEntityFunctionInitProperty(
-    entityFunction, cnListGet(&itemType->properties, 0)
-  )) {
-    printf("Failed to init function.\n");
-    goto DISPOSE_FUNCTIONS;
+  if (!(entityFunction = cnEntityFunctionCreateProperty(
+    cnListGet(&itemType->properties, 0)
+  ))) {
+    printf("Failed to create function.\n");
+    goto DISPOSE_SCHEMA;
+  }
+  if (!cnListPush(&entityFunctions, &entityFunction)) {
+    printf("Failed to expand functions.\n");
+    goto DROP_FUNCTIONS;
   }
   // DifferenceLocation
-  if (!(differenceFunction = cnListExpand(&entityFunctions))) {
-    printf("Failed to expand functions.\n");
-    goto DISPOSE_FUNCTIONS;
+  if (!(differenceFunction = cnEntityFunctionCreateDifference(
+    entityFunction
+  ))) {
+    printf("Failed to create difference.\n");
+    goto DROP_FUNCTIONS;
   }
-  if (!cnEntityFunctionInitDifference(differenceFunction, entityFunction)) {
-    printf("Failed to init difference.\n");
-    goto DISPOSE_FUNCTIONS;
+  if (!cnListPush(&entityFunctions, &differenceFunction)) {
+    printf("Failed to expand functions.\n");
+    goto DROP_FUNCTIONS;
   }
   //printf("Function named %s.\n", cnStr(&differenceFunction->name));
+  // Velocity.
+  if (cnTrue) {
+    // TODO Look up the property by name.
+    // TODO The realloc here causes the original Location pointer to be wrong.
+    // TODO I need to make sure the pointers are stable in some fashion. Maybe
+    // TODO make the list of pointers to individually allocated functions. More
+    // TODO small chunks of memory, but we don't expect millions of functions or
+    // TODO anything, although we might want to grow some during run time.
+    if (!(entityFunction = cnEntityFunctionCreateProperty(
+      cnListGet(&itemType->properties, 1)
+    ))) {
+      printf("Failed to create function.\n");
+      goto DROP_FUNCTIONS;
+    }
+    if (!cnListPush(&entityFunctions, &entityFunction)) {
+      printf("Failed to expand functions.\n");
+      goto DROP_FUNCTIONS;
+    }
+  }
 
   // Set up the tree.
   if (!cnRootNodeInit(&stubTree, cnTrue)) {
     printf("Failed to init tree.\n");
-    goto DISPOSE_FUNCTIONS;
+    goto DROP_FUNCTIONS;
   }
   stubTree.entityFunctions = &entityFunctions;
 
@@ -130,9 +152,9 @@ int main(int argc, char** argv) {
   DISPOSE_TREE:
   cnNodeDispose(&stubTree.node);
 
-  DISPOSE_FUNCTIONS:
-  cnListEachBegin(&entityFunctions, cnEntityFunction, function) {
-    cnEntityFunctionDispose(function);
+  DROP_FUNCTIONS:
+  cnListEachBegin(&entityFunctions, cnEntityFunction*, function) {
+    cnEntityFunctionDrop(*function);
   } cnEnd;
   cnListDispose(&entityFunctions);
 

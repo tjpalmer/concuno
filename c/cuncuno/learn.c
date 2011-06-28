@@ -1098,12 +1098,12 @@ cnRootNode* cnTryExpansionsAtLeaf(cnLearner* learner, cnLeafNode* leaf) {
   cnListInit(&expansions, sizeof(cnExpansion));
 
   // Find the min and max arity.
-  cnListEachBegin(root->entityFunctions, cnEntityFunction, function) {
-    if (function->inCount < minArity) {
-      minArity = function->inCount;
+  cnListEachBegin(root->entityFunctions, cnEntityFunction*, function) {
+    if ((*function)->inCount < minArity) {
+      minArity = (*function)->inCount;
     }
-    if (function->inCount > maxArity) {
-      maxArity = function->inCount;
+    if ((*function)->inCount > maxArity) {
+      maxArity = (*function)->inCount;
     }
   } cnEnd;
   if (minArity > maxArity) {
@@ -1123,15 +1123,15 @@ cnRootNode* cnTryExpansionsAtLeaf(cnLearner* learner, cnLeafNode* leaf) {
   for (newVarCount = minNewVarCount; newVarCount <= maxArity; newVarCount++) {
     cnExpansion expansion;
     varDepth++;
-    cnListEachBegin(root->entityFunctions, cnEntityFunction, function) {
-      if (function->inCount > varDepth) {
+    cnListEachBegin(root->entityFunctions, cnEntityFunction*, function) {
+      if ((*function)->inCount > varDepth) {
         //printf(
         //  "Need %ld more vars for %s.\n",
         //  function->inCount - varDepth, cnStr(&function->name)
         //);
         continue;
       }
-      if (function->inCount < newVarCount) {
+      if ((*function)->inCount < newVarCount) {
         // We've already added more vars than we need for this one.
         //printf(
         //  "Added %ld too many vars for %s.\n",
@@ -1140,7 +1140,7 @@ cnRootNode* cnTryExpansionsAtLeaf(cnLearner* learner, cnLeafNode* leaf) {
         continue;
       }
       // Init a prototype expansion, then push index permutations.
-      expansion.function = function;
+      expansion.function = *function;
       expansion.leaf = leaf;
       expansion.newVarCount = newVarCount;
       expansion.varIndices = NULL;

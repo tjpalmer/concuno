@@ -45,6 +45,13 @@ cnBool stSchemaInit(cnSchema* schema) {
     offsetof(stItem, location), 2
   )) goto FAIL;
 
+  // Velocity property.
+  if (!(property = cnListExpand(&type->properties))) goto FAIL;
+  if (!cnPropertyInitField(
+    property, type, schema->floatType, "Velocity",
+    offsetof(stItem, velocity), 2
+  )) goto FAIL;
+
   // Good to go.
   return cnTrue;
 

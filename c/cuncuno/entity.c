@@ -15,7 +15,7 @@ void cnBagInit(cnBag* bag) {
 }
 
 
-void cnEntityFunctionDispose(cnEntityFunction* function) {
+void cnEntityFunctionDrop(cnEntityFunction* function) {
   if (function->dispose) {
     function->dispose(function);
     function->dispose = NULL;
@@ -26,6 +26,7 @@ void cnEntityFunctionDispose(cnEntityFunction* function) {
   function->outTopology = cnTopologyEuclidean;
   function->outCount = 0;
   function->outType = NULL;
+  free(function);
 }
 
 
@@ -75,9 +76,11 @@ void cnEntityFunctionGetProperty(
 }
 
 
-cnBool cnEntityFunctionInitDifference(
-  cnEntityFunction* function, const cnEntityFunction* base
+cnEntityFunction* cnEntityFunctionCreateDifference(
+  const cnEntityFunction* base
 ) {
+  cnEntityFunction* function = malloc(sizeof(cnEntityFunction));
+  if (!function) return NULL;
   function->data = (void*)base;
   function->dispose = NULL;
   function->inCount = 2;
@@ -91,27 +94,27 @@ cnBool cnEntityFunctionInitDifference(
     printf("Only works for floats so far.\n");
     // If this dispose follows the nulled dispose pointer, we're okay.
     // Oh, and init'd name is also important.
-    cnEntityFunctionDispose(function);
-    return cnFalse;
+    cnEntityFunctionDrop(function);
+    return NULL;
   }
   function->outType = base->outType;
   function->get = cnEntityFunctionGetDifference;
   // Deal with this last, to make sure everything else is sane first.
   if (!cnStringPushStr(&function->name, "Difference")) {
-    cnEntityFunctionDispose(function);
-    return cnFalse;
+    cnEntityFunctionDrop(function);
+    return NULL;
   }
   if (!cnStringPushStr(&function->name, cnStr((cnString*)&base->name))) {
-    cnEntityFunctionDispose(function);
-    return cnFalse;
+    cnEntityFunctionDrop(function);
+    return NULL;
   }
-  return cnTrue;
+  return function;
 }
 
 
-cnBool cnEntityFunctionInitProperty(
-  cnEntityFunction* function, const cnProperty* property
-) {
+cnEntityFunction* cnEntityFunctionCreateProperty(const cnProperty* property) {
+  cnEntityFunction* function = malloc(sizeof(cnEntityFunction));
+  if (!function) return NULL;
   function->data = (void*)property; // Treat as const anyway!
   function->dispose = NULL;
   function->inCount = 1;
@@ -122,10 +125,10 @@ cnBool cnEntityFunctionInitProperty(
   cnStringInit(&function->name);
   // The one thing that can fail directly here.
   if (!cnStringPushStr(&function->name, cnStr((cnString*)&property->name))) {
-    cnEntityFunctionDispose(function);
-    return cnFalse;
+    cnEntityFunctionDrop(function);
+    return NULL;
   }
-  return cnTrue;
+  return function;
 }
 
 
