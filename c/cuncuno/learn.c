@@ -567,47 +567,6 @@ cnFloat cnChooseThreshold(
     if (negAsYesCount) currentScore += negAsYesCount * log(1 - yesProb);
     if (posAsNoCount) currentScore += posAsNoCount * log(noProb);
     if (negAsNoCount) currentScore += negAsNoCount * log(1 - noProb);
-    if (cnFalse) {
-      // Reverse above for test.
-      // If my tests are correct, it can give a higher metric.
-      // However, our prob assignment strategy wouldn't pick it anyway, so leave
-      // it out for now?
-      // TODO If I want to support this, clean up all this code more for better
-      // TODO integration. If not, consider deleting it.
-      cnFloat otherMetric = 0;
-      cnFloat posAsYesCount = posYesCount + posBothCount;
-      cnFloat posAsNoCount = posNoCount + posBothCount;
-      cnFloat negAsYesCount = negYesCount + negBothCount;
-      cnFloat negAsNoCount = negNoCount + negBothCount;
-      if (yesProb > noProb) {
-        posAsYesCount -= posBothCount;
-        negAsYesCount -= negBothCount;
-      } else {
-        posAsNoCount -= posBothCount;
-        negAsNoCount -= negBothCount;
-      }
-      cnCount yesCount = posAsYesCount + negAsYesCount;
-      cnCount noCount = posAsNoCount + negAsNoCount;
-      cnFloat yesProb = posAsYesCount / (cnFloat)yesCount;
-      cnFloat noProb = posAsNoCount / (cnFloat)noCount;
-      if (posAsYesCount) otherMetric += posAsYesCount * log(yesProb);
-      if (negAsYesCount) otherMetric += negAsYesCount * log(1 - yesProb);
-      if (posAsNoCount) otherMetric += posAsNoCount * log(noProb);
-      if (negAsNoCount) otherMetric += negAsNoCount * log(1 - noProb);
-      if (currentScore == otherMetric) {
-        //        printf("=");
-      } else if (otherMetric - currentScore > 1) {
-        //        printf(
-        //          "(%.2lg > %.2lg: %.2lg; %.2lf of %ld, %.2lf of %ld) ",
-        //          otherMetric, currentScore, otherMetric - currentScore,
-        //          yesProb, yesCount, noProb, noCount
-        //        );
-      } else if (otherMetric > currentScore) {
-        //        printf(">");
-      } else {
-        //printf("<");
-      }
-    }
     //    fprintf(file,
     //      "%lg %lg %ld %lg %ld %lg\n",
     //      sqrt(cnChooseThreshold_EdgeDist(dist)),
