@@ -409,20 +409,20 @@ cnFloat cnChooseThreshold(
   cnChooseThreshold_Distance* dist;
   cnChooseThreshold_Distance* distsEnd = dists + 2 * bagCount;
   cnCount negBothCount = 0; // Negatives on both sides of the threshold.
-  cnCount negFalseCount = 0; // Negatives fully outside.
+  cnCount negNoCount = 0; // Negatives fully outside.
   cnCount negTotalCount = 0; // Total count of negatives.
-  cnCount negTrueCount = 0; // Negatives fully inside.
+  cnCount negYesCount = 0; // Negatives fully inside.
   cnCount posBothCount = 0; // Positives on both sides.
-  cnCount posFalseCount = 0; // Positives fully outside.
+  cnCount posNoCount = 0; // Positives fully outside.
   cnCount posTotalCount = 0; // Total count of positives.
-  cnCount posTrueCount = 0; // Positives fully inside.
-  cnCount negAsTrueCount, negAsFalseCount; // Neg count effectively in or out.
-  cnCount posAsTrueCount, posAsFalseCount; // Pos count effectively in or out.
-  cnCount trueCount, falseCount; // Count of bags inside or outside.
-  cnCount bestTrueCount = 0, bestFalseCount = 0;
+  cnCount posYesCount = 0; // Positives fully inside.
+  cnCount negAsYesCount, negAsNoCount; // Neg count effectively in or out.
+  cnCount posAsYesCount, posAsNoCount; // Pos count effectively in or out.
+  cnCount yesCount, noCount; // Count of bags inside or outside.
+  cnCount bestYesCount = 0, bestNoCount = 0;
   cnFloat bestScore, currentScore;
-  cnFloat trueProb, bestTrueProb = cnNaN();
-  cnFloat falseProb, bestFalseProb = cnNaN();
+  cnFloat yesProb, bestYesProb = cnNaN();
+  cnFloat noProb, bestNoProb = cnNaN();
   cnFloat threshold = 0;
 
   // Starting out assuming the worst. This actually log score, by the way.
@@ -480,8 +480,8 @@ cnFloat cnChooseThreshold(
   // Update the count now to the ones we care about.
   negTotalCount = bagCount - posTotalCount;
   // And they are all outside the threshold so far.
-  posFalseCount = posTotalCount;
-  negFalseCount = negTotalCount;
+  posNoCount = posTotalCount;
+  negNoCount = negTotalCount;
   //printf("Totals: %ld %ld (%d %ld)\n", posTotalCount, negTotalCount, distsEnd - dists, bagCount);
 
   // Sort it.
@@ -497,32 +497,32 @@ cnFloat cnChooseThreshold(
       // Change positive counts depending on leading, trailing, or both.
       switch (dist->edge) {
       case cnChooseThreshold_Both:
-        posFalseCount--;
-        posTrueCount++;
+        posNoCount--;
+        posYesCount++;
         break;
       case cnChooseThreshold_Far:
         posBothCount--;
-        posTrueCount++;
+        posYesCount++;
         break;
       case cnChooseThreshold_Near:
         posBothCount++;
-        posFalseCount--;
+        posNoCount--;
         break;
       }
     } else {
       // Change negative counts depending on leading, trailing, or both.
       switch (dist->edge) {
       case cnChooseThreshold_Both:
-        negFalseCount--;
-        negTrueCount++;
+        negNoCount--;
+        negYesCount++;
         break;
       case cnChooseThreshold_Far:
         negBothCount--;
-        negTrueCount++;
+        negYesCount++;
         break;
       case cnChooseThreshold_Near:
         negBothCount++;
-        negFalseCount--;
+        negNoCount--;
         break;
       }
     }
@@ -539,34 +539,34 @@ cnFloat cnChooseThreshold(
     // Calculate optimistic probabilities for both leaves. Assume both max.
     // TODO Is the highest prob really always best to make highest?
     // TODO Should I try fully both ways to see? Do math to prove?
-    posAsTrueCount = posTrueCount + posBothCount;
-    posAsFalseCount = posFalseCount + posBothCount;
-    negAsTrueCount = negTrueCount + negBothCount;
-    negAsFalseCount = negFalseCount + negBothCount;
-    trueCount = posAsTrueCount + negAsTrueCount;
-    falseCount = posAsFalseCount + negAsFalseCount;
-    trueProb = posAsTrueCount / (cnFloat)trueCount;
-    falseProb = posAsFalseCount / (cnFloat)falseCount;
+    posAsYesCount = posYesCount + posBothCount;
+    posAsNoCount = posNoCount + posBothCount;
+    negAsYesCount = negYesCount + negBothCount;
+    negAsNoCount = negNoCount + negBothCount;
+    yesCount = posAsYesCount + negAsYesCount;
+    noCount = posAsNoCount + negAsNoCount;
+    yesProb = posAsYesCount / (cnFloat)yesCount;
+    noProb = posAsNoCount / (cnFloat)noCount;
     // Figure out which one really is the max.
-    if (trueProb > falseProb) {
-      // True wins the boths. Revert false.
-      posAsFalseCount -= posBothCount;
-      negAsFalseCount -= negBothCount;
-      falseCount = posAsFalseCount + negAsFalseCount;
-      falseProb = posFalseCount / (cnFloat)falseCount;
+    if (yesProb > noProb) {
+      // Yes wins the boths. Revert no.
+      posAsNoCount -= posBothCount;
+      negAsNoCount -= negBothCount;
+      noCount = posAsNoCount + negAsNoCount;
+      noProb = posNoCount / (cnFloat)noCount;
     } else {
-      // False wins the boths. Revert true.
-      posAsTrueCount -= posBothCount;
-      negAsTrueCount -= negBothCount;
-      trueCount = posAsTrueCount + negAsTrueCount;
-      trueProb = posTrueCount / (cnFloat)trueCount;
+      // No wins the boths. Revert yes.
+      posAsYesCount -= posBothCount;
+      negAsYesCount -= negBothCount;
+      yesCount = posAsYesCount + negAsYesCount;
+      yesProb = posYesCount / (cnFloat)yesCount;
     }
     // Calculate our log metric.
     currentScore = 0;
-    if (posAsTrueCount) currentScore += posAsTrueCount * log(trueProb);
-    if (negAsTrueCount) currentScore += negAsTrueCount * log(1 - trueProb);
-    if (posAsFalseCount) currentScore += posAsFalseCount * log(falseProb);
-    if (negAsFalseCount) currentScore += negAsFalseCount * log(1 - falseProb);
+    if (posAsYesCount) currentScore += posAsYesCount * log(yesProb);
+    if (negAsYesCount) currentScore += negAsYesCount * log(1 - yesProb);
+    if (posAsNoCount) currentScore += posAsNoCount * log(noProb);
+    if (negAsNoCount) currentScore += negAsNoCount * log(1 - noProb);
     if (cnFalse) {
       // Reverse above for test.
       // If my tests are correct, it can give a higher metric.
@@ -575,32 +575,32 @@ cnFloat cnChooseThreshold(
       // TODO If I want to support this, clean up all this code more for better
       // TODO integration. If not, consider deleting it.
       cnFloat otherMetric = 0;
-      cnFloat posAsTrueCount = posTrueCount + posBothCount;
-      cnFloat posAsFalseCount = posFalseCount + posBothCount;
-      cnFloat negAsTrueCount = negTrueCount + negBothCount;
-      cnFloat negAsFalseCount = negFalseCount + negBothCount;
-      if (trueProb > falseProb) {
-        posAsTrueCount -= posBothCount;
-        negAsTrueCount -= negBothCount;
+      cnFloat posAsYesCount = posYesCount + posBothCount;
+      cnFloat posAsNoCount = posNoCount + posBothCount;
+      cnFloat negAsYesCount = negYesCount + negBothCount;
+      cnFloat negAsNoCount = negNoCount + negBothCount;
+      if (yesProb > noProb) {
+        posAsYesCount -= posBothCount;
+        negAsYesCount -= negBothCount;
       } else {
-        posAsFalseCount -= posBothCount;
-        negAsFalseCount -= negBothCount;
+        posAsNoCount -= posBothCount;
+        negAsNoCount -= negBothCount;
       }
-      cnCount trueCount = posAsTrueCount + negAsTrueCount;
-      cnCount falseCount = posAsFalseCount + negAsFalseCount;
-      cnFloat trueProb = posAsTrueCount / (cnFloat)trueCount;
-      cnFloat falseProb = posAsFalseCount / (cnFloat)falseCount;
-      if (posAsTrueCount) otherMetric += posAsTrueCount * log(trueProb);
-      if (negAsTrueCount) otherMetric += negAsTrueCount * log(1 - trueProb);
-      if (posAsFalseCount) otherMetric += posAsFalseCount * log(falseProb);
-      if (negAsFalseCount) otherMetric += negAsFalseCount * log(1 - falseProb);
+      cnCount yesCount = posAsYesCount + negAsYesCount;
+      cnCount noCount = posAsNoCount + negAsNoCount;
+      cnFloat yesProb = posAsYesCount / (cnFloat)yesCount;
+      cnFloat noProb = posAsNoCount / (cnFloat)noCount;
+      if (posAsYesCount) otherMetric += posAsYesCount * log(yesProb);
+      if (negAsYesCount) otherMetric += negAsYesCount * log(1 - yesProb);
+      if (posAsNoCount) otherMetric += posAsNoCount * log(noProb);
+      if (negAsNoCount) otherMetric += negAsNoCount * log(1 - noProb);
       if (currentScore == otherMetric) {
         //        printf("=");
       } else if (otherMetric - currentScore > 1) {
         //        printf(
         //          "(%.2lg > %.2lg: %.2lg; %.2lf of %ld, %.2lf of %ld) ",
         //          otherMetric, currentScore, otherMetric - currentScore,
-        //          trueProb, trueCount, falseProb, falseCount
+        //          yesProb, yesCount, noProb, noCount
         //        );
       } else if (otherMetric > currentScore) {
         //        printf(">");
@@ -611,7 +611,7 @@ cnFloat cnChooseThreshold(
     //    fprintf(file,
     //      "%lg %lg %ld %lg %ld %lg\n",
     //      sqrt(cnChooseThreshold_EdgeDist(dist)),
-    //      trueProb, trueCount, falseProb, falseCount, currentScore
+    //      yesProb, yesCount, noProb, noCount, currentScore
     //    );
     if (currentScore > bestScore) {
       threshold = cnChooseThreshold_EdgeDist(dist);
@@ -620,17 +620,17 @@ cnFloat cnChooseThreshold(
         threshold = (threshold + cnChooseThreshold_EdgeDist(dist + 1)) / 2;
       }
       bestScore = currentScore;
-      bestTrueProb = trueProb;
-      bestFalseProb = falseProb;
+      bestYesProb = yesProb;
+      bestNoProb = noProb;
       // # of max in each leaf.
-      bestFalseCount = falseCount;
-      bestTrueCount = trueCount;
+      bestNoCount = noCount;
+      bestYesCount = yesCount;
     }
   }
-  if (cnTrue && !cnIsNaN(bestTrueProb)) {
+  if (cnTrue && !cnIsNaN(bestYesProb)) {
     printf(
       "Best thresh: %.9lg (%.2lg of %ld, %.2lg of %ld: %.4lg)\n",
-      threshold, bestTrueProb, bestTrueCount, bestFalseProb, bestFalseCount,
+      threshold, bestYesProb, bestYesCount, bestNoProb, bestNoCount,
       bestScore
     );
   }
