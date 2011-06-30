@@ -121,8 +121,8 @@ void cnListDispose(cnListAny* list);
  * Terminate with cnEnd.
  */
 #define cnListEachBegin(list, Type, i) { \
-    Type *i; \
-    Type *end = cnListEnd(list); \
+    Type* i; \
+    Type* end = cnListEnd(list); \
     for ( \
       i = (list)->items; i < end; i = (Type*)(((char*)i) + (list)->itemSize) \
     )
