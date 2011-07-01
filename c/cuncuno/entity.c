@@ -1,5 +1,7 @@
+#include <math.h>
 #include <stdio.h>
 #include <string.h>
+
 #include "entity.h"
 
 
@@ -22,19 +24,22 @@ void cnEntityFunctionCreateDifference_Get(
   cnIndex i;
   cnEntityFunction* base = function->data;
   // Vectors are assumed small, so use stack memory.
-  cnFloat* x = cnStackAlloc(function->outCount * sizeof(cnFloat));
+  // Our assumption that base->outCount == function->outCount allows the use
+  // of base here. And the use of base here allows this difference function to
+  // be used directly by distance as well.
+  cnFloat* x = cnStackAlloc(base->outCount * sizeof(cnFloat));
   cnFloat* result = outs;
   if (!x) {
     // TODO Some way to report errors. Just NaN out for now.
     cnFloat nan = cnNaN();
-    for (i = 0; i < function->outCount; i++) {
+    for (i = 0; i < base->outCount; i++) {
       result[i] = nan;
     }
     return;
   }
   base->get(base, ins, result);
   base->get(base, ins + 1, x);
-  for (i = 0; i < function->outCount; i++) {
+  for (i = 0; i < base->outCount; i++) {
     result[i] -= x[i];
   }
   cnStackFree(x);
@@ -50,7 +55,7 @@ cnEntityFunction* cnEntityFunctionCreateDifference(
   function->dispose = NULL;
   function->inCount = 2;
   cnStringInit(&function->name);
-  function->outCount = base->outCount;
+  function->outCount = base->outCount; // TODO For all topologies?
   function->outTopology = base->outTopology;
   // TODO Verify non-nulls?
   //printf("outType: %s\n", cnStr(&base->outType->name));
@@ -66,6 +71,68 @@ cnEntityFunction* cnEntityFunctionCreateDifference(
   function->get = cnEntityFunctionCreateDifference_Get;
   // Deal with this last, to make sure everything else is sane first.
   if (!cnStringPushStr(&function->name, "Difference")) {
+    cnEntityFunctionDrop(function);
+    return NULL;
+  }
+  if (!cnStringPushStr(&function->name, cnStr((cnString*)&base->name))) {
+    cnEntityFunctionDrop(function);
+    return NULL;
+  }
+  return function;
+}
+
+
+void cnEntityFunctionCreateDistance_Get(
+  cnEntityFunction* function, void** ins, void* outs
+) {
+  // TODO Remove float assumption here.
+  cnIndex i;
+  cnEntityFunction* base = function->data;
+  // Vectors are assumed small, so use stack memory.
+  cnFloat* diff = cnStackAlloc(base->outCount * sizeof(cnFloat));
+  cnFloat* result = outs;
+  if (!diff) {
+    // TODO Some way to report errors. Just NaN out for now.
+    *result = cnNaN();
+    return;
+  }
+  // Get the difference. Reusing the current function object in the call below
+  // is somewhat abusive, but it's been carefully tailored to be safe.
+  cnEntityFunctionCreateDifference_Get(function, ins, diff);
+  // Get the norm of the difference.
+  *result = 0;
+  for (i = 0; i < function->outCount; i++) {
+    *result += diff[i] * diff[i];
+  }
+  // Using sqrt leaves results clearer and has a very small cost.
+  *result = sqrt(*result);
+  cnStackFree(diff);
+}
+
+cnEntityFunction* cnEntityFunctionCreateDistance(const cnEntityFunction* base) {
+  // TODO Combine setup with difference? Differences indicated below.
+  cnEntityFunction* function = malloc(sizeof(cnEntityFunction));
+  if (!function) return NULL;
+  function->data = (void*)base;
+  function->dispose = NULL;
+  function->inCount = 2;
+  cnStringInit(&function->name);
+  function->outCount = 1; // Different from difference!
+  function->outTopology = base->outTopology;
+  // TODO Verify non-nulls?
+  //printf("outType: %s\n", cnStr(&base->outType->name));
+  if (base->outType != base->outType->schema->floatType) {
+    // TODO Supply a difference function for generic handling?
+    printf("Only works for floats so far.\n");
+    // If this dispose follows the nulled dispose pointer, we're okay.
+    // Oh, and init'd name is also important.
+    cnEntityFunctionDrop(function);
+    return NULL;
+  }
+  function->outType = base->outType;
+  function->get = cnEntityFunctionCreateDistance_Get; // Also different!
+  // Deal with this last, to make sure everything else is sane first.
+  if (!cnStringPushStr(&function->name, "Distance")) { // Also different!
     cnEntityFunctionDrop(function);
     return NULL;
   }
@@ -95,7 +162,6 @@ void cnEntityFunctionCreateProperty_Get(
     property->get(property, *ins, outs);
   }
 }
-
 
 cnEntityFunction* cnEntityFunctionCreateProperty(const cnProperty* property) {
   cnEntityFunction* function = malloc(sizeof(cnEntityFunction));

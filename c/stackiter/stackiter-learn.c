@@ -86,6 +86,17 @@ int main(int argc, char** argv) {
     printf("Failed to expand functions.\n");
     goto DROP_FUNCTIONS;
   }
+  // DistanceLocation
+  if (!(differenceFunction = cnEntityFunctionCreateDistance(
+    entityFunction
+  ))) {
+    printf("Failed to create difference.\n");
+    goto DROP_FUNCTIONS;
+  }
+  if (!cnListPush(&entityFunctions, &differenceFunction)) {
+    printf("Failed to expand functions.\n");
+    goto DROP_FUNCTIONS;
+  }
   //printf("Function named %s.\n", cnStr(&differenceFunction->name));
   // Velocity.
   if (cnTrue) {

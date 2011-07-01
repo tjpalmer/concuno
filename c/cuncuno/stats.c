@@ -1,6 +1,8 @@
 //#include <cblas.h>
 //#include <clapack.h>
+#include <math.h>
 #include <string.h>
+
 #include "stats.h"
 
 
@@ -70,6 +72,8 @@ cnFloat cnMahalanobisDistance(cnGaussian* gaussian, cnFloat* point) {
     // TODO Apply covariance scaling.
     distance += diff * diff;
   }
+  // Provide actual distance instead of squared, for intuition.
+  distance = sqrt(distance);
   return distance;
 }
 

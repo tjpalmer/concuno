@@ -1009,7 +1009,7 @@ void cnSearchFill(
         startValue < searchStartEnd;
         startValue++, value++
       ) {
-        // TODO Other distance metrics.
+        // TODO Defer to abstract distance function like cnMahalanobisDistance!
         cnFloat diff = *startValue - *value;
         currentDistance += diff * diff;
       }
@@ -1028,10 +1028,13 @@ void cnSearchFill(
     }
   }
 
-  // Flip any unset fars also to infinity.
+  // Flip any unset fars also to infinity, and sqrt the distances.
   for (distance = distances; distance < distancesEnd; distance++) {
     if (distance->far < 0) {
       distance->far = HUGE_VAL;
+    } else {
+      distance->far = sqrt(distance->far);
+      distance->near = sqrt(distance->near);
     }
   }
 

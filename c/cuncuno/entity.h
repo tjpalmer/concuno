@@ -212,6 +212,9 @@ cnEntityFunction* cnEntityFunctionCreateDifference(
 );
 
 
+cnEntityFunction* cnEntityFunctionCreateDistance(const cnEntityFunction* base);
+
+
 /**
  * Creates an entity function that just performs a property get.
  */
