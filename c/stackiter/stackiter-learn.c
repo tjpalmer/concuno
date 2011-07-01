@@ -63,10 +63,32 @@ int main(int argc, char** argv) {
   cnListInit(&entityFunctions, sizeof(cnEntityFunction*));
   // TODO Look up the type by name.
   itemType = cnListGet(&schema.types, 1);
+  // Color.
+  if (!(entityFunction = cnEntityFunctionCreateProperty(
+    cnListGet(&itemType->properties, 0)
+  ))) {
+    printf("Failed to create function.\n");
+    goto DISPOSE_SCHEMA;
+  }
+  if (!cnListPush(&entityFunctions, &entityFunction)) {
+    printf("Failed to expand functions.\n");
+    goto DROP_FUNCTIONS;
+  }
+  // DifferenceColor
+  if (!(differenceFunction = cnEntityFunctionCreateDifference(
+    entityFunction
+  ))) {
+    printf("Failed to create difference.\n");
+    goto DROP_FUNCTIONS;
+  }
+  if (!cnListPush(&entityFunctions, &differenceFunction)) {
+    printf("Failed to expand functions.\n");
+    goto DROP_FUNCTIONS;
+  }
   // Location.
   // TODO Look up the property by name.
   if (!(entityFunction = cnEntityFunctionCreateProperty(
-    cnListGet(&itemType->properties, 0)
+    cnListGet(&itemType->properties, 1)
   ))) {
     printf("Failed to create function.\n");
     goto DISPOSE_SCHEMA;
@@ -87,9 +109,7 @@ int main(int argc, char** argv) {
     goto DROP_FUNCTIONS;
   }
   // DistanceLocation
-  if (!(differenceFunction = cnEntityFunctionCreateDistance(
-    entityFunction
-  ))) {
+  if (!(differenceFunction = cnEntityFunctionCreateDistance(entityFunction))) {
     printf("Failed to create difference.\n");
     goto DROP_FUNCTIONS;
   }
@@ -107,7 +127,7 @@ int main(int argc, char** argv) {
     // TODO small chunks of memory, but we don't expect millions of functions or
     // TODO anything, although we might want to grow some during run time.
     if (!(entityFunction = cnEntityFunctionCreateProperty(
-      cnListGet(&itemType->properties, 1)
+      cnListGet(&itemType->properties, 2)
     ))) {
       printf("Failed to create function.\n");
       goto DROP_FUNCTIONS;

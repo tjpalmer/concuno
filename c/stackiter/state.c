@@ -38,6 +38,13 @@ cnBool stSchemaInit(cnSchema* schema) {
   if (!cnTypeInit(type, "Item", sizeof(stItem))) goto FAIL;
   type->schema = schema;
 
+  // Color property.
+  if (!(property = cnListExpand(&type->properties))) goto FAIL;
+  if (!cnPropertyInitField(
+    property, type, schema->floatType, "Color",
+    offsetof(stItem, color), 3
+  )) goto FAIL;
+
   // Location property.
   if (!(property = cnListExpand(&type->properties))) goto FAIL;
   if (!cnPropertyInitField(
