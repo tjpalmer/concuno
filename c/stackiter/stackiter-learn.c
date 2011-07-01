@@ -91,7 +91,7 @@ int main(int argc, char** argv) {
     cnListGet(&itemType->properties, 1)
   ))) {
     printf("Failed to create function.\n");
-    goto DISPOSE_SCHEMA;
+    goto DROP_FUNCTIONS;
   }
   if (!cnListPush(&entityFunctions, &entityFunction)) {
     printf("Failed to expand functions.\n");

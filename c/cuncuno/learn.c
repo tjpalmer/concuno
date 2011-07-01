@@ -99,6 +99,11 @@ cnFloat cnChooseThreshold(
 cnRootNode* cnExpandedTree(cnLearner* learner, cnExpansion* expansion);
 
 
+cnBool cnExpansionRedundant(
+  cnList(cnExpansion)* expansions, cnEntityFunction* function, cnIndex* indices
+);
+
+
 cnBool cnLearnSplitModel(cnLearner* learner, cnSplitNode* split);
 
 
@@ -672,6 +677,29 @@ cnRootNode* cnExpandedTree(cnLearner* learner, cnExpansion* expansion) {
 }
 
 
+cnBool cnExpansionRedundant(
+  cnList(cnExpansion)* expansions, cnEntityFunction* function, cnIndex* indices
+) {
+  cnListEachBegin(expansions, cnExpansion, expansion) {
+    if (function == expansion->function) {
+      // TODO Mark which functions are symmetric. Assume all arity 2 for now.
+      if (function->inCount == 2) {
+        if (
+          indices[0] == expansion->varIndices[1] &&
+          indices[1] == expansion->varIndices[0]
+        ) {
+          // Same indices but reversed. This is redundant.
+          // The function creates mirror images anyway.
+          return cnTrue;
+        }
+      }
+    }
+  } cnEnd;
+  // No duplicate found.
+  return cnFalse;
+}
+
+
 void cnLearnerDispose(cnLearner* learner) {
   // Nothing yet.
 }
@@ -907,12 +935,18 @@ cnBool cnRecurseExpansions(
   //}
   //printf("\n");
   if (filledCount >= arity) {
-    // All filled up. Push an expansion with the given indices.
-    // TODO Consider symmetry on functions for new vars?
+    // All filled up, but first check for redundancy.
+    if (cnExpansionRedundant(expansions, prototype->function, indices)) {
+      // We already have an equivalent expansion under consideration.
+      // TODO Is there a more efficient way to avoid redundancy?
+      return cnTrue;
+    }
+    // It's good to go.
     if (!(prototype->varIndices = malloc(arity * sizeof(cnIndex)))) {
       return cnFalse;
     }
     memcpy(prototype->varIndices, indices, arity * sizeof(cnIndex));
+    // Keep the expansion.
     if (!cnListPush(expansions, prototype)) {
       free(prototype->varIndices);
       return cnFalse;
