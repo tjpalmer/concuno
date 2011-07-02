@@ -46,9 +46,7 @@ void cnEntityFunctionCreateDifference_Get(
 }
 
 
-cnEntityFunction* cnEntityFunctionCreateDifference(
-  const cnEntityFunction* base
-) {
+cnEntityFunction* cnEntityFunctionCreateDifference(cnEntityFunction* base) {
   cnEntityFunction* function = malloc(sizeof(cnEntityFunction));
   if (!function) return NULL;
   function->data = (void*)base;
@@ -109,7 +107,7 @@ void cnEntityFunctionCreateDistance_Get(
   cnStackFree(diff);
 }
 
-cnEntityFunction* cnEntityFunctionCreateDistance(const cnEntityFunction* base) {
+cnEntityFunction* cnEntityFunctionCreateDistance(cnEntityFunction* base) {
   // TODO Combine setup with difference? Differences indicated below.
   cnEntityFunction* function = malloc(sizeof(cnEntityFunction));
   if (!function) return NULL;
@@ -163,7 +161,7 @@ void cnEntityFunctionCreateProperty_Get(
   }
 }
 
-cnEntityFunction* cnEntityFunctionCreateProperty(const cnProperty* property) {
+cnEntityFunction* cnEntityFunctionCreateProperty(cnProperty* property) {
   cnEntityFunction* function = malloc(sizeof(cnEntityFunction));
   if (!function) return NULL;
   function->data = (void*)property; // Treat as const anyway!
@@ -205,6 +203,59 @@ void cnFunctionDrop(cnFunction* function) {
     }
     free(function);
   }
+}
+
+
+/**
+ * A helper for various composite entity functions.
+ */
+cnEntityFunction* cnPushCompositeFunction(
+  cnList(cnEntityFunction*)* functions,
+  cnEntityFunction* (*wrapper)(cnEntityFunction* base),
+  cnEntityFunction* base
+) {
+  cnEntityFunction* function;
+  if ((function = wrapper(base))) {
+    // So far, so good.
+    if (!cnListPush(functions, &function)) {
+      // Nope, we failed.
+      cnEntityFunctionDrop(function);
+      function = NULL;
+    }
+  }
+  return function;
+}
+
+
+cnEntityFunction* cnPushDifferenceFunction(
+  cnList(cnEntityFunction*)* functions, cnEntityFunction* base
+) {
+  return
+    cnPushCompositeFunction(functions, cnEntityFunctionCreateDifference, base);
+}
+
+
+cnEntityFunction* cnPushDistanceFunction(
+  cnList(cnEntityFunction*)* functions, cnEntityFunction* base
+) {
+  return
+    cnPushCompositeFunction(functions, cnEntityFunctionCreateDistance, base);
+}
+
+
+cnEntityFunction* cnPushPropertyFunction(
+  cnList(cnEntityFunction*)* functions, cnProperty* property
+) {
+  cnEntityFunction* function;
+  if ((function = cnEntityFunctionCreateProperty(property))) {
+    // So far, so good.
+    if (!cnListPush(functions, &function)) {
+      // Nope, we failed.
+      cnEntityFunctionDrop(function);
+      function = NULL;
+    }
+  }
+  return function;
 }
 
 

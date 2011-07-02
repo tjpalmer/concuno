@@ -7,7 +7,7 @@
 int main(int argc, char** argv) {
   cnList(cnBag) bags;
   cnBindingBagList* bindingBags;
-  cnEntityFunction *differenceFunction, *entityFunction;
+  cnEntityFunction* entityFunction;
   cnLearner learner;
   cnList(cnEntityFunction*) entityFunctions;
   cnRootNode* learnedTree;
@@ -64,78 +64,42 @@ int main(int argc, char** argv) {
   // TODO Look up the type by name.
   itemType = cnListGet(&schema.types, 1);
   // Color.
-  if (!(entityFunction = cnEntityFunctionCreateProperty(
-    cnListGet(&itemType->properties, 0)
+  if (!(entityFunction = cnPushPropertyFunction(
+    &entityFunctions, cnListGet(&itemType->properties, 0)
   ))) {
-    printf("Failed to create function.\n");
-    goto DISPOSE_SCHEMA;
-  }
-  if (!cnListPush(&entityFunctions, &entityFunction)) {
-    printf("Failed to expand functions.\n");
+    printf("Failed to push color function.\n");
     goto DROP_FUNCTIONS;
   }
   // DifferenceColor
-  if (!(differenceFunction = cnEntityFunctionCreateDifference(
-    entityFunction
-  ))) {
-    printf("Failed to create difference.\n");
-    goto DROP_FUNCTIONS;
-  }
-  if (!cnListPush(&entityFunctions, &differenceFunction)) {
-    printf("Failed to expand functions.\n");
+  if (!cnPushDifferenceFunction(&entityFunctions, entityFunction)) {
+    printf("Failed to push difference color function.\n");
     goto DROP_FUNCTIONS;
   }
   // Location.
   // TODO Look up the property by name.
-  if (!(entityFunction = cnEntityFunctionCreateProperty(
-    cnListGet(&itemType->properties, 1)
+  if (!(entityFunction = cnPushPropertyFunction(
+    &entityFunctions, cnListGet(&itemType->properties, 1)
   ))) {
-    printf("Failed to create function.\n");
-    goto DROP_FUNCTIONS;
-  }
-  if (!cnListPush(&entityFunctions, &entityFunction)) {
-    printf("Failed to expand functions.\n");
+    printf("Failed to push location function.\n");
     goto DROP_FUNCTIONS;
   }
   // DifferenceLocation
-  if (!(differenceFunction = cnEntityFunctionCreateDifference(
-    entityFunction
-  ))) {
-    printf("Failed to create difference.\n");
-    goto DROP_FUNCTIONS;
-  }
-  if (!cnListPush(&entityFunctions, &differenceFunction)) {
-    printf("Failed to expand functions.\n");
+  if (!cnPushDifferenceFunction(&entityFunctions, entityFunction)) {
+    printf("Failed to push difference location function.\n");
     goto DROP_FUNCTIONS;
   }
   // DistanceLocation
-  if (!(differenceFunction = cnEntityFunctionCreateDistance(entityFunction))) {
-    printf("Failed to create difference.\n");
+  if (!cnPushDistanceFunction(&entityFunctions, entityFunction)) {
+    printf("Failed to push distance location function.\n");
     goto DROP_FUNCTIONS;
   }
-  if (!cnListPush(&entityFunctions, &differenceFunction)) {
-    printf("Failed to expand functions.\n");
-    goto DROP_FUNCTIONS;
-  }
-  //printf("Function named %s.\n", cnStr(&differenceFunction->name));
   // Velocity.
-  if (cnTrue) {
-    // TODO Look up the property by name.
-    // TODO The realloc here causes the original Location pointer to be wrong.
-    // TODO I need to make sure the pointers are stable in some fashion. Maybe
-    // TODO make the list of pointers to individually allocated functions. More
-    // TODO small chunks of memory, but we don't expect millions of functions or
-    // TODO anything, although we might want to grow some during run time.
-    if (!(entityFunction = cnEntityFunctionCreateProperty(
-      cnListGet(&itemType->properties, 2)
-    ))) {
-      printf("Failed to create function.\n");
-      goto DROP_FUNCTIONS;
-    }
-    if (!cnListPush(&entityFunctions, &entityFunction)) {
-      printf("Failed to expand functions.\n");
-      goto DROP_FUNCTIONS;
-    }
+  // TODO Look up the property by name.
+  if (!(entityFunction = cnPushPropertyFunction(
+    &entityFunctions, cnListGet(&itemType->properties, 2)
+  ))) {
+    printf("Failed to push velocity function.\n");
+    goto DROP_FUNCTIONS;
   }
 
   // Set up the tree.
@@ -189,7 +153,7 @@ int main(int argc, char** argv) {
   } cnEnd;
   cnListDispose(&entityFunctions);
 
-  DISPOSE_SCHEMA:
+  // DISPOSE_SCHEMA:
   cnSchemaDispose(&schema);
 
   DISPOSE_SAMPLES:
