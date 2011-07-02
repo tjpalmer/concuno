@@ -23,6 +23,29 @@ cnBool stPlaceLiveItems(
 );
 
 
+cnBool stAllBagsFalse(cnList(stState)* states, cnList(cnBag)* bags) {
+  cnBool result = cnTrue;
+  cnListEachBegin(states, stState, state) {
+    // Every state gets a bag.
+    cnBag* bag;
+    if (!(bag = cnListExpand(bags))) {
+      printf("Failed to push bag.\n");
+      result = cnFalse;
+      break;
+    }
+    cnBagInit(bag);
+    // Each bag gets the live items.
+    if (!stPlaceLiveItems(&state->items, &bag->entities)) {
+      printf("Failed to push entities.\n");
+      result = cnFalse;
+      break;
+    }
+  } cnEnd;
+  // All done.
+  return result;
+}
+
+
 cnBool stChooseDropWhereLandOnOther(
   const cnList(stState)* states, cnList(cnBag)* bags
 ) {

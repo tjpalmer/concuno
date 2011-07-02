@@ -3,6 +3,11 @@
 #include "stackiter-learn.h"
 
 
+cnBool stClusterStuff(
+  cnList(stState)* states, cnList(cnEntityFunction*)* functions
+);
+
+
 void stDisposeSchemaAndEntityFunctions(
   cnSchema* schema, cnList(cnEntityFunction*)* functions
 );
@@ -48,10 +53,22 @@ int main(int argc, char** argv) {
     goto DISPOSE_STATES;
   }
 
-  // Attempt learning the "falls on" predictive concept.
-  if (!stLearnFallOn(&states, &entityFunctions)) {
-    printf("No learned tree.\n");
-    goto DROP_FUNCTIONS;
+  switch (2) {
+  case 1:
+    // Attempt learning the "falls on" predictive concept.
+    if (!stLearnFallOn(&states, &entityFunctions)) {
+      printf("No learned tree.\n");
+      goto DROP_FUNCTIONS;
+    }
+    break;
+  case 2:
+    if (!stClusterStuff(&states, &entityFunctions)) {
+      printf("Clustering failed.\n");
+      goto DROP_FUNCTIONS;
+    }
+    break;
+  default:
+    printf("Didn't do anything!\n");
   }
 
   // We winned it all!
@@ -68,6 +85,40 @@ int main(int argc, char** argv) {
 
   DONE:
   return status;
+}
+
+
+cnBool stClusterStuff(
+  cnList(stState)* states, cnList(cnEntityFunction*)* functions
+) {
+  cnList(cnBag) bags;
+  cnEntityFunction* function;
+  cnBool result = cnFalse;
+
+  // Choose out the states we want to focus on.
+  cnListInit(&bags, sizeof(cnBag));
+  if (!stAllBagsFalse(states, &bags)) {
+    printf("Failed to choose bags.\n");
+    goto DISPOSE_BAGS;
+  }
+
+  // The last function right now should be velocity. TODO Watch out for changes!
+  // TODO Be more thorough about clustering. Try it all as for tree learning.
+  function = *(cnEntityFunction**)cnListGet(functions, functions->count - 1);
+  if (!cnClusterOnFunction(&bags, function)) {
+    goto DISPOSE_BAGS;
+  }
+
+  // TODO Cluster!
+  result = cnTrue;
+
+  DISPOSE_BAGS:
+  cnListEachBegin(&bags, cnBag, bag) {
+    cnBagDispose(bag);
+  } cnEnd;
+  cnListDispose(&bags);
+
+  return result;
 }
 
 
@@ -164,7 +215,7 @@ cnBool stLearnFallOn(
   // Choose out the states we want to focus on.
   cnListInit(&bags, sizeof(cnBag));
   if (!stChooseDropWhereLandOnOther(states, &bags)) {
-    printf("Failed to choose samples.\n");
+    printf("Failed to choose bags.\n");
     goto DISPOSE_BAGS;
   }
   trueCount = 0;
@@ -172,7 +223,7 @@ cnBool stLearnFallOn(
     trueCount += bag->label;
   } cnEnd;
   // TODO Also print mean number of items in chosen states?
-  printf("%ld true of %ld samples\n", trueCount, bags.count);
+  printf("%ld true of %ld bags\n", trueCount, bags.count);
   // Shuffle bags, with controlled seed (and my own generator?).
   // TODO Shuffle here copies more than just single pointers.
   cnListShuffle(&bags);

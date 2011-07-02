@@ -6,6 +6,12 @@
 
 
 /**
+ * Turn all states into bags, keeping only alive items.
+ */
+cnBool stAllBagsFalse(cnList(stState)* states, cnList(cnBag)* bags);
+
+
+/**
  * Pick out states where blocks are dropped. Then choose positives where the
  * block dropped lands on another block (or at least doesn't land flat on
  * the ground).

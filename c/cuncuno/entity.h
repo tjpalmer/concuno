@@ -7,7 +7,7 @@
 
 typedef struct cnBag {
 
-  // TODO id?
+  // TODO id? Or are pointer addresses good enough (if stable)?
 
   /**
    * Pointers to entities, defined entirely by properties and entity functions.
