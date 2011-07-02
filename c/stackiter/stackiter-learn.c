@@ -1,12 +1,20 @@
 #include <stdlib.h>
 
-
 #include "stackiter-learn.h"
+
+
+void stDisposeSchemaAndEntityFunctions(
+  cnSchema* schema, cnList(cnEntityFunction*)* functions
+);
+
+
+cnBool stInitSchemaAndEntityFunctions(
+  cnSchema* schema, cnList(cnEntityFunction*)* functions
+);
 
 
 int main(int argc, char** argv) {
   cnList(cnBag) bags;
-  cnEntityFunction* entityFunction;
   cnLearner learner;
   cnList(cnEntityFunction*) entityFunctions;
   cnRootNode* learnedTree;
@@ -16,7 +24,6 @@ int main(int argc, char** argv) {
   int status = EXIT_FAILURE;
   cnRootNode stubTree;
   cnCount trueCount;
-  cnType* itemType;
 
   // Validate args.
   if (argc < 2) {
@@ -39,7 +46,7 @@ int main(int argc, char** argv) {
   cnListInit(&bags, sizeof(cnBag));
   if (!stChooseDropWhereLandOnOther(&states, &bags)) {
     printf("Failed to choose samples.\n");
-    goto DISPOSE_SAMPLES;
+    goto DISPOSE_BAGS;
   }
   trueCount = 0;
   cnListEachBegin(&bags, cnBag, bag) {
@@ -52,53 +59,9 @@ int main(int argc, char** argv) {
   cnListShuffle(&bags);
 
   // Set up schema.
-  if (!stSchemaInit(&schema)) {
-    printf("Failed to init schema.\n");
-    goto DISPOSE_SAMPLES;
-  }
-
-  // Set up entity functions.
-  // TODO Extract this setup, and make it easier to do.
-  cnListInit(&entityFunctions, sizeof(cnEntityFunction*));
-  // TODO Look up the type by name.
-  itemType = cnListGet(&schema.types, 1);
-  // Color.
-  if (!(entityFunction = cnPushPropertyFunction(
-    &entityFunctions, cnListGet(&itemType->properties, 0)
-  ))) {
-    printf("Failed to push color function.\n");
-    goto DROP_FUNCTIONS;
-  }
-  // DifferenceColor
-  if (!cnPushDifferenceFunction(&entityFunctions, entityFunction)) {
-    printf("Failed to push difference color function.\n");
-    goto DROP_FUNCTIONS;
-  }
-  // Location.
-  // TODO Look up the property by name.
-  if (!(entityFunction = cnPushPropertyFunction(
-    &entityFunctions, cnListGet(&itemType->properties, 1)
-  ))) {
-    printf("Failed to push location function.\n");
-    goto DROP_FUNCTIONS;
-  }
-  // DifferenceLocation
-  if (!cnPushDifferenceFunction(&entityFunctions, entityFunction)) {
-    printf("Failed to push difference location function.\n");
-    goto DROP_FUNCTIONS;
-  }
-  // DistanceLocation
-  if (!cnPushDistanceFunction(&entityFunctions, entityFunction)) {
-    printf("Failed to push distance location function.\n");
-    goto DROP_FUNCTIONS;
-  }
-  // Velocity.
-  // TODO Look up the property by name.
-  if (!(entityFunction = cnPushPropertyFunction(
-    &entityFunctions, cnListGet(&itemType->properties, 2)
-  ))) {
-    printf("Failed to push velocity function.\n");
-    goto DROP_FUNCTIONS;
+  if (!stInitSchemaAndEntityFunctions(&schema, &entityFunctions)) {
+    printf("Failed to init schema and functions.\n");
+    goto DISPOSE_BAGS;
   }
 
   // Set up the tree.
@@ -135,15 +98,9 @@ int main(int argc, char** argv) {
   cnNodeDispose(&stubTree.node);
 
   DROP_FUNCTIONS:
-  cnListEachBegin(&entityFunctions, cnEntityFunction*, function) {
-    cnEntityFunctionDrop(*function);
-  } cnEnd;
-  cnListDispose(&entityFunctions);
+  stDisposeSchemaAndEntityFunctions(&schema, &entityFunctions);
 
-  // DISPOSE_SCHEMA:
-  cnSchemaDispose(&schema);
-
-  DISPOSE_SAMPLES:
+  DISPOSE_BAGS:
   cnListEachBegin(&bags, cnBag, bag) {
     cnBagDispose(bag);
   } cnEnd;
@@ -157,5 +114,84 @@ int main(int argc, char** argv) {
 
   DONE:
   return status;
+}
 
+
+void stDisposeSchemaAndEntityFunctions(
+  cnSchema* schema, cnList(cnEntityFunction*)* functions
+) {
+  // Drop the functions.
+  cnListEachBegin(functions, cnEntityFunction*, function) {
+    cnEntityFunctionDrop(*function);
+  } cnEnd;
+  // Dispose of the list and schema.
+  cnListDispose(functions);
+  cnSchemaDispose(schema);
+}
+
+
+cnBool stInitSchemaAndEntityFunctions(
+  cnSchema* schema, cnList(cnEntityFunction*)* functions
+) {
+  cnEntityFunction* function;
+  cnType* itemType;
+
+  // Set up schema.
+  if (!stSchemaInit(schema)) {
+    printf("Failed to init schema.\n");
+    // Nothing to clean up yet.
+    return cnFalse;
+  }
+
+  // Set up entity functions.
+  // TODO Extract this setup, and make it easier to do.
+  cnListInit(functions, sizeof(cnEntityFunction*));
+  // TODO Look up the type by name.
+  itemType = cnListGet(&schema->types, 1);
+  // Color.
+  if (!(function = cnPushPropertyFunction(
+    functions, cnListGet(&itemType->properties, 0)
+  ))) {
+    printf("Failed to push color function.\n");
+    goto FAIL;
+  }
+  // DifferenceColor
+  if (!cnPushDifferenceFunction(functions, function)) {
+    printf("Failed to push difference color function.\n");
+    goto FAIL;
+  }
+  // Location.
+  // TODO Look up the property by name.
+  if (!(function = cnPushPropertyFunction(
+    functions, cnListGet(&itemType->properties, 1)
+  ))) {
+    printf("Failed to push location function.\n");
+    goto FAIL;
+  }
+  // DifferenceLocation
+  if (!cnPushDifferenceFunction(functions, function)) {
+    printf("Failed to push difference location function.\n");
+    goto FAIL;
+  }
+  // DistanceLocation
+  if (!cnPushDistanceFunction(functions, function)) {
+    printf("Failed to push distance location function.\n");
+    goto FAIL;
+  }
+  // Velocity.
+  // TODO Look up the property by name.
+  if (!(function = cnPushPropertyFunction(
+    functions, cnListGet(&itemType->properties, 2)
+  ))) {
+    printf("Failed to push velocity function.\n");
+    goto FAIL;
+  }
+
+  // We made it!
+  return cnTrue;
+
+  FAIL:
+  // Clean it all up if we fail.
+  stDisposeSchemaAndEntityFunctions(schema, functions);
+  return cnFalse;
 }
