@@ -370,6 +370,27 @@ cnBool cnRootNodePropagate(cnRootNode* root) {
 }
 
 
+cnBool cnRootNodePropagateBags(cnRootNode* root, cnList(cnBag)* bags) {
+  cnBool result = cnFalse;
+  cnBindingBagList* bindingBags;
+  if (!(bindingBags = cnBindingBagListCreate())) {
+    printf("Failed to create bindings.\n");
+    goto DONE;
+  }
+  if (!cnBindingBagListPushBags(bindingBags, bags)) {
+    printf("Failed to push bindings.\n");
+    goto DROP_BINDING_BAGS;
+  }
+  result = cnNodePropagate(&root->node, bindingBags);
+
+  DROP_BINDING_BAGS:
+  cnBindingBagListDrop(&bindingBags);
+
+  DONE:
+  return result;
+}
+
+
 cnSplitNode* cnSplitNodeCreate(cnBool addLeaves) {
   cnSplitNode* split = malloc(sizeof(cnSplitNode));
   if (!split) return cnFalse;

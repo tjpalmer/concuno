@@ -338,6 +338,15 @@ cnCount cnNodeVarDepth(cnNode* node);
 cnBool cnRootNodeInit(cnRootNode* root, cnBool addLeaf);
 
 
+/**
+ * For top-level convenience, propagates empty bindings made from the given
+ * bags.
+ *
+ * TODO Change just to returning bindings instead of storing them?
+ */
+cnBool cnRootNodePropagateBags(cnRootNode* root, cnList(cnBag)* bags);
+
+
 cnSplitNode* cnSplitNodeCreate(cnBool addLeaves);
 
 

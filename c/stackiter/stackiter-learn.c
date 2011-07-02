@@ -6,7 +6,6 @@
 
 int main(int argc, char** argv) {
   cnList(cnBag) bags;
-  cnBindingBagList* bindingBags;
   cnEntityFunction* entityFunction;
   cnLearner learner;
   cnList(cnEntityFunction*) entityFunctions;
@@ -110,21 +109,14 @@ int main(int argc, char** argv) {
   stubTree.entityFunctions = &entityFunctions;
 
   // Propagate empty binding bags.
-  if (!(bindingBags = cnBindingBagListCreate())) {
-    printf("Failed to create bindings.\n");
+  if (!cnRootNodePropagateBags(&stubTree, &bags)) {
+    printf("Failed to propagate bags in stub tree.\n");
     goto DISPOSE_TREE;
-  }
-  if (!cnBindingBagListPushBags(bindingBags, &bags)) {
-    printf("Failed to push bindings.\n");
-    goto DROP_BINDING_BAGS;
-  }
-  if (!cnNodePropagate(&stubTree.node, bindingBags)) {
-    printf("Failed to propagate bindings in stub tree.\n");
-    goto DROP_BINDING_BAGS;
   }
 
   // Learn a tree.
   cnLearnerInit(&learner);
+  // TODO If no stored bindings, we'll need to pass them in here.
   learnedTree = cnLearnTree(&learner, &stubTree);
   if (!learnedTree) {
     printf("No learned tree.\n");
@@ -138,11 +130,6 @@ int main(int argc, char** argv) {
 
   DISPOSE_LEARNER:
   cnLearnerDispose(&learner);
-
-  DROP_BINDING_BAGS:
-  // Could actually do this earlier, but we'll effectively hang onto this until
-  // the end anyway, so no big deal.
-  cnBindingBagListDrop(&bindingBags);
 
   DISPOSE_TREE:
   cnNodeDispose(&stubTree.node);
