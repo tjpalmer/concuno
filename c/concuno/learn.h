@@ -1,5 +1,5 @@
-#ifndef cuncuno_learn_h
-#define cuncuno_learn_h
+#ifndef concuno_learn_h
+#define concuno_learn_h
 
 
 #include "tree.h"

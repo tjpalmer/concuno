@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.4)
 
-project(cuncuno)
+project(concuno) # Or benixt?
 
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Debug
@@ -11,11 +11,11 @@ if(NOT CMAKE_BUILD_TYPE)
 endif(NOT CMAKE_BUILD_TYPE)
 
 set(
-  Eigen_INCLUDE_DIR "${cuncuno_SOURCE_DIR}/../eigen"
+  Eigen_INCLUDE_DIR "${concuno_SOURCE_DIR}/../eigen"
   CACHE STRING "The directory for Eigen header files."
 )
 
-#set(cuncuno_INCLUDE_DIR ${cuncuno_SOURCE_DIR}/include)
+#set(concuno_INCLUDE_DIR ${concuno_SOURCE_DIR}/include)
 
 # TODO Use Eigen blas?
 #find_library(blas_LIBRARY atlas)
@@ -24,7 +24,7 @@ set(
 find_library(math_LIBRARY m)
 
 include_directories(
-  #${cuncuno_INCLUDE_DIR}
+  #${concuno_INCLUDE_DIR}
   #${Eigen_INCLUDE_DIR}
   c
 )

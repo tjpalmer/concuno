@@ -1,4 +1,4 @@
-add_library(cuncuno STATIC
+add_library(concuno STATIC
   cluster.c
   core.c
   entity.c

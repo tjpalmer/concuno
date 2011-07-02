@@ -1,5 +1,5 @@
-#ifndef cuncuno_cluster_h
-#define cuncuno_cluster_h
+#ifndef concuno_cluster_h
+#define concuno_cluster_h
 
 
 #include "entity.h"

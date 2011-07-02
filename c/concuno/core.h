@@ -1,5 +1,5 @@
-#ifndef cuncuno_core_h
-#define cuncuno_core_h
+#ifndef concuno_core_h
+#define concuno_core_h
 
 
 #include <stdlib.h>

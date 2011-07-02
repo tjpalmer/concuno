@@ -1,5 +1,5 @@
-#ifndef cuncuno_entity_h
-#define cuncuno_entity_h
+#ifndef concuno_entity_h
+#define concuno_entity_h
 
 
 #include "core.h"

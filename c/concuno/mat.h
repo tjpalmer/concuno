@@ -1,5 +1,5 @@
-#ifndef cuncuno_mat_h
-#define cuncuno_mat_h
+#ifndef concuno_mat_h
+#define concuno_mat_h
 
 
 // Linear algebra stuff goes here.

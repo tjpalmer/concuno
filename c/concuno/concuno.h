@@ -1,5 +1,5 @@
-#ifndef cuncuno_cuncuno_h
-#define cuncuno_cuncuno_h
+#ifndef concuno_concuno_h
+#define concuno_concuno_h
 
 #include "cluster.h"
 #include "core.h"
