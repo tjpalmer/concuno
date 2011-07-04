@@ -18,8 +18,10 @@ cnBool stInitSchemaAndEntityFunctions(
 );
 
 
-cnBool stLearnFallOn(
-  cnList(stState)* states, cnList(cnEntityFunction*)* functions
+cnBool stLearnConcept(
+  cnList(stState)* states,
+  cnList(cnEntityFunction*)* functions,
+  cnBool (*choose)(cnList(stState)* states, cnList(cnBag)* bags)
 );
 
 
@@ -53,10 +55,12 @@ int main(int argc, char** argv) {
     goto DISPOSE_STATES;
   }
 
-  switch (2) {
+  switch (1) {
   case 1:
     // Attempt learning the "falls on" predictive concept.
-    if (!stLearnFallOn(&states, &entityFunctions)) {
+    if (!stLearnConcept(
+      &states, &entityFunctions, stChooseWhereNoneMoving
+    )) {
       printf("No learned tree.\n");
       goto DROP_FUNCTIONS;
     }
@@ -153,43 +157,49 @@ cnBool stInitSchemaAndEntityFunctions(
   cnListInit(functions, sizeof(cnEntityFunction*));
   // TODO Look up the type by name.
   itemType = cnListGet(&schema->types, 1);
-  // Color.
-  if (!(function = cnPushPropertyFunction(
-    functions, cnListGet(&itemType->properties, 0)
-  ))) {
-    printf("Failed to push color function.\n");
-    goto FAIL;
+  if (cnTrue) {
+    // Color.
+    if (!(function = cnPushPropertyFunction(
+      functions, cnListGet(&itemType->properties, 0)
+    ))) {
+      printf("Failed to push color function.\n");
+      goto FAIL;
+    }
+    // DifferenceColor
+    if (!cnPushDifferenceFunction(functions, function)) {
+      printf("Failed to push difference color function.\n");
+      goto FAIL;
+    }
   }
-  // DifferenceColor
-  if (!cnPushDifferenceFunction(functions, function)) {
-    printf("Failed to push difference color function.\n");
-    goto FAIL;
+  if (cnTrue) {
+    // Location.
+    // TODO Look up the property by name.
+    if (!(function = cnPushPropertyFunction(
+      functions, cnListGet(&itemType->properties, 1)
+    ))) {
+      printf("Failed to push location function.\n");
+      goto FAIL;
+    }
+    // DifferenceLocation
+    if (!cnPushDifferenceFunction(functions, function)) {
+      printf("Failed to push difference location function.\n");
+      goto FAIL;
+    }
+    // DistanceLocation
+    if (!cnPushDistanceFunction(functions, function)) {
+      printf("Failed to push distance location function.\n");
+      goto FAIL;
+    }
   }
-  // Location.
-  // TODO Look up the property by name.
-  if (!(function = cnPushPropertyFunction(
-    functions, cnListGet(&itemType->properties, 1)
-  ))) {
-    printf("Failed to push location function.\n");
-    goto FAIL;
-  }
-  // DifferenceLocation
-  if (!cnPushDifferenceFunction(functions, function)) {
-    printf("Failed to push difference location function.\n");
-    goto FAIL;
-  }
-  // DistanceLocation
-  if (!cnPushDistanceFunction(functions, function)) {
-    printf("Failed to push distance location function.\n");
-    goto FAIL;
-  }
-  // Velocity.
-  // TODO Look up the property by name.
-  if (!(function = cnPushPropertyFunction(
-    functions, cnListGet(&itemType->properties, 2)
-  ))) {
-    printf("Failed to push velocity function.\n");
-    goto FAIL;
+  if (cnFalse) {
+    // Velocity.
+    // TODO Look up the property by name.
+    if (!(function = cnPushPropertyFunction(
+      functions, cnListGet(&itemType->properties, 2)
+    ))) {
+      printf("Failed to push velocity function.\n");
+      goto FAIL;
+    }
   }
 
   // We made it!
@@ -202,8 +212,10 @@ cnBool stInitSchemaAndEntityFunctions(
 }
 
 
-cnBool stLearnFallOn(
-  cnList(stState)* states, cnList(cnEntityFunction*)* functions
+cnBool stLearnConcept(
+  cnList(stState)* states,
+  cnList(cnEntityFunction*)* functions,
+  cnBool (*choose)(cnList(stState)* states, cnList(cnBag)* bags)
 ) {
   cnList(cnBag) bags;
   cnRootNode* learnedTree;
@@ -214,7 +226,7 @@ cnBool stLearnFallOn(
 
   // Choose out the states we want to focus on.
   cnListInit(&bags, sizeof(cnBag));
-  if (!stChooseDropWhereLandOnOther(states, &bags)) {
+  if (!choose(states, &bags)) {
     printf("Failed to choose bags.\n");
     goto DISPOSE_BAGS;
   }

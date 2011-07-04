@@ -336,7 +336,7 @@ cnFloat* cnBestPointByScore(
 ) {
   cnFloat* bestPoint = NULL;
   cnFloat bestScore = -HUGE_VAL, score = bestScore;
-  cnCount negBagCount = 0, posBagCount = 0, maxEitherBags = 4;
+  cnCount negBagCount = 0, posBagCount = 0, maxEitherBags = 8;
   cnCount valueCount =
     pointBags->count ? ((cnPointBag*)pointBags->items)->valueCount : 0;
   printf("Score-ish: ");
@@ -550,21 +550,21 @@ cnFloat cnChooseThreshold(
     negAsNoCount = negNoCount + negBothCount;
     yesCount = posAsYesCount + negAsYesCount;
     noCount = posAsNoCount + negAsNoCount;
-    yesProb = posAsYesCount / (cnFloat)yesCount;
-    noProb = posAsNoCount / (cnFloat)noCount;
+    yesProb = yesCount ? posAsYesCount / (cnFloat)yesCount : 0;
+    noProb = noCount ? posAsNoCount / (cnFloat)noCount : 0;
     // Figure out which one really is the max.
     if (yesProb > noProb) {
       // Yes wins the boths. Revert no.
       posAsNoCount -= posBothCount;
       negAsNoCount -= negBothCount;
       noCount = posAsNoCount + negAsNoCount;
-      noProb = posNoCount / (cnFloat)noCount;
+      noProb = noCount ? posAsNoCount / (cnFloat)noCount : 0;
     } else {
       // No wins the boths. Revert yes.
       posAsYesCount -= posBothCount;
       negAsYesCount -= negBothCount;
       yesCount = posAsYesCount + negAsYesCount;
-      yesProb = posYesCount / (cnFloat)yesCount;
+      yesProb = yesCount ? posAsYesCount / (cnFloat)yesCount : 0;
     }
     // Calculate our log metric.
     currentScore = 0;
@@ -726,7 +726,7 @@ cnBool cnLearnSplitModel(cnLearner* learner, cnSplitNode* split) {
   //cnLogPointBags(split, &pointBags);
 
   // We got points. Try to learn something.
-  cnBuildInitialKernel(split->function->outTopology, &pointBags);
+  // cnBuildInitialKernel(split->function->outTopology, &pointBags);
   searchStart =
     //cnBestPointByDiverseDensity(split->function->outTopology, &pointBags);
     cnBestPointByScore(split->function->outTopology, &pointBags);

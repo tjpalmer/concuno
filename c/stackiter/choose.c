@@ -47,7 +47,7 @@ cnBool stAllBagsFalse(cnList(stState)* states, cnList(cnBag)* bags) {
 
 
 cnBool stChooseDropWhereLandOnOther(
-  const cnList(stState)* states, cnList(cnBag)* bags
+  cnList(stState)* states, cnList(cnBag)* bags
 ) {
   cnBool result = cnTrue;
   cnBool formerHadGrasp = cnFalse;
@@ -128,6 +128,56 @@ cnBool stChooseDropWhereLandOnOther(
 }
 
 
+cnBool stChooseWhereNoneMoving(cnList(stState)* states, cnList(cnBag)* bags) {
+  cnFloat epsilon = 1e-2;
+  cnBool result = cnTrue;
+  cnListEachBegin(states, stState, state) {
+    // Every state gets a bag.
+    cnBag* bag;
+    cnBool keep = cnTrue;
+    // Assume bags have none moving by default.
+    cnBool label = cnTrue;
+    // Label based on whether any are moving.
+    cnListEachBegin(&state->items, stItem, item) {
+      cnFloat speed = sqrt(
+        item->velocity[0] * item->velocity[0] +
+        item->velocity[1] * item->velocity[1]
+      );
+      if (item->grasped) {
+        keep = cnFalse;
+        break;
+      }
+      if (item->alive && speed > epsilon) {
+        // Well, this one had moving after all.
+        bag->label = cnFalse;
+        break;
+      }
+      // TODO Check orientation velocity?
+    } cnEnd;
+    if (!keep) {
+      // We don't want this state at all.
+      continue;
+    }
+    // We want it.
+    if (!(bag = cnListExpand(bags))) {
+      printf("Failed to push bag.\n");
+      result = cnFalse;
+      break;
+    }
+    cnBagInit(bag);
+    bag->label = label;
+    // Each bag gets the live items.
+    if (!stPlaceLiveItems(&state->items, &bag->entities)) {
+      printf("Failed to push entities.\n");
+      result = cnFalse;
+      break;
+    }
+  } cnEnd;
+  // All done.
+  return result;
+}
+
+
 cnBool stFindGraspedItems(const stState* state, cnList(stItem*)* items) {
   cnListEachBegin(&state->items, stItem, item) {
     if (item->grasped) {
@@ -166,7 +216,8 @@ cnBool stPlaceLiveItems(
   const cnList(stItem)* items, cnList(stItem*)* entities
 ) {
   cnListEachBegin(items, stItem, item) {
-    if (item->alive) {
+    // Make sure it's alive and not the ground.
+    if (item->alive && item->location[1] >= 0) {
       // Store the address of the item, not a copy.
       // And get a void pointer to it for consistency.
       void* entity = item;

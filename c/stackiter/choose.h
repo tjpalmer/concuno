@@ -17,8 +17,11 @@ cnBool stAllBagsFalse(cnList(stState)* states, cnList(cnBag)* bags);
  * the ground).
  */
 cnBool stChooseDropWhereLandOnOther(
-  const cnList(stState)* states, cnList(cnBag)* bags
+  cnList(stState)* states, cnList(cnBag)* bags
 );
+
+
+cnBool stChooseWhereNoneMoving(cnList(stState)* states, cnList(cnBag)* bags);
 
 
 #endif
