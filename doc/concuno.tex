@@ -1,0 +1,91 @@
+\documentclass[12pt,twoside]{article}
+
+\usepackage{amsmath}
+\usepackage{amstext}
+\usepackage[letterpaper,hmargin={1in,1in},vmargin={1in,1in}]{geometry}
+\usepackage[version=3]{mhchem}
+
+\newcommand{\term}[1]{\emph{#1}}
+\newcommand{\sspre}[3]{\ce{^{\mathit{#2}}_{\mathit{#3}}}\hspace{-1pt}#1}
+
+\title{Concuno Description}
+\author{Thomas J. Palmer}
+
+\begin{document}
+\maketitle
+
+The name comes from the Spanish \term{concu\~no}, meaning the spouse of a
+sibling-in-law. In English, there is no word for this precise relationship, and
+hence the name of this software. Its goal is to discover interesting
+relationships automatically, although with a focus on physical relationships
+rather than symbolic ones. I suspect \term{concu\~no} is best defined in
+terms of other simpler already-symbolic relations, such as what I did above.
+It doesn't fit perfectly, but it was still nice enough.
+
+Also, I changed the \term{\~n} to an \term{n} on purpose. It's hard for me and
+some others to bother going outside 7-bit ASCII characters. And now I'm not
+officially using a real word (that I know of) outright, even if it matches well
+enough for web searches.
+
+Concuno has many concepts founded in the Spatiotemporal Multidimensional
+Relational Framework (\term{SMRF}) of Bodenhamer et al.\ and includes a partial,
+modified implementation of SMRF.
+
+
+\section{Metric on two leaves}
+
+\begin{align*}
+  Y^+ &= \text{\# of positive yes bags (fully \emph{in}side the boundary)} \\
+  N^+ &= \text{\# of positive no bags (fully \emph{out}side the boundary)} \\
+  M^+ &=
+    \text{\# of positive maybe bags (both inside and outside the boundary)} \\
+  Y^-, N^-, M^- &=
+    \text{\# of \term{negative} yes, no, and maybe bags, respectively} \\
+  Y &= Y^+ + Y^- \\
+  N &= N^+ + N^- \\
+  M &= M^+ + M^-
+\end{align*}
+
+\begin{multline}
+  \left(\frac{Y^+ + M^+}{Y + M}\right)^{Y^+ + M^+}
+  \left(1 - \frac{Y^+ + M^+}{Y + M}\right)^{Y^- + M^-}
+  \left(\frac{N^+}{N}\right)^{N^+}
+  \left(1 - \frac{N^+}{N}\right)^{N^-}
+  \stackrel{?}{>} \\
+  \left(\frac{Y^+}{Y}\right)^{Y^+}
+  \left(1 - \frac{Y^+}{Y}\right)^{Y^-}
+  \left(\frac{N^+ + M^+}{N + M}\right)^{N^+ + M^+}
+  \left(1 - \frac{N^+ + M^+}{N + M}\right)^{N^- + M^-}
+\end{multline}
+
+\begin{align*}
+  Y^+ &= \text{\# of positive yes bags (fully \emph{in}side the boundary)} \\
+  N^+ &= \text{\# of positive no bags (fully \emph{out}side the boundary)} \\
+  M^+ &=
+    \text{\# of positive maybe bags (both inside and outside the boundary)} \\
+  Y^-, N^-, M^- &=
+    \text{\# of \term{negative} yes, no, and maybe bags, respectively} \\
+  Y &= Y^+ + Y^- \\
+  N &= N^+ + N^- \\
+  M &= M^+ + M^- \\
+  \sspre{P}{Y}{YM} &= (Y^+ + M^+) / (Y + M) \\
+  \sspre{P}{N}{YM} &= N^+ / N \\
+  \sspre{P}{Y}{NM} &= Y^+ / Y \\
+  \sspre{P}{N}{NM} &= (N^+ + M^+) / (N + M)
+\end{align*}
+
+\begin{multline}
+  \left(\sspre{P}{Y}{YM}\right)^{Y^+ + M^+}
+  \left(1 - \sspre{P}{Y}{YM}\right)^{Y^- + M^-}
+  \left(\sspre{P}{N}{YM}\right)^{N^+}
+  \left(1 - \sspre{P}{N}{YM}\right)^{N^-}
+  \stackrel{?}{>} \\
+  \left(\sspre{P}{Y}{NM}\right)^{Y^+}
+  \left(1 - \sspre{P}{Y}{NM}\right)^{Y^-}
+  \left(\sspre{P}{N}{NM}\right)^{N^+ + M^+}
+  \left(1 - \sspre{P}{N}{NM}\right)^{N^- + M^-}
+\end{multline}
+
+
+
+\end{document}
