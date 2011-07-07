@@ -59,7 +59,7 @@ int main(int argc, char** argv) {
   case 1:
     // Attempt learning the "falls on" predictive concept.
     if (!stLearnConcept(
-      &states, &entityFunctions, stChooseWhereNoneMoving
+      &states, &entityFunctions, stChooseDropWhereLandOnOther
     )) {
       printf("No learned tree.\n");
       goto DROP_FUNCTIONS;
@@ -247,14 +247,9 @@ cnBool stLearnConcept(
   }
   stubTree.entityFunctions = functions;
 
-  // Propagate empty binding bags.
-  if (!cnRootNodePropagateBags(&stubTree, &bags)) {
-    printf("Failed to propagate bags in stub tree.\n");
-    goto DISPOSE_TREE;
-  }
-
   // Learn a tree.
   cnLearnerInit(&learner);
+  learner.bags = &bags;
   // TODO If no stored bindings, we'll need to pass them in here.
   learnedTree = cnLearnTree(&learner, &stubTree);
   if (!learnedTree) {
@@ -271,7 +266,7 @@ cnBool stLearnConcept(
   DISPOSE_LEARNER:
   cnLearnerDispose(&learner);
 
-  DISPOSE_TREE:
+  // DISPOSE_TREE:
   cnNodeDispose(&stubTree.node);
 
   DISPOSE_BAGS:

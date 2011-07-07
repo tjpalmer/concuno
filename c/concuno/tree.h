@@ -102,6 +102,9 @@ struct cnNode {
 
   cnNodeType type;
 
+  /**
+   * We need to find these guys easily across clones, hence the ids to go with.
+   */
   cnIndex id;
 
   cnNode* parent;
@@ -136,7 +139,14 @@ typedef struct cnRootNode {
   cnNode* kid;
 
   /**
-   * To be managed separately from the tree itself.
+   * These are referenced inside the tree because they are necessary for
+   * querying in addition to learning.
+   *
+   * TODO On the other hand, really this all gets abstracted down into the
+   * TODO models in the split nodes. Do these really belong here or better just
+   * TODO in the learner?
+   *
+   * To be managed separately from the tree itself. No disposal here.
    */
   cnList(cnEntityFunction)* entityFunctions;
 

@@ -11,11 +11,28 @@
  */
 typedef struct cnLearner {
   // TODO Learning options go here.
+
+  /**
+   * The training data to be used for learning. It could be subdivided into
+   * separate training and validation data, if needed, but that's managed
+   * internally.
+   *
+   * This should be preshuffled as the caller sees fit.
+   * TODO Handle shuffling internally instead??
+   *
+   * These will not be disposed of with the learner. Outside code needs to take
+   * care of that.
+   */
+  cnList(cnBag)* bags;
+
 } cnLearner;
 
 
 /**
  * Cleans up whatever might be needed.
+ *
+ * For now, it just sets bags to null, so the caller needs to have separate
+ * access to them if they haven't yet done the cleanup.
  */
 void cnLearnerDispose(cnLearner* learner);
 

@@ -701,12 +701,12 @@ cnBool cnExpansionRedundant(
 
 
 void cnLearnerDispose(cnLearner* learner) {
-  // Nothing yet.
+  cnLearnerInit(learner);
 }
 
 
 void cnLearnerInit(cnLearner* learner) {
-  // Nothing yet.
+  learner->bags = NULL;
 }
 
 
@@ -788,12 +788,22 @@ cnBool cnLearnSplitModel(cnLearner* learner, cnSplitNode* split) {
 cnRootNode* cnLearnTree(cnLearner* learner, cnRootNode* initial) {
   cnLeafNode* leaf;
   cnList(cnLeafNode*) leaves;
+  cnFloat initialMetric;
+
+  // Propagate empty binding bags.
+  if (!cnRootNodePropagateBags(initial, learner->bags)) {
+    printf("Failed to propagate bags in stub tree.\n");
+    return NULL;
+  }
+
   // Make sure leaf probs are up to date.
   // TODO Figure out the initial LL and such.
   if (!cnUpdateLeafProbabilities(initial)) {
     printf("Failed to update leaf probabilities.\n");
     return NULL;
   }
+  //initialMetric = cnCalcLogMetric(initial);
+
   /* TODO Loop this section. */ {
     /* Pick a leaf to expand. */ {
       // Get the leaves (over again, yes).
@@ -813,6 +823,7 @@ cnRootNode* cnLearnTree(cnLearner* learner, cnRootNode* initial) {
     }
     return cnTryExpansionsAtLeaf(learner, leaf);
   }
+
 }
 
 
