@@ -1188,43 +1188,35 @@ cnRootNode* cnTryExpansionsAtLeaf(cnLearner* learner, cnLeafNode* leaf) {
 
 
 cnBool cnUpdateLeafProbabilities(cnRootNode* root) {
-  cnBool result = cnTrue;
   cnIndex b;
   cnCount bagCount;
   cnBag* bags;
   cnBool* bagsUsed = NULL;
   cnList(cnLeafNode*) leaves;
-  // TODO Loop around grabbing the max each time, then prune binding bags.
-  // TODO Perhaps loop through bags, assuming same order in all, to speed the
-  // TODO match up.
-  // TODO Faster might be to force the same sorting order on all, giving n log
-  // TODO n, but where all comparison for later loops would be faster. Also
-  // TODO makes fewer assumptions, but I think all the code elsewhere preserves
-  // TODO order anyway.
+  cnBool result = cnFalse;
+
+  // Get list of leaves.
   cnListInit(&leaves, sizeof(cnLeafNode*));
-  if (!cnNodeLeaves(&root->node, &leaves)) {
-    result = cnFalse;
-    goto DONE;
-  }
-  // Init bags used.
+  if (!cnNodeLeaves(&root->node, &leaves)) goto DONE;
+
+  // Init which bags used.
   // Assume the first bag at the root is the first bag in the original array.
   // TODO Organize to better clarify such expectations/constraints!
   bags = ((cnBindingBag*)root->node.bindingBagList->bindingBags.items)->bag;
   bagCount = root->node.bindingBagList->bindingBags.count;
   bagsUsed = malloc(bagCount * sizeof(cnBool));
-  if (!bagsUsed) {
-    result = cnFalse;
-    goto DONE;
-  }
+  if (!bagsUsed) goto DONE;
   for (b = 0; b < bagCount; b++) bagsUsed[b] = cnFalse;
+
   // Loop through the leaves.
   while (leaves.count) {
     cnLeafNode* maxLeaf = NULL;
     cnIndex maxLeafIndex = -1;
     cnFloat maxProb = -1;
     cnCount maxTotal = 0;
+
+    // Count all remaining bags for each leaf.
     cnListEachBegin(&leaves, cnLeafNode*, leaf) {
-      // TODO Find proper assignment for each leaf considering the others.
       cnCount posCount = 0;
       cnCount total = 0;
       cnBindingBagList* bindingBags = (*leaf)->node.bindingBagList;
@@ -1248,9 +1240,13 @@ cnBool cnUpdateLeafProbabilities(cnRootNode* root) {
         maxTotal = total;
       }
     } cnEnd;
-    printf("Leaf with prob: %lf of %ld\n", maxLeaf->probability, maxTotal);
+    printf(
+      "Leaf %ld of %ld with prob: %lf of %ld\n",
+      maxLeafIndex + 1, leaves.count, maxLeaf->probability, maxTotal
+    );
+
+    // Remove the leaf, and mark its bags used.
     cnListRemove(&leaves, maxLeafIndex);
-    // Mark the bags used from the max leaf.
     if (!maxLeaf->node.bindingBagList) continue;
     cnListEachBegin(
       &maxLeaf->node.bindingBagList->bindingBags, cnBindingBag, bindingBag

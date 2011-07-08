@@ -157,7 +157,7 @@ cnBool stInitSchemaAndEntityFunctions(
   cnListInit(functions, sizeof(cnEntityFunction*));
   // TODO Look up the type by name.
   itemType = cnListGet(&schema->types, 1);
-  if (cnTrue) {
+  if (cnFalse) {
     // Color.
     if (!(function = cnPushPropertyFunction(
       functions, cnListGet(&itemType->properties, 0)
