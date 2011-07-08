@@ -1189,6 +1189,10 @@ cnRootNode* cnTryExpansionsAtLeaf(cnLearner* learner, cnLeafNode* leaf) {
 
 cnBool cnUpdateLeafProbabilities(cnRootNode* root) {
   cnBool result = cnTrue;
+  cnIndex b;
+  cnCount bagCount;
+  cnBag* bags;
+  cnBool* bagsUsed = NULL;
   cnList(cnLeafNode*) leaves;
   // TODO Loop around grabbing the max each time, then prune binding bags.
   // TODO Perhaps loop through bags, assuming same order in all, to speed the
@@ -1202,7 +1206,18 @@ cnBool cnUpdateLeafProbabilities(cnRootNode* root) {
     result = cnFalse;
     goto DONE;
   }
-  printf("Found %ld leaves.\n", leaves.count);
+  // Init bags used.
+  // Assume the first bag at the root is the first bag in the original array.
+  // TODO Organize to better clarify such expectations/constraints!
+  bags = ((cnBindingBag*)root->node.bindingBagList->bindingBags.items)->bag;
+  bagCount = root->node.bindingBagList->bindingBags.count;
+  bagsUsed = malloc(bagCount * sizeof(cnBool));
+  if (!bagsUsed) {
+    result = cnFalse;
+    goto DONE;
+  }
+  for (b = 0; b < bagCount; b++) bagsUsed[b] = cnFalse;
+  // Loop through the leaves.
   while (leaves.count) {
     cnLeafNode* maxLeaf = NULL;
     cnIndex maxLeafIndex = -1;
@@ -1213,9 +1228,11 @@ cnBool cnUpdateLeafProbabilities(cnRootNode* root) {
       cnCount total = 0;
       cnBindingBagList* bindingBags = (*leaf)->node.bindingBagList;
       if (bindingBags) {
-        total = bindingBags->bindingBags.count;
         cnListEachBegin(&bindingBags->bindingBags, cnBindingBag, bindingBag) {
-          posCount += bindingBag->bag->label;
+          if (!bagsUsed[bindingBag->bag - bags]) {
+            total++;
+            posCount += bindingBag->bag->label;
+          }
         } cnEnd;
       }
       // Assign optimistic probability, assuming 0 for no evidence.
@@ -1236,102 +1253,19 @@ cnBool cnUpdateLeafProbabilities(cnRootNode* root) {
         maxLeaf->node.bindingBagList->bindingBags.count : 0
     );
     cnListRemove(&leaves, maxLeafIndex);
-    /* Remove same bags from other leaves. */ {
-      // Pointers for walking through bags.
-      cnBindingBag* maxBindingBag = maxLeaf->node.bindingBagList ?
-        maxLeaf->node.bindingBagList->bindingBags.items : NULL;
-      cnBindingBag** otherBindingBags;
-      cnBindingBag** otherBindingBag;
-      cnBindingBag** otherBindingBagsEnd;
-      // There aren't any bindings in the max? Well, move on.
-      if (!maxBindingBag) continue;
-      // Make space for the walking pointers.
-      otherBindingBags = cnStackAlloc(leaves.count * sizeof(cnBindingBag*));
-      if (!otherBindingBags) goto DONE;
-      otherBindingBagsEnd = otherBindingBags + leaves.count;
-      // Init the pointers for each leaf, so we can walk the lists in sync.
-      for (
-        otherBindingBag = otherBindingBags;
-        otherBindingBag < otherBindingBagsEnd;
-        otherBindingBag++
-      ) {
-        cnLeafNode* otherLeaf = *(cnLeafNode**)cnListGet(
-          &leaves, otherBindingBag - otherBindingBags
-        );
-        *otherBindingBag = otherLeaf->node.bindingBagList ?
-          otherLeaf->node.bindingBagList->bindingBags.items : NULL;
-      }
-      // Now sweep across all bags for all leaves in order.
-      cnListEachBegin(
-        &root->node.bindingBagList->bindingBags, cnBindingBag, bindingBag
-      ) {
-        cnBag* bag = bindingBag->bag;
-        // First check for the bag in the max leaf.
-        if (bag == maxBindingBag->bag) {
-          // It's there. Remove it from others.
-          for (
-            otherBindingBag = otherBindingBags;
-            otherBindingBag < otherBindingBagsEnd;
-            otherBindingBag++
-          ) {
-            cnLeafNode* otherLeaf = *(cnLeafNode**)cnListGet(
-              &leaves, otherBindingBag - otherBindingBags
-            );
-            if (
-              *otherBindingBag &&
-              *otherBindingBag < (cnBindingBag*)cnListEnd(
-                &otherLeaf->node.bindingBagList->bindingBags
-              ) &&
-              bag == (*otherBindingBag)->bag
-            ) {
-              // It's a match. Dispose of the binding bag, then remove it.
-              cnBindingBagDispose(*otherBindingBag);
-              cnListRemove(
-                &otherLeaf->node.bindingBagList->bindingBags,
-                *otherBindingBag -
-                  (cnBindingBag*)otherLeaf->node.bindingBagList->
-                    bindingBags.items
-              );
-            }
-          }
-          // Advance the max-leaf bag counter.
-          maxBindingBag++;
-          // And see if we're done.
-          if (
-            maxBindingBag >= (cnBindingBag*)cnListEnd(
-              &maxLeaf->node.bindingBagList->bindingBags
-            )
-          ) break;
-        } else {
-          // It's not in the max. Just advance past it in others.
-          for (
-            otherBindingBag = otherBindingBags;
-            otherBindingBag < otherBindingBagsEnd;
-            otherBindingBag++
-          ) {
-            cnLeafNode* otherLeaf = *(cnLeafNode**)cnListGet(
-              &leaves, otherBindingBag - otherBindingBags
-            );
-            if (
-              *otherBindingBag &&
-              *otherBindingBag < (cnBindingBag*)cnListEnd(
-                &otherLeaf->node.bindingBagList->bindingBags
-              ) &&
-              bag == (*otherBindingBag)->bag
-            ) {
-              // It's a match. Move past it.
-              (*otherBindingBag)++;
-            }
-          }
-        }
-      } cnEnd;
-      cnStackFree(otherBindingBags);
-    }
+    // Mark the bags used from the max leaf.
+    if (!maxLeaf->node.bindingBagList) continue;
+    cnListEachBegin(
+      &maxLeaf->node.bindingBagList->bindingBags, cnBindingBag, bindingBag
+    ) {
+      bagsUsed[bindingBag->bag - bags] = cnTrue;
+    } cnEnd;
   }
   // We finished.
   result = cnTrue;
 
   DONE:
+  free(bagsUsed);
   cnListDispose(&leaves);
   return result;
 }
