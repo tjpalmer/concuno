@@ -149,7 +149,7 @@ cnBool stChooseWhereNoneMoving(cnList(stState)* states, cnList(cnBag)* bags) {
       }
       if (item->alive && speed > epsilon) {
         // Well, this one had moving after all.
-        bag->label = cnFalse;
+        label = cnFalse;
         break;
       }
       // TODO Check orientation velocity?

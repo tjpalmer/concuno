@@ -802,7 +802,8 @@ cnRootNode* cnLearnTree(cnLearner* learner, cnRootNode* initial) {
     printf("Failed to update leaf probabilities.\n");
     return NULL;
   }
-  //initialMetric = cnCalcLogMetric(initial);
+  initialMetric = cnTreeLogMetric(initial, learner->bags);
+  printf("Initial metric: %lg\n", initialMetric);
 
   /* TODO Loop this section. */ {
     /* Pick a leaf to expand. */ {
@@ -1160,16 +1161,21 @@ cnRootNode* cnTryExpansionsAtLeaf(cnLearner* learner, cnLeafNode* leaf) {
 
   // TODO Sort by arity? Or assume priority given by order? Some kind of
   // TODO heuristic?
-  printf("Need to try %ld expansions.\n", expansions.count);
+  printf("Need to try %ld expansions.\n\n", expansions.count);
   cnListEachBegin(&expansions, cnExpansion, expansion) {
+    cnFloat metric;
+
     cnRootNode* expanded = cnExpandedTree(learner, expansion);
-    if (!expanded) {
-      goto DONE;
-    }
+    if (!expanded) goto DONE;
+
     // TODO Evaluate LL to see if it's the best yet. If not ...
     // TODO Consider paired randomization test with validation set for
     // TODO significance test.
+    metric = cnTreeLogMetric(expanded, learner->bags);
+    printf("Expanded tree has metric: %lg\n", metric);
+
     cnNodeDrop(&expanded->node);
+    printf("\n");
   } cnEnd;
 
   DONE:

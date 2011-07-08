@@ -698,6 +698,82 @@ cnNode* cnTreeCopy(cnNode* node) {
 }
 
 
+// TODO Move this to a more general "max leaf per bag" thingum.
+int cnTreeLogMetric_compareLeafProbsDown(const void* a, const void* b) {
+  cnLeafNode* leafA = *(void**)a;
+  cnLeafNode* leafB = *(void**)b;
+  return
+    // Smaller is higher here for downward sort.
+    leafA->probability < leafB->probability ? 1 :
+    leafA->probability == leafB->probability ? 0 :
+    -1;
+}
+
+cnFloat cnTreeLogMetric(cnRootNode* root, cnList(cnBag)* bags) {
+  cnIndex b;
+  cnBool* bagsUsed;
+  cnList(cnLeafNode*) leaves;
+  cnFloat metric;
+
+  // Propagate and gather leaves.
+  // TODO Would be nice just to fill a list with leaf/bindings pairs.
+  cnRootNodePropagateBags(root, bags);
+  cnListInit(&leaves, sizeof(cnLeafNode*));
+  if (!cnNodeLeaves(&root->node, &leaves)) {
+    printf("Failed to gather leaves.\n");
+    return cnNaN();
+  }
+
+  // Prepare space to track which bags have been used up already.
+  // TODO Could be bit-efficient, since bools, but don't stress it.
+  bagsUsed = malloc(bags->count * sizeof(cnBool));
+  if (!bagsUsed) {
+    metric = cnNaN();
+    goto DONE;
+  }
+  // Clear it out manually, fearing bit representations.
+  for (b = 0; b < bags->count; b++) bagsUsed[b] = cnFalse;
+
+  // Sort the leaves down by probability. Not too many leaves, so no worries.
+  qsort(
+    leaves.items, leaves.count, leaves.itemSize,
+    cnTreeLogMetric_compareLeafProbsDown
+  );
+
+  // Loop through leaves from max prob to min, count bags and marking them used
+  // along the way.
+  metric = 0.0;
+  cnListEachBegin(&leaves, cnLeafNode*, leaf) {
+    cnCount negCount = 0;
+    cnCount posCount = 0;
+    cnBindingBagList* bindingBags = (*leaf)->node.bindingBagList;
+    if (!bindingBags) continue;
+    cnListEachBegin(&bindingBags->bindingBags, cnBindingBag, bindingBag) {
+      // TODO This subtraction only works if bags is a list of cnBag and not
+      // TODO cnBag*, because we'd otherwise have no reference point. Should I
+      // TODO consider explicit ids/indices at some point?
+      cnIndex bagIndex = bindingBag->bag - (cnBag*)bags->items;
+      if (bagsUsed[bagIndex]) continue;
+      // Add to the proper count.
+      if (bindingBag->bag->label) {
+        posCount++;
+      } else {
+        negCount++;
+      }
+      bagsUsed[bagIndex] = cnTrue;
+    } cnEnd;
+    // Add to the metric.
+    if (posCount) metric += posCount * log((*leaf)->probability);
+    if (negCount) metric += negCount * log(1 - (*leaf)->probability);
+  } cnEnd;
+
+  DONE:
+  free(bagsUsed);
+  cnListDispose(&leaves);
+  return metric;
+}
+
+
 cnVarNode* cnVarNodeCreate(cnBool addLeaf) {
   cnVarNode* var = malloc(sizeof(cnVarNode));
   if (!var) return cnFalse;

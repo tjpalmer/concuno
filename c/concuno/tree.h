@@ -376,6 +376,9 @@ cnBool cnSplitNodePointBags(cnSplitNode* split, cnList(cnPointBag)* pointBags);
 cnNode* cnTreeCopy(cnNode* node);
 
 
+cnFloat cnTreeLogMetric(cnRootNode* root, cnList(cnBag)* bags);
+
+
 cnVarNode* cnVarNodeCreate(cnBool addLeaf);
 
 
