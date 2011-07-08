@@ -138,18 +138,6 @@ typedef struct cnRootNode {
 
   cnNode* kid;
 
-  /**
-   * These are referenced inside the tree because they are necessary for
-   * querying in addition to learning.
-   *
-   * TODO On the other hand, really this all gets abstracted down into the
-   * TODO models in the split nodes. Do these really belong here or better just
-   * TODO in the learner?
-   *
-   * To be managed separately from the tree itself. No disposal here.
-   */
-  cnList(cnEntityFunction)* entityFunctions;
-
   cnIndex nextId;
 
 } cnRootNode;

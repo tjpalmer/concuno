@@ -707,6 +707,7 @@ void cnLearnerDispose(cnLearner* learner) {
 
 void cnLearnerInit(cnLearner* learner) {
   learner->bags = NULL;
+  learner->entityFunctions = NULL;
 }
 
 
@@ -790,14 +791,15 @@ cnRootNode* cnLearnTree(cnLearner* learner, cnRootNode* initial) {
   cnList(cnLeafNode*) leaves;
   cnFloat initialMetric;
 
+  // TODO Split out training and validation sets.
+
+  // TODO Validation here!
   // Propagate empty binding bags.
   if (!cnRootNodePropagateBags(initial, learner->bags)) {
     printf("Failed to propagate bags in stub tree.\n");
     return NULL;
   }
-
   // Make sure leaf probs are up to date.
-  // TODO Figure out the initial LL and such.
   if (!cnUpdateLeafProbabilities(initial)) {
     printf("Failed to update leaf probabilities.\n");
     return NULL;
@@ -1099,14 +1101,13 @@ cnRootNode* cnTryExpansionsAtLeaf(cnLearner* learner, cnLeafNode* leaf) {
   cnCount minArity = LONG_MAX;
   cnCount minNewVarCount;
   cnCount newVarCount;
-  cnRootNode* root = cnNodeRoot(&leaf->node);
   cnCount varDepth = cnNodeVarDepth(&leaf->node);
 
   // Make a list of expansions. They can then be sorted, etc.
   cnListInit(&expansions, sizeof(cnExpansion));
 
   // Find the min and max arity.
-  cnListEachBegin(root->entityFunctions, cnEntityFunction*, function) {
+  cnListEachBegin(learner->entityFunctions, cnEntityFunction*, function) {
     if ((*function)->inCount < minArity) {
       minArity = (*function)->inCount;
     }
@@ -1131,7 +1132,7 @@ cnRootNode* cnTryExpansionsAtLeaf(cnLearner* learner, cnLeafNode* leaf) {
   for (newVarCount = minNewVarCount; newVarCount <= maxArity; newVarCount++) {
     cnExpansion expansion;
     varDepth++;
-    cnListEachBegin(root->entityFunctions, cnEntityFunction*, function) {
+    cnListEachBegin(learner->entityFunctions, cnEntityFunction*, function) {
       if ((*function)->inCount > varDepth) {
         //printf(
         //  "Need %ld more vars for %s.\n",

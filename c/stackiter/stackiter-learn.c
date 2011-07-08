@@ -245,12 +245,11 @@ cnBool stLearnConcept(
     printf("Failed to init tree.\n");
     goto DISPOSE_BAGS;
   }
-  stubTree.entityFunctions = functions;
 
   // Learn a tree.
   cnLearnerInit(&learner);
   learner.bags = &bags;
-  // TODO If no stored bindings, we'll need to pass them in here.
+  learner.entityFunctions = functions;
   learnedTree = cnLearnTree(&learner, &stubTree);
   if (!learnedTree) {
     goto DISPOSE_LEARNER;

@@ -349,7 +349,6 @@ cnBool cnRootNodeInit(cnRootNode* root, cnBool addLeaf) {
   cnNodeInit(&root->node, cnNodeTypeRoot);
   root->node.id = 0;
   root->kid = NULL;
-  root->entityFunctions = NULL;
   root->nextId = 1;
   if (addLeaf) {
     cnLeafNode* leaf = cnLeafNodeCreate();

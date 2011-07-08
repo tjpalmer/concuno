@@ -25,6 +25,13 @@ typedef struct cnLearner {
    */
   cnList(cnBag)* bags;
 
+  /**
+   * The entity functions to be used during the learning process.
+   *
+   * Managed separately from the learner itself. No disposal here.
+   */
+  cnList(cnEntityFunction)* entityFunctions;
+
 } cnLearner;
 
 
