@@ -1210,6 +1210,7 @@ cnBool cnUpdateLeafProbabilities(cnRootNode* root) {
 
   // Loop through the leaves.
   while (leaves.count) {
+    cnBindingBagList* bindingBags;
     cnLeafNode* maxLeaf = NULL;
     cnIndex maxLeafIndex = -1;
     cnFloat maxProb = -1;
@@ -1219,7 +1220,7 @@ cnBool cnUpdateLeafProbabilities(cnRootNode* root) {
     cnListEachBegin(&leaves, cnLeafNode*, leaf) {
       cnCount posCount = 0;
       cnCount total = 0;
-      cnBindingBagList* bindingBags = (*leaf)->node.bindingBagList;
+      bindingBags = (*leaf)->node.bindingBagList;
       if (bindingBags) {
         cnListEachBegin(&bindingBags->bindingBags, cnBindingBag, bindingBag) {
           if (!bagsUsed[bindingBag->bag - bags]) {
@@ -1247,12 +1248,12 @@ cnBool cnUpdateLeafProbabilities(cnRootNode* root) {
 
     // Remove the leaf, and mark its bags used.
     cnListRemove(&leaves, maxLeafIndex);
-    if (!maxLeaf->node.bindingBagList) continue;
-    cnListEachBegin(
-      &maxLeaf->node.bindingBagList->bindingBags, cnBindingBag, bindingBag
-    ) {
-      bagsUsed[bindingBag->bag - bags] = cnTrue;
-    } cnEnd;
+    bindingBags = maxLeaf->node.bindingBagList;
+    if (bindingBags) {
+      cnListEachBegin(&bindingBags->bindingBags, cnBindingBag, bindingBag) {
+        bagsUsed[bindingBag->bag - bags] = cnTrue;
+      } cnEnd;
+    }
   }
   // We finished.
   result = cnTrue;
