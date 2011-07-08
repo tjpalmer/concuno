@@ -1222,6 +1222,7 @@ cnBool cnUpdateLeafProbabilities(cnRootNode* root) {
     cnLeafNode* maxLeaf = NULL;
     cnIndex maxLeafIndex = -1;
     cnFloat maxProb = -1;
+    cnCount maxTotal = 0;
     cnListEachBegin(&leaves, cnLeafNode*, leaf) {
       // TODO Find proper assignment for each leaf considering the others.
       cnCount posCount = 0;
@@ -1241,17 +1242,13 @@ cnBool cnUpdateLeafProbabilities(cnRootNode* root) {
       if ((*leaf)->probability > maxProb) {
         // Let the highest probability win.
         // TODO Let the highest individual score win? Compare the math on this.
-        maxProb = (*leaf)->probability;
         maxLeaf = *leaf;
         maxLeafIndex = leaf - (cnLeafNode**)leaves.items;
+        maxProb = maxLeaf->probability;
+        maxTotal = total;
       }
     } cnEnd;
-    printf(
-      "Leaf with prob: %lf of %ld\n",
-      maxLeaf->probability,
-      maxLeaf->node.bindingBagList ?
-        maxLeaf->node.bindingBagList->bindingBags.count : 0
-    );
+    printf("Leaf with prob: %lf of %ld\n", maxLeaf->probability, maxTotal);
     cnListRemove(&leaves, maxLeafIndex);
     // Mark the bags used from the max leaf.
     if (!maxLeaf->node.bindingBagList) continue;
