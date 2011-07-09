@@ -1366,6 +1366,64 @@ cnBool cnUpdateLeafProbabilities(cnRootNode* root) {
 }
 
 
+typedef struct cnVerifyImprovement_Stats {
+  cnCount* bootCounts;
+  cnList(cnLeafCount) leafCounts;
+  cnFloat* negProbs;
+  cnFloat* posProbs;
+} cnVerifyImprovement_Stats;
+
+void cnVerifyImprovement_StatsInit(cnVerifyImprovement_Stats* stats) {
+  stats->bootCounts = NULL;
+  cnListInit(&stats->leafCounts, sizeof(cnLeafCount));
+  stats->negProbs = NULL;
+  stats->posProbs = NULL;
+}
+
+void cnVerifyImprovement_StatsDispose(cnVerifyImprovement_Stats* stats) {
+  cnStackFree(stats->bootCounts);
+  cnListDispose(&stats->leafCounts);
+  // Pos comes for free below.
+  cnStackFree(stats->negProbs);
+  // Clean out.
+  cnVerifyImprovement_StatsInit(stats);
+}
+
+cnBool cnVerifyImprovement_StatsPrepare(
+  cnVerifyImprovement_Stats* stats,
+  cnRootNode* tree, cnList(cnBag)* bags, cnCount negCount, cnCount posCount
+) {
+  cnIndex i;
+  cnBool result = cnFalse;
+
+  // Gather up the original counts for each leaf.
+  if (!cnTreeMaxLeafCounts(tree, &stats->leafCounts, bags)) {
+    cnFailTo(DONE, "No counts.");
+  }
+
+  // Prepare place for stats.
+  // Use stack allocation because the number of leaves should be small.
+  stats->negProbs = cnStackAlloc(2 * stats->leafCounts.count * sizeof(cnFloat));
+  stats->bootCounts = cnStackAlloc(stats->leafCounts.count * sizeof(cnCount));
+  if (!(stats->negProbs && stats->bootCounts)) {
+    cnFailTo(DONE, "No previous stats");
+  }
+  // Cheat and use the last half of neg probs for pos.
+  stats->posProbs = stats->negProbs + stats->leafCounts.count;
+
+  // Calculate probabilities.
+  for (i = 0; i < stats->leafCounts.count; i++) {
+    cnLeafCount* count = cnListGet(&stats->leafCounts, i);
+    stats->negProbs[i] = count->negCount / (cnFloat)negCount;
+    stats->posProbs[i] = count->posCount / (cnFloat)posCount;
+  }
+
+  result = cnTrue;
+
+  DONE:
+  return result;
+}
+
 cnBool cnVerifyImprovement(cnLearnerConfig* config, cnRootNode* candidate) {
 
   // I don't know how to randomize across results from different trees.
@@ -1382,37 +1440,53 @@ cnBool cnVerifyImprovement(cnLearnerConfig* config, cnRootNode* candidate) {
   // to use. Then we need to do multinomial sampling on distributions given by
   // the actual arrival of the validation bags at leaves.
   //
+  // By working from a validation set, I avoid the need to correct for degrees
+  // of freedom in the model. Hopefully in the end, this validation set with
+  // bootstrap procedure is more accurate.
+  //
   // TODO Make a general-purpose bootstrap procedure.
 
-  cnCount* candidateLeafCounts;
-  cnFloat* candidateNegLeafProbs;
-  cnFloat* candidatePosLeafProbs;
-  cnCount negPosCounts[2];
+  cnVerifyImprovement_Stats candidateStats;
+  cnIndex i;
+  cnCount negCount = 0;
+  cnCount negPosBootCounts[2];
   cnFloat negPosProbs[] = {0, 0};
-  cnCount* previousLeafCounts;
-  cnFloat* previousNegLeafProbs;
-  cnFloat* previousPosLeafProbs;
+  cnCount posCount = 0;
+  cnVerifyImprovement_Stats previousStats;
+
+  // Inits.
+  cnVerifyImprovement_StatsInit(&candidateStats);
+  cnVerifyImprovement_StatsInit(&previousStats);
 
   // Calculate probabilities of negative vs. positive bags.
   cnListEachBegin(&config->validationBags, cnBag, bag) {
-    negPosProbs[bag->label]++;
+    if (bag->label) {
+      posCount++;
+    } else {
+      negCount++;
+    }
   } cnEnd;
-  negPosProbs[0] /= config->validationBags.count;
-  negPosProbs[1] /= config->validationBags.count;
+  negPosProbs[0] = negCount / (cnFloat)config->validationBags.count;
+  negPosProbs[1] = posCount / (cnFloat)config->validationBags.count;
 
-  // Propagate validation set to both trees.
-  // TODO They likely already have them propagated, so that makes things a bit
-  // TODO less exciting to repeat, but I'm still considering a move to no
-  // TODO binding storage anyway.
-  if (!cnRootNodePropagateBags(config->previous, &config->validationBags)) {
-    cnFailTo(DONE, "No prop.");
-  }
-  if (!cnRootNodePropagateBags(candidate, &config->validationBags)) {
-    cnFailTo(DONE, "No prop.");
-  }
+  // Prepare stats for candidate and previous.
+  if (!cnVerifyImprovement_StatsPrepare(
+    &candidateStats, candidate, &config->validationBags, negCount, posCount
+  )) cnFailTo(DONE, "No stats.");
+  if (!cnVerifyImprovement_StatsPrepare(
+    &previousStats,
+    config->previous, &config->validationBags, negCount, posCount
+  )) cnFailTo(DONE, "No stats.");
 
-  // TODO Bootstrap previous and candidate.
+  // Bootstrap 1000 times. TODO Parameterize the boot repetition.
+  for (i = 0; i < 1000; i++) {
+    // TODO Bootstrap candidate and previous.
+  }
 
   DONE:
+  // Cleanup is safe because of proper init.
+  cnVerifyImprovement_StatsDispose(&candidateStats);
+  cnVerifyImprovement_StatsDispose(&previousStats);
+
   return cnFalse;
 }
