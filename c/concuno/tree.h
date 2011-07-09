@@ -332,6 +332,9 @@ cnCount cnNodeVarDepth(cnNode* node);
 /**
  * Specify whether to add a leaf. That failing is the only reason root node
  * init would fail.
+ *
+ * Even if it fails, it is safe to call dispose of the root after calling this
+ * function.
  */
 cnBool cnRootNodeInit(cnRootNode* root, cnBool addLeaf);
 

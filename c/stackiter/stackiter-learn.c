@@ -221,7 +221,6 @@ cnBool stLearnConcept(
   cnRootNode* learnedTree;
   cnLearner learner;
   cnBool result = cnFalse;
-  cnRootNode stubTree;
   cnCount trueCount;
 
   // Choose out the states we want to focus on.
@@ -240,17 +239,11 @@ cnBool stLearnConcept(
   // TODO Shuffle here copies more than just single pointers.
   cnListShuffle(&bags);
 
-  // Set up the tree.
-  if (!cnRootNodeInit(&stubTree, cnTrue)) {
-    printf("Failed to init tree.\n");
-    goto DISPOSE_BAGS;
-  }
-
   // Learn a tree.
   cnLearnerInit(&learner);
   learner.bags = &bags;
   learner.entityFunctions = functions;
-  learnedTree = cnLearnTree(&learner, &stubTree);
+  learnedTree = cnLearnTree(&learner);
   if (!learnedTree) {
     goto DISPOSE_LEARNER;
   }
@@ -264,9 +257,6 @@ cnBool stLearnConcept(
 
   DISPOSE_LEARNER:
   cnLearnerDispose(&learner);
-
-  // DISPOSE_TREE:
-  cnNodeDispose(&stubTree.node);
 
   DISPOSE_BAGS:
   cnListEachBegin(&bags, cnBag, bag) {

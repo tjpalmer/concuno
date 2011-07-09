@@ -708,6 +708,7 @@ void cnLearnerDispose(cnLearner* learner) {
 void cnLearnerInit(cnLearner* learner) {
   learner->bags = NULL;
   learner->entityFunctions = NULL;
+  learner->initialTree = NULL;
 }
 
 
@@ -786,32 +787,48 @@ cnBool cnLearnSplitModel(cnLearner* learner, cnSplitNode* split) {
 }
 
 
-cnRootNode* cnLearnTree(cnLearner* learner, cnRootNode* initial) {
+cnRootNode* cnLearnTree(cnLearner* learner) {
+  cnBool dropTree = cnFalse;
+  cnRootNode* initialTree;
+  cnFloat initialMetric;
   cnLeafNode* leaf;
   cnList(cnLeafNode*) leaves;
-  cnFloat initialMetric;
+  cnRootNode* result = NULL;
+
+  initialTree = learner->initialTree;
+  if (!initialTree) {
+    // Allocate the root.
+    initialTree = malloc(sizeof(cnRootNode));
+    if (!initialTree) cnFailTo(DONE, "Failed to allocate root.");
+    // We made it, so we need to get rid of it.
+    dropTree = cnTrue;
+    // Set up the tree.
+    if (!cnRootNodeInit(initialTree, cnTrue)) {
+      cnFailTo(DONE, "Failed to init stub tree.");
+    }
+  }
 
   // TODO Split out training and validation sets.
 
   // TODO Validation here!
   // Propagate empty binding bags.
-  if (!cnRootNodePropagateBags(initial, learner->bags)) {
+  if (!cnRootNodePropagateBags(initialTree, learner->bags)) {
     printf("Failed to propagate bags in stub tree.\n");
-    return NULL;
+    goto DONE;
   }
   // Make sure leaf probs are up to date.
-  if (!cnUpdateLeafProbabilities(initial)) {
+  if (!cnUpdateLeafProbabilities(initialTree)) {
     printf("Failed to update leaf probabilities.\n");
-    return NULL;
+    goto DONE;
   }
-  initialMetric = cnTreeLogMetric(initial, learner->bags);
+  initialMetric = cnTreeLogMetric(initialTree, learner->bags);
   printf("Initial metric: %lg\n", initialMetric);
 
   /* TODO Loop this section. */ {
     /* Pick a leaf to expand. */ {
       // Get the leaves (over again, yes).
       cnListInit(&leaves, sizeof(cnLeafNode*));
-      if (!cnNodeLeaves(&initial->node, &leaves)) {
+      if (!cnNodeLeaves(&initialTree->node, &leaves)) {
         printf("Failed to gather leaves.\n");
         return NULL;
       }
@@ -824,9 +841,12 @@ cnRootNode* cnLearnTree(cnLearner* learner, cnRootNode* initial) {
       // Clean up list of leaves.
       cnListDispose(&leaves);
     }
-    return cnTryExpansionsAtLeaf(learner, leaf);
+    result = cnTryExpansionsAtLeaf(learner, leaf);
   }
 
+  DONE:
+  if (dropTree) cnNodeDrop(&initialTree->node);
+  return result;
 }
 
 

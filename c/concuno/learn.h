@@ -32,6 +32,20 @@ typedef struct cnLearner {
    */
   cnList(cnEntityFunction)* entityFunctions;
 
+  /**
+   * The tree to work from for learning.
+   *
+   * TODO If a tree is provided, are there any side effects to it? For now,
+   * TODO maybe at least in the form of bindings?
+   *
+   * If null, instead learn from a stub tree (one with just a root and a leaf
+   * node). Any such tree will be kept internally in the learning algorithm
+   * rather than being exposed here.
+   *
+   * Any tree provided here will _not_ be disposed with the learner.
+   */
+  cnRootNode* initialTree;
+
 } cnLearner;
 
 
@@ -51,16 +65,15 @@ void cnLearnerInit(cnLearner* learner);
 
 
 /**
- * Expands the initial tree as much as possible.
+ * Returns a new tree, expanded as much as possible, although possibly just a
+ * clone of the initial tree, if such a tree is provided.
  *
- * For now, it returns a new tree, as that's not very wasteful compared to
- * everything else going on, and I think it will be easier to do this way.
+ * TODO What's the easiest way to know if it learned something? Check the
+ * TODO number leaves or information in the nodes?
  *
- * There still might be side effects to the initial tree, however.
- *
- * TODO Be more precise about side effects might exist.
+ * TODO Fill a list of trees for beam search purposes?
  */
-cnRootNode* cnLearnTree(cnLearner* learner, cnRootNode* initial);
+cnRootNode* cnLearnTree(cnLearner* learner);
 
 
 #endif

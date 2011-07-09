@@ -72,6 +72,12 @@ typedef struct cnGridAny {
 } cnGridAny;
 
 
+#define cnFailTo(label, message, ...) { \
+  printf(message "\n", ## __VA_ARGS__); \
+  goto label; \
+}
+
+
 /**
  * Faux generics. Use this rather than cnGridAny, when you can.
  */
@@ -121,11 +127,11 @@ void cnListDispose(cnListAny* list);
  * Terminate with cnEnd.
  */
 #define cnListEachBegin(list, Type, i) { \
-    Type* i; \
-    Type* end = cnListEnd(list); \
-    for ( \
-      i = (list)->items; i < end; i = (Type*)(((char*)i) + (list)->itemSize) \
-    )
+  Type* i; \
+  Type* end = cnListEnd(list); \
+  for ( \
+    i = (list)->items; i < end; i = (Type*)(((char*)i) + (list)->itemSize) \
+  )
 
 
 /**
