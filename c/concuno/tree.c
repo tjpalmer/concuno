@@ -716,7 +716,10 @@ cnFloat cnTreeLogMetric(cnRootNode* root, cnList(cnBag)* bags) {
 
   // Propagate and gather leaves.
   // TODO Would be nice just to fill a list with leaf/bindings pairs.
-  cnRootNodePropagateBags(root, bags);
+  if (!cnRootNodePropagateBags(root, bags)) {
+    printf("Failed to propagate bags.\n");
+    return cnNaN();
+  }
   cnListInit(&leaves, sizeof(cnLeafNode*));
   if (!cnNodeLeaves(&root->node, &leaves)) {
     printf("Failed to gather leaves.\n");

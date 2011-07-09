@@ -60,6 +60,24 @@ typedef struct cnExpansion {
 
 
 /**
+ * Under the hood items needed for learning but which don't need exposed at the
+ * API level.
+ */
+typedef struct cnLearnerConfig {
+
+  /**
+   * Need to keep track of the main info, too.
+   */
+  cnLearner* learner;
+
+  cnList(cnBag) trainingBags;
+
+  cnList(cnBag) validationBags;
+
+} cnLearnerConfig;
+
+
+/**
  * Get the best point based on pseudo diverse density.
  *
  * TODO Provide more than one starting point? Or will KS flood fill be best
@@ -148,7 +166,7 @@ void cnSearchFill(
 );
 
 
-cnRootNode* cnTryExpansionsAtLeaf(cnLearner* learner, cnLeafNode* leaf);
+cnRootNode* cnTryExpansionsAtLeaf(cnLearnerConfig* config, cnLeafNode* leaf);
 
 
 /**
@@ -788,12 +806,17 @@ cnBool cnLearnSplitModel(cnLearner* learner, cnSplitNode* split) {
 
 
 cnRootNode* cnLearnTree(cnLearner* learner) {
+  cnLearnerConfig config;
   cnRootNode* initialTree;
   cnFloat initialMetric;
   cnLeafNode* leaf;
   cnList(cnLeafNode*) leaves;
   cnRootNode* result = NULL;
 
+  // Start preparing the learning configuration.
+  config.learner = learner;
+
+  // Create a stub tree, if needed.
   initialTree = learner->initialTree;
   if (!initialTree) {
     // Allocate the root.
@@ -805,18 +828,32 @@ cnRootNode* cnLearnTree(cnLearner* learner) {
     }
   }
 
-  // TODO Split out training and validation sets.
+  // Split out training and validation sets.
+  // TODO Uses 75% for training. Parameterize this?
+  // Abuse lists to point into the middle of the original list.
+  // Training set.
+  cnListInit(&config.trainingBags, learner->bags->itemSize);
+  config.trainingBags.items = learner->bags->items;
+  config.trainingBags.count = 0.75 * learner->bags->count;
+  // Validation set.
+  cnListInit(&config.validationBags, learner->bags->itemSize);
+  config.validationBags.items =
+    cnListGet(learner->bags, config.trainingBags.count);
+  config.validationBags.count =
+    learner->bags->count - config.trainingBags.count;
+  // Failsafe on having data here.
+  if (!config.validationBags.count) cnFailTo(DONE, "No validation bags!");
 
-  // TODO Validation here!
-  // Propagate empty binding bags.
-  if (!cnRootNodePropagateBags(initialTree, learner->bags)) {
-    cnFailTo(DONE, "Failed to propagate bags in stub tree.");
+  // Propagate training bags to find initial probabilities.
+  if (!cnRootNodePropagateBags(initialTree, &config.trainingBags)) {
+    cnFailTo(DONE, "Failed to propagate bags in initial tree.");
   }
   // Make sure leaf probs are up to date.
   if (!cnUpdateLeafProbabilities(initialTree)) {
     cnFailTo(DONE, "Failed to update leaf probabilities.");
   }
-  initialMetric = cnTreeLogMetric(initialTree, learner->bags);
+  // And use our validation bags to see where we actually start.
+  initialMetric = cnTreeLogMetric(initialTree, &config.validationBags);
   printf("Initial metric: %lg\n", initialMetric);
 
   /* TODO Loop this section. */ {
@@ -834,11 +871,13 @@ cnRootNode* cnLearnTree(cnLearner* learner) {
       // Clean up list of leaves.
       cnListDispose(&leaves);
     }
-    result = cnTryExpansionsAtLeaf(learner, leaf);
+    result = cnTryExpansionsAtLeaf(&config, leaf);
   }
 
   DONE:
   if (!learner->initialTree) cnNodeDrop(&initialTree->node);
+  // Don't actually dispose of training and validation lists, since they are
+  // bogus anyway.
   return result;
 }
 
@@ -1107,8 +1146,9 @@ void cnSearchFill(
 }
 
 
-cnRootNode* cnTryExpansionsAtLeaf(cnLearner* learner, cnLeafNode* leaf) {
+cnRootNode* cnTryExpansionsAtLeaf(cnLearnerConfig* config, cnLeafNode* leaf) {
   cnRootNode* bestYet = NULL;
+  cnList(cnEntityFunction)* entityFunctions = config->learner->entityFunctions;
   cnList(cnExpansion) expansions;
   cnCount maxArity = 0;
   cnCount minArity = LONG_MAX;
@@ -1116,11 +1156,18 @@ cnRootNode* cnTryExpansionsAtLeaf(cnLearner* learner, cnLeafNode* leaf) {
   cnCount newVarCount;
   cnCount varDepth = cnNodeVarDepth(&leaf->node);
 
+  // Propagate training bags to get ready for training.
+  if (
+    !cnRootNodePropagateBags(cnNodeRoot(&leaf->node), &config->trainingBags)
+  ) {
+    cnFailTo(DONE, "Failed to propagate training bags.");
+  }
+
   // Make a list of expansions. They can then be sorted, etc.
   cnListInit(&expansions, sizeof(cnExpansion));
 
   // Find the min and max arity.
-  cnListEachBegin(learner->entityFunctions, cnEntityFunction*, function) {
+  cnListEachBegin(entityFunctions, cnEntityFunction*, function) {
     if ((*function)->inCount < minArity) {
       minArity = (*function)->inCount;
     }
@@ -1145,7 +1192,8 @@ cnRootNode* cnTryExpansionsAtLeaf(cnLearner* learner, cnLeafNode* leaf) {
   for (newVarCount = minNewVarCount; newVarCount <= maxArity; newVarCount++) {
     cnExpansion expansion;
     varDepth++;
-    cnListEachBegin(learner->entityFunctions, cnEntityFunction*, function) {
+
+    cnListEachBegin(entityFunctions, cnEntityFunction*, function) {
       if ((*function)->inCount > varDepth) {
         //printf(
         //  "Need %ld more vars for %s.\n",
@@ -1171,6 +1219,10 @@ cnRootNode* cnTryExpansionsAtLeaf(cnLearner* learner, cnLeafNode* leaf) {
         goto DONE;
       }
     } cnEnd;
+
+    // TODO Error check expansions with just two leaves? Or always an error
+    // TODO branch on var nodes? Is it better or worse to ask extra questions
+    // TODO along the way?
   }
 
   // TODO Sort by arity? Or assume priority given by order? Some kind of
@@ -1179,13 +1231,14 @@ cnRootNode* cnTryExpansionsAtLeaf(cnLearner* learner, cnLeafNode* leaf) {
   cnListEachBegin(&expansions, cnExpansion, expansion) {
     cnFloat metric;
 
-    cnRootNode* expanded = cnExpandedTree(learner, expansion);
+    cnRootNode* expanded = cnExpandedTree(config->learner, expansion);
     if (!expanded) goto DONE;
 
+    // Check the metric on the validation set to see how we did.
     // TODO Evaluate LL to see if it's the best yet. If not ...
     // TODO Consider paired randomization test with validation set for
     // TODO significance test.
-    metric = cnTreeLogMetric(expanded, learner->bags);
+    metric = cnTreeLogMetric(expanded, &config->validationBags);
     printf("Expanded tree has metric: %lg\n", metric);
 
     cnNodeDrop(&expanded->node);
