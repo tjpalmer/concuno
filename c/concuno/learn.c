@@ -810,13 +810,11 @@ cnRootNode* cnLearnTree(cnLearner* learner) {
   // TODO Validation here!
   // Propagate empty binding bags.
   if (!cnRootNodePropagateBags(initialTree, learner->bags)) {
-    printf("Failed to propagate bags in stub tree.\n");
-    goto DONE;
+    cnFailTo(DONE, "Failed to propagate bags in stub tree.");
   }
   // Make sure leaf probs are up to date.
   if (!cnUpdateLeafProbabilities(initialTree)) {
-    printf("Failed to update leaf probabilities.\n");
-    goto DONE;
+    cnFailTo(DONE, "Failed to update leaf probabilities.");
   }
   initialMetric = cnTreeLogMetric(initialTree, learner->bags);
   printf("Initial metric: %lg\n", initialMetric);
@@ -826,12 +824,10 @@ cnRootNode* cnLearnTree(cnLearner* learner) {
       // Get the leaves (over again, yes).
       cnListInit(&leaves, sizeof(cnLeafNode*));
       if (!cnNodeLeaves(&initialTree->node, &leaves)) {
-        printf("Failed to gather leaves.\n");
-        return NULL;
+        cnFailTo(DONE, "Failed to gather leaves.");
       }
       if (leaves.count < 1) {
-        printf("No leaves to expand.\n");
-        return NULL;
+        cnFailTo(DONE, "No leaves to expand.");
       }
       // TODO Pick the best leaf instead of the first.
       leaf = *(cnLeafNode**)leaves.items;
