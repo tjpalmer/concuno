@@ -788,7 +788,6 @@ cnBool cnLearnSplitModel(cnLearner* learner, cnSplitNode* split) {
 
 
 cnRootNode* cnLearnTree(cnLearner* learner) {
-  cnBool dropTree = cnFalse;
   cnRootNode* initialTree;
   cnFloat initialMetric;
   cnLeafNode* leaf;
@@ -800,8 +799,6 @@ cnRootNode* cnLearnTree(cnLearner* learner) {
     // Allocate the root.
     initialTree = malloc(sizeof(cnRootNode));
     if (!initialTree) cnFailTo(DONE, "Failed to allocate root.");
-    // We made it, so we need to get rid of it.
-    dropTree = cnTrue;
     // Set up the tree.
     if (!cnRootNodeInit(initialTree, cnTrue)) {
       cnFailTo(DONE, "Failed to init stub tree.");
@@ -845,7 +842,7 @@ cnRootNode* cnLearnTree(cnLearner* learner) {
   }
 
   DONE:
-  if (dropTree) cnNodeDrop(&initialTree->node);
+  if (!learner->initialTree) cnNodeDrop(&initialTree->node);
   return result;
 }
 
