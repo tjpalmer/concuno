@@ -43,9 +43,31 @@ cnBool cnGaussianInit(cnGaussian* gaussian, cnCount dims, cnFloat* mean);
 
 
 /**
- * Calculates the
+ * Calculates the mahalanobis distance from the mean of the gaussian to the
+ * given point.
+ *
+ * TODO Just Euclidean distance so far!!!
  */
 cnFloat cnMahalanobisDistance(cnGaussian* gaussian, cnFloat* point);
+
+
+/**
+ * Generates a sample from the k-outcome multinomal distribution given by n and
+ * k values of p, the probability of each outcome. The results are stored in the
+ * space provided by out, which should have enough space for k counts.
+ *
+ * TODO Random stream state management?
+ */
+void cnMultinomialSample(cnCount k, cnCount* out, cnCount n, cnFloat* p);
+
+
+/**
+ * Generates a sample from a uniform distribution between 0 inclusive and 1
+ * exclusive.
+ *
+ * TODO Random stream state management?
+ */
+cnFloat cnUnitRand();
 
 
 void cnVectorCov(void);

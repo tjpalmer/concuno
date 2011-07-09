@@ -70,6 +70,8 @@ typedef struct cnLearnerConfig {
    */
   cnLearner* learner;
 
+  cnRootNode* previous;
+
   cnList(cnBag) trainingBags;
 
   cnList(cnBag) validationBags;
@@ -173,6 +175,13 @@ cnRootNode* cnTryExpansionsAtLeaf(cnLearnerConfig* config, cnLeafNode* leaf);
  * Updates all the leaf probabilities in the tree.
  */
 cnBool cnUpdateLeafProbabilities(cnRootNode* root);
+
+
+/**
+ * Performs a statistical test to verify that the candidate tree is a
+ * significant improvement over the previous score.
+ */
+cnBool cnVerifyImprovement(cnLearnerConfig* config, cnRootNode* candidate);
 
 
 void cnBuildInitialKernel(cnTopology topology, cnList(cnPointBag)* pointBags) {
@@ -808,7 +817,6 @@ cnBool cnLearnSplitModel(cnLearner* learner, cnSplitNode* split) {
 cnRootNode* cnLearnTree(cnLearner* learner) {
   cnLearnerConfig config;
   cnRootNode* initialTree;
-  cnFloat initialMetric;
   cnLeafNode* leaf;
   cnList(cnLeafNode*) leaves;
   cnRootNode* result = NULL;
@@ -853,9 +861,12 @@ cnRootNode* cnLearnTree(cnLearner* learner) {
     cnFailTo(DONE, "Failed to update leaf probabilities.");
   }
   // And use our validation bags to see where we actually start.
-  initialMetric = cnTreeLogMetric(initialTree, &config.validationBags);
-  printf("Initial metric: %lg\n", initialMetric);
+  printf(
+    "Initial metric: %lg\n",
+    cnTreeLogMetric(initialTree, &config.validationBags)
+  );
 
+  config.previous = initialTree;
   /* TODO Loop this section. */ {
     /* Pick a leaf to expand. */ {
       // Get the leaves (over again, yes).
@@ -872,6 +883,10 @@ cnRootNode* cnLearnTree(cnLearner* learner) {
       cnListDispose(&leaves);
     }
     result = cnTryExpansionsAtLeaf(&config, leaf);
+    // TODO If not null, then update the result and keep looping.
+    // TODO If null, return the most recently learned tree.
+    // TODO If no most recent tree, return null or a clone as indicated in my
+    // TODO other comments?
   }
 
   DONE:
@@ -1147,7 +1162,8 @@ void cnSearchFill(
 
 
 cnRootNode* cnTryExpansionsAtLeaf(cnLearnerConfig* config, cnLeafNode* leaf) {
-  cnRootNode* bestYet = NULL;
+  cnFloat bestScore = -HUGE_VAL;
+  cnRootNode* bestTree = NULL;
   cnList(cnEntityFunction)* entityFunctions = config->learner->entityFunctions;
   cnList(cnExpansion) expansions;
   cnCount maxArity = 0;
@@ -1229,7 +1245,7 @@ cnRootNode* cnTryExpansionsAtLeaf(cnLearnerConfig* config, cnLeafNode* leaf) {
   // TODO heuristic?
   printf("Need to try %ld expansions.\n\n", expansions.count);
   cnListEachBegin(&expansions, cnExpansion, expansion) {
-    cnFloat metric;
+    cnFloat score;
 
     cnRootNode* expanded = cnExpandedTree(config->learner, expansion);
     if (!expanded) goto DONE;
@@ -1238,19 +1254,37 @@ cnRootNode* cnTryExpansionsAtLeaf(cnLearnerConfig* config, cnLeafNode* leaf) {
     // TODO Evaluate LL to see if it's the best yet. If not ...
     // TODO Consider paired randomization test with validation set for
     // TODO significance test.
-    metric = cnTreeLogMetric(expanded, &config->validationBags);
-    printf("Expanded tree has metric: %lg\n", metric);
+    score = cnTreeLogMetric(expanded, &config->validationBags);
+    printf("Expanded tree has metric: %lg\n", score);
+    if (score > bestScore) {
+      // New best!
+      bestScore = score;
+      cnNodeDrop(&bestTree->node);
+      bestTree = expanded;
+    } else {
+      // No good. Dismiss it.
+      // TODO Beam search?
+      // TODO What if multiple bests with insignificant score difference?
+      cnNodeDrop(&expanded->node);
+    }
 
-    cnNodeDrop(&expanded->node);
+    // Blank line in this loop keeps expansions separated and easier to read.
     printf("\n");
   } cnEnd;
+
+  // Significance test!
+  if (bestTree && !cnVerifyImprovement(config, bestTree)) {
+    // The best wasn't good enough.
+    cnNodeDrop(&bestTree->node);
+    bestTree = NULL;
+  }
 
   DONE:
   cnListEachBegin(&expansions, cnExpansion, expansion) {
     free(expansion->varIndices);
   } cnEnd;
   cnListDispose(&expansions);
-  return bestYet;
+  return bestTree;
 }
 
 
@@ -1329,4 +1363,10 @@ cnBool cnUpdateLeafProbabilities(cnRootNode* root) {
   free(bagsUsed);
   cnListDispose(&leaves);
   return result;
+}
+
+
+cnBool cnVerifyImprovement(cnLearnerConfig* config, cnRootNode* candidate) {
+  // TODO Bootstrap previous and candidate.
+  return cnFalse;
 }

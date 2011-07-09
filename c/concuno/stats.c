@@ -78,6 +78,57 @@ cnFloat cnMahalanobisDistance(cnGaussian* gaussian, cnFloat* point) {
 }
 
 
+void cnMultinomialSample(cnCount k, cnCount* out, cnCount n, cnFloat* p) {
+  // TODO Consider Kemp's modal binomial algorithm as seen in Davis, 1993:
+  // TODO "The computer generation of multinomial random variates". This is
+  // TODO also the technique used by the GNU Scientific Library, from which I
+  // TODO got the reference.
+  // TODO
+  // TODO The summary is to generate k binomial variables then convert these
+  // TODO into a multinomial sample. Generating a binomial should take only
+  // TODO O(log n), instead of O(n) for naive multinomial sampling. One sample
+  // TODO from a binomial can be done with binary search on the CDF.
+
+  cnIndex i;
+
+  // TODO Assert that p sums to 1?
+
+  // Zero out the counts.
+  for (i = 0; i < k; i++) {
+    out[i] = 0;
+  }
+
+  // Select n samples.
+  for (i = 0; i < n; i++) {
+    cnIndex outcome;
+    cnFloat sample = cnUnitRand();
+    cnFloat sum = 0;
+    // Another option is to precompute a CDF instead of summing each time, but
+    // eh.
+    for (outcome = 0; outcome < k; outcome++) {
+      sum += p[outcome];
+      if (sample <= sum) {
+        break;
+      }
+    }
+    // Just a failsafe on outcome, in case oddities happened.
+    if (outcome == k) outcome--;
+    // Add the sample.
+    out[outcome]++;
+  }
+}
+
+
+cnFloat cnUnitRand() {
+  // TODO This is a horrible implementation right now. Do much improvement!
+  cnCount value = rand();
+  // Despite the abuse, subtract 1 instead of adding to RAND_MAX, in case
+  // RAND_MAX is already at the cap before rollover.
+  if (value == RAND_MAX) value--;
+  return value / (cnFloat)RAND_MAX;
+}
+
+
 void cnVectorCov(void) {
   // TODO
   //cblas_dgemm(
