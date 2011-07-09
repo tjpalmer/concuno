@@ -1367,6 +1367,52 @@ cnBool cnUpdateLeafProbabilities(cnRootNode* root) {
 
 
 cnBool cnVerifyImprovement(cnLearnerConfig* config, cnRootNode* candidate) {
+
+  // I don't know how to randomize across results from different trees.
+  // Different probability assignments are possible.
+  //
+  // Instead, just bootstrap from each, and compare to see how often the
+  // candidate wins. Note that for efficiency, we could keep around the
+  // bootstrapped samples for the previous, but to simplify, just stick with
+  // this for now.
+  //
+  // Also, for sampling efficiency here, instead of really sampling from the
+  // validation set, just create multinomial distributions which should effect
+  // the same result. We first need to decide how many positives and negatives
+  // to use. Then we need to do multinomial sampling on distributions given by
+  // the actual arrival of the validation bags at leaves.
+  //
+  // TODO Make a general-purpose bootstrap procedure.
+
+  cnCount* candidateLeafCounts;
+  cnFloat* candidateNegLeafProbs;
+  cnFloat* candidatePosLeafProbs;
+  cnCount negPosCounts[2];
+  cnFloat negPosProbs[] = {0, 0};
+  cnCount* previousLeafCounts;
+  cnFloat* previousNegLeafProbs;
+  cnFloat* previousPosLeafProbs;
+
+  // Calculate probabilities of negative vs. positive bags.
+  cnListEachBegin(&config->validationBags, cnBag, bag) {
+    negPosProbs[bag->label]++;
+  } cnEnd;
+  negPosProbs[0] /= config->validationBags.count;
+  negPosProbs[1] /= config->validationBags.count;
+
+  // Propagate validation set to both trees.
+  // TODO They likely already have them propagated, so that makes things a bit
+  // TODO less exciting to repeat, but I'm still considering a move to no
+  // TODO binding storage anyway.
+  if (!cnRootNodePropagateBags(config->previous, &config->validationBags)) {
+    cnFailTo(DONE, "No prop.");
+  }
+  if (!cnRootNodePropagateBags(candidate, &config->validationBags)) {
+    cnFailTo(DONE, "No prop.");
+  }
+
   // TODO Bootstrap previous and candidate.
+
+  DONE:
   return cnFalse;
 }

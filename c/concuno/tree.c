@@ -697,8 +697,33 @@ cnNode* cnTreeCopy(cnNode* node) {
 }
 
 
-// TODO Move this to a more general "max leaf per bag" thingum.
-int cnTreeLogMetric_compareLeafProbsDown(const void* a, const void* b) {
+cnFloat cnTreeLogMetric(cnRootNode* root, cnList(cnBag)* bags) {
+  cnList(cnLeafCount) counts;
+  cnFloat metric = cnNaN();
+  cnListInit(&counts, sizeof(cnLeafCount));
+
+  // Count positives and negatives in each leaf.
+  if (!cnTreeMaxLeafCounts(root, &counts, bags)) cnFailTo(DONE, "No counts.");
+
+  // Calculate the score.
+  metric = 0.0;
+  cnListEachBegin(&counts, cnLeafCount, count) {
+    // Add to the metric.
+    if (count->posCount) {
+      metric += count->posCount * log(count->leaf->probability);
+    }
+    if (count->negCount) {
+      metric += count->negCount * log(1 - count->leaf->probability);
+    }
+  } cnEnd;
+
+  DONE:
+  cnListDispose(&counts);
+  return metric;
+}
+
+
+int cnNodeMaxLeafCounts_compareLeafProbsDown(const void* a, const void* b) {
   cnLeafNode* leafA = *(void**)a;
   cnLeafNode* leafB = *(void**)b;
   return
@@ -708,71 +733,74 @@ int cnTreeLogMetric_compareLeafProbsDown(const void* a, const void* b) {
     -1;
 }
 
-cnFloat cnTreeLogMetric(cnRootNode* root, cnList(cnBag)* bags) {
+cnBool cnTreeMaxLeafCounts(
+  cnRootNode* root, cnList(cnLeafCount)* counts, cnList(cnBag)* bags
+) {
   cnIndex b;
-  cnBool* bagsUsed;
+  cnBool* bagsUsed = NULL;
   cnList(cnLeafNode*) leaves;
-  cnFloat metric;
+  cnBool result = cnFalse;
 
-  // Propagate and gather leaves.
-  // TODO Would be nice just to fill a list with leaf/bindings pairs.
-  if (!cnRootNodePropagateBags(root, bags)) {
-    printf("Failed to propagate bags.\n");
-    return cnNaN();
-  }
+  // First propagate bags, and gather leaves.
+  // TODO Bindings out of leaves, then extra function to get the lists.
+  if (!cnRootNodePropagateBags(root, bags)) cnFailTo(DONE, "No propagate.");
   cnListInit(&leaves, sizeof(cnLeafNode*));
   if (!cnNodeLeaves(&root->node, &leaves)) {
-    printf("Failed to gather leaves.\n");
-    return cnNaN();
+    cnFailTo(DONE, "Failed to gather leaves.");
+  }
+
+  // Prepare space for counts at one go for efficiency.
+  cnListClear(counts);
+  if (!cnListExpandMulti(counts, leaves.count)) {
+    cnFailTo(DONE, "No space for counts.");
   }
 
   // Prepare space to track which bags have been used up already.
   // TODO Could be bit-efficient, since bools, but don't stress it.
   bagsUsed = malloc(bags->count * sizeof(cnBool));
-  if (!bagsUsed) {
-    metric = cnNaN();
-    goto DONE;
-  }
+  if (!bagsUsed) cnFailTo(DONE, "No used tracking.");
   // Clear it out manually, fearing bit representations.
   for (b = 0; b < bags->count; b++) bagsUsed[b] = cnFalse;
 
   // Sort the leaves down by probability. Not too many leaves, so no worries.
   qsort(
     leaves.items, leaves.count, leaves.itemSize,
-    cnTreeLogMetric_compareLeafProbsDown
+    cnNodeMaxLeafCounts_compareLeafProbsDown
   );
 
   // Loop through leaves from max prob to min, count bags and marking them used
   // along the way.
-  metric = 0.0;
   cnListEachBegin(&leaves, cnLeafNode*, leaf) {
-    cnCount negCount = 0;
-    cnCount posCount = 0;
     cnBindingBagList* bindingBags = (*leaf)->node.bindingBagList;
+    // Init the count.
+    cnLeafCount* count = cnListGet(counts, leaf - (cnLeafNode**)leaves.items);
+    count->leaf = *leaf;
+    count->negCount = 0;
+    count->posCount = 0;
+    // Loop through bags, if any.
     if (!bindingBags) continue;
     cnListEachBegin(&bindingBags->bindingBags, cnBindingBag, bindingBag) {
-      // TODO This subtraction only works if bags is a list of cnBag and not
+      // TODO This subtraction only works if bags is an array of cnBag and not
       // TODO cnBag*, because we'd otherwise have no reference point. Should I
       // TODO consider explicit ids/indices at some point?
       cnIndex bagIndex = bindingBag->bag - (cnBag*)bags->items;
       if (bagsUsed[bagIndex]) continue;
       // Add to the proper count.
       if (bindingBag->bag->label) {
-        posCount++;
+        count->posCount++;
       } else {
-        negCount++;
+        count->negCount++;
       }
       bagsUsed[bagIndex] = cnTrue;
     } cnEnd;
-    // Add to the metric.
-    if (posCount) metric += posCount * log((*leaf)->probability);
-    if (negCount) metric += negCount * log(1 - (*leaf)->probability);
   } cnEnd;
+  // All done!
+  result = cnTrue;
 
   DONE:
   free(bagsUsed);
   cnListDispose(&leaves);
-  return metric;
+  return result;
 }
 
 

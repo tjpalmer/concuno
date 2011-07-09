@@ -193,6 +193,25 @@ typedef struct cnVarNode {
 
 
 /**
+ * A simple way of tracking the number of positive and negative bags assigned to
+ * each leaf, such that calculating the overall score is easier. We have a
+ * variety of ways in which we want to produce such counts.
+ *
+ * TODO Better even just to state the probability at the leaf instead of a link
+ * TODO to the leaf itself? The link is a double-edged sword.
+ */
+typedef struct cnLeafCount {
+
+  cnLeafNode* leaf;
+
+  cnCount negCount;
+
+  cnCount posCount;
+
+} cnLeafCount;
+
+
+/**
  * Disposes of the bindings but not the entities nor the bag.
  */
 void cnBindingBagDispose(cnBindingBag* bindingBag);
@@ -368,6 +387,18 @@ cnNode* cnTreeCopy(cnNode* node);
 
 
 cnFloat cnTreeLogMetric(cnRootNode* root, cnList(cnBag)* bags);
+
+
+/**
+ * Count the number of positive and negative bags assigned as the max for each
+ * leaf. This means that the bag only counts for the leaf with max probability
+ * for all the bindings for that bag.
+ *
+ * No guarantee is made on the order of the counts coming out.
+ */
+cnBool cnTreeMaxLeafCounts(
+  cnRootNode* root, cnList(cnLeafCount)* counts, cnList(cnBag)* bags
+);
 
 
 cnVarNode* cnVarNodeCreate(cnBool addLeaf);
