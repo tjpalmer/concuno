@@ -180,8 +180,12 @@ cnBool cnUpdateLeafProbabilities(cnRootNode* root);
 /**
  * Performs a statistical test to verify that the candidate tree is a
  * significant improvement over the previous score.
+ *
+ * Returns true for non-error. The test result comes through the result param.
  */
-cnBool cnVerifyImprovement(cnLearnerConfig* config, cnRootNode* candidate);
+cnBool cnVerifyImprovement(
+  cnLearnerConfig* config, cnRootNode* candidate, cnBool* result
+);
 
 
 void cnBuildInitialKernel(cnTopology topology, cnList(cnPointBag)* pointBags) {
@@ -837,12 +841,12 @@ cnRootNode* cnLearnTree(cnLearner* learner) {
   }
 
   // Split out training and validation sets.
-  // TODO Uses 75% for training. Parameterize this?
+  // TODO Uses 2/3 for training. Parameterize this?
   // Abuse lists to point into the middle of the original list.
   // Training set.
   cnListInit(&config.trainingBags, learner->bags->itemSize);
   config.trainingBags.items = learner->bags->items;
-  config.trainingBags.count = 0.75 * learner->bags->count;
+  config.trainingBags.count = learner->bags->count * (2 / 3.0);
   // Validation set.
   cnListInit(&config.validationBags, learner->bags->itemSize);
   config.validationBags.items =
@@ -1273,10 +1277,16 @@ cnRootNode* cnTryExpansionsAtLeaf(cnLearnerConfig* config, cnLeafNode* leaf) {
   } cnEnd;
 
   // Significance test!
-  if (bestTree && !cnVerifyImprovement(config, bestTree)) {
-    // The best wasn't good enough.
-    cnNodeDrop(&bestTree->node);
-    bestTree = NULL;
+  if (bestTree) {
+    cnBool result;
+    if (!cnVerifyImprovement(config, bestTree, &result)) {
+      cnFailTo(DONE, "Failed to accomplish verification.");
+    }
+    if (!result) {
+      // The best wasn't good enough.
+      cnNodeDrop(&bestTree->node);
+      bestTree = NULL;
+    }
   }
 
   DONE:
@@ -1373,6 +1383,40 @@ typedef struct cnVerifyImprovement_Stats {
   cnFloat* posProbs;
 } cnVerifyImprovement_Stats;
 
+cnFloat cnVerifyImprovement_BootScore(
+  cnVerifyImprovement_Stats* stats, cnCount count, cnFloat* negPosProbs
+) {
+  cnCount negPosBootCounts[2];
+
+  // Generate how many negatives and positives.
+  cnMultinomialSample(2, negPosBootCounts, count, negPosProbs);
+
+  // Generate the negative distribution.
+  cnMultinomialSample(
+    stats->leafCounts.count, stats->bootCounts,
+    negPosBootCounts[0], stats->negProbs
+  );
+  // Overwrite the original leaf counts.
+  cnListEachBegin(&stats->leafCounts, cnLeafCount, count) {
+    cnIndex i = count - (cnLeafCount*)stats->leafCounts.items;
+    count->negCount = stats->bootCounts[i];
+  } cnEnd;
+
+  // Generate the positive distribution.
+  cnMultinomialSample(
+    stats->leafCounts.count, stats->bootCounts,
+    negPosBootCounts[1], stats->posProbs
+  );
+  // Overwrite the original leaf counts.
+  cnListEachBegin(&stats->leafCounts, cnLeafCount, count) {
+    cnIndex i = count - (cnLeafCount*)stats->leafCounts.items;
+    count->posCount = stats->bootCounts[i];
+  } cnEnd;
+
+  // And get the metric from there.
+  return cnCountsLogMetric(&stats->leafCounts);
+}
+
 void cnVerifyImprovement_StatsInit(cnVerifyImprovement_Stats* stats) {
   stats->bootCounts = NULL;
   cnListInit(&stats->leafCounts, sizeof(cnLeafCount));
@@ -1381,10 +1425,10 @@ void cnVerifyImprovement_StatsInit(cnVerifyImprovement_Stats* stats) {
 }
 
 void cnVerifyImprovement_StatsDispose(cnVerifyImprovement_Stats* stats) {
-  cnStackFree(stats->bootCounts);
+  free(stats->bootCounts);
   cnListDispose(&stats->leafCounts);
   // Pos comes for free below.
-  cnStackFree(stats->negProbs);
+  free(stats->negProbs);
   // Clean out.
   cnVerifyImprovement_StatsInit(stats);
 }
@@ -1402,9 +1446,8 @@ cnBool cnVerifyImprovement_StatsPrepare(
   }
 
   // Prepare place for stats.
-  // Use stack allocation because the number of leaves should be small.
-  stats->negProbs = cnStackAlloc(2 * stats->leafCounts.count * sizeof(cnFloat));
-  stats->bootCounts = cnStackAlloc(stats->leafCounts.count * sizeof(cnCount));
+  stats->negProbs = malloc(2 * stats->leafCounts.count * sizeof(cnFloat));
+  stats->bootCounts = malloc(stats->leafCounts.count * sizeof(cnCount));
   if (!(stats->negProbs && stats->bootCounts)) {
     cnFailTo(DONE, "No previous stats");
   }
@@ -1424,7 +1467,9 @@ cnBool cnVerifyImprovement_StatsPrepare(
   return result;
 }
 
-cnBool cnVerifyImprovement(cnLearnerConfig* config, cnRootNode* candidate) {
+cnBool cnVerifyImprovement(
+  cnLearnerConfig* config, cnRootNode* candidate, cnBool* result
+) {
 
   // I don't know how to randomize across results from different trees.
   // Different probability assignments are possible.
@@ -1446,13 +1491,17 @@ cnBool cnVerifyImprovement(cnLearnerConfig* config, cnRootNode* candidate) {
   //
   // TODO Make a general-purpose bootstrap procedure.
 
+  // TODO Parameterize the boot repetition.
+  cnCount bootRepeatCount = 1000;
+  cnCount candidateWinCounts = 0;
   cnVerifyImprovement_Stats candidateStats;
   cnIndex i;
   cnCount negCount = 0;
-  cnCount negPosBootCounts[2];
   cnFloat negPosProbs[] = {0, 0};
+  cnBool okay = cnFalse;
   cnCount posCount = 0;
   cnVerifyImprovement_Stats previousStats;
+  cnFloat pValue;
 
   // Inits.
   cnVerifyImprovement_StatsInit(&candidateStats);
@@ -1470,23 +1519,40 @@ cnBool cnVerifyImprovement(cnLearnerConfig* config, cnRootNode* candidate) {
   negPosProbs[1] = posCount / (cnFloat)config->validationBags.count;
 
   // Prepare stats for candidate and previous.
+  printf("Candidate:\n");
   if (!cnVerifyImprovement_StatsPrepare(
-    &candidateStats, candidate, &config->validationBags, negCount, posCount
+    &candidateStats, candidate,
+    &config->validationBags, negCount, posCount
   )) cnFailTo(DONE, "No stats.");
+  printf("Previous:\n");
   if (!cnVerifyImprovement_StatsPrepare(
-    &previousStats,
-    config->previous, &config->validationBags, negCount, posCount
+    &previousStats, config->previous,
+    &config->validationBags, negCount, posCount
   )) cnFailTo(DONE, "No stats.");
 
-  // Bootstrap 1000 times. TODO Parameterize the boot repetition.
-  for (i = 0; i < 1000; i++) {
-    // TODO Bootstrap candidate and previous.
+  // Run the bootstrap.
+  for (i = 0; i < bootRepeatCount; i++) {
+    // Bootstrap each.
+    cnFloat candidateScore = cnVerifyImprovement_BootScore(
+      &candidateStats, config->validationBags.count, negPosProbs
+    );
+    cnFloat previousScore = cnVerifyImprovement_BootScore(
+      &previousStats, config->validationBags.count, negPosProbs
+    );
+    candidateWinCounts += candidateScore > previousScore;
   }
+  pValue = 1 - (candidateWinCounts / (cnFloat)bootRepeatCount);
+  printf("Bootstrap p-value: %lg\n", pValue);
+  // TODO Parameterize significance, especially in light of Bonferroni or Sidak
+  // TODO correction.
+  *result = pValue < 0.05;
+  okay = cnTrue;
 
   DONE:
   // Cleanup is safe because of proper init.
   cnVerifyImprovement_StatsDispose(&candidateStats);
   cnVerifyImprovement_StatsDispose(&previousStats);
 
-  return cnFalse;
+  return okay;
 }
+

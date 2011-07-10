@@ -261,6 +261,12 @@ cnBool cnBindingBagListPushBags(
 cnBool cnBindingValid(cnCount entityCount, void** entities);
 
 
+/**
+ * Calculate the score directly from a list of counts of max bags at leaves.
+ */
+cnFloat cnCountsLogMetric(cnList(cnLeafCount)* counts);
+
+
 cnLeafNode* cnLeafNodeCreate(void);
 
 

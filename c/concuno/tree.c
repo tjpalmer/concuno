@@ -108,6 +108,21 @@ cnBool cnBindingValid(cnCount entityCount, void** entities) {
 }
 
 
+cnFloat cnCountsLogMetric(cnList(cnLeafCount)* counts) {
+  cnFloat score = 0;
+  cnListEachBegin(counts, cnLeafCount, count) {
+    // Add to the metric.
+    if (count->posCount) {
+      score += count->posCount * log(count->leaf->probability);
+    }
+    if (count->negCount) {
+      score += count->negCount * log(1 - count->leaf->probability);
+    }
+  } cnEnd;
+  return score;
+}
+
+
 void cnLeafNodeDispose(cnLeafNode* node) {
   cnLeafNodeInit(node);
 }
@@ -699,27 +714,17 @@ cnNode* cnTreeCopy(cnNode* node) {
 
 cnFloat cnTreeLogMetric(cnRootNode* root, cnList(cnBag)* bags) {
   cnList(cnLeafCount) counts;
-  cnFloat metric = cnNaN();
+  cnFloat score = cnNaN();
   cnListInit(&counts, sizeof(cnLeafCount));
 
   // Count positives and negatives in each leaf.
   if (!cnTreeMaxLeafCounts(root, &counts, bags)) cnFailTo(DONE, "No counts.");
-
   // Calculate the score.
-  metric = 0.0;
-  cnListEachBegin(&counts, cnLeafCount, count) {
-    // Add to the metric.
-    if (count->posCount) {
-      metric += count->posCount * log(count->leaf->probability);
-    }
-    if (count->negCount) {
-      metric += count->negCount * log(1 - count->leaf->probability);
-    }
-  } cnEnd;
+  score = cnCountsLogMetric(&counts);
 
   DONE:
   cnListDispose(&counts);
-  return metric;
+  return score;
 }
 
 
