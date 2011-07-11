@@ -249,7 +249,8 @@ cnCount cnNodeKidCount(cnNode* node) {
 
 cnBool cnNodeLeaves(cnNode* node, cnList(cnLeafNode*)* leaves) {
   cnCount count = cnNodeKidCount(node);
-  cnNode **kid = cnNodeKids(node), **end = kid + count;
+  cnNode** kid = cnNodeKids(node);
+  cnNode** end = kid + count;
   for (; kid < end; kid++) {
     if ((*kid)->type == cnNodeTypeLeaf) {
       if (!cnListPush(leaves, kid)) {
