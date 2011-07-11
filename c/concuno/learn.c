@@ -1379,38 +1379,23 @@ cnBool cnUpdateLeafProbabilities(cnRootNode* root) {
 typedef struct cnVerifyImprovement_Stats {
   cnCount* bootCounts;
   cnList(cnLeafCount) leafCounts;
-  cnFloat* negProbs;
-  cnFloat* posProbs;
+  cnFloat* probs;
 } cnVerifyImprovement_Stats;
 
 cnFloat cnVerifyImprovement_BootScore(
-  cnVerifyImprovement_Stats* stats, cnCount count, cnFloat* negPosProbs
+  cnVerifyImprovement_Stats* stats, cnCount count
 ) {
-  cnCount negPosBootCounts[2];
-
-  // Generate how many negatives and positives.
-  cnMultinomialSample(2, negPosBootCounts, count, negPosProbs);
-
   // Generate the negative distribution.
   cnMultinomialSample(
-    stats->leafCounts.count, stats->bootCounts,
-    negPosBootCounts[0], stats->negProbs
+    2 * stats->leafCounts.count, stats->bootCounts, count, stats->probs
   );
-  // Overwrite the original leaf counts.
-  cnListEachBegin(&stats->leafCounts, cnLeafCount, count) {
-    cnIndex i = count - (cnLeafCount*)stats->leafCounts.items;
-    count->negCount = stats->bootCounts[i];
-  } cnEnd;
 
-  // Generate the positive distribution.
-  cnMultinomialSample(
-    stats->leafCounts.count, stats->bootCounts,
-    negPosBootCounts[1], stats->posProbs
-  );
   // Overwrite the original leaf counts.
   cnListEachBegin(&stats->leafCounts, cnLeafCount, count) {
     cnIndex i = count - (cnLeafCount*)stats->leafCounts.items;
-    count->posCount = stats->bootCounts[i];
+    // Neg first, then pos.
+    count->negCount = stats->bootCounts[2 * i];
+    count->posCount = stats->bootCounts[2 * i + 1];
   } cnEnd;
 
   // And get the metric from there.
@@ -1420,22 +1405,19 @@ cnFloat cnVerifyImprovement_BootScore(
 void cnVerifyImprovement_StatsInit(cnVerifyImprovement_Stats* stats) {
   stats->bootCounts = NULL;
   cnListInit(&stats->leafCounts, sizeof(cnLeafCount));
-  stats->negProbs = NULL;
-  stats->posProbs = NULL;
+  stats->probs = NULL;
 }
 
 void cnVerifyImprovement_StatsDispose(cnVerifyImprovement_Stats* stats) {
   free(stats->bootCounts);
   cnListDispose(&stats->leafCounts);
-  // Pos comes for free below.
-  free(stats->negProbs);
+  free(stats->probs);
   // Clean out.
   cnVerifyImprovement_StatsInit(stats);
 }
 
 cnBool cnVerifyImprovement_StatsPrepare(
-  cnVerifyImprovement_Stats* stats,
-  cnRootNode* tree, cnList(cnBag)* bags, cnCount negCount, cnCount posCount
+  cnVerifyImprovement_Stats* stats, cnRootNode* tree, cnList(cnBag)* bags
 ) {
   cnIndex i;
   cnBool result = cnFalse;
@@ -1446,19 +1428,18 @@ cnBool cnVerifyImprovement_StatsPrepare(
   }
 
   // Prepare place for stats.
-  stats->negProbs = malloc(2 * stats->leafCounts.count * sizeof(cnFloat));
-  stats->bootCounts = malloc(stats->leafCounts.count * sizeof(cnCount));
-  if (!(stats->negProbs && stats->bootCounts)) {
-    cnFailTo(DONE, "No previous stats");
+  stats->probs = malloc(2 * stats->leafCounts.count * sizeof(cnFloat));
+  stats->bootCounts = malloc(2 * stats->leafCounts.count * sizeof(cnCount));
+  if (!(stats->probs && stats->bootCounts)) {
+    cnFailTo(DONE, "No stats allocated.");
   }
-  // Cheat and use the last half of neg probs for pos.
-  stats->posProbs = stats->negProbs + stats->leafCounts.count;
 
   // Calculate probabilities.
   for (i = 0; i < stats->leafCounts.count; i++) {
     cnLeafCount* count = cnListGet(&stats->leafCounts, i);
-    stats->negProbs[i] = count->negCount / (cnFloat)negCount;
-    stats->posProbs[i] = count->posCount / (cnFloat)posCount;
+    // Neg first, then pos.
+    stats->probs[2 * i] = count->negCount / (cnFloat)bags->count;
+    stats->probs[2 * i + 1] = count->posCount / (cnFloat)bags->count;
   }
 
   result = cnTrue;
@@ -1496,10 +1477,7 @@ cnBool cnVerifyImprovement(
   cnCount candidateWinCounts = 0;
   cnVerifyImprovement_Stats candidateStats;
   cnIndex i;
-  cnCount negCount = 0;
-  cnFloat negPosProbs[] = {0, 0};
   cnBool okay = cnFalse;
-  cnCount posCount = 0;
   cnVerifyImprovement_Stats previousStats;
   cnFloat pValue;
 
@@ -1507,37 +1485,24 @@ cnBool cnVerifyImprovement(
   cnVerifyImprovement_StatsInit(&candidateStats);
   cnVerifyImprovement_StatsInit(&previousStats);
 
-  // Calculate probabilities of negative vs. positive bags.
-  cnListEachBegin(&config->validationBags, cnBag, bag) {
-    if (bag->label) {
-      posCount++;
-    } else {
-      negCount++;
-    }
-  } cnEnd;
-  negPosProbs[0] = negCount / (cnFloat)config->validationBags.count;
-  negPosProbs[1] = posCount / (cnFloat)config->validationBags.count;
-
   // Prepare stats for candidate and previous.
   printf("Candidate:\n");
   if (!cnVerifyImprovement_StatsPrepare(
-    &candidateStats, candidate,
-    &config->validationBags, negCount, posCount
+    &candidateStats, candidate, &config->validationBags
   )) cnFailTo(DONE, "No stats.");
   printf("Previous:\n");
   if (!cnVerifyImprovement_StatsPrepare(
-    &previousStats, config->previous,
-    &config->validationBags, negCount, posCount
+    &previousStats, config->previous, &config->validationBags
   )) cnFailTo(DONE, "No stats.");
 
   // Run the bootstrap.
   for (i = 0; i < bootRepeatCount; i++) {
     // Bootstrap each.
     cnFloat candidateScore = cnVerifyImprovement_BootScore(
-      &candidateStats, config->validationBags.count, negPosProbs
+      &candidateStats, config->validationBags.count
     );
     cnFloat previousScore = cnVerifyImprovement_BootScore(
-      &previousStats, config->validationBags.count, negPosProbs
+      &previousStats, config->validationBags.count
     );
     candidateWinCounts += candidateScore > previousScore;
   }
