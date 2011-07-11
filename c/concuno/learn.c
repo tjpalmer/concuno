@@ -1473,7 +1473,7 @@ cnBool cnVerifyImprovement(
   // TODO Make a general-purpose bootstrap procedure.
 
   // TODO Parameterize the boot repetition.
-  cnCount bootRepeatCount = 1000;
+  cnCount bootRepeatCount = 10000;
   cnCount candidateWinCounts = 0;
   cnVerifyImprovement_Stats candidateStats;
   cnIndex i;

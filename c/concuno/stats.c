@@ -7,6 +7,14 @@
 #include "stats.h"
 
 
+cnCount cnBinomialSample(cnCount n, cnFloat* p) {
+  // TODO Beyond naive, consider lookup tables, including nested direct and for
+  // TODO binary search. That would require stored data. Alternatively dig into
+  // TODO BTPE for a fast non-setup technique.
+  return 0;
+}
+
+
 cnBool cnFunctionEvaluateMahalanobisDistance(
   cnFunction* function, void* in, void* out
 ) {
@@ -86,9 +94,8 @@ void cnMultinomialSample(cnCount k, cnCount* out, cnCount n, cnFloat* p) {
   // TODO got the reference.
   // TODO
   // TODO The summary is to generate k binomial variables then convert these
-  // TODO into a multinomial sample. Generating a binomial should take only
-  // TODO O(log n), instead of O(n) for naive multinomial sampling. One sample
-  // TODO from a binomial can be done with binary search on the CDF.
+  // TODO into a multinomial sample. Faster than O(n) binomial generation is
+  // TODO possible. See comments in the cnBinomialSample stub above.
 
   cnIndex i;
 
@@ -105,7 +112,7 @@ void cnMultinomialSample(cnCount k, cnCount* out, cnCount n, cnFloat* p) {
     cnFloat sample = cnUnitRand();
     cnFloat sum = 0;
     // Another option is to precompute a CDF instead of summing each time, but
-    // eh.
+    // a quick test didn't show it really any faster.
     for (outcome = 0; outcome < k; outcome++) {
       sum += p[outcome];
       if (sample <= sum) {
