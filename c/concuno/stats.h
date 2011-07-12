@@ -22,6 +22,12 @@ typedef struct cnGaussian {
 } cnGaussian;
 
 
+/**
+ * Considering an opaque multinomial type here for storing prepared info for
+ * fast sampling.
+ *
+ * TODO Maybe expose some things after all? Just not the inner workings.
+ */
 typedef struct{}* cnMultinomial;
 
 
