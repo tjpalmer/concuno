@@ -22,6 +22,9 @@ typedef struct cnGaussian {
 } cnGaussian;
 
 
+typedef struct{}* cnMultinomial;
+
+
 /**
  * Provides a Mahalanobis distance metric based on a Gaussian distribution.
  */
