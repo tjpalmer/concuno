@@ -170,6 +170,9 @@ typedef struct cnSplitNode {
    */
   cnEntityFunction* function;
 
+  /**
+   * Owned by this node and dropped with this node.
+   */
   cnIndex* varIndices;
 
   /**

@@ -864,15 +864,16 @@ cnRootNode* cnLearnTree(cnLearner* learner) {
   if (!cnUpdateLeafProbabilities(initialTree)) {
     cnFailTo(DONE, "Failed to update leaf probabilities.");
   }
-  // And use our validation bags to see where we actually start.
-  printf(
-    "Initial metric: %lg\n",
-    cnTreeLogMetric(initialTree, &config.validationBags)
-  );
 
   config.previous = initialTree;
   while (cnTrue) {
     cnRootNode* expanded;
+    // And use our validation bags to see where we actually start.
+    printf(
+      "Initial metric: %lg\n",
+      cnTreeLogMetric(config.previous, &config.validationBags)
+    );
+
     /* Pick a leaf to expand. */ {
       // Get the leaves (over again, yes).
       cnListInit(&leaves, sizeof(cnLeafNode*));
@@ -887,6 +888,7 @@ cnRootNode* cnLearnTree(cnLearner* learner) {
       // Clean up list of leaves.
       cnListDispose(&leaves);
     }
+
     expanded = cnTryExpansionsAtLeaf(&config, leaf);
     if (expanded) {
       if (result) {
@@ -898,6 +900,7 @@ cnRootNode* cnLearnTree(cnLearner* learner) {
       // Done expanding.
       break;
     }
+
     printf("Taking on another round!\n");
     config.previous = result;
   }
@@ -1009,9 +1012,7 @@ cnBool cnPushExpansionsByIndices(
     *index = -1;
   }
   // TODO Consider symmetry on functions for new vars?
-  result = cnRecurseExpansions(
-    expansions, prototype, varDepth, indices, varDepth - prototype->newVarCount
-  );
+  result = cnRecurseExpansions(expansions, prototype, varDepth, indices, 0);
   free(indices);
   return result;
 }
@@ -1023,7 +1024,8 @@ cnBool cnRecurseExpansions(
 ) {
   cnIndex a;
   cnCount arity = prototype->function->inCount;
-  cnIndex index = arity - prototype->newVarCount + filledCount;
+  // The next var index to use, presuming more are committed.
+  cnIndex index = varDepth - (prototype->newVarCount - filledCount);
   //printf("cnRecurseExpansions(..., %ld, ..., %ld)\n", varDepth, filledCount);
   //printf("Index: %ld\n", index);
   //printf("Indices: ");
@@ -1221,9 +1223,13 @@ cnRootNode* cnTryExpansionsAtLeaf(cnLearnerConfig* config, cnLeafNode* leaf) {
 
   // Start added vars from low to high. Allow up to as many new vars as we have
   // arity for functions.
-  for (newVarCount = minNewVarCount; newVarCount <= maxArity; newVarCount++) {
+  varDepth += minNewVarCount;
+  for (
+    newVarCount = minNewVarCount;
+    newVarCount <= maxArity;
+    newVarCount++, varDepth++
+  ) {
     cnExpansion expansion;
-    varDepth++;
 
     cnListEachBegin(entityFunctions, cnEntityFunction*, function) {
       if ((*function)->inCount > varDepth) {
@@ -1274,8 +1280,12 @@ cnRootNode* cnTryExpansionsAtLeaf(cnLearnerConfig* config, cnLeafNode* leaf) {
     printf("Expanded tree has metric: %lg\n", score);
     if (score > bestScore) {
       // New best!
-      bestScore = score;
+      printf(">>>-------->\n");
+      printf(">>>--------> Best tree of this group!\n");
+      printf(">>>-------->\n");
+      // Out with the old, and in with the new.
       cnNodeDrop(&bestTree->node);
+      bestScore = score;
       bestTree = expanded;
     } else {
       // No good. Dismiss it.

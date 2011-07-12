@@ -626,7 +626,7 @@ cnBool cnSplitNodePointBags(cnSplitNode* split, cnList(cnPointBag)* pointBags) {
     // Next bag.
     pointBag++;
   } cnEnd;
-  printf("Need to build %ld values.\n", validBindingsCount);
+  printf("Need to build %ld values\n", validBindingsCount);
 
   // Now build the values.
   args = malloc(split->function->inCount * sizeof(void*));
@@ -673,8 +673,35 @@ cnBool cnSplitNodePointBags(cnSplitNode* split, cnList(cnPointBag)* pointBags) {
 }
 
 
+cnBool cnTreeCopy_HandleSplit(cnSplitNode* source, cnSplitNode* copy) {
+  if (source->varIndices) {
+    // TODO Assert source->function?
+    copy->varIndices = malloc(source->function->inCount * sizeof(cnIndex));
+    if (!copy->varIndices) return cnFalse;
+    if (copy->varIndices) {
+      memcpy(
+        copy->varIndices, source->varIndices,
+        source->function->inCount * sizeof(cnIndex)
+      );
+    }
+  }
+  if (source->predicate) {
+    copy->predicate = cnPredicateCopy(source->predicate);
+    if (!copy->predicate) {
+      // Failed!
+      if (copy->varIndices) {
+        // Clean up this, too.
+        free(copy->varIndices);
+      }
+      return cnFalse;
+    }
+  }
+  return cnTrue;
+}
+
 cnNode* cnTreeCopy(cnNode* node) {
-  cnNode* copy;
+  cnBool anyFailed = cnFalse;
+  cnNode* copy = NULL;
   cnNode** end;
   cnNode** kid;
   // TODO Extract node size to separate function?
@@ -693,10 +720,10 @@ cnNode* cnTreeCopy(cnNode* node) {
     nodeSize = sizeof(cnVarNode);
     break;
   default:
-    printf("No copy for type %u.\n", node->type);
-    return NULL;
+    cnFailTo(DONE, "No copy for type %u.", node->type);
   }
   copy = malloc(nodeSize);
+  if (!copy) cnFailTo(DONE, "Failed to allocate copy.");
   memcpy(copy, node, nodeSize);
   if (copy->bindingBagList) {
     copy->bindingBagList->refCount++;
@@ -705,10 +732,25 @@ cnNode* cnTreeCopy(cnNode* node) {
   kid = cnNodeKids(copy);
   end = kid + cnNodeKidCount(copy);
   for (; kid < end; kid++) {
-    *kid = cnTreeCopy(*kid);
+    *kid = anyFailed ? NULL : cnTreeCopy(*kid);
+    if (!*kid) {
+      anyFailed = cnTrue;
+      continue;
+    }
     (*kid)->parent = copy;
   }
-  // TODO Handle any custom parts!?!
+  if (node->type == cnNodeTypeSplit) {
+    // Custom handling for split nodes.
+    anyFailed = !cnTreeCopy_HandleSplit((void*)node, (void*)copy);
+  }
+  if (anyFailed) {
+    printf("Failed to copy kids!\n");
+    // Kids should be either copies or null at this point.
+    cnNodeDrop(copy);
+    copy = NULL;
+  }
+  // TODO Any other custom parts!?!
+  DONE:
   return copy;
 }
 

@@ -196,6 +196,11 @@ void cnEntityFunctionDrop(cnEntityFunction* function) {
 }
 
 
+cnFunction* cnFunctionCopy(cnFunction* function) {
+  return function ? function->copy(function) : NULL;
+}
+
+
 void cnFunctionDrop(cnFunction* function) {
   if (function) {
     if (function->dispose) {
@@ -259,6 +264,11 @@ cnEntityFunction* cnPushPropertyFunction(
 }
 
 
+cnPredicate* cnPredicateCopy(cnPredicate* predicate) {
+  return predicate ? predicate->copy(predicate) : NULL;
+}
+
+
 void cnPredicateDrop(cnPredicate* predicate) {
   if (predicate) {
     if (predicate->dispose) {
@@ -273,6 +283,17 @@ typedef struct {
   cnFunction* distanceFunction;
   cnFloat threshold;
 } cnPredicateCreateDistanceThreshold_Data;
+
+cnPredicate* cnPredicateCreateDistanceThreshold_Copy(cnPredicate* predicate) {
+  cnPredicateCreateDistanceThreshold_Data* data = predicate->data;
+  cnFunction* function = cnFunctionCopy(data->distanceFunction);
+  cnPredicate* copy;
+  // Copy even the function because there could be mutable data inside.
+  if (!function) return NULL;
+  copy = cnPredicateCreateDistanceThreshold(function, data->threshold);
+  if (!copy) cnFunctionDrop(function);
+  return copy;
+}
 
 void cnPredicateCreateDistanceThreshold_Dispose(cnPredicate* predicate) {
   cnPredicateCreateDistanceThreshold_Data* data = predicate->data;
@@ -316,6 +337,7 @@ cnPredicate* cnPredicateCreateDistanceThreshold(
   data->distanceFunction = distanceFunction;
   data->threshold = threshold;
   predicate->data = data;
+  predicate->copy = cnPredicateCreateDistanceThreshold_Copy;
   predicate->dispose = cnPredicateCreateDistanceThreshold_Dispose;
   predicate->evaluate = cnPredicateCreateDistanceThreshold_Evaluate;
   return predicate;

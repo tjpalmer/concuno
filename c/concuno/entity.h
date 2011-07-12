@@ -91,6 +91,8 @@ struct cnFunction {
 
   // TODO Name or types or anything?
 
+  cnFunction* (*copy)(cnFunction* predicate);
+
   void (*dispose)(cnFunction* function);
 
   /**
@@ -113,6 +115,8 @@ struct cnPredicate {
   //  cnTopology inTopology;
   //
   //  cnType* inType;
+
+  cnPredicate* (*copy)(cnPredicate* predicate);
 
   void (*dispose)(cnPredicate* predicate);
 
@@ -225,7 +229,19 @@ void cnEntityFunctionDrop(cnEntityFunction* function);
 /**
  * Disposes of and frees the function if not null.
  */
+cnFunction* cnFunctionCopy(cnFunction* function);
+
+
+/**
+ * Disposes of and frees the function if not null.
+ */
 void cnFunctionDrop(cnFunction* function);
+
+
+/**
+ * Copies the predicate.
+ */
+cnPredicate* cnPredicateCopy(cnPredicate* predicate);
 
 
 /**
