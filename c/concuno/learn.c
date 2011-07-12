@@ -871,11 +871,12 @@ cnRootNode* cnLearnTree(cnLearner* learner) {
   );
 
   config.previous = initialTree;
-  /* TODO Loop this section. */ {
+  while (cnTrue) {
+    cnRootNode* expanded;
     /* Pick a leaf to expand. */ {
       // Get the leaves (over again, yes).
       cnListInit(&leaves, sizeof(cnLeafNode*));
-      if (!cnNodeLeaves(&initialTree->node, &leaves)) {
+      if (!cnNodeLeaves(&config.previous->node, &leaves)) {
         cnFailTo(DONE, "Failed to gather leaves.");
       }
       if (leaves.count < 1) {
@@ -886,12 +887,23 @@ cnRootNode* cnLearnTree(cnLearner* learner) {
       // Clean up list of leaves.
       cnListDispose(&leaves);
     }
-    result = cnTryExpansionsAtLeaf(&config, leaf);
-    // TODO If not null, then update the result and keep looping.
-    // TODO If null, return the most recently learned tree.
-    // TODO If no most recent tree, return null or a clone as indicated in my
-    // TODO other comments?
+    expanded = cnTryExpansionsAtLeaf(&config, leaf);
+    if (expanded) {
+      if (result) {
+        // Get rid of our old best.
+        cnNodeDrop(&result->node);
+      }
+      result = expanded;
+    } else {
+      // Done expanding.
+      break;
+    }
+    printf("Taking on another round!\n");
+    config.previous = result;
   }
+  // TODO If no most recent tree, return null or a clone as indicated in my
+  // TODO other comments?
+  printf("All done!!\n");
 
   DONE:
   if (!learner->initialTree) cnNodeDrop(&initialTree->node);
