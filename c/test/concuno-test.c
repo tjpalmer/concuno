@@ -11,16 +11,22 @@
 void testMultinomialSample(void);
 
 
+void testPermutations(void);
+
+
 void testUnitRand(void);
 
 
 int main(void) {
   switch (2) {
   case 1:
-    testUnitRand();
+    testMultinomialSample();
     break;
   case 2:
-    testMultinomialSample();
+    testPermutations();
+    break;
+  case 3:
+    testUnitRand();
     break;
   default:
     printf("No test requested.\n");
@@ -47,6 +53,11 @@ void testMultinomialSample(void) {
     }
     printf("\n");
   }
+}
+
+
+void testPermutations(void) {
+  //
 }
 
 

@@ -71,6 +71,18 @@ void cnMultinomialSample(cnCount k, cnCount* out, cnCount n, cnFloat* p);
 
 
 /**
+ * Permute the options, taken count at a time. Values go from 0 to options - 1.
+ * The handler receives the permutations of options in sequence, given the count
+ * back again for convenience and the provided data pointer.
+ */
+void cnPermutations(
+  cnCount options, cnCount count,
+  cnBool (*handler)(void* data, cnCount count, cnIndex* permutation),
+  void* data
+);
+
+
+/**
  * Generates a sample from a uniform distribution between 0 inclusive and 1
  * exclusive.
  *
