@@ -139,15 +139,6 @@ cnBool cnPushExpansionsByIndices(
 
 
 /**
- * Recursively push new expansions
- */
-cnBool cnRecurseExpansions(
-  cnList(cnExpansion)* expansions, cnExpansion* prototype, cnCount varDepth,
-  cnIndex* indices, cnCount filledCount
-);
-
-
-/**
  * Perform a fill search by expanding isotropically from each point, limiting
  * by the metric, going to furthest points contained and spreading them. Min
  * distance from control points to each bag are maintained.
@@ -956,27 +947,6 @@ void cnLogPointBags(cnSplitNode* split, cnList(cnPointBag)* pointBags) {
 }
 
 
-cnBool cnLoopArity(
-  cnList(cnExpansion)* expansions, cnExpansion* prototype, cnCount varDepth,
-  cnIndex* indices, cnIndex index, cnCount filledCount
-) {
-  cnIndex a;
-  cnCount arity = prototype->function->inCount;
-  for (a = 0; a < arity; a++) {
-    if (indices[a] < 0) {
-      indices[a] = index;
-      if (!cnRecurseExpansions(
-        expansions, prototype, varDepth, indices, filledCount + 1
-      )) {
-        return cnFalse;
-      }
-      indices[a] = -1;
-    }
-  }
-  return cnTrue;
-}
-
-
 void cnPrintExpansion(cnExpansion* expansion) {
   cnIndex i;
   printf("%s(", cnStr(&expansion->function->name));
@@ -993,105 +963,76 @@ void cnPrintExpansion(cnExpansion* expansion) {
 }
 
 
+typedef struct cnPushExpansionsByIndices_Data {
+  cnList(cnExpansion)* expansions;
+  cnExpansion* prototype;
+  cnCount varDepth;
+} cnPushExpansionsByIndices_Data;
+
+cnBool cnPushExpansionsByIndices_Push(
+  void* d, cnCount arity, cnIndex* indices
+) {
+  cnPushExpansionsByIndices_Data* data = d;
+  cnIndex firstCommitted = data->varDepth - data->prototype->newVarCount;
+  cnIndex v;
+
+  // Make sure all our committed vars are there.
+  // TODO Could instead compose only permutations with committed vars in them,
+  // TODO but that's more complicated, and low arity makes the issue unlikely
+  // TODO to matter for speed issues.
+  for (v = firstCommitted; v < data->varDepth; v++) {
+    cnBool found = cnFalse;
+    cnIndex i;
+    for (i = 0; i < arity; i++) {
+      if (indices[i] == v) {
+        found = cnTrue;
+        break;
+      }
+    }
+    if (!found) {
+      // We're missing a committed var. Throw it back in the pond.
+      return cnTrue;
+    }
+  }
+
+  // Got our committed vars, but check against redundancy, too.
+  if (cnExpansionRedundant(
+    data->expansions, data->prototype->function, indices
+  )) {
+    // We already have an equivalent expansion under consideration.
+    // TODO Is there a more efficient way to avoid redundancy?
+    return cnTrue;
+  }
+
+  // It's good to go. Allocate space, and copy the indices.
+  if (!(data->prototype->varIndices = malloc(arity * sizeof(cnIndex)))) {
+    return cnFalse;
+  }
+  memcpy(data->prototype->varIndices, indices, arity * sizeof(cnIndex));
+
+  // Push the expansion, copying the prototype.
+  if (!cnListPush(data->expansions, data->prototype)) {
+    free(data->prototype->varIndices);
+    return cnFalse;
+  }
+
+  // Revert the prototype.
+  data->prototype->varIndices = NULL;
+  //printf("Done.\n");
+  return cnTrue;
+}
+
 cnBool cnPushExpansionsByIndices(
   cnList(cnExpansion)* expansions, cnExpansion* prototype, cnCount varDepth
 ) {
-  // TODO Validate counts match up? Or just trust context since this function
-  // TODO is private to this file?
-  cnCount arity = prototype->function->inCount;
-  cnIndex* index;
-  cnIndex* indices = malloc(arity * sizeof(cnIndex));
-  cnIndex* end = indices + arity;
-  cnBool result;
-  if (!indices) {
-    printf("Failed to allocate indices.\n");
-    return cnFalse;
-  }
-  // Init to -1 as "not assigned".
-  for (index = indices; index < end; index++) {
-    *index = -1;
-  }
-  // TODO Consider symmetry on functions for new vars?
-  result = cnRecurseExpansions(expansions, prototype, varDepth, indices, 0);
-  free(indices);
-  return result;
-}
-
-
-cnBool cnRecurseExpansions(
-  cnList(cnExpansion)* expansions, cnExpansion* prototype, cnCount varDepth,
-  cnIndex* indices, cnCount filledCount
-) {
-  cnIndex a;
-  cnCount arity = prototype->function->inCount;
-  // The next var index to use, presuming more are committed.
-  cnIndex index = varDepth - (prototype->newVarCount - filledCount);
-  //printf("cnRecurseExpansions(..., %ld, ..., %ld)\n", varDepth, filledCount);
-  //printf("Index: %ld\n", index);
-  //printf("Indices: ");
-  //for (a = 0; a < arity; a++) {
-  //  printf("%ld%s ", indices[a], indices[a] == index ? "*" : "");
-  //}
-  //printf("\n");
-  if (filledCount >= arity) {
-    // All filled up, but first check for redundancy.
-    if (cnExpansionRedundant(expansions, prototype->function, indices)) {
-      // We already have an equivalent expansion under consideration.
-      // TODO Is there a more efficient way to avoid redundancy?
-      return cnTrue;
-    }
-    // It's good to go.
-    if (!(prototype->varIndices = malloc(arity * sizeof(cnIndex)))) {
-      return cnFalse;
-    }
-    memcpy(prototype->varIndices, indices, arity * sizeof(cnIndex));
-    // Keep the expansion.
-    if (!cnListPush(expansions, prototype)) {
-      free(prototype->varIndices);
-      return cnFalse;
-    }
-    // Revert the prototype.
-    prototype->varIndices = NULL;
-    //printf("Done.\n");
-    return cnTrue;
-  }
-  // Check if committed are used up.
-  if (index >= varDepth) {
-    //printf("Past committed.\n");
-    // Got to the end of committed vars, so go back to the beginning.
-    cnCount uncommittedCount = varDepth - prototype->newVarCount;
-    for (index = 0; index < uncommittedCount; index++) {
-      // See if we've already used this index.
-      // TODO Replace this loop on indices with something constant time?
-      cnBool used = cnFalse;
-      for (a = 0; a < arity; a++) {
-        if (indices[a] == index) {
-          used = cnTrue;
-          break;
-        }
-      }
-      if (!used) {
-        // Index not used. Try all the remaining spots for it.
-        // Note that the recursive call here is slightly different than for the
-        // loop below on committed vars. That makes it awkward to combine in
-        // one.
-        if (!cnLoopArity(
-          expansions, prototype, varDepth, indices, index, filledCount
-        )) {
-          return cnFalse;
-        }
-      }
-    }
-  } else {
-    //printf("Still committed.\n");
-    // Still on committed variables. This index gets a spot for sure.
-    if (!cnLoopArity(
-      expansions, prototype, varDepth, indices, index, filledCount
-    )) {
-      return cnFalse;
-    }
-  }
-  return cnTrue;
+  cnPushExpansionsByIndices_Data data;
+  data.expansions = expansions;
+  data.prototype = prototype;
+  data.varDepth = varDepth;
+  return cnPermutations(
+    varDepth, prototype->function->inCount,
+    cnPushExpansionsByIndices_Push, &data
+  );
 }
 
 

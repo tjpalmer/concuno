@@ -200,6 +200,8 @@ cnBool cnPermutations(
       }
     }
   }
+  // We winned!
+  result = cnTrue;
 
   DONE:
   free(permutation);
