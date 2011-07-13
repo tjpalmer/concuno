@@ -56,8 +56,23 @@ void testMultinomialSample(void) {
 }
 
 
+cnBool testPermutations_Handle(
+  void *data, cnCount count, cnIndex *permutation
+) {
+  cnIndex* end = permutation + count;
+  for (; permutation < end; permutation++) {
+    printf("%ld ", *permutation);
+  }
+  printf("\n");
+  return cnTrue;
+}
+
 void testPermutations(void) {
-  //
+  cnCount count = 2;
+  cnCount options = 4;
+  printf("Permutations of %ld, taken %ld at a time:\n", options, count);
+  cnPermutations(options, count, testPermutations_Handle, NULL);
+  printf("\n");
 }
 
 

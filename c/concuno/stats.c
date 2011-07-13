@@ -145,6 +145,69 @@ void cnMultinomialSample(cnCount k, cnCount* out, cnCount n, cnFloat* p) {
 }
 
 
+cnBool cnPermutations(
+  cnCount options, cnCount count,
+  cnBool (*handler)(void* data, cnCount count, cnIndex* permutation),
+  void* data
+) {
+  cnBool result = cnFalse;
+  cnIndex c, o;
+  cnIndex* permutation = malloc(count * sizeof(cnIndex));
+  cnBool* used = malloc(options * sizeof(cnBool));
+  if (!(permutation && used)) cnFailTo(DONE, "No permutation or used.");
+
+  // Sanity checks.
+  if (count < 0) cnFailTo(DONE, "count %ld < 0", count);
+  if (options < 0) cnFailTo(DONE, "options %ld < 0", options);
+  if (count > options) {
+    cnFailTo(DONE, "count %ld > options %ld", count, options);
+  }
+
+  // Clear out the info.
+  for (c = 0; c < count; c++) permutation[c] = -1;
+  for (o = 0; o < options; o++) used[o] = cnFalse;
+
+  // Loop until we've gone past the last option in the first spot.
+  c = 0;
+  while (c >= 0) {
+    // Mark our current option free before moving on.
+    if (permutation[c] >= 0) {
+      used[permutation[c]] = cnFalse;
+    } else {
+      permutation[c] = -1;
+    }
+
+    // Find an available option, if any.
+    do {
+      permutation[c]++;
+    } while (permutation[c] < options && used[permutation[c]]);
+
+    // See where we are.
+    if (permutation[c] >= options) {
+      // Used up options. Go back.
+      permutation[c] = -1;
+      c--;
+    } else {
+      // Found one. Move on.
+      used[permutation[c]] = cnTrue;
+      c++;
+      if (c >= count) {
+        // Past the end. Report the permutation, and move back.
+        if (!handler(data, count, permutation)) {
+          cnFailTo(DONE, "Handler failed.");
+        }
+        c--;
+      }
+    }
+  }
+
+  DONE:
+  free(permutation);
+  free(used);
+  return result;
+}
+
+
 cnFloat cnUnitRand() {
   // TODO This is a horrible implementation right now. Do much improvement!
   cnCount value = rand();

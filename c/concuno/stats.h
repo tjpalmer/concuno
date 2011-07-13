@@ -75,7 +75,7 @@ void cnMultinomialSample(cnCount k, cnCount* out, cnCount n, cnFloat* p);
  * The handler receives the permutations of options in sequence, given the count
  * back again for convenience and the provided data pointer.
  */
-void cnPermutations(
+cnBool cnPermutations(
   cnCount options, cnCount count,
   cnBool (*handler)(void* data, cnCount count, cnIndex* permutation),
   void* data
