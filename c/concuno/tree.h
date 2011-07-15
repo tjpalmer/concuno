@@ -8,7 +8,7 @@
 /**
  * An arbitrary length array of entity pointers.
  */
-typedef void** cnBinding;
+typedef cnEntity* cnBinding;
 
 
 typedef struct cnBindingBag {
@@ -19,7 +19,7 @@ typedef struct cnBindingBag {
    * Actually, this is stored in compact form of equal numbers of entities per
    * binding.
    */
-  cnList(cnBinding) bindings;
+  cnList(cnEntity) bindings;
 
   cnCount entityCount;
 
@@ -261,7 +261,7 @@ cnBool cnBindingBagListPushBags(
  *
  * TODO If entities were a sized 2D grid, we could avoid the count here.
  */
-cnBool cnBindingValid(cnCount entityCount, void** entities);
+cnBool cnBindingValid(cnCount entityCount, cnEntity* entities);
 
 
 /**

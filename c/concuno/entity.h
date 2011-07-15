@@ -5,6 +5,9 @@
 #include "core.h"
 
 
+typedef void* cnEntity;
+
+
 typedef struct cnBag {
 
   // TODO id? Or are pointer addresses good enough (if stable)?
@@ -12,7 +15,7 @@ typedef struct cnBag {
   /**
    * Pointers to entities, defined entirely by properties and entity functions.
    */
-  cnList(void*) entities;
+  cnList(cnEntity) entities;
 
   /**
    * Positive or negative bag.
@@ -77,7 +80,7 @@ struct cnEntityFunction {
    * Receives an array of pointers to entities, and provides an array of values
    * whose individual sizes are given by outType.
    */
-  void (*get)(cnEntityFunction* function, void** ins, void* outs);
+  void (*get)(cnEntityFunction* function, cnEntity* ins, void* outs);
 
 };
 
@@ -168,9 +171,9 @@ struct cnProperty {
    */
   void (*dispose)(cnProperty* property);
 
-  void (*get)(const cnProperty* property, const void* entity, void* storage);
+  void (*get)(const cnProperty* property, cnEntity entity, void* storage);
 
-  void (*put)(const cnProperty* property, void* entity, const void* value);
+  void (*put)(const cnProperty* property, cnEntity entity, void* value);
 
 };
 

@@ -95,9 +95,9 @@ cnBool cnBindingBagListPushBags(
 }
 
 
-cnBool cnBindingValid(cnCount entityCount, void** entities) {
-  void** entity = entities;
-  void** end = entities + entityCount;
+cnBool cnBindingValid(cnCount entityCount, cnEntity* entities) {
+  cnEntity* entity = entities;
+  cnEntity* end = entities + entityCount;
   for (; entity < end; entity++) {
     if (!*entity) {
       // Bogus/dummy binding.
@@ -597,7 +597,7 @@ cnBool cnSplitNodePropagate(cnSplitNode* split) {
 
 
 cnBool cnSplitNodePointBags(cnSplitNode* split, cnList(cnPointBag)* pointBags) {
-  void** args = NULL;
+  cnEntity* args = NULL;
   cnList(cnBindingBag)* bindingBags = &split->node.bindingBagList->bindingBags;
   cnCount validBindingsCount = 0;
   cnPointBag* pointBag;
@@ -643,7 +643,7 @@ cnBool cnSplitNodePointBags(cnSplitNode* split, cnList(cnPointBag)* pointBags) {
     }
     // Now fill.
     values = pointBag->pointMatrix;
-    cnListEachBegin(&bindingBag->bindings, void*, entities) {
+    cnListEachBegin(&bindingBag->bindings, cnEntity, entities) {
       // Gather the arguments.
       cnIndex a;
       for (a = 0; a < split->function->inCount; a++) {
@@ -887,11 +887,11 @@ cnBool cnVarNodeInit(cnVarNode* var, cnBool addLeaf) {
 }
 
 
-cnBool cnVarNodePropagate_PushBinding(
-  void** entitiesIn, cnBindingBag* bindingBagIn,
-  void* entityOut, cnBindingBag* bindingBagOut, cnCount* bindingsOutCount
+cnBool cnVarNodePropagate_pushBinding(
+  cnEntity* entitiesIn, cnBindingBag* bindingBagIn,
+  cnEntity entityOut, cnBindingBag* bindingBagOut, cnCount* bindingsOutCount
 ) {
-  void** entitiesOut = cnListExpand(&bindingBagOut->bindings);
+  cnEntity* entitiesOut = cnListExpand(&bindingBagOut->bindings);
   if (!entitiesOut) return cnFalse;
   (*bindingsOutCount)++;
   // For the zero length arrays, I'm not sure if memcpy from null is
@@ -905,7 +905,6 @@ cnBool cnVarNodePropagate_PushBinding(
   entitiesOut[bindingBagIn->entityCount] = entityOut;
   return cnTrue;
 }
-
 
 cnBool cnVarNodePropagate(cnVarNode* var) {
   cnCount bindingsOutCount = 0;
@@ -928,13 +927,13 @@ cnBool cnVarNodePropagate(cnVarNode* var) {
     // Find each binding to expand.
     // Use custom looping because of our abusive 2D-ish array.
     for (b = 0; b < bindingBagIn->bindings.count; b++) {
-      void** entitiesIn = cnListGet(&bindingBagIn->bindings, b);
+      cnEntity* entitiesIn = cnListGet(&bindingBagIn->bindings, b);
       cnBool anyLeft = cnFalse;
       // Find the entities to add on.
-      cnListEachBegin(&bindingBagIn->bag->entities, void*, entityOut) {
+      cnListEachBegin(&bindingBagIn->bag->entities, cnEntity, entityOut) {
         cnBool found = cnFalse;
-        void** entityIn = entitiesIn;
-        void** entitiesInEnd = entityIn + bindingBagIn->entityCount;
+        cnEntity* entityIn = entitiesIn;
+        cnEntity* entitiesInEnd = entityIn + bindingBagIn->entityCount;
         for (; entityIn < entitiesInEnd; entityIn++) {
           if (*entityIn == *entityOut) {
             // Already used.
@@ -945,7 +944,7 @@ cnBool cnVarNodePropagate(cnVarNode* var) {
         if (!found) {
           // Didn't find it. Push a new binding with the new entity.
           anyLeft = cnTrue;
-          if (!cnVarNodePropagate_PushBinding(
+          if (!cnVarNodePropagate_pushBinding(
             entitiesIn, bindingBagIn,
             *entityOut, bindingBagOut, &bindingsOutCount
           )) {
@@ -956,7 +955,7 @@ cnBool cnVarNodePropagate(cnVarNode* var) {
       } cnEnd;
       if (!anyLeft) {
         // Push a dummy binding for later errors since no entities remained.
-        if (!cnVarNodePropagate_PushBinding(
+        if (!cnVarNodePropagate_pushBinding(
           entitiesIn, bindingBagIn, NULL, bindingBagOut, &bindingsOutCount
         )) {
           // TODO Fail out!
