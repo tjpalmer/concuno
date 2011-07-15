@@ -21,6 +21,10 @@ cnBool stChooseDropWhereLandOnOther(
 );
 
 
+/**
+ * TODO Replace this with 'stChooseNonmoving', where the nonmoving entities
+ * TODO are participants in true bags, and moving are participants in false.
+ */
 cnBool stChooseWhereNoneMoving(cnList(stState)* states, cnList(cnBag)* bags);
 
 

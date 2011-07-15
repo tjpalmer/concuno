@@ -13,12 +13,13 @@ void cnBagDispose(cnBag* bag) {
 
 void cnBagInit(cnBag* bag) {
   bag->label = cnFalse;
-  cnListInit(&bag->entities, sizeof(void*));
+  cnListInit(&bag->entities, sizeof(cnEntity));
+  cnListInit(&bag->participants, sizeof(cnEntity));
 }
 
 
 void cnEntityFunctionCreateDifference_Get(
-  cnEntityFunction* function, void** ins, void* outs
+  cnEntityFunction* function, cnEntity* ins, void* outs
 ) {
   // TODO Remove float assumption here.
   cnIndex i;
@@ -81,7 +82,7 @@ cnEntityFunction* cnEntityFunctionCreateDifference(cnEntityFunction* base) {
 
 
 void cnEntityFunctionCreateDistance_Get(
-  cnEntityFunction* function, void** ins, void* outs
+  cnEntityFunction* function, cnEntity* ins, void* outs
 ) {
   // TODO Remove float assumption here.
   cnIndex i;
@@ -143,7 +144,7 @@ cnEntityFunction* cnEntityFunctionCreateDistance(cnEntityFunction* base) {
 
 
 void cnEntityFunctionCreateProperty_Get(
-  cnEntityFunction* function, void** ins, void* outs
+  cnEntityFunction* function, cnEntity* ins, void* outs
 ) {
   cnProperty* property = function->data;
   if (!*ins) {

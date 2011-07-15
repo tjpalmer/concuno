@@ -5,6 +5,9 @@
 #include "core.h"
 
 
+/**
+ * Entities are defined entirely by properties and entity functions.
+ */
 typedef void* cnEntity;
 
 
@@ -13,7 +16,7 @@ typedef struct cnBag {
   // TODO id? Or are pointer addresses good enough (if stable)?
 
   /**
-   * Pointers to entities, defined entirely by properties and entity functions.
+   * Entities in the pool.
    */
   cnList(cnEntity) entities;
 
@@ -21,6 +24,15 @@ typedef struct cnBag {
    * Positive or negative bag.
    */
   cnBool label;
+
+  /**
+   * Entities known to participate in the labeling. These should be bound to
+   * vars first, in the order given here.
+   *
+   * For learning, do not provide any functions used in originally identifying
+   * the participants, or you might only learn what you already know.
+   */
+  cnList(cnEntity) participants;
 
 } cnBag;
 
