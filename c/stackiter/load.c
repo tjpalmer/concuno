@@ -1,5 +1,4 @@
 #include <concuno.h>
-#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -37,18 +36,6 @@ cnBool stHandleType(stParser* parser, char* args);
  * Parses a single line, returning true for no error.
  */
 cnBool stParseLine(stParser* parser, cnString* line);
-
-
-/**
- * Finds a non-whitespace string if it exists, overwriting the first trailing
- * whitespace (if any) with a null char. The end will point past that null
- * char if added, or at the already existing null char if at the end. This
- * function returns where the first non-whitespace was found, if any, for usage
- * like below:
- *
- * char* string = stParseString(source, &source);
- */
-char* stParseString(char* begin, char** end);
 
 
 stItem* stParserItem(stParser* parser, char* begin, char** end);
@@ -109,7 +96,7 @@ cnBool stLoad(char* name, cnList(stState)* states) {
 
 cnBool stHandleAlive(stParser* parser, char* args) {
   stItem* item = stParserItem(parser, args, &args);
-  char* status = stParseString(args, &args);
+  char* status = cnParseStr(args, &args);
   if (!item || !*status) {
     return cnFalse;
   }
@@ -251,7 +238,7 @@ cnBool stHandleRotVel(stParser* parser, char* args) {
 
 cnBool stHandleTime(stParser* parser, char* args) {
   cnCount steps;
-  char* type = stParseString(args, &args);
+  char* type = cnParseStr(args, &args);
   if (!strcmp(type, "sim")) {
     if (!stPushState(parser)) {
       return cnFalse;
@@ -270,7 +257,7 @@ cnBool stHandleTime(stParser* parser, char* args) {
 
 cnBool stHandleType(stParser* parser, char* args) {
   stItem* item = stParserItem(parser, args, &args);
-  char* type = stParseString(args, &args);
+  char* type = cnParseStr(args, &args);
   if (!strcmp(type, "block")) {
     item->type = stTypeBlock;
   } else if (!strcmp(type, "tool")) {
@@ -286,7 +273,7 @@ cnBool stParseLine(stParser* parser, cnString* line) {
   // TODO Extract command then scanf it?
   char *args, *command;
   cnBool (*parse)(stParser* parser, char* args) = NULL;
-  command = stParseString(line->items, &args);
+  command = cnParseStr(line->items, &args);
   // TODO Hashtable? This is still quite fast.
   if (!strcmp(command, "alive")) {
     parse = stHandleAlive;
@@ -324,32 +311,6 @@ cnBool stParseLine(stParser* parser, cnString* line) {
     //printf("Unknown command: %s\n", command);
     return cnTrue;
   }
-}
-
-
-char* stParseString(char* begin, char** end) {
-  cnBool pastSpace = cnFalse;
-  char* c;
-  for (c = begin; *c; c++) {
-    if (isspace(*c)) {
-      if (pastSpace) {
-        // We found the end!
-        *c = '\0';
-        // Advance past the new null char.
-        c++;
-        break;
-      }
-    } else if (!pastSpace) {
-      begin = c;
-      pastSpace = cnTrue;
-    }
-  }
-  if (!pastSpace) {
-    // No content. Make sure it's empty.
-    begin = c;
-  }
-  *end = c;
-  return begin;
 }
 
 
