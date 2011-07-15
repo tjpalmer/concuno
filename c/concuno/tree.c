@@ -673,7 +673,7 @@ cnBool cnSplitNodePointBags(cnSplitNode* split, cnList(cnPointBag)* pointBags) {
 }
 
 
-cnBool cnTreeCopy_HandleSplit(cnSplitNode* source, cnSplitNode* copy) {
+cnBool cnTreeCopy_handleSplit(cnSplitNode* source, cnSplitNode* copy) {
   if (source->varIndices) {
     // TODO Assert source->function?
     copy->varIndices = malloc(source->function->inCount * sizeof(cnIndex));
@@ -741,7 +741,7 @@ cnNode* cnTreeCopy(cnNode* node) {
   }
   if (node->type == cnNodeTypeSplit) {
     // Custom handling for split nodes.
-    anyFailed = !cnTreeCopy_HandleSplit((void*)node, (void*)copy);
+    anyFailed = !cnTreeCopy_handleSplit((void*)node, (void*)copy);
   }
   if (anyFailed) {
     printf("Failed to copy kids!\n");
