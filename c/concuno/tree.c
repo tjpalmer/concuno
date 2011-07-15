@@ -887,6 +887,26 @@ cnBool cnVarNodeInit(cnVarNode* var, cnBool addLeaf) {
 }
 
 
+cnBool cnVarNodePropagate_PushBinding(
+  void** entitiesIn, cnBindingBag* bindingBagIn,
+  void* entityOut, cnBindingBag* bindingBagOut, cnCount* bindingsOutCount
+) {
+  void** entitiesOut = cnListExpand(&bindingBagOut->bindings);
+  if (!entitiesOut) return cnFalse;
+  (*bindingsOutCount)++;
+  // For the zero length arrays, I'm not sure if memcpy from null is
+  // okay, so check that first.
+  if (entitiesIn) {
+    memcpy(
+      entitiesOut, entitiesIn, bindingBagIn->entityCount * sizeof(void*)
+    );
+  }
+  // Put the new one on.
+  entitiesOut[bindingBagIn->entityCount] = entityOut;
+  return cnTrue;
+}
+
+
 cnBool cnVarNodePropagate(cnVarNode* var) {
   cnCount bindingsOutCount = 0;
   cnBindingBagList* bindingBagsIn = var->node.bindingBagList;
@@ -924,35 +944,24 @@ cnBool cnVarNodePropagate(cnVarNode* var) {
         }
         if (!found) {
           // Didn't find it. Push a new binding with the new entity.
-          void** entitiesOut = cnListExpand(&bindingBagOut->bindings);
-          bindingsOutCount++;
-          // For the zero length arrays, I'm not sure if memcpy from null is
-          // okay, so check that first.
-          if (entitiesIn) {
-            memcpy(
-              entitiesOut, entitiesIn,
-              bindingBagIn->entityCount * sizeof(void*)
-            );
-          }
-          entitiesOut[bindingBagIn->entityCount] = *entityOut;
           anyLeft = cnTrue;
+          if (!cnVarNodePropagate_PushBinding(
+            entitiesIn, bindingBagIn,
+            *entityOut, bindingBagOut, &bindingsOutCount
+          )) {
+            // TODO Fail out!
+            printf("Failed to push binding!\n");
+          }
         }
       } cnEnd;
       if (!anyLeft) {
         // Push a dummy binding for later errors since no entities remained.
-        // TODO Is it worth extracting a function to avoid this bit of
-        // TODO duplication?
-        void** entitiesOut = cnListExpand(&bindingBagOut->bindings);
-        bindingsOutCount++;
-        // For the zero length arrays, I'm not sure if memcpy from null is
-        // okay, so check that first.
-        if (entitiesIn) {
-          memcpy(
-            entitiesOut, entitiesIn, bindingBagIn->entityCount * sizeof(void*)
-          );
+        if (!cnVarNodePropagate_PushBinding(
+          entitiesIn, bindingBagIn, NULL, bindingBagOut, &bindingsOutCount
+        )) {
+          // TODO Fail out!
+          printf("Failed to push dummy binding!\n");
         }
-        // Here be the dummy!
-        entitiesOut[bindingBagIn->entityCount] = NULL;
       }
     }
     bindingBagOut++;
