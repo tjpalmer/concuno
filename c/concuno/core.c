@@ -48,6 +48,7 @@ void* cnListExpandMulti(cnListAny* list, cnCount count) {
   void* formerEnd;
   cnCount needed = list->count + count;
   if (needed > list->reservedCount) {
+    void* newItems;
     // Exponential growth to avoid slow pushing.
     cnCount wanted = 2 * list->reservedCount;
     if (wanted < needed) {
@@ -55,7 +56,7 @@ void* cnListExpandMulti(cnListAny* list, cnCount count) {
       wanted = 2 * needed; // or just needed?
     }
     if (!wanted) wanted = 1;
-    void* newItems = realloc(list->items, wanted * list->itemSize);
+    newItems = realloc(list->items, wanted * list->itemSize);
     if (!newItems) {
       // No memory for this.
       printf("Failed to expand list.");
@@ -131,10 +132,12 @@ void cnListShuffle(cnListAny* list) {
   cnIndex i;
   for (i = list->count - 1; i >= 1; i--) {
     // Find where we're going.
+    void* a;
+    void* b;
     cnIndex j = rand() % (i + 1);
     if (i == j) continue;
-    void* a = ((char*)list->items) + (i * list->itemSize);
-    void* b = ((char*)list->items) + (j * list->itemSize);
+    a = ((char*)list->items) + (i * list->itemSize);
+    b = ((char*)list->items) + (j * list->itemSize);
     // Perform the swap.
     memcpy(buffer, a, list->itemSize);
     memcpy(a, b, list->itemSize);

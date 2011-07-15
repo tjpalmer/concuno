@@ -363,9 +363,9 @@ cnFloat* cnBestPointByScore(
     pointBags->count ? ((cnPointBag*)pointBags->items)->valueCount : 0;
   printf("Score-ish: ");
   cnListEachBegin(pointBags, cnPointBag, pointBag) {
-    if (posBagCount >= maxEitherBags && negBagCount >= maxEitherBags) break;
     cnFloat* point = pointBag->pointMatrix;
     cnFloat* matrixEnd = point + pointBag->pointCount * valueCount;
+    if (posBagCount >= maxEitherBags && negBagCount >= maxEitherBags) break;
     if (pointBag->bag->label) {
       if (posBagCount++ >= maxEitherBags) continue;
     } else {

@@ -891,11 +891,12 @@ cnBool cnVarNodePropagate(cnVarNode* var) {
   cnCount bindingsOutCount = 0;
   cnBindingBagList* bindingBagsIn = var->node.bindingBagList;
   cnBindingBagList* bindingBagsOut = cnBindingBagListCreate();
+  cnBindingBag* bindingBagOut;
   if (!bindingBagsOut) {
     return cnFalse;
   }
   // Preallocate all the bindingBag space we need.
-  cnBindingBag* bindingBagOut = cnListExpandMulti(
+  bindingBagOut = cnListExpandMulti(
     &bindingBagsOut->bindingBags, bindingBagsIn->bindingBags.count
   );
   if (!bindingBagOut) return cnFalse;
@@ -922,10 +923,9 @@ cnBool cnVarNodePropagate(cnVarNode* var) {
           }
         }
         if (!found) {
-          anyLeft = cnTrue;
-          bindingsOutCount++;
           // Didn't find it. Push a new binding with the new entity.
           void** entitiesOut = cnListExpand(&bindingBagOut->bindings);
+          bindingsOutCount++;
           // For the zero length arrays, I'm not sure if memcpy from null is
           // okay, so check that first.
           if (entitiesIn) {
@@ -935,14 +935,15 @@ cnBool cnVarNodePropagate(cnVarNode* var) {
             );
           }
           entitiesOut[bindingBagIn->entityCount] = *entityOut;
+          anyLeft = cnTrue;
         }
       } cnEnd;
       if (!anyLeft) {
-        bindingsOutCount++;
         // Push a dummy binding for later errors since no entities remained.
         // TODO Is it worth extracting a function to avoid this bit of
         // TODO duplication?
         void** entitiesOut = cnListExpand(&bindingBagOut->bindings);
+        bindingsOutCount++;
         // For the zero length arrays, I'm not sure if memcpy from null is
         // okay, so check that first.
         if (entitiesIn) {

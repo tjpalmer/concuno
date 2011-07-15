@@ -60,6 +60,7 @@ cnBool stPushState(stParser* parser);
 cnBool stLoad(char* name, cnList(stState)* states) {
   cnBool result = cnTrue;
   int closeError;
+  FILE* file;
   cnString line;
   cnCount lineCount, readCount;
   stParser parser;
@@ -67,7 +68,7 @@ cnBool stLoad(char* name, cnList(stState)* states) {
   stStateInit(&parser.state);
   cnListInit(&parser.indices, sizeof(cnIndex));
   // Open file.
-  FILE* file = fopen(name, "r");
+  file = fopen(name, "r");
   if (!file) {
     printf("Failed to open: %s\n", name);
     return cnFalse;
