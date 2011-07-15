@@ -412,15 +412,15 @@ typedef struct {
   cnChooseThreshold_Edge edge;
 } cnChooseThreshold_Distance;
 
-cnFloat cnChooseThreshold_EdgeDist(const cnChooseThreshold_Distance* dist) {
+cnFloat cnChooseThreshold_edgeDist(const cnChooseThreshold_Distance* dist) {
   // The distances themselves. For both, we can use either.
   return dist->edge == cnChooseThreshold_Near ?
     dist->distance->near : dist->distance->far;
 }
 
-int cnChooseThreshold_Compare(const void* a, const void* b) {
-  cnFloat distA = cnChooseThreshold_EdgeDist(a);
-  cnFloat distB = cnChooseThreshold_EdgeDist(b);
+int cnChooseThreshold_compare(const void* a, const void* b) {
+  cnFloat distA = cnChooseThreshold_edgeDist(a);
+  cnFloat distB = cnChooseThreshold_edgeDist(b);
   return distA > distB ? 1 : distA == distB ? 0 : -1;
 }
 
@@ -514,7 +514,7 @@ cnFloat cnChooseThreshold(
   // Sort it.
   qsort(
     dists, distsEnd - dists,
-    sizeof(cnChooseThreshold_Distance), cnChooseThreshold_Compare
+    sizeof(cnChooseThreshold_Distance), cnChooseThreshold_compare
   );
 
   // Now go through the list, calculating effective probabilities and the
@@ -557,7 +557,7 @@ cnFloat cnChooseThreshold(
     // but I've seen it make a difference.
     if (dist + 1 < distsEnd) {
       if (
-        cnChooseThreshold_EdgeDist(dist) == cnChooseThreshold_EdgeDist(dist + 1)
+        cnChooseThreshold_edgeDist(dist) == cnChooseThreshold_edgeDist(dist + 1)
       ) {
         // They are equal, so they can't be separated. Move on.
         continue;
@@ -596,14 +596,14 @@ cnFloat cnChooseThreshold(
     if (negAsNoCount) currentScore += negAsNoCount * log(1 - noProb);
     //    fprintf(file,
     //      "%lg %lg %ld %lg %ld %lg\n",
-    //      sqrt(cnChooseThreshold_EdgeDist(dist)),
+    //      sqrt(cnChooseThreshold_edgeDist(dist)),
     //      yesProb, yesCount, noProb, noCount, currentScore
     //    );
     if (currentScore > bestScore) {
-      threshold = cnChooseThreshold_EdgeDist(dist);
+      threshold = cnChooseThreshold_edgeDist(dist);
       if (dist < distsEnd) {
         // Actually go halfway to the next, if there is one.
-        threshold = (threshold + cnChooseThreshold_EdgeDist(dist + 1)) / 2;
+        threshold = (threshold + cnChooseThreshold_edgeDist(dist + 1)) / 2;
       }
       bestScore = currentScore;
       bestYesProb = yesProb;

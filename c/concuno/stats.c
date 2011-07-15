@@ -24,7 +24,7 @@ cnBool cnFunctionEvaluateMahalanobisDistance(
 }
 
 
-cnFunction* cnFunctionCreateMahalanobisDistance_Copy(cnFunction* function) {
+cnFunction* cnFunctionCreateMahalanobisDistance_copy(cnFunction* function) {
   cnGaussian* other = function->data;
   cnGaussian* gaussian = malloc(sizeof(cnGaussian));
   cnFunction* copy;
@@ -41,7 +41,7 @@ cnFunction* cnFunctionCreateMahalanobisDistance_Copy(cnFunction* function) {
   return copy;
 }
 
-void cnFunctionCreateMahalanobisDistance_Dispose(cnFunction* function) {
+void cnFunctionCreateMahalanobisDistance_dispose(cnFunction* function) {
   cnGaussianDispose(function->data);
   free(function->data);
 }
@@ -50,8 +50,8 @@ cnFunction* cnFunctionCreateMahalanobisDistance(cnGaussian* gaussian) {
   cnFunction* function = malloc(sizeof(cnFunction));
   if (!function) return NULL;
   function->data = gaussian;
-  function->copy = cnFunctionCreateMahalanobisDistance_Copy;
-  function->dispose = cnFunctionCreateMahalanobisDistance_Dispose;
+  function->copy = cnFunctionCreateMahalanobisDistance_copy;
+  function->dispose = cnFunctionCreateMahalanobisDistance_dispose;
   function->evaluate = cnFunctionEvaluateMahalanobisDistance;
   return function;
 }
