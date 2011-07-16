@@ -65,6 +65,7 @@ cnBool cnvLoadBags(char* indicatorsName, char* featuresName) {
 
 cnBool cnvLoadGroupedMatrix(char* name) {
   cnBool result = cnFalse;
+  cnCount countRead;
   FILE* file = NULL;
   cnList(cnvTypedOffset) offsets;
   cnString line;
@@ -82,7 +83,7 @@ cnBool cnvLoadGroupedMatrix(char* name) {
   if (!file) cnFailTo(DONE, "Couldn't open '%s'.", name);
 
   // Read the headers.
-  if (!cnReadLine(file, &line)) cnFailTo(DONE, "No headers.");
+  if (cnReadLine(file, &line) <= 0) cnFailTo(DONE, "No headers.");
   remaining = cnStr(&line);
   while (cnTrue) {
     cnvTypedOffset* offset;
@@ -93,12 +94,16 @@ cnBool cnvLoadGroupedMatrix(char* name) {
     if (!cnvPushOrExpandProperty(type, next, offset)) {
       cnFailTo(DONE, "Property stuck.");
     }
-    //header = malloc(strlen(next) + 1);
-    //if (!header) cnFailTo(DONE, "No header string.");
-    //strcpy(header, next);
-    // TODO If not already there: if (!cnListPush(&headers, header))
   }
+  // Now that we have the full type, it's stable. Report it.
   cnvPrintType(type);
+
+  // Read the data. First column tells us what bag we are in. Assume bags that
+  // aren't intermixed.
+  while ((countRead = cnReadLine(file, &line)) > 0) {
+    //
+  }
+  if (countRead < 0) cnFailTo(DONE, "Error reading line.");
 
   DONE:
   cnSchemaDispose(&schema);
