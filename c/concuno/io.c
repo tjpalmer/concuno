@@ -27,19 +27,32 @@ char* cnParseStr(char* begin, char** end) {
 }
 
 
+#define cnReadLine_BufferSize 1024
+
 cnCount cnReadLine(FILE* file, cnString* string) {
+  char buffer[cnReadLine_BufferSize];
+  cnIndex bufferIndex = 0;
   cnCount count = 0;
+  cnCount maxRead = cnReadLine_BufferSize - 1;
   int i;
   cnStringClear(string);
   while ((i = fgetc(file)) != EOF) {
     char c = (char)i;
-    count++;
-    if (!cnStringPushChar(string, c)) {
-      count = -count;
-      break;
-    }
-    if (c == '\n') {
-      break;
+    buffer[bufferIndex++] = c;
+    if (bufferIndex == maxRead || c == '\n') {
+      count += bufferIndex;
+      buffer[bufferIndex++] = '\0';
+      // Add the buffer at one go.
+      if (!cnStringPushStr(string, buffer)) {
+        count = -count;
+        break;
+      }
+      if (c == '\n') {
+        // All done.
+        break;
+      }
+      // Start the buffer over again, and keep going.
+      bufferIndex = 0;
     }
   }
   return count;
