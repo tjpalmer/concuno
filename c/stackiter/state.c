@@ -34,13 +34,9 @@ cnBool stSchemaInit(cnSchema* schema) {
   }
 
   // Item type.
-  if (!(type = cnListExpand(&schema->types))) goto FAIL;
-  if (!cnTypeInit(type, "Item", sizeof(stItem))) {
-    // Pretend the type isn't there.
-    schema->types.count--;
-    goto FAIL;
-  }
+  if (!(type = cnTypeCreate("Item", sizeof(stItem)))) goto FAIL;
   type->schema = schema;
+  if (!cnListPush(&schema->types, &type)) goto FAIL;
 
   // Color property.
   if (!(property = cnListExpand(&type->properties))) goto FAIL;

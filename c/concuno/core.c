@@ -34,6 +34,11 @@ void* cnListGet(cnListAny* list, cnIndex index) {
 }
 
 
+void* cnListGetPointer(cnListAny* list, cnIndex index) {
+  return *(void**)cnListGet(list, index);
+}
+
+
 void* cnListEnd(const cnListAny* list) {
   return ((char*)list->items) + (list->count * list->itemSize);
 }

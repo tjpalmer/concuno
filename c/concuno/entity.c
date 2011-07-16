@@ -412,8 +412,8 @@ cnBool cnPropertyInitField(
 
 
 void cnSchemaDispose(cnSchema* schema) {
-  cnListEachBegin(&schema->types, cnType, type) {
-    cnTypeDispose(type);
+  cnListEachBegin(&schema->types, cnType*, type) {
+    cnTypeDrop(*type);
   } cnEnd;
   cnListDispose(&schema->types);
   cnSchemaInit(schema);
@@ -422,40 +422,35 @@ void cnSchemaDispose(cnSchema* schema) {
 
 void cnSchemaInit(cnSchema* schema) {
   schema->floatType = NULL;
-  cnListInit(&schema->types, sizeof(cnType));
+  cnListInit(&schema->types, sizeof(cnType*));
 }
 
 
 cnBool cnSchemaInitDefault(cnSchema* schema) {
   cnType *type;
+  // Init schema.
   cnSchemaInit(schema);
-  if (!(type = cnListExpand(&schema->types))) {
-    cnSchemaDispose(schema);
-    return cnFalse;
-  }
-  if (!cnTypeInit(type, "Float", sizeof(cnFloat))) {
-    // Pretend the type was never there.
-    cnSchemaDispose(schema);
-    return cnFalse;
+  // Create float type.
+  if (!(type = cnTypeCreate("Float", sizeof(cnFloat)))) {
+    cnFailTo(FAIL, "No type.");
   }
   type->schema = schema;
+  // Push it on, and keep a nice reference.
+  if (!cnListPush(&schema->types, &type)) cnFailTo(FAIL, "Can't push type.");
   schema->floatType = type;
+  // We winned!
   return cnTrue;
+
+  FAIL:
+  cnTypeDrop(type);
+  cnSchemaDispose(schema);
+  return cnFalse;
 }
 
 
-void cnTypeDispose(cnType* type) {
-  cnStringDispose(&type->name);
-  cnListEachBegin(&type->properties, cnProperty, property) {
-    cnPropertyDispose(property);
-  } cnEnd;
-  cnListDispose(&type->properties);
-  type->size = 0;
-  type->schema = NULL;
-}
-
-
-cnBool cnTypeInit(cnType* type, char* name, cnCount size) {
+cnType* cnTypeCreate(char* name, cnCount size) {
+  cnType* type = malloc(sizeof(cnType));
+  if (!type) cnFailTo(FAIL, "No type.");
   // Put safety values first.
   type->size = size;
   // Let schema be set later, if wanted.
@@ -463,8 +458,23 @@ cnBool cnTypeInit(cnType* type, char* name, cnCount size) {
   cnStringInit(&type->name);
   cnListInit(&type->properties, sizeof(cnProperty));
   // Now try things that might fail.
-  if (!cnStringPushStr(&type->name, name)) {
-    return cnFalse;
-  }
-  return cnTrue;
+  if (!cnStringPushStr(&type->name, name)) cnFailTo(FAIL, "No type name.");
+  return type;
+
+  FAIL:
+  cnTypeDrop(type);
+  return NULL;
+}
+
+
+void cnTypeDrop(cnType* type) {
+  if (!type) return;
+  cnStringDispose(&type->name);
+  cnListEachBegin(&type->properties, cnProperty, property) {
+    cnPropertyDispose(property);
+  } cnEnd;
+  cnListDispose(&type->properties);
+  type->size = 0;
+  type->schema = NULL;
+  free(type);
 }

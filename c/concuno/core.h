@@ -162,6 +162,13 @@ void* cnListExpandMulti(cnListAny* list, cnCount count);
 void* cnListGet(cnListAny* list, cnIndex index);
 
 
+/**
+ * Assumes this list holds pointers and returns the pointer value instead of
+ * the pointer to the pointer.
+ */
+void* cnListGetPointer(cnListAny* list, cnIndex index);
+
+
 void cnListInit(cnListAny* list, cnCount itemSize);
 
 

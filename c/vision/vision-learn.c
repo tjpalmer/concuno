@@ -24,10 +24,12 @@ typedef struct cnvTypedOffset {
 } cnvTypedOffset;
 
 
-cnBool cnvLoadBags(char* indicatorsName, char* featuresName);
-
-
-cnBool cnvLoadGroupedMatrix(char* name);
+/**
+ * Returns the created item type or null for failure.
+ */
+cnType* cnvLoadLabeledMatrix(
+  char* fileName, char* typeName, cnSchema* schema, cnListAny* items
+);
 
 
 void cnvPrintType(cnType* type);
@@ -38,103 +40,125 @@ cnBool cnvPushOrExpandProperty(
 );
 
 
-/**
- * Returns the created entity type or null for failure.
- */
-cnType* cnvSchemaInit(cnSchema* schema);
-
-
 int main(int argc, char** argv) {
   int result = EXIT_FAILURE;
+  cnList(cnBag) featureBags;
+  cnListAny features;
+  cnType* featureType;
+  cnListAny labels;
+  cnType* labelType;
+  cnSchema schema;
+
+  // Init lists first for safety.
+  // We don't yet know how big the items are.
+  cnListInit(&features, 0);
+  cnListInit(&featureBags, sizeof(cnBag));
+  cnListInit(&labels, 0);
+  if (!cnSchemaInitDefault(&schema)) cnFailTo(DONE, "No schema.");
 
   if (argc < 3) cnFailTo(DONE, "Tell me which two files to open!");
-  cnvLoadBags(argv[1], argv[2]);
+
+  // Load all the data.
+  labelType = cnvLoadLabeledMatrix(argv[1], "Label", &schema, &labels);
+  if (!labelType) cnFailTo(DONE, "Failed label load.");
+  featureType = cnvLoadLabeledMatrix(argv[2], "Feature", &schema, &features);
+  if (!featureType) cnFailTo(DONE, "Failed feature load.");
+
+  // TODO Group the features by bag.
+  // TODO Pick a label to label the bags.
+
   result = EXIT_SUCCESS;
 
   DONE:
+  cnSchemaDispose(&schema);
+  cnListDispose(&labels);
+  cnListDispose(&features);
+  cnListDispose(&featureBags);
   return result;
 }
 
 
-cnBool cnvLoadBags(char* indicatorsName, char* featuresName) {
-  cnBool result = cnFalse;
-  cnvLoadGroupedMatrix(featuresName);
-  return result;
-}
-
-
-cnBool cnvLoadGroupedMatrix(char* name) {
-  cnBool result = cnFalse;
+cnType* cnvLoadLabeledMatrix(
+  char* fileName, char* typeName, cnSchema* schema, cnListAny* items
+) {
   cnCount countRead;
   FILE* file = NULL;
-  cnListAny items;
   cnString line;
   char* remaining;
   cnList(cnvTypedOffset) offsets;
   cnvTypedOffset* offsetsEnd;
-  cnSchema schema;
-  cnType* type;
+  cnType* type = NULL;
 
-  // Init the data.
-  // No size yet for items.
-  cnListInit(&items, 0);
+  // Init lists for safety.
   cnStringInit(&line);
   cnListInit(&offsets, sizeof(cnString));
-  if (!(type = cnvSchemaInit(&schema))) cnFailTo(DONE, "No schema.");
+
+  // Create the type.
+  if (!(type = cnTypeCreate(typeName, 0))) cnFailTo(FAIL, "No type create.");
+  type->schema = schema;
+  if (!cnListPush(&schema->types, &type)) cnFailTo(FAIL, "No type for schema.");
 
   // Open the file.
-  file = fopen(name, "r");
-  if (!file) cnFailTo(DONE, "Couldn't open '%s'.", name);
+  file = fopen(fileName, "r");
+  if (!file) cnFailTo(FAIL, "Couldn't open '%s'.", fileName);
 
   // Read the headers.
-  if (cnReadLine(file, &line) <= 0) cnFailTo(DONE, "No headers.");
+  if (cnReadLine(file, &line) <= 0) cnFailTo(FAIL, "No headers.");
   remaining = cnStr(&line);
   while (cnTrue) {
     cnvTypedOffset* offset;
     char* next = cnParseStr(remaining, &remaining);
     if (!*next) break;
-    if (next == (char*)line.items) continue; // File group name first. Ignored.
-    if (!(offset = cnListExpand(&offsets))) cnFailTo(DONE, "No offset.");
+    if (next == (char*)line.items && *next == '%') {
+      // Strip % prefix, used there for Matlab convenience.
+      next++;
+    }
+    if (!(offset = cnListExpand(&offsets))) cnFailTo(FAIL, "No offset.");
     if (!cnvPushOrExpandProperty(type, next, offset)) {
-      cnFailTo(DONE, "Property stuck.");
+      cnFailTo(FAIL, "Property stuck.");
     }
   }
   // Now that we have the full type, it's stable.
-  items.itemSize = type->size;
+  items->itemSize = type->size;
   offsetsEnd = cnListEnd(&offsets);
   // Report it for now, too.
   cnvPrintType(type);
 
-  // Read the data. First column tells us what bag we are in. Assume bags that
-  // aren't intermixed.
+  // Read the lines. Each is a separate item.
   while ((countRead = cnReadLine(file, &line)) > 0) {
-    cnIndex bagId;
     cnEntity item;
     cnvTypedOffset* offset = offsets.items;
+    // Allocate then read the fields on this line.
+    if (!(item = cnListExpand(items))) cnFailTo(FAIL, "No item.");
     remaining = cnStr(&line);
-    // Read the bag (image) id. TODO Step bag to bag.
-    bagId = strtol(remaining, &remaining, 10);
-    if (!(item = cnListExpand(&items))) cnFailTo(DONE, "No item.");
-    // Now read the fields themselves.
     for (
       offset = offsets.items; offset < offsetsEnd; offset += offsets.itemSize
     ) {
       // TODO Don't assume all are floats! Need custom parsing?
       char* former = remaining;
       cnFloat value = strtod(remaining, &remaining);
-      if (remaining == former) cnFailTo(DONE, "No data to read?");
+      if (remaining == former) cnFailTo(FAIL, "No data to read?");
       *(cnFloat*)(((char*)item) + offset->offset) = value;
     }
   }
-  if (countRead < 0) cnFailTo(DONE, "Error reading line.");
+  if (countRead < 0) cnFailTo(FAIL, "Error reading line.");
+
+  // We winned!
+  goto DONE;
+
+  FAIL:
+  if (type) {
+    // Make the type go away, for tidiness.
+    cnTypeDrop(type);
+    schema->types.count--;
+    type = NULL;
+  }
 
   DONE:
-  cnSchemaDispose(&schema);
+  if (file) fclose(file);
   cnListDispose(&offsets);
   cnStringDispose(&line);
-  cnListDispose(&items);
-  if (file) fclose(file);
-  return result;
+  return type;
 }
 
 
@@ -192,28 +216,4 @@ cnBool cnvPushOrExpandProperty(
 
   DONE:
   return result;
-}
-
-
-cnType* cnvSchemaInit(cnSchema* schema) {
-  cnType* type = NULL;
-
-  if (!cnSchemaInitDefault(schema)) cnFailTo(DONE, "No default schema.");
-  if (!(type = cnListExpand(&schema->types))) {
-    cnFailTo(FAIL, "No type for schema.");
-  }
-  if (!cnTypeInit(type, "Entity", 0)) { // What size, really?
-    type = NULL;
-    cnFailTo(FAIL, "No type init.");
-  }
-  type->schema = schema;
-
-  // We winned! Skip fail, too.
-  goto DONE;
-
-  FAIL:
-  cnSchemaDispose(schema);
-
-  DONE:
-  return type;
 }

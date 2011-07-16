@@ -208,7 +208,7 @@ struct cnSchema {
    * TODO
    * TODO Make more things typedef'd to pointers all around? More opaque, too?
    */
-  cnList(cnType) types;
+  cnList(cnType*) types;
 
 };
 
@@ -350,18 +350,17 @@ cnBool cnSchemaDefineStandardTypes(cnSchema* schema);
 
 
 /**
- * Disposes of all contained properties, too. Leaves name empty, size 0, and
- * schema NULL.
- *
- * Doesn't dispose of the schema. Schemas manage types, not vice versa.
+ * On failure, returns null.
  */
-void cnTypeDispose(cnType* type);
+cnType* cnTypeCreate(char* name, cnCount size);
 
 
 /**
- * On failure, leaves the type in a stable (nulled out) state.
+ * Disposes of all contained properties, and so on, and frees the type.
+ *
+ * Doesn't dispose of the schema. Schemas manage types, not vice versa.
  */
-cnBool cnTypeInit(cnType* type, char* name, cnCount size);
+void cnTypeDrop(cnType* type);
 
 
 #endif
