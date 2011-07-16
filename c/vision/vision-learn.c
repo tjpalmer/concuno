@@ -5,13 +5,37 @@
 #include "vision-learn.h"
 
 
+/**
+ * For ultra simple pointers into structs, saying where to put data and what
+ * type goes there (including the size in bytes).
+ */
+typedef struct cnvTypedOffset {
+
+  /**
+   * Offset in bytes.
+   */
+  cnCount offset;
+
+  /**
+   * Type at this offset.
+   */
+  cnType* type;
+
+} cnvTypedOffset;
+
+
 cnBool cnvLoadBags(char* indicatorsName, char* featuresName);
 
 
 cnBool cnvLoadGroupedMatrix(char* name);
 
 
-cnBool cnvPushOrExpandProperty(cnType* type, char* propertyName);
+void cnvPrintType(cnType* type);
+
+
+cnBool cnvPushOrExpandProperty(
+  cnType* type, char* propertyName, cnvTypedOffset* offset
+);
 
 
 /**
@@ -42,7 +66,7 @@ cnBool cnvLoadBags(char* indicatorsName, char* featuresName) {
 cnBool cnvLoadGroupedMatrix(char* name) {
   cnBool result = cnFalse;
   FILE* file = NULL;
-  cnList(char*) headers;
+  cnList(cnvTypedOffset) offsets;
   cnString line;
   char* remaining;
   cnSchema schema;
@@ -50,7 +74,7 @@ cnBool cnvLoadGroupedMatrix(char* name) {
 
   // Init the data.
   cnStringInit(&line);
-  cnListInit(&headers, sizeof(cnString));
+  cnListInit(&offsets, sizeof(cnString));
   if (!(type = cnvSchemaInit(&schema))) cnFailTo(DONE, "No schema.");
 
   // Open the file.
@@ -61,65 +85,80 @@ cnBool cnvLoadGroupedMatrix(char* name) {
   if (!cnReadLine(file, &line)) cnFailTo(DONE, "No headers.");
   remaining = cnStr(&line);
   while (cnTrue) {
-    //char* header;
+    cnvTypedOffset* offset;
     char* next = cnParseStr(remaining, &remaining);
     if (!*next) break;
-    if (next <= (char*)line.items) continue; // File group name. Ignored.
-    if (!cnvPushOrExpandProperty(type, next)) cnFailTo(DONE, "Property stuck.");
+    if (next == (char*)line.items) continue; // File group name first. Ignored.
+    if (!(offset = cnListExpand(&offsets))) cnFailTo(DONE, "No offset.");
+    if (!cnvPushOrExpandProperty(type, next, offset)) {
+      cnFailTo(DONE, "Property stuck.");
+    }
     //header = malloc(strlen(next) + 1);
     //if (!header) cnFailTo(DONE, "No header string.");
     //strcpy(header, next);
     // TODO If not already there: if (!cnListPush(&headers, header))
   }
-
-  printf("type %s of size %ld\n", cnStr(&type->name), type->size);
-  cnListEachBegin(&type->properties, cnProperty, property) {
-    printf(
-      "  var %s: %s[%ld]\n",
-      cnStr(&property->name), cnStr(&property->type->name), property->count
-    );
-  } cnEnd;
+  cnvPrintType(type);
 
   DONE:
   cnSchemaDispose(&schema);
-  cnListDispose(&headers);
+  cnListDispose(&offsets);
   cnStringDispose(&line);
   if (file) fclose(file);
   return result;
 }
 
 
-cnBool cnvPushOrExpandProperty(cnType* type, char* propertyName) {
-  cnBool found = cnFalse;
-  cnCount laterOffset = 0;
+void cnvPrintType(cnType* type) {
+  printf("type %s\n", cnStr(&type->name));
+  cnListEachBegin(&type->properties, cnProperty, property) {
+    printf(
+      "  var %s: %s[%ld]\n",
+      cnStr(&property->name), cnStr(&property->type->name), property->count
+    );
+  } cnEnd;
+  // TODO Audit type size?
+}
+
+
+cnBool cnvPushOrExpandProperty(
+  cnType* type, char* propertyName, cnvTypedOffset* offset
+) {
+  cnProperty* property = NULL;
   cnBool result = cnFalse;
 
   // Find the property with this name.
-  cnListEachBegin(&type->properties, cnProperty, property) {
-    if (!strcmp(cnStr(&property->name), propertyName)) {
-      // Found it. Expand it, and offset following ones.
-      found = cnTrue;
-      property->count++;
-      laterOffset = property->type->size;
-    } else if (found) {
+  cnListEachBegin(&type->properties, cnProperty, propertyToCheck) {
+    if (property) {
       // Found a previous property, so offset this following one.
-      property->offset += laterOffset;
+      propertyToCheck->offset += property->type->size;
+    } else if (!strcmp(cnStr(&propertyToCheck->name), propertyName)) {
+      // Found it, so remember and expand it.
+      property = propertyToCheck;
+      property->count++;
     }
   } cnEnd;
 
-  if (!found) {
+  if (!property) {
     // Didn't find anything, so push a new property.
-    cnProperty* property = cnListExpand(&type->properties);
+    property = cnListExpand(&type->properties);
     if (!property) cnFailTo(DONE, "Failed to alloc %s property.", propertyName);
     // TODO Assumed always float for now.
     if (!cnPropertyInitField(
       property, type, type->schema->floatType, propertyName, type->size, 1
     )) cnFailTo(DONE, "Failed to init %s property.", propertyName);
-    laterOffset = property->type->size;
   }
 
   // Update the type's overall size, too.
-  type->size += laterOffset;
+  type->size += property->type->size;
+  // If requested, say where and what type this new slot is.
+  if (offset) {
+    // It's at the last index of the property (count - 1).
+    offset->offset =
+      property->offset + (property->count - 1) * property->type->size;
+    offset->type = property->type;
+  }
+  // We winned.
   result = cnTrue;
 
   DONE:
