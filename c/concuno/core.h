@@ -238,6 +238,13 @@ cnFloat cnNaN(void);
 #define cnStackFree(memory)
 
 
+/**
+ * Provides a usable string, including for the case of no data in the items
+ * buffer. In this case, provides a static empty string.
+ *
+ * Don't modify strings returned from here. Treat them as const, even though I
+ * don't prefer to say const explicitly.
+ */
 char* cnStr(cnString* string);
 
 
