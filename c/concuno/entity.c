@@ -410,23 +410,31 @@ cnBool cnPropertyInitField(
   return cnTrue;
 }
 
+
 void cnSchemaDispose(cnSchema* schema) {
   cnListEachBegin(&schema->types, cnType, type) {
     cnTypeDispose(type);
   } cnEnd;
   cnListDispose(&schema->types);
+  cnSchemaInit(schema);
+}
+
+
+void cnSchemaInit(cnSchema* schema) {
   schema->floatType = NULL;
+  cnListInit(&schema->types, sizeof(cnType));
 }
 
 
 cnBool cnSchemaInitDefault(cnSchema* schema) {
   cnType *type;
-  cnListInit(&schema->types, sizeof(cnType));
+  cnSchemaInit(schema);
   if (!(type = cnListExpand(&schema->types))) {
     cnSchemaDispose(schema);
     return cnFalse;
   }
   if (!cnTypeInit(type, "Float", sizeof(cnFloat))) {
+    // Pretend the type was never there.
     cnSchemaDispose(schema);
     return cnFalse;
   }

@@ -202,6 +202,12 @@ struct cnSchema {
    */
   cnType* floatType;
 
+  /**
+   * TODO Should make this a list of pointers to types so that they are stable
+   * TODO when expanding the list.
+   * TODO
+   * TODO Make more things typedef'd to pointers all around? More opaque, too?
+   */
   cnList(cnType) types;
 
 };
@@ -211,6 +217,10 @@ struct cnType {
 
   cnString name;
 
+  /**
+   * TODO Store pointers instead of expanded, to keep later pointers here
+   * TODO stable?
+   */
   cnList(cnProperty) properties;
 
   cnSchema* schema;
@@ -316,11 +326,27 @@ void cnSchemaDispose(cnSchema* schema);
 
 
 /**
+ * Inits just an empty schema.
+ */
+void cnSchemaInit(cnSchema* schema);
+
+
+/**
  * Provides just float (double) type for now.
  *
  * On failure, leaves the schema in a stable (nulled out) state.
  */
 cnBool cnSchemaInitDefault(cnSchema* schema);
+
+
+/**
+ * Provides just float (double) type for now.
+ *
+ * On failure, leaves the schema in the original state.
+ *
+ * TODO Actually keep this here, or just stick to init default above?
+ */
+cnBool cnSchemaDefineStandardTypes(cnSchema* schema);
 
 
 /**
