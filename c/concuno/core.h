@@ -240,10 +240,8 @@ cnFloat cnNaN(void);
 
 /**
  * Provides a usable string, including for the case of no data in the items
- * buffer. In this case, provides a static empty string.
- *
- * Don't modify strings returned from here. Treat them as const, even though I
- * don't prefer to say const explicitly.
+ * buffer. In this case, provides a static empty string. Therefore if the count
+ * is 0, do not modify the returned string.
  */
 char* cnStr(cnString* string);
 

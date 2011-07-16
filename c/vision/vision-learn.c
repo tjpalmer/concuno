@@ -67,13 +67,17 @@ cnBool cnvLoadGroupedMatrix(char* name) {
   cnBool result = cnFalse;
   cnCount countRead;
   FILE* file = NULL;
-  cnList(cnvTypedOffset) offsets;
+  cnListAny items;
   cnString line;
   char* remaining;
+  cnList(cnvTypedOffset) offsets;
+  cnvTypedOffset* offsetsEnd;
   cnSchema schema;
   cnType* type;
 
   // Init the data.
+  // No size yet for items.
+  cnListInit(&items, 0);
   cnStringInit(&line);
   cnListInit(&offsets, sizeof(cnString));
   if (!(type = cnvSchemaInit(&schema))) cnFailTo(DONE, "No schema.");
@@ -95,13 +99,32 @@ cnBool cnvLoadGroupedMatrix(char* name) {
       cnFailTo(DONE, "Property stuck.");
     }
   }
-  // Now that we have the full type, it's stable. Report it.
+  // Now that we have the full type, it's stable.
+  items.itemSize = type->size;
+  offsetsEnd = cnListEnd(&offsets);
+  // Report it for now, too.
   cnvPrintType(type);
 
   // Read the data. First column tells us what bag we are in. Assume bags that
   // aren't intermixed.
   while ((countRead = cnReadLine(file, &line)) > 0) {
-    //
+    cnIndex bagId;
+    cnEntity item;
+    cnvTypedOffset* offset = offsets.items;
+    remaining = cnStr(&line);
+    // Read the bag (image) id. TODO Step bag to bag.
+    bagId = strtol(remaining, &remaining, 10);
+    if (!(item = cnListExpand(&items))) cnFailTo(DONE, "No item.");
+    // Now read the fields themselves.
+    for (
+      offset = offsets.items; offset < offsetsEnd; offset += offsets.itemSize
+    ) {
+      // TODO Don't assume all are floats! Need custom parsing?
+      char* former = remaining;
+      cnFloat value = strtod(remaining, &remaining);
+      if (remaining == former) cnFailTo(DONE, "No data to read?");
+      *(cnFloat*)(((char*)item) + offset->offset) = value;
+    }
   }
   if (countRead < 0) cnFailTo(DONE, "Error reading line.");
 
@@ -109,6 +132,7 @@ cnBool cnvLoadGroupedMatrix(char* name) {
   cnSchemaDispose(&schema);
   cnListDispose(&offsets);
   cnStringDispose(&line);
+  cnListDispose(&items);
   if (file) fclose(file);
   return result;
 }
