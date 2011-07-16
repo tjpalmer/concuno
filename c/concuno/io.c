@@ -27,7 +27,12 @@ char* cnParseStr(char* begin, char** end) {
 }
 
 
-#define cnReadLine_BufferSize 1024
+/**
+ * I've tried various sizes for this. I wasn't convinced above 64 was doing much
+ * better in my case, so I left it here. Smaller does okay, too, but it
+ * gradually starts slowing down as this shrinks.
+ */
+#define cnReadLine_BufferSize 64
 
 cnCount cnReadLine(FILE* file, cnString* string) {
   char buffer[cnReadLine_BufferSize];
