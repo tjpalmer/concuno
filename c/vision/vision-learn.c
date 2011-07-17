@@ -42,6 +42,9 @@ cnType* cnvLoadTable(
 );
 
 
+cnBool cnvPickFunctions(cnList(cnEntityFunction*)* functions, cnType* type);
+
+
 void cnvPrintType(cnType* type);
 
 
@@ -55,14 +58,16 @@ int main(int argc, char** argv) {
   cnList(cnBag) bags;
   cnListAny features;
   cnType* featureType;
+  cnList(cnEntityFunction*) functions;
   cnListAny labels;
   cnType* labelType;
   cnSchema schema;
 
   // Init lists first for safety.
+  cnListInit(&bags, sizeof(cnBag));
   // We don't yet know how big the items are.
   cnListInit(&features, 0);
-  cnListInit(&bags, sizeof(cnBag));
+  cnListInit(&functions, sizeof(cnEntityFunction*));
   cnListInit(&labels, 0);
   if (!cnSchemaInitDefault(&schema)) cnFailTo(DONE, "No schema.");
 
@@ -77,9 +82,14 @@ int main(int argc, char** argv) {
   if (!featureType) cnFailTo(DONE, "Failed feature load.");
 
   // Build labeled bags.
-  cnvBuildBags(&bags, argv[1], labelType, &labels, featureType, &features);
+  if (
+    !cnvBuildBags(&bags, argv[1], labelType, &labels, featureType, &features)
+  ) cnFailTo(DONE, "No bags.");
+  // Choose some functions. TODO How to specify which??
+  if (!cnvPickFunctions(&functions, featureType)) {
+    cnFailTo(DONE, "No functions.");
+  }
 
-  // TODO Pick functions.
   // TODO Learn something.
 
   result = EXIT_SUCCESS;
@@ -87,7 +97,11 @@ int main(int argc, char** argv) {
   DONE:
   cnSchemaDispose(&schema);
   cnListDispose(&labels);
+  cnListDispose(&functions);
   cnListDispose(&features);
+  cnListEachBegin(&bags, cnBag, bag) {
+    cnBagDispose(bag);
+  } cnEnd;
   cnListDispose(&bags);
   return result;
 }
@@ -98,10 +112,8 @@ cnBool cnvBuildBags(
   char* labelId, cnType* labelType, cnListAny* labels,
   cnType* featureType, cnListAny* features
 ) {
-  cnIndex previousBagId = -1;
-  cnBool label = cnFalse;
-  char* labelItem = labels->items;
-  char* labelItemsEnd = cnListEnd(labels);
+  char* feature = features->items;
+  char* featuresEnd = cnListEnd(features);
   cnCount labelOffset = -1;
   cnBool result = cnFalse;
 
@@ -115,36 +127,26 @@ cnBool cnvBuildBags(
   } cnEnd;
   if (labelOffset < 0) cnFailTo(DONE, "Label %s not found.", labelId);
 
-  // Assume for now that the labels and items go in the same order.
-  // Go to one before the first label item, so the first forward step is good.
-  labelItem -= labels->itemSize;
-  cnListEachBegin(features, void, feature) {
-    // The bag id is always the first feature.
-    cnIndex bagId = *(cnFloat*)feature;
-    if (feature == features->items || bagId != previousBagId) {
-      // New bag.
-      cnIndex labelBagId;
-      while (cnTrue) {
-        labelItem += labels->itemSize;
-        if (labelItem >= labelItemsEnd) {
-          cnFailTo(DONE, "Never found labels for bag %ld.", bagId);
-        }
-        label = *(cnFloat*)(labelItem + labelOffset);
-        labelBagId = *(cnFloat*)labelItem;
-        if (bagId == labelBagId) {
-          // Bags match. Move on.
-          break;
-        } else {
-          // No items for this bag, but it has a label.
-          printf("No items for bag %ld, labeled %u.\n", labelBagId, label);
-          // TODO Push a bag anyway!
-        }
-      }
-      printf("Reached bag %ld, labeled %u.\n", bagId, label);
-      // Remember where we are.
-      previousBagId = bagId;
+  // Assume for now that the labels and features go in the same order.
+  cnListEachBegin(labels, char, labelItem) {
+    cnBag* bag = cnListExpand(bags);
+    cnIndex bagId = *(cnFloat*)labelItem;
+    // Check the bag allocation, and init the thing.
+    if (!bag) cnFailTo(DONE, "No bag.");
+    cnBagInit(bag);
+    bag->label = *(cnFloat*)(labelItem + labelOffset);
+    // Add features.
+    //printf("Reached bag %ld, labeled %u.\n", bagId, bag->label);
+    for (; feature < featuresEnd; feature += features->itemSize) {
+      cnIndex featureBagId = *(cnFloat*)feature;
+      if (featureBagId != bagId) break;
+      // The feature goes with this bag.
+      cnListPush(&bag->entities, &feature);
     }
   } cnEnd;
+
+  // We winned!
+  result = cnTrue;
 
   DONE:
   return result;
@@ -229,6 +231,11 @@ cnType* cnvLoadTable(
   cnListDispose(&offsets);
   cnStringDispose(&line);
   return type;
+}
+
+
+cnBool cnvPickFunctions(cnList(cnEntityFunction*)* functions, cnType* type) {
+  return cnTrue;
 }
 
 
