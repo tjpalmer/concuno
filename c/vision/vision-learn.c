@@ -61,6 +61,8 @@ int main(int argc, char** argv) {
   cnList(cnEntityFunction*) functions;
   cnListAny labels;
   cnType* labelType;
+  cnRootNode* learnedTree;
+  cnLearner learner;
   cnSchema schema;
 
   // Init lists first for safety.
@@ -89,8 +91,15 @@ int main(int argc, char** argv) {
   if (!cnvPickFunctions(&functions, featureType)) {
     cnFailTo(DONE, "No functions.");
   }
+  printf("\n");
 
-  // TODO Learn something.
+  // Learn something.
+  cnLearnerInit(&learner);
+  cnListShuffle(&bags);
+  learner.bags = &bags;
+  learner.entityFunctions = &functions;
+  learnedTree = cnLearnTree(&learner);
+  if (!learnedTree) cnFailTo(DONE, "No learned tree.");
 
   result = EXIT_SUCCESS;
 
@@ -235,7 +244,28 @@ cnType* cnvLoadTable(
 
 
 cnBool cnvPickFunctions(cnList(cnEntityFunction*)* functions, cnType* type) {
+  // For now, just put in one identity function for each property.
+  cnListEachBegin(&type->properties, cnProperty, property) {
+    cnEntityFunction* function;
+    if (property == type->properties.items) {
+      // Skip the first (the bag id).
+      continue;
+    }
+    if (!(function = cnEntityFunctionCreateProperty(property))) {
+      cnFailTo(FAIL, "No function.");
+    }
+    if (!cnListPush(functions, &function)) {
+      cnEntityFunctionDrop(function);
+      cnFailTo(FAIL, "Function not pushed.");
+    }
+  } cnEnd;
+
+  // We winned!
   return cnTrue;
+
+  FAIL:
+  // TODO Remove all added functions?
+  return cnFalse;
 }
 
 
