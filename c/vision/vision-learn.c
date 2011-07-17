@@ -25,9 +25,19 @@ typedef struct cnvTypedOffset {
 
 
 /**
+ * Fills in the bags with the given label information and data.
+ */
+cnBool cnvBuildBags(
+  cnList(cnBag)* bags,
+  char* labelId, cnType* labelType, cnListAny* labels,
+  cnType* featureType, cnListAny* features
+);
+
+
+/**
  * Returns the created item type or null for failure.
  */
-cnType* cnvLoadLabeledMatrix(
+cnType* cnvLoadTable(
   char* fileName, char* typeName, cnSchema* schema, cnListAny* items
 );
 
@@ -42,7 +52,7 @@ cnBool cnvPushOrExpandProperty(
 
 int main(int argc, char** argv) {
   int result = EXIT_FAILURE;
-  cnList(cnBag) featureBags;
+  cnList(cnBag) bags;
   cnListAny features;
   cnType* featureType;
   cnListAny labels;
@@ -52,20 +62,25 @@ int main(int argc, char** argv) {
   // Init lists first for safety.
   // We don't yet know how big the items are.
   cnListInit(&features, 0);
-  cnListInit(&featureBags, sizeof(cnBag));
+  cnListInit(&bags, sizeof(cnBag));
   cnListInit(&labels, 0);
   if (!cnSchemaInitDefault(&schema)) cnFailTo(DONE, "No schema.");
 
-  if (argc < 3) cnFailTo(DONE, "Tell me which two files to open!");
+  if (argc < 4) cnFailTo(
+    DONE, "Usage: %s <label-id> <labels-file> <features-file>", argv[0]
+  );
 
   // Load all the data.
-  labelType = cnvLoadLabeledMatrix(argv[1], "Label", &schema, &labels);
+  labelType = cnvLoadTable(argv[2], "Label", &schema, &labels);
   if (!labelType) cnFailTo(DONE, "Failed label load.");
-  featureType = cnvLoadLabeledMatrix(argv[2], "Feature", &schema, &features);
+  featureType = cnvLoadTable(argv[3], "Feature", &schema, &features);
   if (!featureType) cnFailTo(DONE, "Failed feature load.");
 
-  // TODO Group the features by bag.
-  // TODO Pick a label to label the bags.
+  // Build labeled bags.
+  cnvBuildBags(&bags, argv[1], labelType, &labels, featureType, &features);
+
+  // TODO Pick functions.
+  // TODO Learn something.
 
   result = EXIT_SUCCESS;
 
@@ -73,12 +88,70 @@ int main(int argc, char** argv) {
   cnSchemaDispose(&schema);
   cnListDispose(&labels);
   cnListDispose(&features);
-  cnListDispose(&featureBags);
+  cnListDispose(&bags);
   return result;
 }
 
 
-cnType* cnvLoadLabeledMatrix(
+cnBool cnvBuildBags(
+  cnList(cnBag)* bags,
+  char* labelId, cnType* labelType, cnListAny* labels,
+  cnType* featureType, cnListAny* features
+) {
+  cnIndex previousBagId = -1;
+  cnBool label = cnFalse;
+  char* labelItem = labels->items;
+  char* labelItemsEnd = cnListEnd(labels);
+  cnCount labelOffset = -1;
+  cnBool result = cnFalse;
+
+  // Find the offset matching the label id.
+  cnListEachBegin(&labelType->properties, cnProperty, property) {
+    if (!strcmp(labelId, cnStr(&property->name))) {
+      labelOffset = property->offset;
+      printf("Label %s at offset %ld.\n", labelId, labelOffset);
+      break;
+    }
+  } cnEnd;
+  if (labelOffset < 0) cnFailTo(DONE, "Label %s not found.", labelId);
+
+  // Assume for now that the labels and items go in the same order.
+  // Go to one before the first label item, so the first forward step is good.
+  labelItem -= labels->itemSize;
+  cnListEachBegin(features, void, feature) {
+    // The bag id is always the first feature.
+    cnIndex bagId = *(cnFloat*)feature;
+    if (feature == features->items || bagId != previousBagId) {
+      // New bag.
+      cnIndex labelBagId;
+      while (cnTrue) {
+        labelItem += labels->itemSize;
+        if (labelItem >= labelItemsEnd) {
+          cnFailTo(DONE, "Never found labels for bag %ld.", bagId);
+        }
+        label = *(cnFloat*)(labelItem + labelOffset);
+        labelBagId = *(cnFloat*)labelItem;
+        if (bagId == labelBagId) {
+          // Bags match. Move on.
+          break;
+        } else {
+          // No items for this bag, but it has a label.
+          printf("No items for bag %ld, labeled %u.\n", labelBagId, label);
+          // TODO Push a bag anyway!
+        }
+      }
+      printf("Reached bag %ld, labeled %u.\n", bagId, label);
+      // Remember where we are.
+      previousBagId = bagId;
+    }
+  } cnEnd;
+
+  DONE:
+  return result;
+}
+
+
+cnType* cnvLoadTable(
   char* fileName, char* typeName, cnSchema* schema, cnListAny* items
 ) {
   cnCount countRead;
@@ -91,7 +164,7 @@ cnType* cnvLoadLabeledMatrix(
 
   // Init lists for safety.
   cnStringInit(&line);
-  cnListInit(&offsets, sizeof(cnString));
+  cnListInit(&offsets, sizeof(cnvTypedOffset));
 
   // Create the type.
   if (!(type = cnTypeCreate(typeName, 0))) cnFailTo(FAIL, "No type create.");
@@ -127,19 +200,16 @@ cnType* cnvLoadLabeledMatrix(
   // Read the lines. Each is a separate item.
   while ((countRead = cnReadLine(file, &line)) > 0) {
     cnEntity item;
-    cnvTypedOffset* offset = offsets.items;
     // Allocate then read the fields on this line.
     if (!(item = cnListExpand(items))) cnFailTo(FAIL, "No item.");
     remaining = cnStr(&line);
-    for (
-      offset = offsets.items; offset < offsetsEnd; offset += offsets.itemSize
-    ) {
+    cnListEachBegin(&offsets, cnvTypedOffset, offset) {
       // TODO Don't assume all are floats! Need custom parsing?
       char* former = remaining;
       cnFloat value = strtod(remaining, &remaining);
       if (remaining == former) cnFailTo(FAIL, "No data to read?");
       *(cnFloat*)(((char*)item) + offset->offset) = value;
-    }
+    } cnEnd;
   }
   if (countRead < 0) cnFailTo(FAIL, "Error reading line.");
 
