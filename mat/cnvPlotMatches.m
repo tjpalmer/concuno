@@ -27,18 +27,18 @@ function cnvPlotMatches(center, threshold, features, dirName)
     for m = 1:size(currentMatches,1)
       match = currentMatches(m,:);
 
-      % X and Y are 2 and 3. Presumed standard image coordinates.
-      a = [match(2) match(3)];
-      % Scale and angle are 4 and 5. I'm not entirely how to employ these, but
-      % this is probably better than nothing.
-      b = 6 * match(4) * [cos(match(5)) sin(match(5))];;
+      % X and Y are 3 and 2, based on plotting code that comes with the SIFT
+      % demo.
+      a = [match(3) match(2)];
+      % Scale and angle are 4 and 5. Usage (including the 6 *) is also based on
+      % the SIFT demo plotting code.
+      b = 6 * match(4) * [sin(match(5)) cos(match(5))];;
       b = a + b;
 
       % Draw the line from the feature point showing orientation and scale.
-      plot([a(2) b(2)], [a(1) b(1)], 'b-');
-
+      plot([a(1) b(1)], [a(2) b(2)], 'b-');
       % Draw the main point on top of the line.
-      plot(a(2), a(1), 'r.');
+      plot(a(1), a(2), 'r.');
     end
     hold off;
 
