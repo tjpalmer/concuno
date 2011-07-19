@@ -361,6 +361,30 @@ cnFloat* cnBestPointByScore(
   cnCount negBagCount = 0, posBagCount = 0, maxEitherBags = 8;
   cnCount valueCount =
     pointBags->count ? ((cnPointBag*)pointBags->items)->valueCount : 0;
+
+  // TODO Build a kd-tree (or set thereof) for approximate nearest neighbor
+  // TODO sampling, and then use bounds to cut off searches once better scores
+  // TODO seem impossible or at least unlikely.
+  // TODO
+  // TODO Is there also any way to estimate when there are too many points vs.
+  // TODO bags to trust a situation?
+  // TODO
+  // TODO Is it worth watching wall-clock time to cut off a search? If I could
+  // TODO interleave tree iterations, then this might be more reasonable. As in,
+  // TODO some other expansion might already have lead to good trees and further
+  // TODO expansions while some slow one is still chugging aways and not getting
+  // TODO close to what's been going on elsewhere. Maybe some language like Go
+  // TODO or Erlang or Stackless really would be nice. Hand designing the
+  // TODO interleaving in C would take some effort, at least.
+  // TODO
+  // TODO Should I require positive bags to consider only cases with higher
+  // TODO prob in yes branch, and for negative to have higher in no branch? That
+  // TODO might help avoid overfit and also speed things up when considering
+  // TODO bounds.
+  // TODO
+  // TODO In any case, the overfit matter might be moot with a validation set,
+  // TODO so long as we can at least finish fast.
+
   printf("Score-ish: ");
   cnListEachBegin(pointBags, cnPointBag, pointBag) {
     cnFloat* point = pointBag->pointMatrix;
@@ -371,7 +395,8 @@ cnFloat* cnBestPointByScore(
     } else {
       if (negBagCount++ >= maxEitherBags) continue;
     }
-    printf("B%c ", pointBag->bag->label ? '+' : '-');
+    printf("B%c:%ld ", pointBag->bag->label ? '+' : '-', pointBag->pointCount);
+    fflush(stdout);
     for (; point < matrixEnd; point += valueCount) {
       cnBool allGood = cnTrue;
       cnFloat* value;
@@ -391,6 +416,13 @@ cnFloat* cnBestPointByScore(
         printf(": %.4le) ", score);
         bestPoint = point;
         bestScore = score;
+      }
+      // Progress tracker.
+      if (
+        (1 + (point - (cnFloat*)pointBag->pointMatrix) / valueCount) % 100 == 0
+      ) {
+        printf(".");
+        fflush(stdout);
       }
     }
   } cnEnd;
@@ -1483,4 +1515,3 @@ cnBool cnVerifyImprovement(
 
   return okay;
 }
-

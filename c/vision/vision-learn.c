@@ -258,6 +258,23 @@ cnBool cnvPickFunctions(cnList(cnEntityFunction*)* functions, cnType* type) {
       cnEntityFunctionDrop(function);
       cnFailTo(FAIL, "Function not pushed.");
     }
+    // TODO Distance (and difference?) angle, too?
+    if (!strcmp("Location", cnStr(&function->name))) {
+      cnEntityFunction* distance;
+      if (cnTrue) {
+        // Actually, skip this N^2 thing for now. For many items per bag and few
+        // bags, this is both extremely slow and allows overfit, since there are
+        // so many options to consider.
+        continue;
+      }
+      if (!(distance = cnEntityFunctionCreateDistance(function))) {
+        cnFailTo(FAIL, "No distance %s.", cnStr(&function->name));
+      }
+      if (!cnListPush(functions, &distance)) {
+        cnEntityFunctionDrop(distance);
+        cnFailTo(FAIL, "Function %s not pushed.", cnStr(&distance->name));
+      }
+    }
   } cnEnd;
 
   // We winned!
