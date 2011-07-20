@@ -175,7 +175,7 @@ cnBool cnUpdateLeafProbabilities(cnRootNode* root);
  * Returns true for non-error. The test result comes through the result param.
  */
 cnBool cnVerifyImprovement(
-  cnLearnerConfig* config, cnRootNode* candidate, cnBool* result
+  cnLearnerConfig* config, cnRootNode* candidate, cnFloat* pValue
 );
 
 
@@ -924,6 +924,11 @@ cnRootNode* cnLearnTree(cnLearner* learner) {
       break;
     }
 
+    printf(
+      "**********************************************************************\n"
+      "**********************************************************************\n"
+      "\n"
+    );
     printf("Taking on another round!\n");
     config.previous = result;
   }
@@ -1153,7 +1158,7 @@ void cnSearchFill(
 
 
 cnRootNode* cnTryExpansionsAtLeaf(cnLearnerConfig* config, cnLeafNode* leaf) {
-  cnFloat bestScore = -HUGE_VAL;
+  cnFloat bestPValue = 1;
   cnRootNode* bestTree = NULL;
   cnList(cnEntityFunction)* entityFunctions = config->learner->entityFunctions;
   cnList(cnExpansion) expansions;
@@ -1162,13 +1167,6 @@ cnRootNode* cnTryExpansionsAtLeaf(cnLearnerConfig* config, cnLeafNode* leaf) {
   cnCount minNewVarCount;
   cnCount newVarCount;
   cnCount varDepth = cnNodeVarDepth(&leaf->node);
-
-  // Propagate training bags to get ready for training.
-  if (
-    !cnRootNodePropagateBags(cnNodeRoot(&leaf->node), &config->trainingBags)
-  ) {
-    cnFailTo(DONE, "Failed to propagate training bags.");
-  }
 
   // Make a list of expansions. They can then be sorted, etc.
   cnListInit(&expansions, sizeof(cnExpansion));
@@ -1240,25 +1238,39 @@ cnRootNode* cnTryExpansionsAtLeaf(cnLearnerConfig* config, cnLeafNode* leaf) {
   // TODO heuristic?
   printf("Need to try %ld expansions.\n\n", expansions.count);
   cnListEachBegin(&expansions, cnExpansion, expansion) {
-    cnFloat score;
+    cnFloat pValue;
+    cnRootNode* expanded;
 
-    cnRootNode* expanded = cnExpandedTree(config->learner, expansion);
-    if (!expanded) goto DONE;
+    // Propagate training bags to get ready for training. Do this each time
+    // because significance tests currently replace with validation set.
+    if (
+      !cnRootNodePropagateBags(cnNodeRoot(&leaf->node), &config->trainingBags)
+    ) {
+      cnFailTo(DONE, "Failed to propagate training bags.");
+    }
+
+    // Learn a tree.
+    if (!(expanded = cnExpandedTree(config->learner, expansion))) {
+      cnFailTo(DONE, "Expanding failed.");
+    }
 
     // Check the metric on the validation set to see how we did.
     // TODO Evaluate LL to see if it's the best yet. If not ...
     // TODO Consider paired randomization test with validation set for
     // TODO significance test.
-    score = cnTreeLogMetric(expanded, &config->validationBags);
-    printf("Expanded tree has metric: %lg\n", score);
-    if (score > bestScore) {
+    if (!cnVerifyImprovement(config, expanded, &pValue)) {
+      cnNodeDrop(&expanded->node);
+      cnFailTo(FAIL, "Failed propagate or p-value.");
+    }
+    printf("Expanded tree has p-value: %lg\n", pValue);
+    if (pValue < bestPValue) {
       // New best!
       printf(">>>-------->\n");
       printf(">>>--------> Best tree of this group!\n");
       printf(">>>-------->\n");
       // Out with the old, and in with the new.
       cnNodeDrop(&bestTree->node);
-      bestScore = score;
+      bestPValue = pValue;
       bestTree = expanded;
     } else {
       // No good. Dismiss it.
@@ -1271,18 +1283,16 @@ cnRootNode* cnTryExpansionsAtLeaf(cnLearnerConfig* config, cnLeafNode* leaf) {
     printf("\n");
   } cnEnd;
 
-  // Significance test!
-  if (bestTree) {
-    cnBool result;
-    if (!cnVerifyImprovement(config, bestTree, &result)) {
-      cnFailTo(DONE, "Failed to accomplish verification.");
-    }
-    if (!result) {
-      // The best wasn't good enough.
-      cnNodeDrop(&bestTree->node);
-      bestTree = NULL;
-    }
+  // Significance test.
+  if (bestTree && bestPValue < 0.05) {
+    // Good to go! TODO Multiple comparisons problem!!!
+    goto DONE;
   }
+  // The best wasn't good enough. Time to fail.
+
+  FAIL:
+  cnNodeDrop(&bestTree->node);
+  bestTree = NULL;
 
   DONE:
   cnListEachBegin(&expansions, cnExpansion, expansion) {
@@ -1444,7 +1454,7 @@ cnBool cnVerifyImprovement_StatsPrepare(
 }
 
 cnBool cnVerifyImprovement(
-  cnLearnerConfig* config, cnRootNode* candidate, cnBool* result
+  cnLearnerConfig* config, cnRootNode* candidate, cnFloat* pValue
 ) {
 
   // I don't know how to randomize across results from different trees.
@@ -1474,7 +1484,6 @@ cnBool cnVerifyImprovement(
   cnIndex i;
   cnBool okay = cnFalse;
   cnVerifyImprovement_Stats previousStats;
-  cnFloat pValue;
 
   // Inits.
   cnVerifyImprovement_StatsInit(&candidateStats);
@@ -1501,11 +1510,7 @@ cnBool cnVerifyImprovement(
     );
     candidateWinCounts += candidateScore > previousScore;
   }
-  pValue = 1 - (candidateWinCounts / (cnFloat)bootRepeatCount);
-  printf("Bootstrap p-value: %lg\n", pValue);
-  // TODO Parameterize significance, especially in light of Bonferroni or Sidak
-  // TODO correction.
-  *result = pValue < 0.05;
+  *pValue = 1 - (candidateWinCounts / (cnFloat)bootRepeatCount);
   okay = cnTrue;
 
   DONE:
