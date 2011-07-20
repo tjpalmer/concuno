@@ -74,18 +74,18 @@ int main(int argc, char** argv) {
   if (!cnSchemaInitDefault(&schema)) cnFailTo(DONE, "No schema.");
 
   if (argc < 4) cnFailTo(
-    DONE, "Usage: %s <label-id> <labels-file> <features-file>", argv[0]
+    DONE, "Usage: %s <features-file> <labels-file> <label-id>", argv[0]
   );
 
   // Load all the data.
+  featureType = cnvLoadTable(argv[1], "Feature", &schema, &features);
+  if (!featureType) cnFailTo(DONE, "Failed feature load.");
   labelType = cnvLoadTable(argv[2], "Label", &schema, &labels);
   if (!labelType) cnFailTo(DONE, "Failed label load.");
-  featureType = cnvLoadTable(argv[3], "Feature", &schema, &features);
-  if (!featureType) cnFailTo(DONE, "Failed feature load.");
 
   // Build labeled bags.
   if (
-    !cnvBuildBags(&bags, argv[1], labelType, &labels, featureType, &features)
+    !cnvBuildBags(&bags, argv[3], labelType, &labels, featureType, &features)
   ) cnFailTo(DONE, "No bags.");
   // Choose some functions. TODO How to specify which??
   if (!cnvPickFunctions(&functions, featureType)) {
