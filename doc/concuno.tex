@@ -87,5 +87,30 @@ modified implementation of SMRF.
 \end{multline}
 
 
+\section{Bayesian leaf probability estimation}
+
+When the number of items in a leaf is few, it becomes difficult to estimate the
+leaf probability with certainty. Probabilities of 0 and 1 are easy to achieve
+with few data, and these do not scale well to new data. Any counter example at
+all will drive the metric to zero. Hard to trust someone who claims perfection
+then makes a mistake.
+
+So, we assume a binomial distribution at the leaves, where $n$ is the number of
+max bags there.
+
+Two options considered so far: (1) find the expected value of $p$ given $k$ and
+$n$, and (2) find the maximum a posteriori estimate given an beta prior. The
+latter is easy to do and mainstream but requires a new parameter or two. Here is
+my wishlist for a solution:
+
+\begin{itemize}
+\item Prevents extremes near 0 and 1 for low n.
+\item Converges to k/n as n increases.
+\item Doesn't change with meaningless additional expansions.
+\item No new program parameters.
+\item Fast.
+\item Easy to implement.
+\item Justifiable.
+\end{itemize}
 
 \end{document}

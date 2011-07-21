@@ -1308,6 +1308,7 @@ cnBool cnUpdateLeafProbabilities(cnRootNode* root) {
   cnCount bagCount;
   cnBag* bags;
   cnBool* bagsUsed = NULL;
+  cnFloat bonus = 4.0;
   cnList(cnLeafNode*) leaves;
   cnBool result = cnFalse;
 
@@ -1330,6 +1331,7 @@ cnBool cnUpdateLeafProbabilities(cnRootNode* root) {
     cnLeafNode* maxLeaf = NULL;
     cnIndex maxLeafIndex = -1;
     cnFloat maxProb = -1;
+    cnFloat maxRawProb;
     cnCount maxTotal = 0;
 
     // Count all remaining bags for each leaf.
@@ -1345,21 +1347,28 @@ cnBool cnUpdateLeafProbabilities(cnRootNode* root) {
           }
         } cnEnd;
       }
-      // Assign optimistic probability, assuming 0 for no evidence.
-      // TODO Without evidence, what's the best prior probability?
-      (*leaf)->probability = total ? posCount / (cnFloat)total : 0;
+      // Assign optimistic probability, assuming 0.5 for no evidence.
+      // Apply a beta prior with equal alpha and beta. I hate baked-in
+      // parameters (or any parameters, really), but it's an easy fix for now.
+      // TODO Parameterize the beta prior? Automatically determine via fast
+      // TODO awesomeness?
+      (*leaf)->probability = (total || bonus) ?
+        (posCount + bonus) / (total + 2 * bonus) : 0.5;
       if ((*leaf)->probability > maxProb) {
         // Let the highest probability win.
         // TODO Let the highest individual score win? Compare the math on this.
         maxLeaf = *leaf;
         maxLeafIndex = leaf - (cnLeafNode**)leaves.items;
         maxProb = maxLeaf->probability;
+        maxRawProb = total ? posCount / (cnFloat)total : 0.5;
         maxTotal = total;
       }
     } cnEnd;
     printf(
-      "Leaf %ld of %ld with prob: %lf of %ld\n",
-      maxLeafIndex + 1, leaves.count, maxLeaf->probability, maxTotal
+      "Leaf %ld of %ld with prob: %lf of %.2lf (really %lf of %ld)\n",
+      maxLeafIndex + 1, leaves.count,
+      maxLeaf->probability, maxTotal + 2 * bonus,
+      maxRawProb, maxTotal
     );
 
     // Remove the leaf, and mark its bags used.
