@@ -8,10 +8,22 @@
 void cnLeafNodeInit(cnLeafNode* leaf);
 
 
+cnBool cnLeafNodePropagateBindingBag(
+  cnLeafNode* leaf, cnBindingBag* bindingBag,
+  cnList(cnLeafBindingBag)* leafBindingBags
+);
+
+
 void cnRootNodeDispose(cnRootNode* root);
 
 
 cnBool cnRootNodePropagate(cnRootNode* root);
+
+
+cnBool cnRootNodePropagateBindingBag(
+  cnRootNode* root, cnBindingBag* bindingBag,
+  cnList(cnLeafBindingBag)* leafBindingBags
+);
 
 
 void cnSplitNodeDispose(cnSplitNode* split);
@@ -23,6 +35,12 @@ cnBool cnSplitNodeInit(cnSplitNode* split, cnBool addLeaves);
 cnBool cnSplitNodePropagate(cnSplitNode* split);
 
 
+cnBool cnSplitNodePropagateBindingBag(
+  cnSplitNode* split, cnBindingBag* bindingBag,
+  cnList(cnLeafBindingBag)* leafBindingBags
+);
+
+
 void cnVarNodeDispose(cnVarNode* var);
 
 
@@ -30,6 +48,12 @@ cnBool cnVarNodeInit(cnVarNode* var, cnBool addLeaf);
 
 
 cnBool cnVarNodePropagate(cnVarNode* var);
+
+
+cnBool cnVarNodePropagateBindingBag(
+  cnVarNode* var, cnBindingBag* bindingBag,
+  cnList(cnLeafBindingBag)* leafBindingBags
+);
 
 
 void cnBindingBagDispose(cnBindingBag* bindingBag) {
@@ -123,8 +147,9 @@ cnFloat cnCountsLogMetric(cnList(cnLeafCount)* counts) {
 }
 
 
-void cnLeafNodeDispose(cnLeafNode* node) {
-  cnLeafNodeInit(node);
+void cnLeafBindingBagDispose(cnLeafBindingBag* leafBindingBag) {
+  cnBindingBagDispose(&leafBindingBag->bindingBag);
+  leafBindingBag->leaf = NULL;
 }
 
 
@@ -134,6 +159,11 @@ cnLeafNode* cnLeafNodeCreate(void) {
     cnLeafNodeInit(leaf);
   }
   return leaf;
+}
+
+
+void cnLeafNodeDispose(cnLeafNode* node) {
+  cnLeafNodeInit(node);
 }
 
 
@@ -178,13 +208,41 @@ void cnLeafNodeInit(cnLeafNode* leaf) {
 }
 
 
+cnBool cnLeafNodePropagateBindingBag(
+  cnLeafNode* leaf, cnBindingBag* bindingBag,
+  cnList(cnLeafBindingBag)* leafBindingBags
+) {
+  cnBool result = cnFalse;
+  cnLeafBindingBag* binding = cnListExpand(leafBindingBags);
+
+  if (!binding) cnFailTo(DONE, "No leaf binding bag.");
+  binding->leaf = leaf;
+  cnBindingBagInit(
+    &binding->bindingBag, bindingBag->bag, bindingBag->entityCount
+  );
+  if (bindingBag->bindings.count) {
+    if (!cnListPushAll(&binding->bindingBag.bindings, &bindingBag->bindings)) {
+      // We couldn't really make the binding, so hide it.
+      leafBindingBags->count--;
+      cnFailTo(DONE, "No bindings for bag.");
+    }
+  }
+
+  // Winned!
+  result = cnTrue;
+
+  DONE:
+  return result;
+}
+
+
 void cnNodeAttachDeep(cnRootNode* root, cnNode* node) {
   cnNode** kid = cnNodeKids(node);
   cnNode** end = kid + cnNodeKidCount(node);
   node->id = root->nextId;
   root->nextId++;
   for (; kid < end; kid++) {
-    cnNodeAttachDeep(root, *kid);
+    if (*kid) cnNodeAttachDeep(root, *kid);
   }
 }
 
@@ -301,6 +359,35 @@ cnBool cnNodePropagate(cnNode* node, cnBindingBagList* bindingBags) {
 }
 
 
+cnBool cnNodePropagateBindingBag(
+  cnNode* node, cnBindingBag* bindingBag,
+  cnList(cnLeafBindingBag)* leafBindingBags
+) {
+  // Sub-propagate. TODO Function pointers of some form instead of this?
+  switch (node->type) {
+  case cnNodeTypeLeaf:
+    return cnLeafNodePropagateBindingBag(
+      (cnLeafNode*)node, bindingBag, leafBindingBags
+    );
+  case cnNodeTypeSplit:
+    return cnSplitNodePropagateBindingBag(
+      (cnSplitNode*)node, bindingBag, leafBindingBags
+    );
+  case cnNodeTypeRoot:
+    return cnRootNodePropagateBindingBag(
+      (cnRootNode*)node, bindingBag, leafBindingBags
+    );
+  case cnNodeTypeVar:
+    return cnVarNodePropagateBindingBag(
+      (cnVarNode*)node, bindingBag, leafBindingBags
+    );
+  default:
+    printf("I don't handle type %u for prop.\n", node->type);
+    return cnFalse;
+  }
+}
+
+
 void cnNodePutKid(cnNode* parent, cnIndex k, cnNode* kid) {
   cnNode** kids = cnNodeKids(parent);
   cnNode* old = kids[k];
@@ -403,6 +490,17 @@ cnBool cnRootNodePropagateBags(cnRootNode* root, cnList(cnBag)* bags) {
 
   DONE:
   return result;
+}
+
+
+cnBool cnRootNodePropagateBindingBag(
+  cnRootNode* root, cnBindingBag* bindingBag,
+  cnList(cnLeafBindingBag)* leafBindingBags
+) {
+  if (root->kid) {
+    return cnNodePropagateBindingBag(root->kid, bindingBag, leafBindingBags);
+  }
+  return cnTrue;
 }
 
 
@@ -596,6 +694,104 @@ cnBool cnSplitNodePropagate(cnSplitNode* split) {
 }
 
 
+cnBool cnSplitNodePropagateBindingBag(
+  cnSplitNode* split, cnBindingBag* bindingBag,
+  cnList(cnLeafBindingBag)* leafBindingBags
+) {
+  cnBool allToErr = cnFalse;
+  cnBindingBag bagsOut[cnSplitCount];
+  cnBinding bindingIn;
+  cnFloat* point;
+  cnPointBag* pointBag = NULL;
+  cnFloat* pointsEnd;
+  cnBool result = cnFalse;
+  cnSplitIndex splitIndex;
+  cnNode* yes = split->kids[cnSplitYes];
+  cnNode* no = split->kids[cnSplitNo];
+  cnNode* err = split->kids[cnSplitErr];
+
+  // Init first.
+  for (splitIndex = 0; splitIndex < cnSplitCount; splitIndex++) {
+    cnBindingBagInit(
+      bagsOut + splitIndex, bindingBag->bag, bindingBag->entityCount
+    );
+  }
+
+  // Check error cases.
+  if (!(yes && no && err)) {
+    result = cnTrue;
+    goto DONE;
+  }
+  if (!(split->function && split->predicate)) {
+    // No way to say where to go, so go to error node.
+    allToErr = cnTrue;
+    goto PROPAGATE;
+  }
+
+  // Gather up points.
+  if (!(pointBag = cnSplitNodePointBag(split, bindingBag, NULL))) {
+    cnFailTo(DONE, "No point bag.");
+  }
+
+  // Go through the points.
+  bindingIn = bindingBag->bindings.items;
+  point = pointBag->pointMatrix;
+  pointsEnd = point + pointBag->pointCount * pointBag->valueCount;
+  for (;
+    point < pointsEnd;
+    point += pointBag->valueCount, bindingIn += bindingBag->entityCount
+  ) {
+    // Check for error.
+    cnBool allGood = cnTrue;
+    cnFloat* value = point;
+    cnFloat* pointEnd = point + split->function->outCount;
+    // TODO Let the function tell us instead of explicitly checking bad?
+    for (value = point; value < pointEnd; value++) {
+      if (cnIsNaN(*value)) {
+        allGood = cnFalse;
+        break;
+      }
+    }
+    // Choose the bag to go to.
+    if (!allGood) {
+      splitIndex = cnSplitErr;
+    } else {
+      splitIndex = split->predicate->evaluate(split->predicate, point) ?
+        cnSplitYes : cnSplitNo;
+      // I hack -1 (turned unsigned) into this for errors at this point.
+      if (splitIndex >= cnSplitCount) cnFailTo(DONE, "Bad evaluate.");
+    }
+    if (!cnListPush(&bagsOut[splitIndex].bindings, bindingIn)) {
+      cnFailTo(DONE, "No pushed binding.");
+    }
+  }
+
+  PROPAGATE:
+  // Now that we have the bindings split, push them down.
+  for (splitIndex = 0; splitIndex < cnSplitCount; splitIndex++) {
+    // Use the original instead of an empty if going to allToErr.
+    cnBindingBag* bagOut = allToErr && splitIndex == cnSplitErr ?
+      bindingBag : bagsOut + splitIndex;
+    if (!cnNodePropagateBindingBag(
+      split->kids[splitIndex], bagOut, leafBindingBags
+    )) cnFailTo(DONE, "Split kid prop failed. Now what?\n");
+  }
+
+  // Winned!
+  result = cnTrue;
+
+  DONE:
+  if (pointBag) {
+    free(pointBag->pointMatrix);
+    free(pointBag);
+  }
+  for (splitIndex = 0; splitIndex < cnSplitCount; splitIndex++) {
+    cnBindingBagDispose(bagsOut + splitIndex);
+  }
+  return result;
+}
+
+
 cnBool cnSplitNodePointBags(cnSplitNode* split, cnList(cnPointBag)* pointBags) {
   cnEntity* args = NULL;
   cnList(cnBindingBag)* bindingBags = &split->node.bindingBagList->bindingBags;
@@ -670,6 +866,71 @@ cnBool cnSplitNodePointBags(cnSplitNode* split, cnList(cnPointBag)* pointBags) {
   } cnEnd;
   cnListDispose(pointBags);
   return cnFalse;
+}
+
+
+cnPointBag* cnSplitNodePointBag(
+  cnSplitNode* split, cnBindingBag* bindingBag, cnPointBag* pointBag
+) {
+  cnEntity* args = NULL;
+  cnBool makeOwnPointBag = !pointBag;
+  void* values;
+
+  // Init first.
+  if (makeOwnPointBag) {
+    if (!(pointBag = malloc(sizeof(cnPointBag)))) {
+      cnFailTo(FAIL, "No point bag.");
+    }
+  } else if (pointBag->pointMatrix) {
+    // Failing to DONE on purpose here, so we don't free their data!
+    cnFailTo(DONE, "Point bag has %ld points already!", pointBag->pointCount);
+  }
+  pointBag->bag = bindingBag->bag;
+  pointBag->valueCount = split->function->outCount;
+  pointBag->valueSize = split->function->outType->size;
+  pointBag->pointMatrix = NULL;
+  // Null (dummy bindings) will yield NaN as needed.
+  // TODO What about for non-float outputs???
+  pointBag->pointCount = bindingBag->bindings.count;
+
+  // Prepare space for points.
+  if (!(pointBag->pointMatrix = malloc(
+    pointBag->pointCount * pointBag->valueCount * pointBag->valueSize
+  ))) cnFailTo(FAIL, "No point matrix.");
+  // Put args on the stack.
+  if (!(args = cnStackAlloc(split->function->inCount * sizeof(void*)))) {
+    cnFailTo(FAIL, "No args.");
+  }
+
+  // Calculate the points.
+  values = pointBag->pointMatrix;
+  cnListEachBegin(&bindingBag->bindings, cnEntity, entities) {
+    // Gather the arguments.
+    cnIndex a;
+    for (a = 0; a < split->function->inCount; a++) {
+      args[a] = entities[split->varIndices[a]];
+    }
+    // Call the function.
+    // TODO Check for errors once we provide such things.
+    split->function->get(split->function, args, values);
+    // Move to the next vector.
+    values = ((char*)values) + pointBag->valueCount * pointBag->valueSize;
+  } cnEnd;
+
+  // We winned.
+  goto DONE;
+
+  FAIL:
+  if (pointBag) {
+    // We won't be needing this anymore.
+    free(pointBag->pointMatrix);
+    // Free it if we made it.
+    if (makeOwnPointBag) free(pointBag);
+  }
+
+  DONE:
+  cnStackFree(args);
+  return pointBag;
 }
 
 
@@ -852,6 +1113,23 @@ cnBool cnTreeMaxLeafCounts(
 }
 
 
+cnBool cnTreePropagateBag(
+  cnRootNode* tree, cnBag* bag, cnList(cnLeafBindingBag)* leafBindingBags
+) {
+  cnBindingBag bindingBag;
+  cnBool result;
+
+  // Init an empty binding bag (with an abusive 0-sized item), and propagate it.
+  cnBindingBagInit(&bindingBag, bag, 0);
+  bindingBag.bindings.count = 1;
+  result = cnNodePropagateBindingBag(&tree->node, &bindingBag, leafBindingBags);
+  cnBindingBagDispose(&bindingBag);
+
+  // That was easy.
+  return result;
+}
+
+
 cnVarNode* cnVarNodeCreate(cnBool addLeaf) {
   cnVarNode* var = malloc(sizeof(cnVarNode));
   if (!var) return cnFalse;
@@ -973,4 +1251,76 @@ cnBool cnVarNodePropagate(cnVarNode* var) {
   }
   cnBindingBagListDrop(&bindingBagsOut);
   return cnTrue;
+}
+
+
+cnBool cnVarNodePropagateBindingBag(
+  cnVarNode* var, cnBindingBag* bindingBag,
+  cnList(cnLeafBindingBag)* leafBindingBags
+) {
+  cnIndex b;
+  cnBindingBag bindingBagOut;
+  cnCount bindingsOutCount = 0;
+  cnBool result = cnFalse;
+
+  // Init first.
+  cnBindingBagInit(
+    &bindingBagOut, bindingBag->bag, bindingBag->entityCount + 1
+  );
+
+  // Do we have anything to do?
+  if (!var->kid) goto DONE;
+
+  // Find each binding to expand.
+  // Use custom looping because of our abusive 2D-ish array.
+  // TODO Normal looping really won't work here???
+  for (b = 0; b < bindingBag->bindings.count; b++) {
+    cnEntity* entitiesIn = cnListGet(&bindingBag->bindings, b);
+    cnBool anyLeft = cnFalse;
+    // Find the entities to add on.
+    cnListEachBegin(&bindingBag->bag->entities, cnEntity, entityOut) {
+      cnBool found = cnFalse;
+      cnEntity* entityIn = entitiesIn;
+      cnEntity* entitiesInEnd = entityIn + bindingBag->entityCount;
+      // TODO Loop okay since usually few vars?
+      for (; entityIn < entitiesInEnd; entityIn++) {
+        if (*entityIn == *entityOut) {
+          // Already used.
+          found = cnTrue;
+          break;
+        }
+      }
+      if (!found) {
+        // Didn't find it. Push a new binding with the new entity.
+        anyLeft = cnTrue;
+        if (!cnVarNodePropagate_pushBinding(
+          entitiesIn, bindingBag,
+          *entityOut, &bindingBagOut, &bindingsOutCount
+        )) {
+          // TODO Fail out!
+          printf("Failed to push binding!\n");
+        }
+      }
+    } cnEnd;
+    if (!anyLeft) {
+      // Push a dummy binding for later errors since no entities remained.
+      if (!cnVarNodePropagate_pushBinding(
+        entitiesIn, bindingBag, NULL, &bindingBagOut, &bindingsOutCount
+      )) {
+        // TODO Fail out!
+        printf("Failed to push dummy binding!\n");
+      }
+    }
+  }
+
+  if (!cnNodePropagateBindingBag(var->kid, &bindingBagOut, leafBindingBags)) {
+    cnFailTo(DONE, "No propagate.");
+  }
+
+  // Winned!
+  result = cnTrue;
+
+  DONE:
+  cnBindingBagDispose(&bindingBagOut);
+  return result;
 }

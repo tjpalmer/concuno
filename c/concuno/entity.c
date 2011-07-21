@@ -197,6 +197,30 @@ void cnEntityFunctionDrop(cnEntityFunction* function) {
 }
 
 
+cnEntityFunction* cnEntityFunctionCreate(
+  char* name, cnCount inCount, cnCount outCount
+) {
+  cnEntityFunction* function = malloc(sizeof(cnEntityFunction));
+  if (!function) cnFailTo(DONE, "No function.");
+  function->data = NULL;
+  function->dispose = NULL;
+  function->inCount = inCount;
+  function->outCount = outCount;
+  function->outTopology = cnTopologyEuclidean;
+  function->outType = NULL;
+  function->get = NULL;
+  cnStringInit(&function->name);
+  // Build name now.
+  if (!cnStringPushStr(&function->name, name)) {
+    cnEntityFunctionDrop(function);
+    function = NULL;
+    cnFailTo(DONE, "No function name.");
+  }
+  DONE:
+  return function;
+}
+
+
 cnFunction* cnFunctionCopy(cnFunction* function) {
   return function ? function->copy(function) : NULL;
 }

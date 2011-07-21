@@ -200,22 +200,15 @@ typedef struct cnVarNode {
  *
  * TODO Consider switching propagation to just providing this here.
  */
-typedef struct cnLeafBindings {
+typedef struct cnLeafBindingBag {
 
-  /**
-   * TODO Just a direct cnList(cnBindingBag) if simplified later?
-   */
-  cnBindingBagList* bindingBagList;
+  cnBindingBag bindingBag;
 
   cnLeafNode* leaf;
 
-  cnCount negCount;
-
-  cnCount posCount;
-
   // TODO cnFloat probability; // For cases when leaves aren't needed?
 
-} cnLeafBindings;
+} cnLeafBindingBag;
 
 
 /**
@@ -295,6 +288,9 @@ cnBool cnBindingValid(cnCount entityCount, cnEntity* entities);
 cnFloat cnCountsLogMetric(cnList(cnLeafCount)* counts);
 
 
+void cnLeafBindingBagDispose(cnLeafBindingBag* leafBindingBag);
+
+
 cnLeafNode* cnLeafNodeCreate(void);
 
 
@@ -358,6 +354,18 @@ cnBool cnNodePropagate(cnNode* node, cnBindingBagList* bindingBags);
 
 
 /**
+ * Given a node and a bindingBag, fills the leaf binding bags with those
+ * arriving at leaves.
+ *
+ * The leaf binding bags are not cleared out.
+ */
+cnBool cnNodePropagateBindingBag(
+  cnNode* node, cnBindingBag* bindingBag,
+  cnList(cnLeafBindingBag)* leafBindingBags
+);
+
+
+/**
  * Replaces the kid at the index, if any, with the new kid, disposing of and
  * freeing the old one if any.
  */
@@ -414,6 +422,17 @@ cnBool cnSplitNodePointBags(cnSplitNode* split, cnList(cnPointBag)* pointBags);
 
 
 /**
+ * Fills the point bags with points according to the given bindings and the
+ * function at this node.
+ *
+ * TODO Guaranteed to be in the same order as the bindings.
+ */
+cnPointBag* cnSplitNodePointBag(
+  cnSplitNode* split, cnBindingBag* bindingBag, cnPointBag* pointBag
+);
+
+
+/**
  * Copies this node and all under, except the bindings. (TODO Keep the models?)
  * Original references to bindings are kept to avoid excessive data copying.
  */
@@ -432,6 +451,14 @@ cnFloat cnTreeLogMetric(cnRootNode* root, cnList(cnBag)* bags);
  */
 cnBool cnTreeMaxLeafCounts(
   cnRootNode* root, cnList(cnLeafCount)* counts, cnList(cnBag)* bags
+);
+
+
+/**
+ * Propagates bags to the leaves, storing a leaf bindings for each leaf.
+ */
+cnBool cnTreePropagateBag(
+  cnRootNode* tree, cnBag* bag, cnList(cnLeafBindingBag)* leafBindingBags
 );
 
 
