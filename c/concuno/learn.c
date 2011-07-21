@@ -130,6 +130,9 @@ cnBool cnLearnSplitModel(cnLearner* learner, cnSplitNode* split);
 void cnLogPointBags(cnSplitNode* split, cnList(cnPointBag)* pointBags);
 
 
+cnBool cnPickBestLeaf(cnRootNode* tree, cnLeafNode** bestLeaf);
+
+
 void cnPrintExpansion(cnExpansion* expansion);
 
 
@@ -845,7 +848,6 @@ cnRootNode* cnLearnTree(cnLearner* learner) {
   cnLearnerConfig config;
   cnRootNode* initialTree;
   cnLeafNode* leaf;
-  cnList(cnLeafNode*) leaves;
   cnRootNode* result = NULL;
 
   // Start preparing the learning configuration.
@@ -891,26 +893,16 @@ cnRootNode* cnLearnTree(cnLearner* learner) {
   config.previous = initialTree;
   while (cnTrue) {
     cnRootNode* expanded;
-    // And use our validation bags to see where we actually start.
+    // Print training score to observe conveniently the training progress.
+    // TODO Could retain counts from the previous propagation to save the repeat
+    // TODO here.
     printf(
       "Initial metric: %lg\n",
-      cnTreeLogMetric(config.previous, &config.validationBags)
+      cnTreeLogMetric(config.previous, &config.trainingBags)
     );
 
-    /* Pick a leaf to expand. */ {
-      // Get the leaves (over again, yes).
-      cnListInit(&leaves, sizeof(cnLeafNode*));
-      if (!cnNodeLeaves(&config.previous->node, &leaves)) {
-        cnFailTo(DONE, "Failed to gather leaves.");
-      }
-      if (leaves.count < 1) {
-        cnFailTo(DONE, "No leaves to expand.");
-      }
-      // TODO Pick the best leaf instead of the first.
-      leaf = *(cnLeafNode**)leaves.items;
-      // Clean up list of leaves.
-      cnListDispose(&leaves);
-    }
+    // TODO Push all possible expansions for all leaves onto a heap.
+    if (!cnPickBestLeaf(config.previous, &leaf)) cnFailTo(DONE, "No leaf.");
 
     expanded = cnTryExpansionsAtLeaf(&config, leaf);
     if (expanded) {
@@ -982,6 +974,36 @@ void cnLogPointBags(cnSplitNode* split, cnList(cnPointBag)* pointBags) {
   // All done.
   fclose(file);
 }
+
+
+cnBool cnPickBestLeaf(cnRootNode* tree, cnLeafNode** bestLeaf) {
+  cnList(cnLeafNode*) leaves;
+  cnBool result = cnFalse;
+
+  // Get the leaves.
+  cnListInit(&leaves, sizeof(cnLeafNode*));
+  if (!cnNodeLeaves(&tree->node, &leaves)) {
+    cnFailTo(DONE, "Failed to gather leaves.");
+  }
+  if (leaves.count < 1) {
+    cnFailTo(DONE, "No leaves to expand.");
+  }
+
+  // Look at each leaf to find the best split.
+  *bestLeaf = NULL;
+  cnListEachBegin(&leaves, cnLeafNode*, leaf) {
+    // TODO Clone the tree, split the leaf perfectly (how)?, and find the score.
+  } cnEnd;
+  *bestLeaf = *(cnLeafNode**)leaves.items;
+
+  // We winned.
+  result = cnTrue;
+
+  DONE:
+  cnListDispose(&leaves);
+  return result;
+}
+
 
 
 void cnPrintExpansion(cnExpansion* expansion) {
