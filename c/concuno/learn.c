@@ -130,7 +130,7 @@ cnBool cnLearnSplitModel(cnLearner* learner, cnSplitNode* split);
 void cnLogPointBags(cnSplitNode* split, cnList(cnPointBag)* pointBags);
 
 
-cnBool cnPickBestLeaf(cnRootNode* tree, cnLeafNode** bestLeaf);
+cnLeafNode* cnPickBestLeaf(cnRootNode* tree);
 
 
 void cnPrintExpansion(cnExpansion* expansion);
@@ -902,7 +902,7 @@ cnRootNode* cnLearnTree(cnLearner* learner) {
     );
 
     // TODO Push all possible expansions for all leaves onto a heap.
-    if (!cnPickBestLeaf(config.previous, &leaf)) cnFailTo(DONE, "No leaf.");
+    if (!(leaf = cnPickBestLeaf(config.previous))) cnFailTo(DONE, "No leaf.");
 
     expanded = cnTryExpansionsAtLeaf(&config, leaf);
     if (expanded) {
@@ -976,7 +976,9 @@ void cnLogPointBags(cnSplitNode* split, cnList(cnPointBag)* pointBags) {
 }
 
 
-cnBool cnPickBestLeaf(cnRootNode* tree, cnLeafNode** bestLeaf) {
+cnLeafNode* cnPickBestLeaf(cnRootNode* tree) {
+  cnLeafNode* bestLeaf = NULL;
+  cnFloat bestScore = -HUGE_VAL;
   cnList(cnLeafNode*) leaves;
   cnBool result = cnFalse;
 
@@ -989,19 +991,24 @@ cnBool cnPickBestLeaf(cnRootNode* tree, cnLeafNode** bestLeaf) {
     cnFailTo(DONE, "No leaves to expand.");
   }
 
+  // Copy the tree for later abuse.
+  // TODO Better would be just a list of leaf nodes with binding bags.
+  //cnRootNode* fake = cnTreeCopy(tree);
+  //if (!fake) cnFailTo(DONE, "No tree");
+
   // Look at each leaf to find the best split.
-  *bestLeaf = NULL;
+  bestLeaf = NULL;
   cnListEachBegin(&leaves, cnLeafNode*, leaf) {
     // TODO Clone the tree, split the leaf perfectly (how)?, and find the score.
   } cnEnd;
-  *bestLeaf = *(cnLeafNode**)leaves.items;
+  bestLeaf = *(cnLeafNode**)leaves.items;
 
   // We winned.
   result = cnTrue;
 
   DONE:
   cnListDispose(&leaves);
-  return result;
+  return bestLeaf;
 }
 
 

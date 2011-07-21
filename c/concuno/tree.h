@@ -196,6 +196,29 @@ typedef struct cnVarNode {
 
 
 /**
+ * A way to track the bindings arriving at leaves.
+ *
+ * TODO Consider switching propagation to just providing this here.
+ */
+typedef struct cnLeafBindings {
+
+  /**
+   * TODO Just a direct cnList(cnBindingBag) if simplified later?
+   */
+  cnBindingBagList* bindingBagList;
+
+  cnLeafNode* leaf;
+
+  cnCount negCount;
+
+  cnCount posCount;
+
+  // TODO cnFloat probability; // For cases when leaves aren't needed?
+
+} cnLeafBindings;
+
+
+/**
  * A simple way of tracking the number of positive and negative bags assigned to
  * each leaf, such that calculating the overall score is easier. We have a
  * variety of ways in which we want to produce such counts.
@@ -210,6 +233,8 @@ typedef struct cnLeafCount {
   cnCount negCount;
 
   cnCount posCount;
+
+  // TODO cnFloat probability; // For cases when leaves aren't needed?
 
 } cnLeafCount;
 
