@@ -32,6 +32,14 @@ typedef struct{}* cnMultinomial;
 
 
 /**
+ * A random stream with hidden state.
+ *
+ * TODO Are these threadsafe????
+ */
+typedef struct{}* cnRandom;
+
+
+/**
  * Often count and prob are called n and p, respectively. There are count
  * samples drawn at a time, and prob is the probability of "success" for each.
  *
@@ -44,7 +52,7 @@ typedef struct{}* cnMultinomial;
  *
  * TODO Citation to the folks with the algorithm I use.
  */
-cnBinomial cnBinomialCreate(cnCount count, cnFloat prob);
+cnBinomial cnBinomialCreate(cnRandom random, cnCount count, cnFloat prob);
 
 
 /**
@@ -94,13 +102,30 @@ cnFloat cnMahalanobisDistance(cnGaussian* gaussian, cnFloat* point);
 
 
 /**
- * Generates a sample from the k-outcome multinomal distribution given by n and
- * k values of p, the probability of each outcome. The results are stored in the
- * space provided by out, which should have enough space for k counts.
+ * Often sampleCount, classCount, and probs are called n, k, and p,
+ * respectively.
  *
- * TODO Random stream state management?
+ * The probabilities will be copied if needed. No pointer to them will be
+ * retained nor freed here, and the contents will not be changed.
+ *
+ * You must provide classCount probs, even though the final can be inferred.
+ * TODO Remove this requirement?
  */
-void cnMultinomialSample(cnCount k, cnCount* out, cnCount n, cnFloat* p);
+cnMultinomial cnMultinomialCreate(
+  cnRandom random, cnCount sampleCount, cnCount classCount, cnFloat* probs
+);
+
+
+void cnMultinomialDestroy(cnMultinomial multinomial);
+
+
+/**
+ * The size of out must match the class count.
+ *
+ * We could provide one less, since the value is implied, but this seems more
+ * convenient for users.
+ */
+void cnMultinomialSample(cnMultinomial multinomial, cnCount* out);
 
 
 /**
@@ -112,6 +137,37 @@ cnBool cnPermutations(
   cnCount options, cnCount count,
   cnBool (*handler)(void* data, cnCount count, cnIndex* permutation),
   void* data
+);
+
+
+/**
+ * Creates a new random stream with a fixed seed.
+ *
+ * TODO Expose seed option here?
+ */
+cnRandom cnRandomCreate(void);
+
+
+/**
+ * Often count and prob are called n and p, respectively. There are count
+ * samples drawn at a time, and prob is the probability of "success" for each.
+ */
+cnCount cnRandomBinomial(cnRandom random, cnCount count, cnFloat prob);
+
+
+/**
+ * Destroys the random stream.
+ */
+void cnRandomDestroy(cnRandom random);
+
+
+/**
+ * Generates a sample from the k-outcome multinomal distribution given by n and
+ * k values of p, the probability of each outcome. The results are stored in the
+ * space provided by out, which should have enough space for k counts.
+ */
+void cnRandomMultinomial(
+  cnRandom random, cnCount k, cnCount* out, cnCount n, cnFloat* p
 );
 
 

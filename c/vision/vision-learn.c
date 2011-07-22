@@ -94,7 +94,7 @@ int main(int argc, char** argv) {
   printf("\n");
 
   // Learn something.
-  cnLearnerInit(&learner);
+  if (!cnLearnerInit(&learner, NULL)) cnFailTo(DONE, "No learner.");
   cnListShuffle(&bags);
   learner.bags = &bags;
   learner.entityFunctions = &functions;

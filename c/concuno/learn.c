@@ -758,14 +758,38 @@ cnBool cnExpansionRedundant(
 
 
 void cnLearnerDispose(cnLearner* learner) {
-  cnLearnerInit(learner);
+  // TODO This will leak memory if someone nulls out the random beforehand!
+  if (learner->randomOwned) cnRandomDestroy(learner->random);
+  // Abusively pass down a potentially broken random.
+  cnLearnerInit(learner, learner->random);
+  // Clear out the random when done, either way.
+  learner->random = NULL;
 }
 
 
-void cnLearnerInit(cnLearner* learner) {
+cnBool cnLearnerInit(cnLearner* learner, cnRandom random) {
+  cnBool result = cnFalse;
+
+  // Init for safety.
   learner->bags = NULL;
   learner->entityFunctions = NULL;
   learner->initialTree = NULL;
+  learner->random = random;
+  learner->randomOwned = cnFalse;
+
+  // Prepare a random, if requested (via NULL).
+  if (!random) {
+    if (!(learner->random = cnRandomCreate())) {
+      cnFailTo(DONE, "No default random.");
+    }
+    learner->randomOwned = cnTrue;
+  }
+
+  // Winned.
+  result = cnTrue;
+
+  DONE:
+  return result;
 }
 
 
@@ -1432,16 +1456,14 @@ cnBool cnUpdateLeafProbabilities(cnRootNode* root) {
 typedef struct cnVerifyImprovement_Stats {
   cnCount* bootCounts;
   cnList(cnLeafCount) leafCounts;
-  cnFloat* probs;
+  cnMultinomial multinomial;
 } cnVerifyImprovement_Stats;
 
 cnFloat cnVerifyImprovement_BootScore(
   cnVerifyImprovement_Stats* stats, cnCount count
 ) {
-  // Generate the negative distribution.
-  cnMultinomialSample(
-    2 * stats->leafCounts.count, stats->bootCounts, count, stats->probs
-  );
+  // Generate the leaf count distribution.
+  cnMultinomialSample(stats->multinomial, stats->bootCounts);
 
   // Overwrite the original leaf counts.
   cnListEachBegin(&stats->leafCounts, cnLeafCount, count) {
@@ -1458,21 +1480,24 @@ cnFloat cnVerifyImprovement_BootScore(
 void cnVerifyImprovement_StatsInit(cnVerifyImprovement_Stats* stats) {
   stats->bootCounts = NULL;
   cnListInit(&stats->leafCounts, sizeof(cnLeafCount));
-  stats->probs = NULL;
+  stats->multinomial = NULL;
 }
 
 void cnVerifyImprovement_StatsDispose(cnVerifyImprovement_Stats* stats) {
   free(stats->bootCounts);
   cnListDispose(&stats->leafCounts);
-  free(stats->probs);
+  cnMultinomialDestroy(stats->multinomial);
   // Clean out.
   cnVerifyImprovement_StatsInit(stats);
 }
 
 cnBool cnVerifyImprovement_StatsPrepare(
-  cnVerifyImprovement_Stats* stats, cnRootNode* tree, cnList(cnBag)* bags
+  cnVerifyImprovement_Stats* stats, cnRootNode* tree, cnList(cnBag)* bags,
+  cnRandom random
 ) {
+  cnCount classCount;
   cnIndex i;
+  cnFloat* probs = NULL;
   cnBool result = cnFalse;
 
   // Gather up the original counts for each leaf.
@@ -1481,9 +1506,10 @@ cnBool cnVerifyImprovement_StatsPrepare(
   }
 
   // Prepare place for stats.
-  stats->probs = malloc(2 * stats->leafCounts.count * sizeof(cnFloat));
-  stats->bootCounts = malloc(2 * stats->leafCounts.count * sizeof(cnCount));
-  if (!(stats->probs && stats->bootCounts)) {
+  classCount = 2 * stats->leafCounts.count;
+  probs = cnStackAlloc(classCount * sizeof(cnFloat));
+  stats->bootCounts = malloc(classCount * sizeof(cnCount));
+  if (!(probs && stats->bootCounts)) {
     cnFailTo(DONE, "No stats allocated.");
   }
 
@@ -1491,13 +1517,21 @@ cnBool cnVerifyImprovement_StatsPrepare(
   for (i = 0; i < stats->leafCounts.count; i++) {
     cnLeafCount* count = cnListGet(&stats->leafCounts, i);
     // Neg first, then pos.
-    stats->probs[2 * i] = count->negCount / (cnFloat)bags->count;
-    stats->probs[2 * i + 1] = count->posCount / (cnFloat)bags->count;
+    probs[2 * i] = count->negCount / (cnFloat)bags->count;
+    probs[2 * i + 1] = count->posCount / (cnFloat)bags->count;
   }
 
+  // Create the multinomial distribution.
+  if (!(
+    stats->multinomial =
+      cnMultinomialCreate(random, bags->count, classCount, probs)
+  )) cnFailTo(DONE, "No multinomial.")
+
+  // Winned.
   result = cnTrue;
 
   DONE:
+  cnStackFree(probs);
   return result;
 }
 
@@ -1540,11 +1574,12 @@ cnBool cnVerifyImprovement(
   // Prepare stats for candidate and previous.
   printf("Candidate:\n");
   if (!cnVerifyImprovement_StatsPrepare(
-    &candidateStats, candidate, &config->validationBags
+    &candidateStats, candidate, &config->validationBags, config->learner->random
   )) cnFailTo(DONE, "No stats.");
   printf("Previous:\n");
   if (!cnVerifyImprovement_StatsPrepare(
-    &previousStats, config->previous, &config->validationBags
+    &previousStats, config->previous, &config->validationBags,
+    config->learner->random
   )) cnFailTo(DONE, "No stats.");
 
   // Run the bootstrap.

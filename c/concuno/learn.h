@@ -2,6 +2,7 @@
 #define concuno_learn_h
 
 
+#include "stats.h"
 #include "tree.h"
 
 
@@ -46,6 +47,17 @@ typedef struct cnLearner {
    */
   cnRootNode* initialTree;
 
+  /**
+   * For maintaining random state.
+   */
+  cnRandom random;
+
+  /**
+   * Whether the random is owned by the learner. Defaults to true when the
+   * random is created automatically for the learner.
+   */
+  cnBool randomOwned;
+
 } cnLearner;
 
 
@@ -60,8 +72,12 @@ void cnLearnerDispose(cnLearner* learner);
 
 /**
  * Inits default options.
+ *
+ * Provide a NULL random to have one automatically generated.
+ *
+ * Even on failure, the learner is safe to dispose.
  */
-void cnLearnerInit(cnLearner* learner);
+cnBool cnLearnerInit(cnLearner* learner, cnRandom random);
 
 
 /**

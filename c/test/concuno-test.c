@@ -11,7 +11,7 @@
 void testBinomial(void);
 
 
-void testMultinomialSample(void);
+void testMultinomial(void);
 
 
 void testPermutations(void);
@@ -24,12 +24,12 @@ void testUnitRand(void);
 
 
 int main(void) {
-  switch (0) {
+  switch (1) {
   case 0:
     testBinomial();
     break;
   case 1:
-    testMultinomialSample();
+    testMultinomial();
     break;
   case 2:
     testPermutations();
@@ -49,43 +49,87 @@ int main(void) {
 
 
 void testBinomial(void) {
-  cnBinomial binomial;
-  cnCount count = 100;
+  cnBinomial binomial = NULL;
+  cnCount countPerSample = 1000;
   cnIndex i;
   cnFloat prob = 0.3;
+  cnCount successTotal = 0;
+  cnCount sampleTotal = 1000000;
+  cnRandom random = NULL;
 
-  printf("Binomial creation (%ld, %.3lf) ... ", count, prob);
-  if (!(binomial = cnBinomialCreate(count, prob))) {
-    cnFailTo(DONE, "No binomial.");
+  // Init.
+  if (!(random = cnRandomCreate())) cnFailTo(DONE, "No random.");
+  if (!(binomial = cnBinomialCreate(random, countPerSample, prob))) {
+    cnFailTo(DONE, "No random.");
   }
-  printf("and samples:");
-  for (i = 0; i < 10; i++) {
-    printf(" %ld", cnBinomialSample(binomial));
+
+  // Sample.
+  printf("Binomial (%ld, %.3lf) samples:", countPerSample, prob);
+  for (i = 0; i < sampleTotal; i++) {
+    cnCount successCount = cnBinomialSample(binomial);
+    //printf(" %ld", successCount);
+    successTotal += successCount;
   }
-  printf("\n");
+
+  // Report stats.
+  printf(
+    " (%lg of %ld*%lg total)\n",
+    successTotal / (cnFloat)(sampleTotal * countPerSample),
+    countPerSample, (cnFloat)sampleTotal
+  );
 
   DONE:
   cnBinomialDestroy(binomial);
+  cnRandomDestroy(random);
 }
 
 
-void testMultinomialSample(void) {
+#define testMultinomial_CLASS_COUNT 4
+
+void testMultinomial(void) {
+  cnCount countPerSample = 1000;
   cnIndex i;
   cnIndex j;
-  cnCount out[4];
+  cnMultinomial multinomial = NULL;
+  cnCount out[testMultinomial_CLASS_COUNT];
   cnFloat p[] = {0.2, 0.1, 0.4, 0.3};
-  printf("testMultinomialSample:\n");
-  for (j = 0; j < 4; j++) {
+  cnRandom random = NULL;
+  cnCount sampleTotal = 100000;
+  cnCount sum[testMultinomial_CLASS_COUNT];
+
+  // Init.
+  if (!(random = cnRandomCreate())) cnFailTo(DONE, "No random.");
+  if (!(
+    multinomial = cnMultinomialCreate(
+      random, countPerSample, testMultinomial_CLASS_COUNT, p
+    )
+  )) cnFailTo(DONE, "No multinomial.");
+
+  printf(
+    "testMultinomialSample (%ld*%lg):\n", countPerSample, (cnFloat)sampleTotal
+  );
+  for (j = 0; j < testMultinomial_CLASS_COUNT; j++) {
     printf("%lg ", p[j]);
+    sum[j] = 0;
   }
   printf("\n");
-  for (i = 0; i < 10; i++) {
-    cnMultinomialSample(4, out, 1000, p);
-    for (j = 0; j < 4; j++) {
-      printf("%ld ", out[j]);
+
+  for (i = 0; i < sampleTotal; i++) {
+    cnMultinomialSample(multinomial, out);
+    for (j = 0; j < testMultinomial_CLASS_COUNT; j++) {
+      sum[j] += out[j];
+      //printf("%ld ", out[j]);
     }
-    printf("\n");
+    //printf("\n");
   }
+
+  for (j = 0; j < testMultinomial_CLASS_COUNT; j++) {
+    printf("%lg ", sum[j] / (cnFloat)(countPerSample * sampleTotal));
+  }
+
+  DONE:
+  cnMultinomialDestroy(multinomial);
+  cnRandomDestroy(random);
 }
 
 

@@ -1,0 +1,5 @@
+This folder contains code copied from NumPy, which they also got from other
+sources. Please see the licenses in the source code.
+
+My current intent is to copy over again if needed. The dependencies are few
+enough that I'd rather maintain a manual copy for now.

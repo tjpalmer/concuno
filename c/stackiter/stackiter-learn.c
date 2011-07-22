@@ -240,7 +240,7 @@ cnBool stLearnConcept(
   cnListShuffle(&bags);
 
   // Learn a tree.
-  cnLearnerInit(&learner);
+  if (!cnLearnerInit(&learner, NULL)) cnFailTo(DISPOSE_BAGS, "No learner.");
   learner.bags = &bags;
   learner.entityFunctions = functions;
   learnedTree = cnLearnTree(&learner);

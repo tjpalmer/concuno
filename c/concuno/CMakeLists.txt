@@ -5,6 +5,9 @@ add_library(concuno STATIC
   learn.c
   mat.c
   io.c
+  numpy-mtrand/distributions.c
+  numpy-mtrand/initarray.c
+  numpy-mtrand/randomkit.c
   stats.c
   tree.c
 )
