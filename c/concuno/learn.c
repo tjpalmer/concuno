@@ -1017,16 +1017,12 @@ cnLeafNode* cnPickBestLeaf(cnRootNode* tree, cnList(cnBag)* bags) {
     cnFailTo(DONE, "No propagate.");
   }
 
-  // Copy the tree for later abuse.
-  // TODO Better would be just a list of leaf nodes with binding bags.
-  //cnRootNode* fake = cnTreeCopy(tree);
-  //if (!fake) cnFailTo(DONE, "No tree");
-
   // Look at each leaf to find the best split.
-  //bestLeaf = NULL;
-  //cnListEachBegin(&leaves, cnLeafNode*, leaf) {
-  //  // TODO Clone the tree, split the leaf perfectly (how)?, and find the score.
-  //} cnEnd;
+  bestLeaf = NULL;
+  cnListEachBegin(&leafBindingBagGroups, cnLeafBindingBagGroup, group) {
+    // TODO Split the leaf perfectly, and find the score.
+    // TODO Copy the list each time before modifying? Or repair after?
+  } cnEnd;
   bestLeaf = ((cnLeafBindingBagGroup*)leafBindingBagGroups.items)->leaf;
 
   // We winned.
