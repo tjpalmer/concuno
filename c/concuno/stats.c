@@ -214,9 +214,10 @@ cnMultinomial cnMultinomialCreate(
     info->binomials[i].prob = probs[i];
     probLeft += probs[i];
   }
-  probLeft = fabs(probLeft - 1.0);
   // TODO What's a good epsilon?
-  if (probLeft > 1e-6) cnFailTo(FAIL, "Probs sum to %lg, not 1.", probLeft);
+  if (fabs(probLeft - 1.0) > 1e-6) {
+    cnFailTo(FAIL, "Probs sum to %lg, not 1.", probLeft);
+  }
   qsort(
     info->binomials, classCount, sizeof(cnMultiBinomial),
     cnMultinomialCreate_compareBinomials
@@ -228,7 +229,10 @@ cnMultinomial cnMultinomialCreate(
   probLeft = 1.0;
   for (i = 0; i < classCount; i++) {
     cnFloat multiProb = info->binomials[i].prob;
-    info->binomials[i].prob /= probLeft;
+    // Keep it at 0 instead of going NaN for 0-prob classes.
+    if (multiProb) {
+      info->binomials[i].prob /= probLeft;
+    }
     probLeft -= multiProb;
   }
 
@@ -261,8 +265,8 @@ void cnMultinomialSample(cnMultinomial multinomial, cnCount* out) {
   // Binomial sample all but the last. Speed matters more for sampling.
   samplesLeft = info->sampleCount;
   for (i = 0; i < info->classCount - 1; i++) {
-    cnCount successCount =
-      cnRandomBinomial(info->random, samplesLeft, info->binomials[i].prob);
+    cnCount successCount = info->binomials[i].prob ?
+      cnRandomBinomial(info->random, samplesLeft, info->binomials[i].prob) : 0;
     out[info->binomials[i].index] = successCount;
     samplesLeft -= successCount;
   }
