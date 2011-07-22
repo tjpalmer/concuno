@@ -130,7 +130,7 @@ cnBool cnLearnSplitModel(cnLearner* learner, cnSplitNode* split);
 void cnLogPointBags(cnSplitNode* split, cnList(cnPointBag)* pointBags);
 
 
-cnLeafNode* cnPickBestLeaf(cnRootNode* tree);
+cnLeafNode* cnPickBestLeaf(cnRootNode* tree, cnList(cnBag)* bags);
 
 
 void cnPrintExpansion(cnExpansion* expansion);
@@ -902,7 +902,10 @@ cnRootNode* cnLearnTree(cnLearner* learner) {
     );
 
     // TODO Push all possible expansions for all leaves onto a heap.
-    if (!(leaf = cnPickBestLeaf(config.previous))) cnFailTo(DONE, "No leaf.");
+    // TODO Pull the leaf binding bags in advance?
+    if (!(leaf = cnPickBestLeaf(config.previous, &config.trainingBags))) {
+      cnFailTo(DONE, "No leaf.");
+    }
 
     expanded = cnTryExpansionsAtLeaf(&config, leaf);
     if (expanded) {
@@ -976,19 +979,18 @@ void cnLogPointBags(cnSplitNode* split, cnList(cnPointBag)* pointBags) {
 }
 
 
-cnLeafNode* cnPickBestLeaf(cnRootNode* tree) {
+cnLeafNode* cnPickBestLeaf(cnRootNode* tree, cnList(cnBag)* bags) {
   cnLeafNode* bestLeaf = NULL;
   cnFloat bestScore = -HUGE_VAL;
-  cnList(cnLeafNode*) leaves;
+  cnList(cnLeafBindingBagGroup) leafBindingBagGroups;
   cnBool result = cnFalse;
 
-  // Get the leaves.
-  cnListInit(&leaves, sizeof(cnLeafNode*));
-  if (!cnNodeLeaves(&tree->node, &leaves)) {
-    cnFailTo(DONE, "Failed to gather leaves.");
-  }
-  if (leaves.count < 1) {
-    cnFailTo(DONE, "No leaves to expand.");
+  // Init.
+  cnListInit(&leafBindingBagGroups, sizeof(cnLeafBindingBagGroup));
+
+  // Get all bindings, leaves.
+  if (!cnTreePropagateBags(tree, bags, &leafBindingBagGroups)) {
+    cnFailTo(DONE, "No propagate.");
   }
 
   // Copy the tree for later abuse.
@@ -997,17 +999,25 @@ cnLeafNode* cnPickBestLeaf(cnRootNode* tree) {
   //if (!fake) cnFailTo(DONE, "No tree");
 
   // Look at each leaf to find the best split.
-  bestLeaf = NULL;
-  cnListEachBegin(&leaves, cnLeafNode*, leaf) {
-    // TODO Clone the tree, split the leaf perfectly (how)?, and find the score.
-  } cnEnd;
-  bestLeaf = *(cnLeafNode**)leaves.items;
+  //bestLeaf = NULL;
+  //cnListEachBegin(&leaves, cnLeafNode*, leaf) {
+  //  // TODO Clone the tree, split the leaf perfectly (how)?, and find the score.
+  //} cnEnd;
+  bestLeaf = ((cnLeafBindingBagGroup*)leafBindingBagGroups.items)->leaf;
 
   // We winned.
   result = cnTrue;
 
   DONE:
-  cnListDispose(&leaves);
+  // TODO cnLeafBindingBagGroupListDispose?
+  cnListEachBegin(&leafBindingBagGroups, cnLeafBindingBagGroup, group) {
+    // TODO cnLeafBindingBagGroupDispose?
+    cnListEachBegin(&group->bindingBags, cnBindingBag, bindingBag) {
+      cnBindingBagDispose(bindingBag);
+    } cnEnd;
+    cnListDispose(&group->bindingBags);
+  } cnEnd;
+  cnListDispose(&leafBindingBagGroups);
   return bestLeaf;
 }
 
@@ -1337,7 +1347,7 @@ cnBool cnUpdateLeafProbabilities(cnRootNode* root) {
   cnCount bagCount;
   cnBag* bags;
   cnBool* bagsUsed = NULL;
-  cnFloat bonus = 4.0;
+  cnFloat bonus = 1.0;
   cnList(cnLeafNode*) leaves;
   cnBool result = cnFalse;
 

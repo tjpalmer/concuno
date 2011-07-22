@@ -198,7 +198,7 @@ typedef struct cnVarNode {
 /**
  * A way to track the bindings arriving at leaves.
  *
- * TODO Consider switching propagation to just providing this here.
+ * TODO Eliminate old propagation model?
  */
 typedef struct cnLeafBindingBag {
 
@@ -209,6 +209,22 @@ typedef struct cnLeafBindingBag {
   // TODO cnFloat probability; // For cases when leaves aren't needed?
 
 } cnLeafBindingBag;
+
+
+/**
+ * For binding bags grouped by leaf.
+ *
+ * TODO Eliminate old propagation model?
+ */
+typedef struct cnLeafBindingBagGroup {
+
+  cnList(cnBindingBag) bindingBags;
+
+  cnLeafNode* leaf;
+
+  // TODO cnFloat probability; // For cases when leaves aren't needed?
+
+} cnLeafBindingBagGroup;
 
 
 /**
@@ -455,10 +471,22 @@ cnBool cnTreeMaxLeafCounts(
 
 
 /**
- * Propagates bags to the leaves, storing a leaf bindings for each leaf.
+ * Propagates a bags to the leaves, storing a leaf binding bag for each leaf.
  */
 cnBool cnTreePropagateBag(
   cnRootNode* tree, cnBag* bag, cnList(cnLeafBindingBag)* leafBindingBags
+);
+
+
+/**
+ * Propagates multiple bags to the leaves, storing a leaf bindings group for
+ * each leaf.
+ *
+ * TODO Expose generic grouper function?
+ */
+cnBool cnTreePropagateBags(
+  cnRootNode* tree, cnList(cnBag)* bags,
+  cnList(cnLeafBindingBagGroup)* leafBindingBagGroups
 );
 
 
