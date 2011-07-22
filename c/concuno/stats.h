@@ -5,7 +5,7 @@
 #include "entity.h"
 
 
-// TODO Probability distributions go here, too.
+typedef struct{}* cnBinomial;
 
 
 /**
@@ -29,6 +29,39 @@ typedef struct cnGaussian {
  * TODO Maybe expose some things after all? Just not the inner workings.
  */
 typedef struct{}* cnMultinomial;
+
+
+/**
+ * Often count and prob are called n and p, respectively. There are count
+ * samples drawn at a time, and prob is the probability of "success" for each.
+ *
+ * I have built this with the idea of allowing a setup process to prepare for
+ * fast repeated sampling from the same distribution.
+ *
+ * Note that I'm experimenting with opaque types here.
+ *
+ * TODO Optional random stream.
+ *
+ * TODO Citation to the folks with the algorithm I use.
+ */
+cnBinomial cnBinomialCreate(cnCount count, cnFloat prob);
+
+
+/**
+ * TODO I don't like destroy because in some contexts, it is confusing, and the
+ * TODO same holds for create. Do we create and destroy files with these things?
+ * TODO I got "drop" from Irrlicht, I think, where it is used for reference
+ * TODO counting. If I didn't use dispose for non-free disposal, I could use it
+ * TODO here. Maybe "close" is okay. I'm not sure.
+ */
+void cnBinomialDestroy(cnBinomial binomial);
+
+
+/**
+ * Returns the number of successes for a draw of count samples, ranging between
+ * 0 and count.
+ */
+cnCount cnBinomialSample(cnBinomial binomial);
 
 
 /**

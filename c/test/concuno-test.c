@@ -8,6 +8,9 @@
 // TODO Make a better test harness, too.
 
 
+void testBinomial(void);
+
+
 void testMultinomialSample(void);
 
 
@@ -21,7 +24,10 @@ void testUnitRand(void);
 
 
 int main(void) {
-  switch (3) {
+  switch (0) {
+  case 0:
+    testBinomial();
+    break;
   case 1:
     testMultinomialSample();
     break;
@@ -39,6 +45,27 @@ int main(void) {
   }
 
   return EXIT_SUCCESS;
+}
+
+
+void testBinomial(void) {
+  cnBinomial binomial;
+  cnCount count = 100;
+  cnIndex i;
+  cnFloat prob = 0.3;
+
+  printf("Binomial creation (%ld, %.3lf) ... ", count, prob);
+  if (!(binomial = cnBinomialCreate(count, prob))) {
+    cnFailTo(DONE, "No binomial.");
+  }
+  printf("and samples:");
+  for (i = 0; i < 10; i++) {
+    printf(" %ld", cnBinomialSample(binomial));
+  }
+  printf("\n");
+
+  DONE:
+  cnBinomialDestroy(binomial);
 }
 
 

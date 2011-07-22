@@ -7,11 +7,37 @@
 #include "stats.h"
 
 
-cnCount cnBinomialSample(cnCount n, cnFloat* p) {
-  // TODO Beyond naive, consider lookup tables, including nested direct and for
-  // TODO binary search. That would require stored data. Alternatively dig into
-  // TODO BTPE for a fast non-setup technique.
-  return 0;
+typedef struct cnBinomialInfo {
+  cnCount count;
+  cnFloat prob;
+} cnBinomialInfo;
+
+
+cnBinomial cnBinomialCreate(cnCount count, cnFloat prob) {
+  cnBinomialInfo* binomial = malloc(sizeof(cnBinomialInfo));
+  if (!binomial) cnFailTo(DONE, "No binomial.");
+  binomial->count = count;
+  binomial->prob = prob;
+  DONE:
+  return (cnBinomial)binomial;
+}
+
+
+void cnBinomialDestroy(cnBinomial binomial) {
+  // TODO More once fancier.
+  free(binomial);
+}
+
+
+cnCount cnBinomialSample(cnBinomial binomial) {
+  cnIndex i;
+  cnBinomialInfo* info = (cnBinomialInfo*)binomial;
+  cnCount total = 0;
+  // TODO Fast sampling!
+  for (i = 0; i < info->count; i++) {
+    total += cnUnitRand() < info->prob;
+  }
+  return total;
 }
 
 
