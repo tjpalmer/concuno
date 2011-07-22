@@ -162,16 +162,6 @@ void cnRandomDestroy(cnRandom random);
 
 
 /**
- * Generates a sample from the k-outcome multinomal distribution given by n and
- * k values of p, the probability of each outcome. The results are stored in the
- * space provided by out, which should have enough space for k counts.
- */
-void cnRandomMultinomial(
-  cnRandom random, cnCount k, cnCount* out, cnCount n, cnFloat* p
-);
-
-
-/**
  * Generates a sample from a uniform distribution between 0 inclusive and 1
  * exclusive.
  *

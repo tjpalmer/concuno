@@ -359,48 +359,6 @@ cnCount cnRandomBinomial(cnRandom random, cnCount count, cnFloat prob) {
 }
 
 
-void cnRandomMultinomial(
-  cnRandom random, cnCount k, cnCount* out, cnCount n, cnFloat* p
-) {
-  // TODO Consider Kemp's modal binomial algorithm as seen in Davis, 1993:
-  // TODO "The computer generation of multinomial random variates". This is
-  // TODO also the technique used by the GNU Scientific Library, from which I
-  // TODO got the reference.
-  // TODO
-  // TODO The summary is to generate k binomial variables then convert these
-  // TODO into a multinomial sample. Faster than O(n) binomial generation is
-  // TODO possible. See comments in the cnBinomialSample stub above.
-
-  cnIndex i;
-
-  // TODO Assert that p sums to 1?
-
-  // Zero out the counts.
-  for (i = 0; i < k; i++) {
-    out[i] = 0;
-  }
-
-  // Select n samples.
-  for (i = 0; i < n; i++) {
-    cnIndex outcome;
-    cnFloat sample = cnUnitRand();
-    cnFloat sum = 0;
-    // Another option is to precompute a CDF instead of summing each time, but
-    // a quick test didn't show it really any faster.
-    for (outcome = 0; outcome < k; outcome++) {
-      sum += p[outcome];
-      if (sample <= sum) {
-        break;
-      }
-    }
-    // Just a failsafe on outcome, in case oddities happened.
-    if (outcome == k) outcome--;
-    // Add the sample.
-    out[outcome]++;
-  }
-}
-
-
 void cnRandomDestroy(cnRandom random) {
   free(random);
 }
