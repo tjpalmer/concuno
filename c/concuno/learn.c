@@ -1007,21 +1007,74 @@ cnLeafNode* cnPickBestLeaf(cnRootNode* tree, cnList(cnBag)* bags) {
   cnLeafNode* bestLeaf = NULL;
   cnFloat bestScore = -HUGE_VAL;
   cnList(cnLeafBindingBagGroup) leafBindingBagGroups;
+  cnLeafNode noLeaf;
+  cnLeafBindingBagGroup* noGroup;
   cnBool result = cnFalse;
 
   // Init.
   cnListInit(&leafBindingBagGroups, sizeof(cnLeafBindingBagGroup));
 
   // Get all bindings, leaves.
+  // TODO We don't actually care about the bindings themselves, but we had to
+  // TODO make them to get past splits. Hrmm.
   if (!cnTreePropagateBags(tree, bags, &leafBindingBagGroups)) {
     cnFailTo(DONE, "No propagate.");
   }
 
-  // Look at each leaf to find the best split.
+  // Prepare for bogus "no" group. Error leaves with no bags are irrelevant.
+  if (!(noGroup = cnListExpand(&leafBindingBagGroups))) {
+    cnFailTo(DONE, "No space for bogus groups.");
+  }
+  // We shouldn't need a full real leaf to get by. Only the probability field
+  // should end up used.
+  noGroup->leaf = &noLeaf;
+  cnListInit(&noGroup->bindingBags, sizeof(cnBindingBag));
+
+  // Look at each leaf to find the best perfect split.
   bestLeaf = NULL;
   cnListEachBegin(&leafBindingBagGroups, cnLeafBindingBagGroup, group) {
-    // TODO Split the leaf perfectly, and find the score.
-    // TODO Copy the list each time before modifying? Or repair after?
+    // Split the leaf perfectly by removing all negative bags from the group and
+    // putting them in the no group instead.
+    cnIndex b;
+    cnBindingBag* bindingBag;
+    cnBindingBag* noEnd;
+
+    // The last is fake. No need to check it.
+    if (group == noGroup) break;
+
+    // Try to allocate maximal space in advance, so we don't have trouble later.
+    // Just seems simpler (for cleanup) and not likely to be a memory issue.
+    if (!cnListExpandMulti(&noGroup->bindingBags, group->bindingBags.count)) {
+      cnFailTo(DONE, "No space for false bags.");
+    }
+    cnListClear(&noGroup->bindingBags);
+
+    // Now do the split.
+    bindingBag = group->bindingBags.items;
+    for (b = 0; b < group->bindingBags.count;) {
+      if (bindingBag->bag->label) {
+        b++;
+        bindingBag++;
+      } else {
+        // Move it. The push is guaranteed to work, since we reserved space.
+        cnListPush(&noGroup->bindingBags, bindingBag);
+        // TODO Pointer-based remove function, then ditch b.
+        cnListRemove(&group->bindingBags, b);
+      }
+    }
+    //printf("Positives kept: %ld\n", group->bindingBags.count);
+    //printf("Negatives moved out: %ld\n", noGroup->bindingBags.count);
+
+    // TODO Update leaf probabilities, and find the score.
+
+    // Then put them all back. Space is guaranteed again.
+    bindingBag = noGroup->bindingBags.items;
+    noEnd = cnListEnd(&noGroup->bindingBags);
+    for (; bindingBag < noEnd; bindingBag++) {
+      cnListPush(&group->bindingBags, bindingBag);
+    }
+    // And clear out the fake.
+    cnListClear(&noGroup->bindingBags);
   } cnEnd;
   bestLeaf = ((cnLeafBindingBagGroup*)leafBindingBagGroups.items)->leaf;
 
