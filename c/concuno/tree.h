@@ -307,6 +307,9 @@ cnFloat cnCountsLogMetric(cnList(cnLeafCount)* counts);
 void cnLeafBindingBagDispose(cnLeafBindingBag* leafBindingBag);
 
 
+void cnLeafBindingBagGroupListDispose(cnList(cnLeafBindingBagGroup)* groupList);
+
+
 cnLeafNode* cnLeafNodeCreate(void);
 
 

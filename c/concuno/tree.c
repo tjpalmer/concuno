@@ -215,6 +215,20 @@ void cnLeafBindingBagDispose(cnLeafBindingBag* leafBindingBag) {
 }
 
 
+void cnLeafBindingBagGroupListDispose(
+  cnList(cnLeafBindingBagGroup)* groups
+) {
+  cnListEachBegin(groups, cnLeafBindingBagGroup, group) {
+    // TODO cnLeafBindingBagGroupDispose?
+    cnListEachBegin(&group->bindingBags, cnBindingBag, bindingBag) {
+      cnBindingBagDispose(bindingBag);
+    } cnEnd;
+    cnListDispose(&group->bindingBags);
+  } cnEnd;
+  cnListDispose(groups);
+}
+
+
 cnLeafNode* cnLeafNodeCreate(void) {
   cnLeafNode* leaf = malloc(sizeof(cnLeafNode));
   if (leaf) {
