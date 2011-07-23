@@ -147,6 +147,68 @@ cnFloat cnCountsLogMetric(cnList(cnLeafCount)* counts) {
 }
 
 
+cnBool cnGroupLeafBindingBags(
+  cnList(cnLeafBindingBagGroup)* leafBindingBagGroups,
+  cnList(cnLeafBindingBag)* leafBindingBags
+) {
+  cnLeafBindingBagGroup* group;
+  cnBool result = cnFalse;
+
+  // See if we already have space in the output list. This is needed only for
+  // the first bag, but it's convenient just to leave in place for now.
+  if (leafBindingBagGroups->count) {
+    if (leafBindingBagGroups->count != leafBindingBags->count) {
+      // TODO If not matching, we could at least check to see if the leaf ids
+      // TODO in the groups match a subset of the leaves.
+      cnFailTo(
+        DONE, "Group count %ld != leaf count %ld.",
+        leafBindingBagGroups->count, leafBindingBags->count
+      );
+    }
+  } else {
+    // Add empty binding bag groups. Should only apply for the first bag, at
+    // most.
+    if (!cnListExpandMulti(leafBindingBagGroups, leafBindingBags->count)) {
+      cnFailTo(DONE, "No leaf binding bag groups.");
+    }
+    // Init each group.
+    group = leafBindingBagGroups->items;
+    cnListEachBegin(leafBindingBags, cnLeafBindingBag, leafBindingBag) {
+      cnListInit(&group->bindingBags, sizeof(cnBindingBag));
+      group->leaf = leafBindingBag->leaf;
+      group++;
+    } cnEnd;
+  }
+
+  // Add the latest bindings to the groups.
+  group = leafBindingBagGroups->items;
+  cnListEachBegin(leafBindingBags, cnLeafBindingBag, leafBindingBag) {
+    // Sanity check. TODO Only needs done for the first bag!?!
+    if (leafBindingBag->leaf != group->leaf) {
+      cnFailTo(DONE, "Wrong leaf for binding bag group.");
+    }
+    // Push on the binding bag if it's not empty.
+    if (leafBindingBag->bindingBag.bindings.count) {
+      if (!cnListPush(
+        &group->bindingBags, &leafBindingBag->bindingBag
+      )) cnFailTo(DONE, "No space for binding bag.");
+    }
+    // On to the next leaf/group.
+    group++;
+  } cnEnd;
+
+  // Clear out the leaf bindings, but don't dispose of their lists, since we
+  // stole those for the group.
+  cnListClear(leafBindingBags);
+
+  // Winned.
+  result = cnTrue;
+
+  DONE:
+  return result;
+}
+
+
 void cnLeafBindingBagDispose(cnLeafBindingBag* leafBindingBag) {
   cnBindingBagDispose(&leafBindingBag->bindingBag);
   leafBindingBag->leaf = NULL;
@@ -385,6 +447,37 @@ cnBool cnNodePropagateBindingBag(
     printf("I don't handle type %u for prop.\n", node->type);
     return cnFalse;
   }
+}
+
+
+cnBool cnNodePropagateBindingBags(
+  cnNode* node, cnList(cnBindingBag)* bindingBags,
+  cnList(cnLeafBindingBagGroup)* leafBindingBagGroups
+) {
+  cnList(cnLeafBindingBag) leafBindingBags;
+  cnBool result = cnFalse;
+
+  // Init.
+  cnListInit(&leafBindingBags, sizeof(cnLeafBindingBag));
+
+  // Propagate for each bag.
+  cnListEachBegin(bindingBags, cnBindingBag, bindingBag) {
+    // Propagate.
+    if (!cnNodePropagateBindingBag(node, bindingBag, &leafBindingBags)) {
+      cnFailTo(DONE, "No propagate.");
+    }
+    // Group.
+    if (!cnGroupLeafBindingBags(leafBindingBagGroups, &leafBindingBags)) {
+      cnFailTo(DONE, "No grouping.");
+    }
+  } cnEnd;
+
+  // Winned!
+  result = cnTrue;
+
+  DONE:
+  cnListDispose(&leafBindingBags);
+  return result;
 }
 
 
@@ -1142,59 +1235,14 @@ cnBool cnTreePropagateBags(
 
   // Propagate for each bag.
   cnListEachBegin(bags, cnBag, bag) {
-    cnLeafBindingBagGroup* group;
-
     // Propagate.
     if (!cnTreePropagateBag(tree, bag, &leafBindingBags)) {
       cnFailTo(DONE, "No propagate.");
     }
-
-    // See if we already have space in the output list. This is needed only for
-    // the first bag, but it's convenient just to leave in place for now.
-    if (leafBindingBagGroups->count) {
-      if (leafBindingBagGroups->count != leafBindingBags.count) {
-        // TODO If not matching, we could at least check to see if the leaf ids
-        // TODO in the groups match a subset of the leaves.
-        cnFailTo(
-          DONE, "Group count %ld != leaf count %ld.",
-          leafBindingBagGroups->count, leafBindingBags.count
-        );
-      }
-    } else {
-      // Add empty binding bag groups. Should only apply for the first bag, at
-      // most.
-      if (!cnListExpandMulti(leafBindingBagGroups, leafBindingBags.count)) {
-        cnFailTo(DONE, "No leaf binding bag groups.");
-      }
-      // Init each group.
-      group = leafBindingBagGroups->items;
-      cnListEachBegin(&leafBindingBags, cnLeafBindingBag, leafBindingBag) {
-        cnListInit(&group->bindingBags, sizeof(cnBindingBag));
-        group->leaf = leafBindingBag->leaf;
-        group++;
-      } cnEnd;
+    // Group.
+    if (!cnGroupLeafBindingBags(leafBindingBagGroups, &leafBindingBags)) {
+      cnFailTo(DONE, "No grouping.");
     }
-
-    // Add the latest bindings to the groups.
-    group = leafBindingBagGroups->items;
-    cnListEachBegin(&leafBindingBags, cnLeafBindingBag, leafBindingBag) {
-      // Sanity check. TODO Only needs done for the first bag!?!
-      if (leafBindingBag->leaf != group->leaf) {
-        cnFailTo(DONE, "Wrong leaf for binding bag group.");
-      }
-      // Push on the binding bag if it's not empty.
-      if (leafBindingBag->bindingBag.bindings.count) {
-        if (!cnListPush(
-          &group->bindingBags, &leafBindingBag->bindingBag
-        )) cnFailTo(DONE, "No space for binding bag.");
-      }
-      // On to the next leaf/group.
-      group++;
-    } cnEnd;
-
-    // Clear out the leaf bindings, but don't dispose of their lists, since we
-    // stole those for the group.
-    cnListClear(&leafBindingBags);
   } cnEnd;
 
   // Winned!

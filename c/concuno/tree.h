@@ -382,6 +382,16 @@ cnBool cnNodePropagateBindingBag(
 
 
 /**
+ * Propagates multiple binding bags to the leaves, storing a leaf bindings group
+ * for each leaf.
+ */
+cnBool cnNodePropagateBindingBags(
+  cnNode* node, cnList(cnBindingBag)* bindingBags,
+  cnList(cnLeafBindingBagGroup)* leafBindingBagGroups
+);
+
+
+/**
  * Replaces the kid at the index, if any, with the new kid, disposing of and
  * freeing the old one if any.
  */
