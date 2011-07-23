@@ -170,6 +170,10 @@ cnRootNode* cnTryExpansionsAtLeaf(cnLearnerConfig* config, cnLeafNode* leaf);
  */
 cnBool cnUpdateLeafProbabilities(cnRootNode* root);
 
+cnBool cnUpdateLeafProbabilitiesWithBindingBags(
+  cnList(cnLeafBindingBagGroup)* groups, cnList(cnLeafCount)* counts
+);
+
 
 /**
  * Performs a statistical test to verify that the candidate tree is a
@@ -1005,13 +1009,18 @@ void cnLogPointBags(cnSplitNode* split, cnList(cnPointBag)* pointBags) {
 
 cnLeafNode* cnPickBestLeaf(cnRootNode* tree, cnList(cnBag)* bags) {
   cnLeafNode* bestLeaf = NULL;
+  cnLeafBindingBagGroup* bestGroup = NULL;
   cnFloat bestScore = -HUGE_VAL;
+  cnList(cnLeafCount) counts;
+  cnList(cnLeafNode) fakeLeaves;
+  cnLeafNode* leaf;
   cnList(cnLeafBindingBagGroup) leafBindingBagGroups;
-  cnLeafNode noLeaf;
   cnLeafBindingBagGroup* noGroup;
-  cnBool result = cnFalse;
+  cnLeafNode** realLeaves = NULL;
 
   // Init.
+  cnListInit(&counts, sizeof(cnLeafCount));
+  cnListInit(&fakeLeaves, sizeof(cnLeafNode));
   cnListInit(&leafBindingBagGroups, sizeof(cnLeafBindingBagGroup));
 
   // Get all bindings, leaves.
@@ -1027,8 +1036,25 @@ cnLeafNode* cnPickBestLeaf(cnRootNode* tree, cnList(cnBag)* bags) {
   }
   // We shouldn't need a full real leaf to get by. Only the probability field
   // should end up used.
-  noGroup->leaf = &noLeaf;
   cnListInit(&noGroup->bindingBags, sizeof(cnBindingBag));
+
+  // Prepare bogus leaves for storing fake probs.
+  // Also remember the real ones, so we can return the right leaf.
+  if (!(
+    realLeaves = malloc(leafBindingBagGroups.count * sizeof(cnLeafNode*))
+  )) cnFailTo(DONE, "No real leaf memory.");
+  if (!cnListExpandMulti(&fakeLeaves, leafBindingBagGroups.count)) {
+    cnFailTo(DONE, "No space for bogus leaves.");
+  }
+  leaf = fakeLeaves.items;
+  cnListEachBegin(&leafBindingBagGroups, cnLeafBindingBagGroup, group) {
+    // Remember the original leaf.
+    realLeaves[leaf - (cnLeafNode*)fakeLeaves.items] =
+      group == noGroup ? NULL : group->leaf;
+    // Overwrite the real leaf.
+    group->leaf = leaf;
+    leaf++;
+  } cnEnd;
 
   // Look at each leaf to find the best perfect split.
   bestLeaf = NULL;
@@ -1038,6 +1064,7 @@ cnLeafNode* cnPickBestLeaf(cnRootNode* tree, cnList(cnBag)* bags) {
     cnIndex b;
     cnBindingBag* bindingBag;
     cnBindingBag* noEnd;
+    cnFloat score;
 
     // The last is fake. No need to check it.
     if (group == noGroup) break;
@@ -1065,7 +1092,23 @@ cnLeafNode* cnPickBestLeaf(cnRootNode* tree, cnList(cnBag)* bags) {
     //printf("Positives kept: %ld\n", group->bindingBags.count);
     //printf("Negatives moved out: %ld\n", noGroup->bindingBags.count);
 
-    // TODO Update leaf probabilities, and find the score.
+    // Update leaf probabilities, and find the score.
+    // TODO It would be nice to provide max leaf counts directly here instead of
+    // TODO having to immediately recalculate them.
+    if (
+      !cnUpdateLeafProbabilitiesWithBindingBags(&leafBindingBagGroups, &counts)
+    ) cnFailTo(DONE, "No fake leaf probs.");
+    score = cnCountsLogMetric(&counts);
+    printf(
+      "Score at %ld: %lg",
+      group - (cnLeafBindingBagGroup*)leafBindingBagGroups.items, score
+    );
+    if (score > bestScore) {
+      bestGroup = group;
+      bestScore = score;
+      printf(" (best yet)");
+    }
+    printf("\n");
 
     // Then put them all back. Space is guaranteed again.
     bindingBag = noGroup->bindingBags.items;
@@ -1076,10 +1119,13 @@ cnLeafNode* cnPickBestLeaf(cnRootNode* tree, cnList(cnBag)* bags) {
     // And clear out the fake.
     cnListClear(&noGroup->bindingBags);
   } cnEnd;
-  bestLeaf = ((cnLeafBindingBagGroup*)leafBindingBagGroups.items)->leaf;
 
-  // We winned.
-  result = cnTrue;
+  // Get the best leaf.
+  if (bestGroup) {
+    cnIndex bestIndex =
+      bestGroup - (cnLeafBindingBagGroup*)leafBindingBagGroups.items;
+    bestLeaf = realLeaves[bestIndex];
+  }
 
   DONE:
   // TODO cnLeafBindingBagGroupListDispose?
@@ -1091,9 +1137,11 @@ cnLeafNode* cnPickBestLeaf(cnRootNode* tree, cnList(cnBag)* bags) {
     cnListDispose(&group->bindingBags);
   } cnEnd;
   cnListDispose(&leafBindingBagGroups);
+  cnListDispose(&fakeLeaves);
+  cnListDispose(&counts);
+  free(realLeaves);
   return bestLeaf;
 }
-
 
 
 void cnPrintExpansion(cnExpansion* expansion) {
@@ -1501,6 +1549,116 @@ cnBool cnUpdateLeafProbabilities(cnRootNode* root) {
   return result;
 }
 
+cnBool cnUpdateLeafProbabilitiesWithBindingBags(
+  cnList(cnLeafBindingBagGroup)* groups, cnList(cnLeafCount)* counts
+) {
+  cnIndex b;
+  cnCount bagCount;
+  cnBag* bags = NULL;
+  cnBag* bagsEnd = NULL;
+  cnBool* bagsUsed = NULL;
+  cnFloat bonus = 1.0;
+  cnList(cnLeafBindingBagGroup) groupsCopied;
+  cnBool result = cnFalse;
+
+  // Copy this list, because we're going to be clearing leaf pointers.
+  cnListInit(&groupsCopied, sizeof(cnLeafBindingBagGroup));
+  if (!cnListPushAll(&groupsCopied, groups)) cnFailTo(DONE, "No groups copy.");
+
+  // See if they want leaf counts, and get ready if they do.
+  if (counts) {
+    cnListClear(counts);
+    if (!cnListExpandMulti(counts, groups->count)) cnFailTo(DONE, "No counts.");
+  }
+
+  // Init which bags used. First, we need to find how many and wher they start.
+  // Assume that the bags fit together nicely in order in memory.
+  // TODO Organize to better clarify/enforce such expectations/constraints!
+  // TODO Would I need IDs or a hashtable otherwise?
+  cnListEachBegin(groups, cnLeafBindingBagGroup, group) {
+    cnListEachBegin(&group->bindingBags, cnBindingBag, bindingBag) {
+      if (bindingBag->bag < bags || !bags) {
+        bags = bindingBag->bag;
+      }
+      if (bindingBag->bag > bagsEnd || !bagsEnd) {
+        bagsEnd = bindingBag->bag;
+      }
+    } cnEnd;
+  } cnEnd;
+  bagsEnd++;
+  bagCount = bagsEnd - bags;
+  bagsUsed = malloc(bagCount * sizeof(cnBool));
+  if (!bagsUsed) goto DONE;
+  for (b = 0; b < bagCount; b++) bagsUsed[b] = cnFalse;
+
+  // Loop through the groups.
+  cnListEachBegin(&groupsCopied, cnLeafBindingBagGroup, group) {
+    cnLeafBindingBagGroup* maxGroup = NULL;
+    cnIndex maxGroupIndex = -1;
+    cnCount maxPosCount = 0;
+    cnFloat maxProb = -1;
+    cnCount maxTotal = 0;
+
+    // Count all remaining bags for each leaf.
+    cnListEachBegin(&groupsCopied, cnLeafBindingBagGroup, group) {
+      cnCount posCount = 0;
+      cnCount total = 0;
+      // See if we already finished this leaf.
+      if (!group->leaf) continue;
+      // Nope, so count bags.
+      cnListEachBegin(&group->bindingBags, cnBindingBag, bindingBag) {
+        if (!bagsUsed[bindingBag->bag - bags]) {
+          total++;
+          posCount += bindingBag->bag->label;
+        }
+      } cnEnd;
+      // Assign optimistic probability, assuming 0.5 for no evidence.
+      // Apply a beta prior with equal alpha and beta. I hate baked-in
+      // parameters (or any parameters, really), but it's an easy fix for now.
+      // TODO Parameterize the beta prior? Automatically determine via fast
+      // TODO awesomeness?
+      group->leaf->probability = (total || bonus) ?
+        (posCount + bonus) / (total + 2 * bonus) : 0.5;
+      if (group->leaf->probability > maxProb) {
+        // Let the highest probability win.
+        // TODO Let the highest individual score win? Compare the math on this.
+        maxGroup = group;
+        maxGroupIndex = maxGroup - (cnLeafBindingBagGroup*)groupsCopied.items;
+        maxPosCount = posCount;
+        maxProb = maxGroup->leaf->probability;
+        maxTotal = total;
+      }
+    } cnEnd;
+    printf(
+      "Leaf %ld with prob: %lf of %.2lf (really %lf of %ld)\n",
+      maxGroupIndex + 1, maxProb, maxTotal + 2 * bonus,
+      maxTotal ? maxPosCount / (cnFloat)maxTotal : 0.5, maxTotal
+    );
+
+    // Record the counts, if wanted.
+    if (counts) {
+      cnLeafCount* count = cnListGet(counts, maxGroupIndex);
+      count->leaf = maxGroup->leaf;
+      count->negCount = maxTotal - maxPosCount;
+      count->posCount = maxPosCount;
+    }
+
+    // Mark the leaf and its bags as used.
+    maxGroup->leaf = NULL;
+    cnListEachBegin(&maxGroup->bindingBags, cnBindingBag, bindingBag) {
+      bagsUsed[bindingBag->bag - bags] = cnTrue;
+    } cnEnd;
+  } cnEnd;
+
+  // We finished.
+  result = cnTrue;
+
+  DONE:
+  free(bagsUsed);
+  cnListDispose(&groupsCopied);
+  return result;
+}
+
 
 typedef struct cnVerifyImprovement_Stats {
   cnCount* bootCounts;
@@ -1566,6 +1724,10 @@ cnBool cnVerifyImprovement_StatsPrepare(
   for (i = 0; i < stats->leafCounts.count; i++) {
     cnLeafCount* count = cnListGet(&stats->leafCounts, i);
     // Neg first, then pos.
+    // TODO Apply the same beta prior as for updating probabilities? Otherwise,
+    // TODO we might have inappropriate zeros (or even ones) in validation.
+    // TODO Well, I guess it would be a Dirichlet prior, but it should be
+    // TODO equivalent to the beta prior at the single leaf level.
     probs[2 * i] = count->negCount / (cnFloat)bags->count;
     probs[2 * i + 1] = count->posCount / (cnFloat)bags->count;
   }
