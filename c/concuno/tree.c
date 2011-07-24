@@ -662,11 +662,11 @@ cnPointBag* cnSplitNodePointBag(
 
 typedef struct cnSplitNodePointBags_Binding {
   cnBinding binding;
-  cnIndex index;
+  // cnIndex index; // For retaining original order?
   cnSplitNode* split;
 } cnSplitNodePointBags_Binding;
 
-int cnSplitNodePointBags_compareBindingBags(const void* a, const void* b) {
+int cnSplitNodePointBags_compareBindings(const void* a, const void* b) {
   cnSplitNodePointBags_Binding* bindingA = (void*)a;
   cnSplitNodePointBags_Binding* bindingB = (void*)b;
   cnIndex i;
@@ -687,9 +687,15 @@ cnBool cnSplitNodePointBags(
 ) {
   cnPointBag* pointBag;
   cnBool result = cnFalse;
+  cnList(cnSplitNodePointBags_Binding) splitBindings;
+  cnBindingBag uniqueBag;
   cnCount validBindingsCount = 0;
+  cnCount varDepth;
 
   // Init first for safety.
+  cnListInit(&splitBindings, sizeof(cnSplitNodePointBags_Binding));
+  varDepth = cnNodeVarDepth(&split->node);
+  cnBindingBagInit(&uniqueBag, NULL, varDepth);
   if (pointBags->count) {
     cnFailTo(FAIL, "Start with empty pointBags, not %ld.", pointBags->count);
   }
@@ -715,15 +721,47 @@ cnBool cnSplitNodePointBags(
   // TODO Dupes can come from bindings where only the non-args are unique.
   pointBag = pointBags->items;
   cnListEachBegin(bindingBags, cnBindingBag, bindingBag) {
-    // TODO
-    // TODO Avoid duplicates as follows:
-    // TODO Build a list of cnSplitNodePointBags_Binding.
-    // TODO Sort them.
-    // TODO Check for duplicates as we loop.
-    // TODO By storing an index, can I retain the original order?
-    // TODO I don't want to introduce bias by sorting.
-    // TODO
-    if (!cnSplitNodePointBag(split, bindingBag, pointBag)) {
+    cnSplitNodePointBags_Binding* previous;
+
+    // Eliminate duplicates! Huge speed difference!
+    // Prepare a list of split bindings.
+    cnListClear(&splitBindings);
+    cnListEachBegin(&bindingBag->bindings, cnEntity, binding) {
+      cnSplitNodePointBags_Binding* splitBinding;
+      if (!(splitBinding = cnListExpand(&splitBindings))) {
+        cnFailTo(FAIL, "No split binding.");
+      }
+      splitBinding->binding = binding;
+      splitBinding->split = split;
+    } cnEnd;
+
+    // Sort them, and keep only uniques.
+    // TODO Generic 'cnUniques' function?
+    // TODO Restore original order somehow (saving index for each)?
+    // TODO cnListSort(&splitBindings, cnSplitNodePointBags_compareBindings);?
+    qsort(
+      splitBindings.items, splitBindings.count, splitBindings.itemSize,
+      cnSplitNodePointBags_compareBindings
+    );
+    cnListClear(&uniqueBag.bindings);
+    uniqueBag.bag = bindingBag->bag;
+    previous = NULL;
+    cnListEachBegin(
+      &splitBindings, cnSplitNodePointBags_Binding, splitBinding
+    ) {
+      // If it's first or different, keep it.
+      if (
+        !previous ||
+        cnSplitNodePointBags_compareBindings(splitBinding, previous)
+      ) {
+        if (!cnListPush(&uniqueBag.bindings, splitBinding->binding)) {
+          cnFailTo(FAIL, "No unique binding.");
+        }
+      }
+      previous = splitBinding;
+    } cnEnd;
+
+    if (!cnSplitNodePointBag(split, &uniqueBag, pointBag)) {
       cnFailTo(FAIL, "No point bag.");
     }
     pointBag++;
@@ -740,6 +778,8 @@ cnBool cnSplitNodePointBags(
   cnListClear(pointBags);
 
   DONE:
+  cnListDispose(&splitBindings);
+  cnBindingBagDispose(&uniqueBag);
   return result;
 }
 

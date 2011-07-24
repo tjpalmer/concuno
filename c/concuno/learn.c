@@ -1113,7 +1113,7 @@ cnLeafNode* cnPickBestLeaf(cnRootNode* tree, cnList(cnBag)* bags) {
     score = cnCountsLogMetric(&counts);
     printf(
       "Score at %ld: %lg",
-      group - (cnLeafBindingBagGroup*)groups.items, score
+      (cnIndex)(group - (cnLeafBindingBagGroup*)groups.items), score
     );
     if (score > bestScore) {
       bestGroup = group;
