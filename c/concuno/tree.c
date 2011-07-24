@@ -660,6 +660,26 @@ cnPointBag* cnSplitNodePointBag(
 }
 
 
+typedef struct cnSplitNodePointBags_Binding {
+  cnBinding binding;
+  cnIndex index;
+  cnSplitNode* split;
+} cnSplitNodePointBags_Binding;
+
+int cnSplitNodePointBags_compareBindingBags(const void* a, const void* b) {
+  cnSplitNodePointBags_Binding* bindingA = (void*)a;
+  cnSplitNodePointBags_Binding* bindingB = (void*)b;
+  cnIndex i;
+  // Compare just on those indices we care about.
+  for (i = 0; i < bindingA->split->function->inCount; i++) {
+    cnEntity entityA = bindingA->binding[bindingA->split->varIndices[i]];
+    cnEntity entityB = bindingB->binding[bindingB->split->varIndices[i]];
+    if (entityA != entityB) return entityA > entityB ? 1 : -1;
+  }
+  // No differences found.
+  return 0;
+}
+
 cnBool cnSplitNodePointBags(
   cnSplitNode* split,
   cnList(cnBindingBag)* bindingBags,
@@ -695,6 +715,14 @@ cnBool cnSplitNodePointBags(
   // TODO Dupes can come from bindings where only the non-args are unique.
   pointBag = pointBags->items;
   cnListEachBegin(bindingBags, cnBindingBag, bindingBag) {
+    // TODO
+    // TODO Avoid duplicates as follows:
+    // TODO Build a list of cnSplitNodePointBags_Binding.
+    // TODO Sort them.
+    // TODO Check for duplicates as we loop.
+    // TODO By storing an index, can I retain the original order?
+    // TODO I don't want to introduce bias by sorting.
+    // TODO
     if (!cnSplitNodePointBag(split, bindingBag, pointBag)) {
       cnFailTo(FAIL, "No point bag.");
     }
