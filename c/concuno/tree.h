@@ -109,11 +109,6 @@ struct cnNode {
 
   cnNode* parent;
 
-  /**
-   * TODO Change just to returning bindings instead of storing them?
-   */
-  cnBindingBagList* bindingBagList;
-
 };
 
 
@@ -197,8 +192,6 @@ typedef struct cnVarNode {
 
 /**
  * A way to track the bindings arriving at leaves.
- *
- * TODO Eliminate old propagation model?
  */
 typedef struct cnLeafBindingBag {
 
@@ -213,8 +206,6 @@ typedef struct cnLeafBindingBag {
 
 /**
  * For binding bags grouped by leaf.
- *
- * TODO Eliminate old propagation model?
  */
 typedef struct cnLeafBindingBagGroup {
 
@@ -363,16 +354,6 @@ cnBool cnNodeLeaves(cnNode* node, cnList(cnLeafNode*)* leaves);
 
 
 /**
- * Assigns the given bindings to this node, then propagates down.
- *
- * If null bindingBags, repropagate the currently stored ones, if any.
- *
- * TODO Change just to returning bindings instead of storing them?
- */
-cnBool cnNodePropagate(cnNode* node, cnBindingBagList* bindingBags);
-
-
-/**
  * Given a node and a bindingBag, fills the leaf binding bags with those
  * arriving at leaves.
  *
@@ -429,15 +410,6 @@ cnCount cnNodeVarDepth(cnNode* node);
 cnBool cnRootNodeInit(cnRootNode* root, cnBool addLeaf);
 
 
-/**
- * For top-level convenience, propagates empty bindings made from the given
- * bags.
- *
- * TODO Change just to returning bindings instead of storing them?
- */
-cnBool cnRootNodePropagateBags(cnRootNode* root, cnList(cnBag)* bags);
-
-
 cnSplitNode* cnSplitNodeCreate(cnBool addLeaves);
 
 
@@ -447,7 +419,11 @@ cnSplitNode* cnSplitNodeCreate(cnBool addLeaves);
  *
  * TODO Guaranteed to be in the same order as the binding bags and bindings.
  */
-cnBool cnSplitNodePointBags(cnSplitNode* split, cnList(cnPointBag)* pointBags);
+cnBool cnSplitNodePointBags(
+  cnSplitNode* split,
+  cnList(cnBindingBag)* bindingBags,
+  cnList(cnPointBag)* pointBags
+);
 
 
 /**
