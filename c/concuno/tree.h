@@ -414,6 +414,17 @@ cnSplitNode* cnSplitNodeCreate(cnBool addLeaves);
 
 
 /**
+ * Fills the point bags with points according to the given bindings and the
+ * function at this node.
+ *
+ * TODO Guaranteed to be in the same order as the bindings.
+ */
+cnPointBag* cnSplitNodePointBag(
+  cnSplitNode* split, cnBindingBag* bindingBag, cnPointBag* pointBag
+);
+
+
+/**
  * Fills the list of value bags with values according to the bindings and the
  * function at this node.
  *
@@ -423,17 +434,6 @@ cnBool cnSplitNodePointBags(
   cnSplitNode* split,
   cnList(cnBindingBag)* bindingBags,
   cnList(cnPointBag)* pointBags
-);
-
-
-/**
- * Fills the point bags with points according to the given bindings and the
- * function at this node.
- *
- * TODO Guaranteed to be in the same order as the bindings.
- */
-cnPointBag* cnSplitNodePointBag(
-  cnSplitNode* split, cnBindingBag* bindingBag, cnPointBag* pointBag
 );
 
 

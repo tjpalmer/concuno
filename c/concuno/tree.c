@@ -589,6 +589,133 @@ cnBool cnSplitNodeInit(cnSplitNode* split, cnBool addLeaves) {
 }
 
 
+cnPointBag* cnSplitNodePointBag(
+  cnSplitNode* split, cnBindingBag* bindingBag, cnPointBag* pointBag
+) {
+  cnEntity* args = NULL;
+  cnBool makeOwnPointBag = !pointBag;
+  void* values;
+
+  // Init first.
+  if (makeOwnPointBag) {
+    if (!(pointBag = malloc(sizeof(cnPointBag)))) {
+      cnFailTo(FAIL, "No point bag.");
+    }
+  } else if (pointBag->pointMatrix) {
+    // Failing to DONE on purpose here, so we don't free their data!
+    cnFailTo(DONE, "Point bag has %ld points already!", pointBag->pointCount);
+  }
+  pointBag->bag = bindingBag->bag;
+  pointBag->valueCount = split->function->outCount;
+  pointBag->valueSize = split->function->outType->size;
+  pointBag->pointMatrix = NULL;
+  // Null (dummy bindings) will yield NaN as needed.
+  // TODO What about for non-float outputs???
+  pointBag->pointCount = bindingBag->bindings.count;
+
+  // Prepare space for points.
+  if (!(pointBag->pointMatrix = malloc(
+    pointBag->pointCount * pointBag->valueCount * pointBag->valueSize
+  ))) cnFailTo(FAIL, "No point matrix.");
+  // Put args on the stack.
+  if (!(args = cnStackAlloc(split->function->inCount * sizeof(void*)))) {
+    cnFailTo(FAIL, "No args.");
+  }
+
+  // Calculate the points.
+  values = pointBag->pointMatrix;
+  cnListEachBegin(&bindingBag->bindings, cnEntity, entities) {
+    // Gather the arguments.
+    cnIndex a;
+    for (a = 0; a < split->function->inCount; a++) {
+      args[a] = entities[split->varIndices[a]];
+    }
+    // Call the function.
+    // TODO Check for errors once we provide such things.
+    split->function->get(split->function, args, values);
+    // Move to the next vector.
+    values = ((char*)values) + pointBag->valueCount * pointBag->valueSize;
+  } cnEnd;
+
+  // We winned.
+  goto DONE;
+
+  FAIL:
+  if (pointBag) {
+    // We won't be needing this anymore.
+    free(pointBag->pointMatrix);
+    if (makeOwnPointBag) {
+      // Free it if we made it.
+      free(pointBag);
+    } else {
+      // Clean it up.
+      pointBag->pointCount = 0;
+      pointBag->pointMatrix = NULL;
+    }
+  }
+
+  DONE:
+  cnStackFree(args);
+  return pointBag;
+}
+
+
+cnBool cnSplitNodePointBags(
+  cnSplitNode* split,
+  cnList(cnBindingBag)* bindingBags,
+  cnList(cnPointBag)* pointBags
+) {
+  cnPointBag* pointBag;
+  cnBool result = cnFalse;
+  cnCount validBindingsCount = 0;
+
+  // Init first for safety.
+  if (pointBags->count) {
+    cnFailTo(FAIL, "Start with empty pointBags, not %ld.", pointBags->count);
+  }
+  if (!cnListExpandMulti(pointBags, bindingBags->count)) {
+    cnFailTo(FAIL, "No point bags.");
+  }
+  pointBag = pointBags->items;
+  cnListEachBegin(bindingBags, cnBindingBag, bindingBag) {
+    // Clear out each point bag for later filling.
+    // TODO Standard init function?
+    pointBag->pointCount = 0;
+    pointBag->pointMatrix = NULL;
+    // Null (dummy bindings) will yield NaN as needed.
+    // TODO What about for non-float outputs???
+    validBindingsCount += bindingBag->bindings.count;
+    // Next bag.
+    pointBag++;
+  } cnEnd;
+  printf("Need to build %ld values\n", validBindingsCount);
+
+  // Now build the values.
+  // TODO Actually, make an array of all the args and eliminate the duplicates!
+  // TODO Dupes can come from bindings where only the non-args are unique.
+  pointBag = pointBags->items;
+  cnListEachBegin(bindingBags, cnBindingBag, bindingBag) {
+    if (!cnSplitNodePointBag(split, bindingBag, pointBag)) {
+      cnFailTo(FAIL, "No point bag.");
+    }
+    pointBag++;
+  } cnEnd;
+
+  // It all worked.
+  result = cnTrue;
+  goto DONE;
+
+  FAIL:
+  cnListEachBegin(pointBags, cnPointBag, pointBag) {
+    free(pointBag->pointMatrix);
+  } cnEnd;
+  cnListClear(pointBags);
+
+  DONE:
+  return result;
+}
+
+
 cnBool cnSplitNodePropagateBindingBag(
   cnSplitNode* split, cnBindingBag* bindingBag,
   cnList(cnLeafBindingBag)* leafBindingBags
@@ -684,133 +811,6 @@ cnBool cnSplitNodePropagateBindingBag(
     cnBindingBagDispose(bagsOut + splitIndex);
   }
   return result;
-}
-
-
-cnBool cnSplitNodePointBags(
-  cnSplitNode* split,
-  cnList(cnBindingBag)* bindingBags,
-  cnList(cnPointBag)* pointBags
-) {
-  cnPointBag* pointBag;
-  cnBool result = cnFalse;
-  cnCount validBindingsCount = 0;
-
-  // Init first for safety.
-  if (pointBags->count) {
-    cnFailTo(FAIL, "Start with empty pointBags, not %ld.", pointBags->count);
-  }
-  if (!cnListExpandMulti(pointBags, bindingBags->count)) {
-    cnFailTo(FAIL, "No point bags.");
-  }
-  pointBag = pointBags->items;
-  cnListEachBegin(bindingBags, cnBindingBag, bindingBag) {
-    // Clear out each point bag for later filling.
-    // TODO Standard init function?
-    pointBag->pointCount = 0;
-    pointBag->pointMatrix = NULL;
-    // Null (dummy bindings) will yield NaN as needed.
-    // TODO What about for non-float outputs???
-    validBindingsCount += bindingBag->bindings.count;
-    // Next bag.
-    pointBag++;
-  } cnEnd;
-  printf("Need to build %ld values\n", validBindingsCount);
-
-  // Now build the values.
-  // TODO Actually, make an array of all the args and eliminate the duplicates!
-  // TODO Dupes can come from bindings where only the non-args are unique.
-  pointBag = pointBags->items;
-  cnListEachBegin(bindingBags, cnBindingBag, bindingBag) {
-    if (!cnSplitNodePointBag(split, bindingBag, pointBag)) {
-      cnFailTo(FAIL, "No point bag.");
-    }
-    pointBag++;
-  } cnEnd;
-
-  // It all worked.
-  result = cnTrue;
-  goto DONE;
-
-  FAIL:
-  cnListEachBegin(pointBags, cnPointBag, pointBag) {
-    free(pointBag->pointMatrix);
-  } cnEnd;
-  cnListClear(pointBags);
-
-  DONE:
-  return result;
-}
-
-
-cnPointBag* cnSplitNodePointBag(
-  cnSplitNode* split, cnBindingBag* bindingBag, cnPointBag* pointBag
-) {
-  cnEntity* args = NULL;
-  cnBool makeOwnPointBag = !pointBag;
-  void* values;
-
-  // Init first.
-  if (makeOwnPointBag) {
-    if (!(pointBag = malloc(sizeof(cnPointBag)))) {
-      cnFailTo(FAIL, "No point bag.");
-    }
-  } else if (pointBag->pointMatrix) {
-    // Failing to DONE on purpose here, so we don't free their data!
-    cnFailTo(DONE, "Point bag has %ld points already!", pointBag->pointCount);
-  }
-  pointBag->bag = bindingBag->bag;
-  pointBag->valueCount = split->function->outCount;
-  pointBag->valueSize = split->function->outType->size;
-  pointBag->pointMatrix = NULL;
-  // Null (dummy bindings) will yield NaN as needed.
-  // TODO What about for non-float outputs???
-  pointBag->pointCount = bindingBag->bindings.count;
-
-  // Prepare space for points.
-  if (!(pointBag->pointMatrix = malloc(
-    pointBag->pointCount * pointBag->valueCount * pointBag->valueSize
-  ))) cnFailTo(FAIL, "No point matrix.");
-  // Put args on the stack.
-  if (!(args = cnStackAlloc(split->function->inCount * sizeof(void*)))) {
-    cnFailTo(FAIL, "No args.");
-  }
-
-  // Calculate the points.
-  values = pointBag->pointMatrix;
-  cnListEachBegin(&bindingBag->bindings, cnEntity, entities) {
-    // Gather the arguments.
-    cnIndex a;
-    for (a = 0; a < split->function->inCount; a++) {
-      args[a] = entities[split->varIndices[a]];
-    }
-    // Call the function.
-    // TODO Check for errors once we provide such things.
-    split->function->get(split->function, args, values);
-    // Move to the next vector.
-    values = ((char*)values) + pointBag->valueCount * pointBag->valueSize;
-  } cnEnd;
-
-  // We winned.
-  goto DONE;
-
-  FAIL:
-  if (pointBag) {
-    // We won't be needing this anymore.
-    free(pointBag->pointMatrix);
-    if (makeOwnPointBag) {
-      // Free it if we made it.
-      free(pointBag);
-    } else {
-      // Clean it up.
-      pointBag->pointCount = 0;
-      pointBag->pointMatrix = NULL;
-    }
-  }
-
-  DONE:
-  cnStackFree(args);
-  return pointBag;
 }
 
 

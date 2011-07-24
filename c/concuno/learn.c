@@ -1548,8 +1548,10 @@ cnBool cnUpdateLeafProbabilitiesWithBindingBags(
       // Assign optimistic probability, assuming 0.5 for no evidence.
       // Apply a beta prior with equal alpha and beta. I hate baked-in
       // parameters (or any parameters, really), but it's an easy fix for now.
-      // TODO Parameterize the beta prior? Automatically determine via fast
-      // TODO awesomeness?
+      // On the other hand, beta of a=b=2 (for bonus of 1) is also known as the
+      // rule of succession, introduced by Laplace. It's well founded.
+      // TODO Still could parameterize the beta, if we want, but I hate
+      // TODO parameters.
       group->leaf->probability = (total || bonus) ?
         (posCount + bonus) / (total + 2 * bonus) : 0.5;
       if (group->leaf->probability > maxProb) {
