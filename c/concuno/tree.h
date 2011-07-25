@@ -64,8 +64,14 @@ typedef struct cnPointBag {
   /**
    * A mapping from bindings to points, in the same order as the bindings in the
    * bag. If null, the points are one-to-one in the same order as the bindings.
+   *
+   * Could instead do a list of list of bindings, since this assumes you know
+   * what the original bindings are, but this is more efficient. Just don't use
+   * this list unless you know the bindings (including how many there are).
+   *
+   * TODO Do go to the list of lists?
    */
-  cnIndex* bindingToPointIndices;
+  cnIndex* bindingPointIndices;
 
   /**
    * The total number of points in the bag.

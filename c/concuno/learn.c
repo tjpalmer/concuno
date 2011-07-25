@@ -676,7 +676,7 @@ cnFloat cnChooseThreshold(
 
 cnRootNode* cnExpandedTree(cnLearnerConfig* config, cnExpansion* expansion) {
   // TODO Loop across multiple inits/attempts?
-  cnList(cnBindingBag)* bindingBags;
+  cnList(cnBindingBag)* bindingBags = NULL;
   cnLeafNode* leaf;
   cnList(cnLeafBindingBagGroup) leafBindingBagGroups;
   cnSplitNode* split;

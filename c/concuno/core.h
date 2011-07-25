@@ -155,6 +155,10 @@ void* cnListExpand(cnListAny* list);
  * filling in after the fact.
  *
  * Returns a pointer to the beginning of the new space.
+ *
+ * WARNING: If you try to add nothing, you'll get a NULL back, as there's no
+ * space to use. However, it's still technically successful. That makes
+ * usability awkward. TODO Consider changing the API here?
  */
 void* cnListExpandMulti(cnListAny* list, cnCount count);
 

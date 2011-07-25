@@ -500,7 +500,7 @@ cnCount cnNodeVarDepth(cnNode* node) {
 
 void cnPointBagDispose(cnPointBag* pointBag) {
   if (pointBag) {
-    free(pointBag->bindingToPointIndices);
+    free(pointBag->bindingPointIndices);
     free(pointBag->pointMatrix);
     cnPointBagInit(pointBag);
   }
@@ -509,7 +509,7 @@ void cnPointBagDispose(cnPointBag* pointBag) {
 
 void cnPointBagInit(cnPointBag* pointBag) {
   pointBag->bag = NULL;
-  pointBag->bindingToPointIndices = NULL;
+  pointBag->bindingPointIndices = NULL;
   pointBag->valueCount = 0;
   pointBag->valueSize = 0;
   pointBag->pointMatrix = NULL;
@@ -646,7 +646,6 @@ cnPointBag* cnSplitNodePointBag(
 ) {
   cnEntity* args = NULL;
   cnBool makeOwnPointBag = !pointBag;
-  cnSplitNodePointBag_Binding* previous;
   cnList(cnSplitNodePointBag_Binding) splitBindings;
   cnBindingBag uniqueBag;
   void* values;
@@ -673,23 +672,38 @@ cnPointBag* cnSplitNodePointBag(
   // See if we have potential duplicate points. If so, combine them for
   // efficiency. This can speed things up a lot for deep areas of trees with
   // little pruning above.
+  //
+  // Purposely avoid the no-bindings case. It makes for some awkwardness below
+  // and clearly won't be too slow, either.
+  //
   // TODO Check instead whether the var indices use past the first n vars.
   // TODO Still need to keep a list of all bindings corresponding to each point.
-  if (cnFalse && varDepth > split->function->inCount) {
-    cnIndex b = 0;
+  if (varDepth > split->function->inCount && bindingBag->bindings.count) {
+    cnIndex b;
+    cnIndex p;
+    cnSplitNodePointBag_Binding* mostRecentlyKept;
+    cnSplitNodePointBag_Binding* splitBinding;
+
     // Prepare a list of split bindings. Needed for sorting.
+    if (!cnListExpandMulti(&splitBindings, bindingBag->bindings.count)) {
+      cnFailTo(FAIL, "No split bindings.");
+    }
+    b = 0;
+    splitBinding = splitBindings.items;
     cnListEachBegin(&bindingBag->bindings, cnEntity, binding) {
-      cnSplitNodePointBag_Binding* splitBinding;
-      if (!(splitBinding = cnListExpand(&splitBindings))) {
-        cnFailTo(FAIL, "No split binding.");
-      }
       splitBinding->binding = binding;
       splitBinding->index = b++;
       splitBinding->split = split;
+      splitBinding++;
     } cnEnd;
 
+    // Track binding point indices, now that we know how many uniques we have.
+    if (!(
+      pointBag->bindingPointIndices =
+        malloc(splitBindings.count * sizeof(cnIndex))
+    )) cnFailTo(FAIL, "No binding point indices.");
+
     // Sort them, and keep only uniques.
-    // TODO Generic 'cnUniques' function?
     // TODO Restore original order somehow (saving index for each)?
     // TODO Make my own sort (and for lists), allowing helper data:
     // TODO cnListSort(&bindings, split, cnSplitNodePointBag_compareBindings);
@@ -697,22 +711,31 @@ cnPointBag* cnSplitNodePointBag(
       splitBindings.items, splitBindings.count, splitBindings.itemSize,
       cnSplitNodePointBag_compareBindings
     );
-    cnListClear(&uniqueBag.bindings);
+
+    // Keep only the uniques.
+    // TODO Generic 'cnUniques' function?
     uniqueBag.bag = bindingBag->bag;
-    previous = NULL;
+    // Track the indices of each binding and of the most recent point.
+    p = -1;
+    // Remember the most recently kept split binding for easy comparison.
+    mostRecentlyKept = NULL;
     cnListEachBegin(
       &splitBindings, cnSplitNodePointBag_Binding, splitBinding
     ) {
       // If it's first or different, keep it.
       if (
-        !previous ||
-        cnSplitNodePointBag_compareBindings(splitBinding, previous)
+        !mostRecentlyKept ||
+        cnSplitNodePointBag_compareBindings(splitBinding, mostRecentlyKept)
       ) {
         if (!cnListPush(&uniqueBag.bindings, splitBinding->binding)) {
           cnFailTo(FAIL, "No unique binding.");
         }
+        // Increment our point index and remember this point for comparison.
+        p++;
+        mostRecentlyKept = splitBinding;
       }
-      previous = splitBinding;
+      // Use the original binding index, not the sorted one.
+      pointBag->bindingPointIndices[splitBinding->index] = p;
     } cnEnd;
 
     // Look at the one with uniques only.
@@ -757,6 +780,7 @@ cnPointBag* cnSplitNodePointBag(
     // Free it if we made it.
     free(pointBag);
   }
+  pointBag = NULL;
 
   DONE:
   cnListDispose(&splitBindings);
@@ -785,16 +809,12 @@ cnBool cnSplitNodePointBags(
   pointBag = pointBags->items;
   cnListEachBegin(bindingBags, cnBindingBag, bindingBag) {
     // Clear out each point bag for later filling.
-    // TODO Standard init function?
-    pointBag->pointCount = 0;
-    pointBag->pointMatrix = NULL;
+    cnPointBagInit(pointBag);
     // Null (dummy bindings) will yield NaN as needed.
     // TODO What about for non-float outputs???
-    validBindingsCount += bindingBag->bindings.count;
     // Next bag.
     pointBag++;
   } cnEnd;
-  printf("Need to build %ld values\n", validBindingsCount);
 
   // Now build the values.
   // TODO Actually, make an array of all the args and eliminate the duplicates!
@@ -804,8 +824,10 @@ cnBool cnSplitNodePointBags(
     if (!cnSplitNodePointBag(split, bindingBag, pointBag)) {
       cnFailTo(FAIL, "No point bag.");
     }
+    validBindingsCount += pointBag->pointCount;
     pointBag++;
   } cnEnd;
+  printf("Points built: %ld\n", validBindingsCount);
 
   // It all worked.
   result = cnTrue;
@@ -827,11 +849,13 @@ cnBool cnSplitNodePropagateBindingBag(
   cnList(cnLeafBindingBag)* leafBindingBags
 ) {
   cnBool allToErr = cnFalse;
+  cnIndex b;
   cnBindingBag bagsOut[cnSplitCount];
-  cnBinding bindingIn;
+  cnIndex p;
   cnFloat* point;
   cnPointBag* pointBag = NULL;
   cnFloat* pointsEnd;
+  cnBindingBag** pointBindingBagOuts = NULL;
   cnBool result = cnFalse;
   cnSplitIndex splitIndex;
   cnNode* yes = split->kids[cnSplitYes];
@@ -861,14 +885,18 @@ cnBool cnSplitNodePropagateBindingBag(
     cnFailTo(DONE, "No point bag.");
   }
 
+  // Prepare space for point assessment. This makes easier the case where we
+  // have multiple bindings for a single point, and it shouldn't be horribly
+  // expensive for the common case.
+  if (!(
+    pointBindingBagOuts = malloc(pointBag->pointCount * sizeof(cnBindingBag*))
+  )) cnFailTo(DONE, "No point binding bag assignments.");
+
   // Go through the points.
-  bindingIn = bindingBag->bindings.items;
+  p = 0;
   point = pointBag->pointMatrix;
   pointsEnd = point + pointBag->pointCount * pointBag->valueCount;
-  for (;
-    point < pointsEnd;
-    point += pointBag->valueCount, bindingIn += bindingBag->entityCount
-  ) {
+  for (; point < pointsEnd; point += pointBag->valueCount) {
     // Check for error.
     cnBool allGood = cnTrue;
     cnFloat* value = point;
@@ -880,7 +908,8 @@ cnBool cnSplitNodePropagateBindingBag(
         break;
       }
     }
-    // Choose the bag to go to.
+
+    // Choose the bag this point goes to.
     if (!allGood) {
       splitIndex = cnSplitErr;
     } else {
@@ -889,10 +918,23 @@ cnBool cnSplitNodePropagateBindingBag(
       // I hack -1 (turned unsigned) into this for errors at this point.
       if (splitIndex >= cnSplitCount) cnFailTo(DONE, "Bad evaluate.");
     }
-    if (!cnListPush(&bagsOut[splitIndex].bindings, bindingIn)) {
+
+    // Remember this choice for later, when we go through the bindings.
+    pointBindingBagOuts[p++] = bagsOut + splitIndex;
+  }
+
+  // Now actually assign the bindings themselves.
+  b = 0;
+  cnListEachBegin(&bindingBag->bindings, cnBinding, bindingIn) {
+    // The point index either comes from the mapping or is just the the binding
+    // index itself.
+    cnIndex p = pointBag->bindingPointIndices ?
+      pointBag->bindingPointIndices[b] : b;
+    if (!cnListPush(&pointBindingBagOuts[p]->bindings, bindingIn)) {
       cnFailTo(DONE, "No pushed binding.");
     }
-  }
+    b++;
+  } cnEnd;
 
   PROPAGATE:
   // Now that we have the bindings split, push them down.
@@ -909,6 +951,7 @@ cnBool cnSplitNodePropagateBindingBag(
   result = cnTrue;
 
   DONE:
+  free(pointBindingBagOuts);
   if (pointBag) {
     free(pointBag->pointMatrix);
     free(pointBag);

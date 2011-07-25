@@ -52,6 +52,12 @@ void* cnListExpand(cnListAny* list) {
 void* cnListExpandMulti(cnListAny* list, cnCount count) {
   void* formerEnd;
   cnCount needed = list->count + count;
+
+  // If you add nothing to an empty list, it's successful, but there's no space
+  // to use, so don't pretend there's any.
+  if (!count) return NULL;
+
+  // Handle the common cases.
   if (needed > list->reservedCount) {
     void* newItems;
     // Exponential growth to avoid slow pushing.
