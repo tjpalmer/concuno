@@ -62,6 +62,12 @@ typedef struct cnPointBag {
   cnBag* bag;
 
   /**
+   * A mapping from bindings to points, in the same order as the bindings in the
+   * bag. If null, the points are one-to-one in the same order as the bindings.
+   */
+  cnIndex* bindingToPointIndices;
+
+  /**
    * The total number of points in the bag.
    */
   cnCount pointCount;
@@ -400,6 +406,12 @@ cnRootNode* cnNodeRoot(cnNode* node);
 cnCount cnNodeVarDepth(cnNode* node);
 
 
+void cnPointBagDispose(cnPointBag* pointBag);
+
+
+void cnPointBagInit(cnPointBag* pointBag);
+
+
 /**
  * Specify whether to add a leaf. That failing is the only reason root node
  * init would fail.
@@ -417,7 +429,12 @@ cnSplitNode* cnSplitNodeCreate(cnBool addLeaves);
  * Fills the point bags with points according to the given bindings and the
  * function at this node.
  *
- * TODO Guaranteed to be in the same order as the bindings.
+ * Provide a NULL pointBag to have one allocated automatically. Instead, if a
+ * point bag is provided to this function, it should not have any points in it
+ * yet, and the matrix pointer should be null.
+ *
+ * TODO Guaranteed to be in the same order as the bindings, except for the
+ * TODO duplicates issue.
  */
 cnPointBag* cnSplitNodePointBag(
   cnSplitNode* split, cnBindingBag* bindingBag, cnPointBag* pointBag
@@ -428,7 +445,8 @@ cnPointBag* cnSplitNodePointBag(
  * Fills the list of value bags with values according to the bindings and the
  * function at this node.
  *
- * TODO Guaranteed to be in the same order as the binding bags and bindings.
+ * TODO Guaranteed to be in the same order as the binding bags and bindings,
+ * TODO except for the duplicates issue.
  */
 cnBool cnSplitNodePointBags(
   cnSplitNode* split,

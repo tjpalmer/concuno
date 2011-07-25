@@ -829,7 +829,7 @@ cnBool cnLearnSplitModel(
 
   cnListInit(&pointBags, sizeof(cnPointBag));
   if (!cnSplitNodePointBags(split, bindingBags, &pointBags)) {
-    goto DISPOSE_POINT_BAGS;
+    goto DONE;
   }
   //cnLogPointBags(split, &pointBags);
 
@@ -853,36 +853,35 @@ cnBool cnLearnSplitModel(
   // TODO learning. That is, learning could return a predicate.
   gaussian = malloc(sizeof(cnGaussian));
   if (!gaussian) {
-    goto DROP_POINT_BAGS;
+    goto DONE;
   }
   if (!cnGaussianInit(
     gaussian, split->function->outCount, searchStart
   )) {
     free(gaussian);
-    goto DROP_POINT_BAGS;
+    goto DONE;
   }
   distanceFunction = cnFunctionCreateMahalanobisDistance(gaussian);
   if (!distanceFunction) {
     cnGaussianDispose(gaussian);
-    goto DROP_POINT_BAGS;
+    free(gaussian);
+    goto DONE;
   }
   split->predicate = cnPredicateCreateDistanceThreshold(
     distanceFunction, threshold
   );
   if (!split->predicate) {
+    // Cleans the Gaussian automatically.
     cnFunctionDrop(distanceFunction);
-    goto DROP_POINT_BAGS;
+    goto DONE;
   }
   // Good to go. Skip to the "do always" cleanup.
   result = cnTrue;
-  goto DROP_POINT_BAGS;
 
-  // Cleanup no matter what.
-  DROP_POINT_BAGS:
+  DONE:
   cnListEachBegin(&pointBags, cnPointBag, pointBag) {
-    free(pointBag->pointMatrix);
+    cnPointBagDispose(pointBag);
   } cnEnd;
-  DISPOSE_POINT_BAGS:
   cnListDispose(&pointBags);
   return result;
 }
