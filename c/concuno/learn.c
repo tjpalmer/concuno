@@ -1523,6 +1523,7 @@ cnBool cnUpdateLeafProbabilitiesWithBindingBags(
   cnBool* bagsUsed = NULL;
   cnFloat bonus = 1.0;
   cnList(cnLeafBindingBagGroup) groupsCopied;
+  cnFloat previousProb = 1.0;
   cnBool result = cnFalse;
 
   // Copy this list, because we're going to be clearing leaf pointers.
@@ -1554,8 +1555,10 @@ cnBool cnUpdateLeafProbabilitiesWithBindingBags(
     cnListEachBegin(&groupsCopied, cnLeafBindingBagGroup, group) {
       cnCount posCount = 0;
       cnCount total = 0;
+
       // See if we already finished this leaf.
       if (!group->leaf) continue;
+
       // Nope, so count bags.
       cnListEachBegin(&group->bindingBags, cnBindingBag, bindingBag) {
         if (!bagsUsed[bindingBag->bag - bags]) {
@@ -1563,6 +1566,7 @@ cnBool cnUpdateLeafProbabilitiesWithBindingBags(
           posCount += bindingBag->bag->label;
         }
       } cnEnd;
+
       // Assign optimistic probability, assuming 0.5 for no evidence.
       // Apply a beta prior with equal alpha and beta. I hate baked-in
       // parameters (or any parameters, really), but it's an easy fix for now.
@@ -1572,6 +1576,19 @@ cnBool cnUpdateLeafProbabilitiesWithBindingBags(
       // TODO parameters.
       group->leaf->probability = (total || bonus) ?
         (posCount + bonus) / (total + 2 * bonus) : 0.5;
+
+      if (group->leaf->probability >= previousProb) {
+        // This can happen in degenerate cases. Imagine leaves with the
+        // following bag ids and labels:
+        // Leaf 1: 1- 2- 3- 4- 5+ 6+ 7+ 8+ -> Prob 1/2
+        // Leaf 2: 1- 2- 3- 9+             -> Prob 2/3 (or 1 without prior)
+        // This is clearly wrong. It seems the score maximizing assignment is
+        // 1/2 for both, but to keep clear assignments, let's separate by an
+        // epsilon.
+        // TODO Parameterize the epsilon or be more intelligent somehow?
+        group->leaf->probability = (1.0 - 1e-6) * previousProb;
+      }
+
       if (group->leaf->probability > maxProb) {
         // Let the highest probability win.
         // TODO Let the highest individual score win? Compare the math on this.
@@ -1587,6 +1604,7 @@ cnBool cnUpdateLeafProbabilitiesWithBindingBags(
       maxGroupIndex + 1, maxProb, maxTotal + 2 * bonus,
       maxTotal ? maxPosCount / (cnFloat)maxTotal : 0.5, maxTotal
     );
+    previousProb = maxProb;
 
     // Record the counts, if wanted.
     if (counts) {
