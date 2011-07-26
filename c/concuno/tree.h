@@ -496,12 +496,12 @@ cnBool cnTreeMaxLeafCounts(
 
 /**
  * Given the leaf bag groups (with or without bindings represented), fill the
- * outbound list with equivalent bags, but retaining only those which are max
- * for each leaf.
+ * outbound list with indices of the binding bags, but retaining only those
+ * which are max for each leaf.
  */
 cnBool cnTreeMaxLeafBags(
   cnList(cnLeafBindingBagGroup)* groupsIn,
-  cnList(cnLeafBindingBagGroup)* groupsMaxOut
+  cnList(cnList(cnIndex))* groupsMaxOut
 );
 
 

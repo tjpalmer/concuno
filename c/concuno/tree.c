@@ -978,6 +978,7 @@ cnBool cnSplitNodePropagateBindingBag(
   DONE:
   free(pointBindingBagOuts);
   if (pointBag) {
+    free(pointBag->bindingPointIndices);
     free(pointBag->pointMatrix);
     free(pointBag);
   }
@@ -1183,7 +1184,7 @@ int cnTreeMaxLeafBags_compareLeafProbsDown(const void* a, const void* b) {
 
 cnBool cnTreeMaxLeafBags(
   cnList(cnLeafBindingBagGroup)* groupsIn,
-  cnList(cnLeafBindingBagGroup)* groupsMaxOut
+  cnList(cnList(cnIndex))* groupsMaxOut
 ) {
   cnIndex b;
   cnCount bagCount;
@@ -1194,71 +1195,85 @@ cnBool cnTreeMaxLeafBags(
   cnTreeMaxLeafBags_IndexedGroup* indexedGroupsIn = NULL;
   cnBool result = cnFalse;
 
-  // Init which bags used. First, we need to find how many and where they start.
-  cnLeafBindingBagGroupListLimits(groupsIn, &bags, &bagsEnd);
-  bagCount = bagsEnd - bags;
-  bagsUsed = malloc(bagCount * sizeof(cnBool));
-  if (!bagsUsed) goto DONE;
-  for (b = 0; b < bagCount; b++) bagsUsed[b] = cnFalse;
+  // TODO Can I generify this enough to unify max bags and max counts somewhat?
+  // TODO That is, with callbacks in the later loops?
 
-  // TODO Everything.
+  // Prepare the groups out.
+  if (groupsMaxOut->count) {
+    // Just clear the old out for convience. Could error. TODO Document!
+    cnListEachBegin(groupsMaxOut, cnList(cnIndex), indices) {
+      cnListDispose(indices);
+    } cnEnd;
+    cnListClear(groupsMaxOut);
+  }
+  // Allocate space right away.
+  if (!cnListExpandMulti(groupsMaxOut, groupsIn->count)) {
+    cnFailTo(FAIL, "No groups out.");
+  }
+  // And init for safety.
+  cnListEachBegin(groupsMaxOut, cnList(cnIndex), indices) {
+    cnListInit(indices, sizeof(cnIndex));
+  } cnEnd;
+
   // Make a list of groups with their indices.
   if (!(
     indexedGroupsIn =
       malloc(groupsIn->count * sizeof(cnTreeMaxLeafBags_IndexedGroup))
-  )) {
-    cnFailTo(DONE, "No indexed groups.");
-  }
+  )) cnFailTo(FAIL, "No indexed groups.");
   g = 0;
-  cnListEachBegin(groupsIn, cnLeafBindingBagGroup, group) {
-    indexedGroupsIn[g].group = group;
+  cnListEachBegin(groupsIn, cnLeafBindingBagGroup, groupIn) {
+    indexedGroupsIn[g].group = groupIn;
     indexedGroupsIn[g].index = g;
     g++;
   } cnEnd;
 
-  // Prepare space right aways for the groups out.
-  cnListClear(groupsMaxOut);
-  if (!cnListExpandMulti(groupsMaxOut, groupsIn->count)) {
-    cnFailTo(DONE, "No groups out.");
-  }
-  cnListClear(groupsMaxOut);
-
-  // Sort the leaves down by probability. Not too many leaves, so no worries.
+  // Sort the leaves down by probability.
   qsort(
     indexedGroupsIn, groupsIn->count, sizeof(cnTreeMaxLeafBags_IndexedGroup),
     cnTreeMaxLeafBags_compareLeafProbsDown
   );
 
+  // Init which bags used. First, we need to find how many and where they start.
+  cnLeafBindingBagGroupListLimits(groupsIn, &bags, &bagsEnd);
+  bagCount = bagsEnd - bags;
+  bagsUsed = malloc(bagCount * sizeof(cnBool));
+  if (!bagsUsed) cnFailTo(FAIL, "No bags used array.");
+  for (b = 0; b < bagCount; b++) bagsUsed[b] = cnFalse;
+
   // Loop through leaves from max prob to min, count bags and marking them used
   // along the way.
   for (g = 0; g < groupsIn->count; g++) {
-    cnTreeMaxLeafBags_IndexedGroup* groupIn = indexedGroupsIn[g];
-    cnLeafBindingBagGroup* groupOut = cnListExpand(groupsMaxOut);
-    // Init the count.
-    // TODO Loop providing item and index?
-    cnLeafCount* count =
-      cnListGet(counts, groupIn - (cnLeafBindingBagGroup*)groups.items);
-    count->leaf = groupIn->group->leaf;
-    count->negCount = 0;
-    count->posCount = 0;
-    // Loop through bags, if any.
+    // Group in and out, where out retains original order.
+    cnTreeMaxLeafBags_IndexedGroup* groupIn = indexedGroupsIn + g;
+    cnList(cnIndex)* indices = cnListGet(groupsMaxOut, groupIn->index);
+
+    // Loop through bags.
+    b = 0;
     cnListEachBegin(&groupIn->group->bindingBags, cnBindingBag, bindingBag) {
       // TODO This subtraction only works if bags is an array of cnBag and not
       // TODO cnBag*, because we'd otherwise have no reference point. Should I
       // TODO consider explicit ids/indices at some point?
-      cnIndex bagIndex = bindingBag->bag - (cnBag*)bags->items;
-      if (bagsUsed[bagIndex]) continue;
-      // Add to the proper count.
-      if (bindingBag->bag->label) {
-        count->posCount++;
-      } else {
-        count->negCount++;
+      cnIndex bagIndex = bindingBag->bag - bags;
+      if (!bagsUsed[bagIndex]) {
+        if (!cnListPush(indices, &b)) {
+          cnFailTo(FAIL, "No binding bag ref.")
+        }
+        bagsUsed[bagIndex] = cnTrue;
       }
-      bagsUsed[bagIndex] = cnTrue;
+      b++;
     } cnEnd;
-  } cnEnd;
+  }
+
   // All done!
   result = cnTrue;
+  goto DONE;
+
+  FAIL:
+  // Clear these out on fail.
+  cnListEachBegin(groupsMaxOut, cnList(cnIndex), indices) {
+    cnListDispose(indices);
+  } cnEnd;
+  cnListClear(groupsMaxOut);
 
   DONE:
   free(bagsUsed);

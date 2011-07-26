@@ -158,7 +158,7 @@ cnBool cnPushExpansionsByIndices(
  *
  * TODO Actually, all I do here is find distances then pick a threshold.
  */
-void cnSearchFill(
+cnBool cnSearchFill(
   cnTopology topology, cnList(cnPointBag)* pointBags, cnFloat* searchStart,
   cnFloat* score, cnFloat* threshold
 );
@@ -421,7 +421,10 @@ cnFloat* cnBestPointByScore(
         }
       }
       if (!allGood) continue;
-      cnSearchFill(topology, pointBags, point, &score, NULL);
+      if (!cnSearchFill(topology, pointBags, point, &score, NULL)) {
+        bestPoint = NULL;
+        cnFailTo(DONE, "Search failed.");
+      }
       // Print and check.
       if (score > bestScore) {
         printf("(");
@@ -440,6 +443,9 @@ cnFloat* cnBestPointByScore(
     }
   } cnEnd;
   printf("\n");
+
+  DONE:
+  // TODO Distinguish errors from no best point?
   return bestPoint;
 }
 
@@ -834,15 +840,18 @@ cnBool cnLearnSplitModel(
   //cnLogPointBags(split, &pointBags);
 
   // We got points. Try to learn something.
+  // TODO Distinguish errors from no best point?
   // cnBuildInitialKernel(split->function->outTopology, &pointBags);
-  searchStart =
-    //cnBestPointByDiverseDensity(split->function->outTopology, &pointBags);
-    cnBestPointByScore(split->function->outTopology, &pointBags);
+  if (!(
+    searchStart =
+      //cnBestPointByDiverseDensity(split->function->outTopology, &pointBags)
+      cnBestPointByScore(split->function->outTopology, &pointBags)
+  )) cnFailTo(DONE, "No best point.");
   // TODO Determine better center and shape.
   // TODO Check for errors.
-  cnSearchFill(
+  if (!cnSearchFill(
     split->function->outTopology, &pointBags, searchStart, NULL, &threshold
-  );
+  )) cnFailTo(DONE, "Search failed.");
   printf("Threshold: %lg\n", threshold);
 
   // We have an answer. Record it.
@@ -1025,7 +1034,9 @@ cnLeafNode* cnPickBestLeaf(cnRootNode* tree, cnList(cnBag)* bags) {
   cnList(cnLeafCount) counts;
   cnList(cnLeafNode) fakeLeaves;
   cnLeafNode* leaf;
+  cnLeafBindingBagGroup* group;
   cnList(cnLeafBindingBagGroup) groups;
+  cnList(cnList(cnIndex)) maxGroups;
   cnLeafBindingBagGroup* noGroup;
   cnLeafNode** realLeaves = NULL;
 
@@ -1033,6 +1044,7 @@ cnLeafNode* cnPickBestLeaf(cnRootNode* tree, cnList(cnBag)* bags) {
   cnListInit(&counts, sizeof(cnLeafCount));
   cnListInit(&fakeLeaves, sizeof(cnLeafNode));
   cnListInit(&groups, sizeof(cnLeafBindingBagGroup));
+  cnListInit(&maxGroups, sizeof(cnList(cnIndex)));
 
   // Get all bindings, leaves.
   // TODO We don't actually care about the bindings themselves, but we had to
@@ -1040,6 +1052,11 @@ cnLeafNode* cnPickBestLeaf(cnRootNode* tree, cnList(cnBag)* bags) {
   if (!cnTreePropagateBags(tree, bags, &groups)) {
     cnFailTo(DONE, "No propagate.");
   }
+
+  // Now find the binding bags which are max for each leaf. We'll use those for
+  // our split, to avoid making low prob branches compete with high prob
+  // branches that already selected the bags they like.
+  if (!cnTreeMaxLeafBags(&groups, &maxGroups)) cnFailTo(DONE, "No max bags.");
 
   // Prepare for bogus "no" group. Error leaves with no bags are irrelevant.
   if (!(noGroup = cnListExpand(&groups))) {
@@ -1067,18 +1084,20 @@ cnLeafNode* cnPickBestLeaf(cnRootNode* tree, cnList(cnBag)* bags) {
     leaf++;
   } cnEnd;
 
-  // Look at each leaf to find the best perfect split.
+  // Look at each leaf to find the best perfect split. Loop on the max groups,
+  // because they don't include the fake, and we don't need the fake.
   bestLeaf = NULL;
-  cnListEachBegin(&groups, cnLeafBindingBagGroup, group) {
+  group = groups.items;
+  cnListEachBegin(&maxGroups, cnList(cnIndex), maxIndices) {
     // Split the leaf perfectly by removing all negative bags from the group and
     // putting them in the no group instead.
     cnIndex b;
+    cnIndex bOriginal;
     cnBindingBag* bindingBag;
+    cnIndex* maxIndex;
+    cnIndex* maxIndicesEnd = cnListEnd(maxIndices);
     cnBindingBag* noEnd;
     cnFloat score;
-
-    // The last is fake. No need to check it.
-    if (group == noGroup) break;
 
     // Try to allocate maximal space in advance, so we don't have trouble later.
     // Just seems simpler (for cleanup) and not likely to be a memory issue.
@@ -1089,23 +1108,26 @@ cnLeafNode* cnPickBestLeaf(cnRootNode* tree, cnList(cnBag)* bags) {
 
     // Now do the split.
     bindingBag = group->bindingBags.items;
-    for (b = 0; b < group->bindingBags.count;) {
-      if (bindingBag->bag->label) {
+    maxIndex = maxIndices->items;
+    for (b = 0, bOriginal = 0; b < group->bindingBags.count; bOriginal++) {
+      cnBool isMax = maxIndex < maxIndicesEnd && bOriginal == *maxIndex;
+      if (isMax) maxIndex++;
+      if (isMax && bindingBag->bag->label) {
+        // Positive maxes are the ones kept in the original leaf.
         b++;
         bindingBag++;
       } else {
-        // Move it. The push is guaranteed to work, since we reserved space.
+        // Not a positive max, so move it.
+        // The push is guaranteed to work, since we reserved space.
         cnListPush(&noGroup->bindingBags, bindingBag);
         // TODO Pointer-based remove function, then ditch b.
         cnListRemove(&group->bindingBags, b);
       }
     }
-    //printf("Positives kept: %ld\n", group->bindingBags.count);
-    //printf("Negatives moved out: %ld\n", noGroup->bindingBags.count);
+    printf("Max positives kept: %ld\n", group->bindingBags.count);
+    printf("Others moved out: %ld\n", noGroup->bindingBags.count);
 
     // Update leaf probabilities, and find the score.
-    // TODO It would be nice to provide max leaf counts directly here instead of
-    // TODO having to immediately recalculate them.
     if (
       !cnUpdateLeafProbabilitiesWithBindingBags(&groups, &counts)
     ) cnFailTo(DONE, "No fake leaf probs.");
@@ -1129,6 +1151,9 @@ cnLeafNode* cnPickBestLeaf(cnRootNode* tree, cnList(cnBag)* bags) {
     }
     // And clear out the fake.
     cnListClear(&noGroup->bindingBags);
+
+    // Advance the group.
+    group++;
   } cnEnd;
 
   // Get the best leaf.
@@ -1138,6 +1163,10 @@ cnLeafNode* cnPickBestLeaf(cnRootNode* tree, cnList(cnBag)* bags) {
   }
 
   DONE:
+  cnListEachBegin(&maxGroups, cnList(cnIndex), indices) {
+    cnListDispose(indices);
+  } cnEnd;
+  cnListDispose(&maxGroups);
   cnLeafBindingBagGroupListDispose(&groups);
   cnListDispose(&fakeLeaves);
   cnListDispose(&counts);
@@ -1235,7 +1264,7 @@ cnBool cnPushExpansionsByIndices(
 }
 
 
-void cnSearchFill(
+cnBool cnSearchFill(
   cnTopology topology, cnList(cnPointBag)* pointBags, cnFloat* searchStart,
   cnFloat* score, cnFloat* threshold
 ) {
@@ -1244,12 +1273,12 @@ void cnSearchFill(
   cnBagDistance* distance;
   cnBagDistance* distances = malloc(pointBags->count * sizeof(cnBagDistance));
   cnBagDistance* distancesEnd = distances + pointBags->count;
+  cnBool result = cnFalse;
   cnFloat* searchStartEnd = searchStart + valueCount;
   cnFloat thresholdStorage;
-  if (!distances) {
-    // TODO Error result?
-    return;
-  }
+
+  if (!distances) cnFailTo(DONE, "No distances.");
+
   // For convenience, point threshold at least somewhere.
   if (!threshold) threshold = &thresholdStorage;
   // Init distances to infinity.
@@ -1313,9 +1342,11 @@ void cnSearchFill(
 
   // Find the right threshold for these distances and bag labels.
   *threshold = cnChooseThreshold(distances, distancesEnd, score);
+  result = cnTrue;
 
-  // Clean up.
+  DONE:
   free(distances);
+  return result;
 }
 
 
@@ -1404,9 +1435,10 @@ cnRootNode* cnTryExpansionsAtLeaf(cnLearnerConfig* config, cnLeafNode* leaf) {
     cnRootNode* expanded;
 
     // Learn a tree.
+    // TODO Disinguish bad errors from no good expansion?
     if (!(
       expanded = cnExpandedTree(config, expansion)
-    )) cnFailTo(DONE, "Expanding failed.");
+    )) cnFailTo(FAIL, "Expanding failed.");
 
     // Check the metric on the validation set to see how we did.
     // TODO Evaluate LL to see if it's the best yet. If not ...
