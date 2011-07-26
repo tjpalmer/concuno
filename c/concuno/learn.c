@@ -93,7 +93,9 @@ cnFloat* cnBestPointByDiverseDensity(
 /**
  * Get the best point based on thresholding by the grand score.
  */
-cnFloat* cnBestPointByScore(cnTopology topology, cnList(cnPointBag)* pointBags);
+cnBool cnBestPointByScore(
+  cnTopology topology, cnList(cnPointBag)* pointBags, cnFloat** bestPoint
+);
 
 
 /**
@@ -366,12 +368,12 @@ cnFloat* cnBestPointByDiverseDensity(
 }
 
 
-cnFloat* cnBestPointByScore(
-  cnTopology topology, cnList(cnPointBag)* pointBags
+cnBool cnBestPointByScore(
+  cnTopology topology, cnList(cnPointBag)* pointBags, cnFloat** bestPoint
 ) {
-  cnFloat* bestPoint = NULL;
   cnFloat bestScore = -HUGE_VAL, score = bestScore;
   cnCount negBagCount = 0, posBagCount = 0, maxEitherBags = 8;
+  cnBool result = cnFalse;
   cnCount valueCount =
     pointBags->count ? ((cnPointBag*)pointBags->items)->valueCount : 0;
 
@@ -398,6 +400,9 @@ cnFloat* cnBestPointByScore(
   // TODO In any case, the overfit matter might be moot with a validation set,
   // TODO so long as we can at least finish fast.
 
+  // No best yet.
+  *bestPoint = NULL;
+
   printf("Score-ish: ");
   cnListEachBegin(pointBags, cnPointBag, pointBag) {
     cnFloat* point = pointBag->pointMatrix;
@@ -422,7 +427,6 @@ cnFloat* cnBestPointByScore(
       }
       if (!allGood) continue;
       if (!cnSearchFill(topology, pointBags, point, &score, NULL)) {
-        bestPoint = NULL;
         cnFailTo(DONE, "Search failed.");
       }
       // Print and check.
@@ -430,7 +434,7 @@ cnFloat* cnBestPointByScore(
         printf("(");
         cnVectorPrint(stdout, valueCount, point);
         printf(": %.4le) ", score);
-        bestPoint = point;
+        *bestPoint = point;
         bestScore = score;
       }
       // Progress tracker.
@@ -444,9 +448,11 @@ cnFloat* cnBestPointByScore(
   } cnEnd;
   printf("\n");
 
+  // Winned!
+  result = cnTrue;
+
   DONE:
-  // TODO Distinguish errors from no best point?
-  return bestPoint;
+  return result;
 }
 
 
@@ -826,13 +832,23 @@ cnBool cnLearnSplitModel(
   cnLearner* learner, cnSplitNode* split, cnList(cnBindingBag)* bindingBags
 ) {
   // TODO Other topologies, etc.
+  cnIndex c;
+  cnFloat* center = NULL;
   cnFunction* distanceFunction;
   cnGaussian* gaussian;
+  cnCount outCount = split->function->outCount;
   cnFloat* searchStart;
-  cnFloat threshold;
+  cnFloat threshold = 0.0;
   cnBool result = cnFalse;
   cnList(cnPointBag) pointBags;
 
+  // Allocate space for a volume center.
+  // TODO Non-float?
+  if (!(center = cnStackAlloc(outCount * sizeof(cnFloat)))) {
+    cnFailTo(DONE, "No center.");
+  }
+
+  // Get point bags.
   cnListInit(&pointBags, sizeof(cnPointBag));
   if (!cnSplitNodePointBags(split, bindingBags, &pointBags)) {
     goto DONE;
@@ -842,16 +858,26 @@ cnBool cnLearnSplitModel(
   // We got points. Try to learn something.
   // TODO Distinguish errors from no best point?
   // cnBuildInitialKernel(split->function->outTopology, &pointBags);
-  if (!(
-    searchStart =
-      //cnBestPointByDiverseDensity(split->function->outTopology, &pointBags)
-      cnBestPointByScore(split->function->outTopology, &pointBags)
-  )) cnFailTo(DONE, "No best point.");
-  // TODO Determine better center and shape.
-  // TODO Check for errors.
-  if (!cnSearchFill(
-    split->function->outTopology, &pointBags, searchStart, NULL, &threshold
-  )) cnFailTo(DONE, "Search failed.");
+  if (!
+    //(searchStart =
+    //  cnBestPointByDiverseDensity(split->function->outTopology, &pointBags))
+    cnBestPointByScore(split->function->outTopology, &pointBags, &searchStart)
+  ) cnFailTo(DONE, "Best point failure.");
+  if (searchStart) {
+    // TODO Determine better center and shape.
+    // TODO Check for errors.
+    if (!cnSearchFill(
+      split->function->outTopology, &pointBags, searchStart, NULL, &threshold
+    )) cnFailTo(DONE, "Search failed.");
+    memcpy(center, searchStart, outCount * sizeof(cnFloat));
+  } else {
+    // Nothing was any good. Any mean and threshold is arbitrary, so just let
+    // them be 0.
+    // TODO Vector fill function?
+    for (c = 0; c < split->function->outCount; c++) {
+      center[c] = 0.0;
+    }
+  }
   printf("Threshold: %lg\n", threshold);
 
   // We have an answer. Record it.
@@ -864,9 +890,7 @@ cnBool cnLearnSplitModel(
   if (!gaussian) {
     goto DONE;
   }
-  if (!cnGaussianInit(
-    gaussian, split->function->outCount, searchStart
-  )) {
+  if (!cnGaussianInit(gaussian, outCount, center)) {
     free(gaussian);
     goto DONE;
   }
@@ -892,6 +916,7 @@ cnBool cnLearnSplitModel(
     cnPointBagDispose(pointBag);
   } cnEnd;
   cnListDispose(&pointBags);
+  cnStackFree(center);
   return result;
 }
 
