@@ -433,7 +433,7 @@ cnBool cnBestPointByScore(
       if (score > bestScore) {
         printf("(");
         cnVectorPrint(stdout, valueCount, point);
-        printf(": %.4le) ", score);
+        printf(": %.4lg) ", score);
         *bestPoint = point;
         bestScore = score;
       }
