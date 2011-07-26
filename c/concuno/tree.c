@@ -206,6 +206,31 @@ void cnLeafBindingBagDispose(cnLeafBindingBag* leafBindingBag) {
 }
 
 
+void cnLeafBindingBagGroupListLimits(
+  cnList(cnLeafBindingBagGroup)* groups, cnBag** begin, cnBag** end
+) {
+  cnBag* bags = NULL;
+  cnBag* bagsEnd = NULL;
+
+  // Search the list.
+  cnListEachBegin(groups, cnLeafBindingBagGroup, group) {
+    cnListEachBegin(&group->bindingBags, cnBindingBag, bindingBag) {
+      if (bindingBag->bag < bags || !bags) {
+        bags = bindingBag->bag;
+      }
+      if (bindingBag->bag > bagsEnd || !bagsEnd) {
+        bagsEnd = bindingBag->bag;
+      }
+    } cnEnd;
+  } cnEnd;
+  bagsEnd++;
+
+  // Copy to outputs, as requested.
+  if (begin) *begin = bags;
+  if (end) *end = bagsEnd;
+}
+
+
 void cnLeafBindingBagGroupListDispose(
   cnList(cnLeafBindingBagGroup)* groups
 ) {
@@ -1058,7 +1083,7 @@ cnFloat cnTreeLogMetric(cnRootNode* root, cnList(cnBag)* bags) {
 }
 
 
-int cnNodeMaxLeafCounts_compareLeafProbsDown(const void* a, const void* b) {
+int cnTreeMaxLeafCounts_compareLeafProbsDown(const void* a, const void* b) {
   cnLeafNode* leafA = ((cnLeafBindingBagGroup*)a)->leaf;
   cnLeafNode* leafB = ((cnLeafBindingBagGroup*)b)->leaf;
   return
@@ -1099,7 +1124,7 @@ cnBool cnTreeMaxLeafCounts(
   // Sort the leaves down by probability. Not too many leaves, so no worries.
   qsort(
     groups.items, groups.count, groups.itemSize,
-    cnNodeMaxLeafCounts_compareLeafProbsDown
+    cnTreeMaxLeafCounts_compareLeafProbsDown
   );
 
   // Loop through leaves from max prob to min, count bags and marking them used
@@ -1134,6 +1159,110 @@ cnBool cnTreeMaxLeafCounts(
   DONE:
   free(bagsUsed);
   cnLeafBindingBagGroupListDispose(&groups);
+  return result;
+}
+
+
+/**
+ * For retaining original index.
+ */
+typedef struct cnTreeMaxLeafBags_IndexedGroup {
+  cnLeafBindingBagGroup* group;
+  cnIndex index;
+} cnTreeMaxLeafBags_IndexedGroup;
+
+int cnTreeMaxLeafBags_compareLeafProbsDown(const void* a, const void* b) {
+  cnLeafNode* leafA = ((cnTreeMaxLeafBags_IndexedGroup*)a)->group->leaf;
+  cnLeafNode* leafB = ((cnTreeMaxLeafBags_IndexedGroup*)b)->group->leaf;
+  return
+    // Smaller is higher here for downward sort.
+    leafA->probability < leafB->probability ? 1 :
+    leafA->probability == leafB->probability ? 0 :
+    -1;
+}
+
+cnBool cnTreeMaxLeafBags(
+  cnList(cnLeafBindingBagGroup)* groupsIn,
+  cnList(cnLeafBindingBagGroup)* groupsMaxOut
+) {
+  cnIndex b;
+  cnCount bagCount;
+  cnBag* bags = NULL;
+  cnBag* bagsEnd = NULL;
+  cnBool* bagsUsed = NULL;
+  cnIndex g;
+  cnTreeMaxLeafBags_IndexedGroup* indexedGroupsIn = NULL;
+  cnBool result = cnFalse;
+
+  // Init which bags used. First, we need to find how many and where they start.
+  cnLeafBindingBagGroupListLimits(groupsIn, &bags, &bagsEnd);
+  bagCount = bagsEnd - bags;
+  bagsUsed = malloc(bagCount * sizeof(cnBool));
+  if (!bagsUsed) goto DONE;
+  for (b = 0; b < bagCount; b++) bagsUsed[b] = cnFalse;
+
+  // TODO Everything.
+  // Make a list of groups with their indices.
+  if (!(
+    indexedGroupsIn =
+      malloc(groupsIn->count * sizeof(cnTreeMaxLeafBags_IndexedGroup))
+  )) {
+    cnFailTo(DONE, "No indexed groups.");
+  }
+  g = 0;
+  cnListEachBegin(groupsIn, cnLeafBindingBagGroup, group) {
+    indexedGroupsIn[g].group = group;
+    indexedGroupsIn[g].index = g;
+    g++;
+  } cnEnd;
+
+  // Prepare space right aways for the groups out.
+  cnListClear(groupsMaxOut);
+  if (!cnListExpandMulti(groupsMaxOut, groupsIn->count)) {
+    cnFailTo(DONE, "No groups out.");
+  }
+  cnListClear(groupsMaxOut);
+
+  // Sort the leaves down by probability. Not too many leaves, so no worries.
+  qsort(
+    indexedGroupsIn, groupsIn->count, sizeof(cnTreeMaxLeafBags_IndexedGroup),
+    cnTreeMaxLeafBags_compareLeafProbsDown
+  );
+
+  // Loop through leaves from max prob to min, count bags and marking them used
+  // along the way.
+  for (g = 0; g < groupsIn->count; g++) {
+    cnTreeMaxLeafBags_IndexedGroup* groupIn = indexedGroupsIn[g];
+    cnLeafBindingBagGroup* groupOut = cnListExpand(groupsMaxOut);
+    // Init the count.
+    // TODO Loop providing item and index?
+    cnLeafCount* count =
+      cnListGet(counts, groupIn - (cnLeafBindingBagGroup*)groups.items);
+    count->leaf = groupIn->group->leaf;
+    count->negCount = 0;
+    count->posCount = 0;
+    // Loop through bags, if any.
+    cnListEachBegin(&groupIn->group->bindingBags, cnBindingBag, bindingBag) {
+      // TODO This subtraction only works if bags is an array of cnBag and not
+      // TODO cnBag*, because we'd otherwise have no reference point. Should I
+      // TODO consider explicit ids/indices at some point?
+      cnIndex bagIndex = bindingBag->bag - (cnBag*)bags->items;
+      if (bagsUsed[bagIndex]) continue;
+      // Add to the proper count.
+      if (bindingBag->bag->label) {
+        count->posCount++;
+      } else {
+        count->negCount++;
+      }
+      bagsUsed[bagIndex] = cnTrue;
+    } cnEnd;
+  } cnEnd;
+  // All done!
+  result = cnTrue;
+
+  DONE:
+  free(bagsUsed);
+  free(indexedGroupsIn);
   return result;
 }
 

@@ -1503,21 +1503,8 @@ cnBool cnUpdateLeafProbabilitiesWithBindingBags(
     if (!cnListExpandMulti(counts, groups->count)) cnFailTo(DONE, "No counts.");
   }
 
-  // Init which bags used. First, we need to find how many and wher they start.
-  // Assume that the bags fit together nicely in order in memory.
-  // TODO Organize to better clarify/enforce such expectations/constraints!
-  // TODO Would I need IDs or a hashtable otherwise?
-  cnListEachBegin(groups, cnLeafBindingBagGroup, group) {
-    cnListEachBegin(&group->bindingBags, cnBindingBag, bindingBag) {
-      if (bindingBag->bag < bags || !bags) {
-        bags = bindingBag->bag;
-      }
-      if (bindingBag->bag > bagsEnd || !bagsEnd) {
-        bagsEnd = bindingBag->bag;
-      }
-    } cnEnd;
-  } cnEnd;
-  bagsEnd++;
+  // Init which bags used. First, we need to find how many and where they start.
+  cnLeafBindingBagGroupListLimits(groups, &bags, &bagsEnd);
   bagCount = bagsEnd - bags;
   bagsUsed = malloc(bagCount * sizeof(cnBool));
   if (!bagsUsed) goto DONE;

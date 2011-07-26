@@ -310,6 +310,17 @@ cnFloat cnCountsLogMetric(cnList(cnLeafCount)* counts);
 void cnLeafBindingBagDispose(cnLeafBindingBag* leafBindingBag);
 
 
+/**
+ * Gives the address of the first, and one past the last, of the bags referenced
+ * in the group list.
+ *
+ * Utility assumes the bags are all in continguous memory order.
+ */
+void cnLeafBindingBagGroupListLimits(
+  cnList(cnLeafBindingBagGroup)* groups, cnBag** begin, cnBag** end
+);
+
+
 void cnLeafBindingBagGroupListDispose(cnList(cnLeafBindingBagGroup)* groupList);
 
 
@@ -480,6 +491,17 @@ cnFloat cnTreeLogMetric(cnRootNode* root, cnList(cnBag)* bags);
  */
 cnBool cnTreeMaxLeafCounts(
   cnRootNode* root, cnList(cnLeafCount)* counts, cnList(cnBag)* bags
+);
+
+
+/**
+ * Given the leaf bag groups (with or without bindings represented), fill the
+ * outbound list with equivalent bags, but retaining only those which are max
+ * for each leaf.
+ */
+cnBool cnTreeMaxLeafBags(
+  cnList(cnLeafBindingBagGroup)* groupsIn,
+  cnList(cnLeafBindingBagGroup)* groupsMaxOut
 );
 
 
