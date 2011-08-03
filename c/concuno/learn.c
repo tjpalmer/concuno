@@ -99,6 +99,25 @@ cnBool cnBestPointByScore(
 
 
 /**
+ * Choose the best threshold, centered on the point passed in.
+ *
+ * If a score is passed in, all scores less than it are ignored, and the final
+ * value is changed to the best score found.
+ *
+ * On the other hand, threshold is only a return value, if the given pointer is
+ * not null.
+ *
+ * TODO Provide a list of all contained positive points at end.
+ *
+ * TODO Actually, all I do here is find distances then pick a threshold.
+ */
+cnBool cnChooseThreshold(
+  cnTopology topology, cnList(cnPointBag)* pointBags, cnFloat* center,
+  cnFloat* score, cnFloat* threshold
+);
+
+
+/**
  * Choose a threshold on the following distances to maximize the "noisy-and
  * noisy-or" metric, assuming that this determination is the only thing that
  * matters (no leaves elsewhere).
@@ -107,7 +126,7 @@ cnBool cnBestPointByScore(
  * previously held values to be the highest previously. Therefore, if you
  * provide a pointer, make sure it's meaningful or else -HUGE_VAL.
  */
-cnFloat cnChooseThreshold(
+cnFloat cnChooseThresholdWithDistances(
   cnBagDistance* distances, cnBagDistance* distancesEnd, cnFloat* score
 );
 
@@ -142,27 +161,6 @@ void cnPrintExpansion(cnExpansion* expansion);
 
 cnBool cnPushExpansionsByIndices(
   cnList(cnExpansion)* expansions, cnExpansion* prototype, cnCount varDepth
-);
-
-
-/**
- * Perform a fill search by expanding isotropically from each point, limiting
- * by the metric, going to furthest points contained and spreading them. Min
- * distance from control points to each bag are maintained.
- *
- * If a score is passed in, all scores less than it are ignored, and the final
- * value is changed to the best score found.
- *
- * On the other hand, threshold is only a return value, if the given pointer is
- * not null.
- *
- * TODO Provide a list of all contained positive points at end.
- *
- * TODO Actually, all I do here is find distances then pick a threshold.
- */
-cnBool cnSearchFill(
-  cnTopology topology, cnList(cnPointBag)* pointBags, cnFloat* searchStart,
-  cnFloat* score, cnFloat* threshold
 );
 
 
@@ -426,7 +424,7 @@ cnBool cnBestPointByScore(
         }
       }
       if (!allGood) continue;
-      if (!cnSearchFill(topology, pointBags, point, &score, NULL)) {
+      if (!cnChooseThreshold(topology, pointBags, point, &score, NULL)) {
         cnFailTo(DONE, "Search failed.");
       }
       // Print and check.
@@ -456,6 +454,92 @@ cnBool cnBestPointByScore(
 }
 
 
+cnBool cnChooseThreshold(
+  cnTopology topology, cnList(cnPointBag)* pointBags, cnFloat* center,
+  cnFloat* score, cnFloat* threshold
+) {
+  cnCount valueCount =
+    pointBags->count ? ((cnPointBag*)pointBags->items)->valueCount : 0;
+  cnBagDistance* distance;
+  cnBagDistance* distances = malloc(pointBags->count * sizeof(cnBagDistance));
+  cnBagDistance* distancesEnd = distances + pointBags->count;
+  cnBool result = cnFalse;
+  cnFloat* searchStartEnd = center + valueCount;
+  cnFloat thresholdStorage;
+
+  if (!distances) cnFailTo(DONE, "No distances.");
+
+  // For convenience, point threshold at least somewhere.
+  if (!threshold) threshold = &thresholdStorage;
+  // Init distances to infinity.
+  // TODO In iterative fill, these need to retain their former values.
+  distance = distances;
+  cnListEachBegin(pointBags, cnPointBag, pointBag) {
+    distance->bag = pointBag;
+    // Min is really 0, but -1 lets us see unchanged values.
+    distance->far = -1;
+    distance->near = HUGE_VAL;
+    distance++;
+  } cnEnd;
+  // TODO Do I really want a search start?
+  //  printf("Starting search at: ");
+  //  cnVectorPrint(stdout, valueCount, searchStart);
+  //  printf("\n");
+  // Narrow the distance to each bag.
+  for (distance = distances; distance < distancesEnd; distance++) {
+    cnPointBag* pointBag = distance->bag;
+    cnFloat* point = pointBag->pointMatrix;
+    cnFloat* pointsEnd = point + pointBag->pointCount * valueCount;
+    if (!distance->near) continue; // Done with this one.
+    // Look at each point in the bag.
+    for (; point < pointsEnd; point += valueCount) {
+      cnFloat currentDistance = 0;
+      cnFloat* startValue;
+      cnFloat* value;
+      for (
+        startValue = center, value = point;
+        startValue < searchStartEnd;
+        startValue++, value++
+      ) {
+        // TODO Defer to abstract distance function like cnMahalanobisDistance!
+        cnFloat diff = *startValue - *value;
+        currentDistance += diff * diff;
+      }
+      if (currentDistance > distance->far) {
+        // New max found.
+        // If currentDistance were NaN, the above > should fail, so we don't
+        // expect to see any NaNs here.
+        distance->far = currentDistance;
+      }
+      if (currentDistance < distance->near) {
+        // New min found.
+        // If currentDistance were NaN, the above < should fail, so we don't
+        // expect to see any NaNs here.
+        distance->near = currentDistance;
+      }
+    }
+  }
+
+  // Flip any unset fars also to infinity, and sqrt the distances.
+  for (distance = distances; distance < distancesEnd; distance++) {
+    if (distance->far < 0) {
+      distance->far = HUGE_VAL;
+    } else {
+      distance->far = sqrt(distance->far);
+      distance->near = sqrt(distance->near);
+    }
+  }
+
+  // Find the right threshold for these distances and bag labels.
+  *threshold = cnChooseThresholdWithDistances(distances, distancesEnd, score);
+  result = cnTrue;
+
+  DONE:
+  free(distances);
+  return result;
+}
+
+
 /**
  * We need to track near and far distances in a nice sorted list. This lets us
  * do that.
@@ -481,7 +565,7 @@ int cnChooseThreshold_compare(const void* a, const void* b) {
   return distA > distB ? 1 : distA == distB ? 0 : -1;
 }
 
-cnFloat cnChooseThreshold(
+cnFloat cnChooseThresholdWithDistances(
   cnBagDistance* distances, cnBagDistance* distancesEnd, cnFloat* score
 ) {
   //  FILE* file = fopen("cnChooseThreshold.log", "w");
@@ -866,7 +950,7 @@ cnBool cnLearnSplitModel(
   if (searchStart) {
     // TODO Determine better center and shape.
     // TODO Check for errors.
-    if (!cnSearchFill(
+    if (!cnChooseThreshold(
       split->function->outTopology, &pointBags, searchStart, NULL, &threshold
     )) cnFailTo(DONE, "Search failed.");
     memcpy(center, searchStart, outCount * sizeof(cnFloat));
@@ -1286,92 +1370,6 @@ cnBool cnPushExpansionsByIndices(
     varDepth, prototype->function->inCount,
     cnPushExpansionsByIndices_Push, &data
   );
-}
-
-
-cnBool cnSearchFill(
-  cnTopology topology, cnList(cnPointBag)* pointBags, cnFloat* searchStart,
-  cnFloat* score, cnFloat* threshold
-) {
-  cnCount valueCount =
-    pointBags->count ? ((cnPointBag*)pointBags->items)->valueCount : 0;
-  cnBagDistance* distance;
-  cnBagDistance* distances = malloc(pointBags->count * sizeof(cnBagDistance));
-  cnBagDistance* distancesEnd = distances + pointBags->count;
-  cnBool result = cnFalse;
-  cnFloat* searchStartEnd = searchStart + valueCount;
-  cnFloat thresholdStorage;
-
-  if (!distances) cnFailTo(DONE, "No distances.");
-
-  // For convenience, point threshold at least somewhere.
-  if (!threshold) threshold = &thresholdStorage;
-  // Init distances to infinity.
-  // TODO In iterative fill, these need to retain their former values.
-  distance = distances;
-  cnListEachBegin(pointBags, cnPointBag, pointBag) {
-    distance->bag = pointBag;
-    // Min is really 0, but -1 lets us see unchanged values.
-    distance->far = -1;
-    distance->near = HUGE_VAL;
-    distance++;
-  } cnEnd;
-  // TODO Do I really want a search start?
-  //  printf("Starting search at: ");
-  //  cnVectorPrint(stdout, valueCount, searchStart);
-  //  printf("\n");
-  // Narrow the distance to each bag.
-  for (distance = distances; distance < distancesEnd; distance++) {
-    cnPointBag* pointBag = distance->bag;
-    cnFloat* point = pointBag->pointMatrix;
-    cnFloat* pointsEnd = point + pointBag->pointCount * valueCount;
-    if (!distance->near) continue; // Done with this one.
-    // Look at each point in the bag.
-    for (; point < pointsEnd; point += valueCount) {
-      cnFloat currentDistance = 0;
-      cnFloat* startValue;
-      cnFloat* value;
-      for (
-        startValue = searchStart, value = point;
-        startValue < searchStartEnd;
-        startValue++, value++
-      ) {
-        // TODO Defer to abstract distance function like cnMahalanobisDistance!
-        cnFloat diff = *startValue - *value;
-        currentDistance += diff * diff;
-      }
-      if (currentDistance > distance->far) {
-        // New max found.
-        // If currentDistance were NaN, the above > should fail, so we don't
-        // expect to see any NaNs here.
-        distance->far = currentDistance;
-      }
-      if (currentDistance < distance->near) {
-        // New min found.
-        // If currentDistance were NaN, the above < should fail, so we don't
-        // expect to see any NaNs here.
-        distance->near = currentDistance;
-      }
-    }
-  }
-
-  // Flip any unset fars also to infinity, and sqrt the distances.
-  for (distance = distances; distance < distancesEnd; distance++) {
-    if (distance->far < 0) {
-      distance->far = HUGE_VAL;
-    } else {
-      distance->far = sqrt(distance->far);
-      distance->near = sqrt(distance->near);
-    }
-  }
-
-  // Find the right threshold for these distances and bag labels.
-  *threshold = cnChooseThreshold(distances, distancesEnd, score);
-  result = cnTrue;
-
-  DONE:
-  free(distances);
-  return result;
 }
 
 
