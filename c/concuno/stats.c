@@ -147,7 +147,17 @@ cnBool cnGaussianInit(cnGaussian* gaussian, cnCount dims, cnFloat* mean) {
   if (!(gaussian->cov && gaussian->mean)) goto FAIL;
   // Store values.
   gaussian->dims = dims;
-  memcpy(gaussian->mean, mean, dims * sizeof(cnFloat));
+  if (mean) {
+    // Use the mean supplied.
+    memcpy(gaussian->mean, mean, dims * sizeof(cnFloat));
+  } else {
+    // Just center at 0 for now.
+    // TODO Vector fill function?
+    int d;
+    for (d = 0; d < dims; d++) {
+      gaussian->mean[d] = 0.0;
+    }
+  }
   // Good to go.
   return cnTrue;
   // Or not.

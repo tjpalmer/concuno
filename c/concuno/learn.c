@@ -916,8 +916,6 @@ cnBool cnLearnSplitModel(
   cnLearner* learner, cnSplitNode* split, cnList(cnBindingBag)* bindingBags
 ) {
   // TODO Other topologies, etc.
-  cnIndex c;
-  cnFloat* center = NULL;
   cnFunction* distanceFunction;
   cnGaussian* gaussian;
   cnCount outCount = split->function->outCount;
@@ -926,18 +924,33 @@ cnBool cnLearnSplitModel(
   cnBool result = cnFalse;
   cnList(cnPointBag) pointBags;
 
-  // Allocate space for a volume center.
-  // TODO Non-float?
-  if (!(center = cnStackAlloc(outCount * sizeof(cnFloat)))) {
-    cnFailTo(DONE, "No center.");
-  }
-
   // Get point bags.
   cnListInit(&pointBags, sizeof(cnPointBag));
   if (!cnSplitNodePointBags(split, bindingBags, &pointBags)) {
     goto DONE;
   }
   //cnLogPointBags(split, &pointBags);
+
+  // Prepare a Gaussian for fitting to the data and a Mahalanobis distance
+  // function based on that.
+  //
+  // TODO Abstract this more for support of other topologies and constraints.
+  // TODO The discrete categories case will be especially different! No center!
+  gaussian = malloc(sizeof(cnGaussian));
+  if (!gaussian) {
+    goto DONE;
+  }
+  if (!cnGaussianInit(gaussian, outCount, NULL)) {
+    free(gaussian);
+    goto DONE;
+  }
+  distanceFunction = cnFunctionCreateMahalanobisDistance(gaussian);
+  if (!distanceFunction) {
+    // The Gaussian can't be automatically cleaned if its container is defunct.
+    cnGaussianDispose(gaussian);
+    free(gaussian);
+    goto DONE;
+  }
 
   // We got points. Try to learn something.
   // TODO Distinguish errors from no best point?
@@ -950,40 +963,20 @@ cnBool cnLearnSplitModel(
   if (searchStart) {
     // TODO Determine better center and shape.
     // TODO Check for errors.
+    memcpy(gaussian->mean, searchStart, outCount * sizeof(cnFloat));
+    // TODO Pass the distance function here!
     if (!cnChooseThreshold(
-      split->function->outTopology, &pointBags, searchStart, NULL, &threshold
+      split->function->outTopology, &pointBags, gaussian->mean, NULL,
+      &threshold
     )) cnFailTo(DONE, "Search failed.");
-    memcpy(center, searchStart, outCount * sizeof(cnFloat));
   } else {
     // Nothing was any good. Any mean and threshold is arbitrary, so just let
-    // them be 0.
-    // TODO Vector fill function?
-    for (c = 0; c < split->function->outCount; c++) {
-      center[c] = 0.0;
-    }
+    // them be 0. Mean was already defaulted to zero.
+    threshold = 0.0;
   }
   printf("Threshold: %lg\n", threshold);
 
   // We have an answer. Record it.
-  // TODO Probably make the Gaussian earlier. It should be part of learning.
-  // TODO
-  // TODO Gaussian/Mahalanobis should be private to learning algorithm and
-  // TODO specific to Euclidean topology. So probably have it built during
-  // TODO learning. That is, learning could return a predicate.
-  gaussian = malloc(sizeof(cnGaussian));
-  if (!gaussian) {
-    goto DONE;
-  }
-  if (!cnGaussianInit(gaussian, outCount, center)) {
-    free(gaussian);
-    goto DONE;
-  }
-  distanceFunction = cnFunctionCreateMahalanobisDistance(gaussian);
-  if (!distanceFunction) {
-    cnGaussianDispose(gaussian);
-    free(gaussian);
-    goto DONE;
-  }
   split->predicate = cnPredicateCreateDistanceThreshold(
     distanceFunction, threshold
   );
