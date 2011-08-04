@@ -91,10 +91,19 @@ cnFloat* cnBestPointByDiverseDensity(
 
 
 /**
- * Get the best point based on thresholding by the grand score.
+ * Get the best point based on thresholding by the grand score. If set to null,
+ * no point could be found.
+ *
+ * Because the distance function doesn't take point a, only point b, the point
+ * under consideration needs copied into the "center" before evaluating
+ * distance.
+ *
+ * TODO Always store the best point in the center when done? If so, use a
+ * TODO different indicator for whether any point found?
  */
 cnBool cnBestPointByScore(
-  cnTopology topology, cnList(cnPointBag)* pointBags, cnFloat** bestPoint
+  cnFunction* distanceFunction, cnFloat* center, cnList(cnPointBag)* pointBags,
+  cnFloat** bestPoint
 );
 
 
@@ -112,7 +121,7 @@ cnBool cnBestPointByScore(
  * TODO Actually, all I do here is find distances then pick a threshold.
  */
 cnBool cnChooseThreshold(
-  cnTopology topology, cnList(cnPointBag)* pointBags, cnFloat* center,
+  cnFunction* distanceFunction, cnList(cnPointBag)* pointBags,
   cnFloat* score, cnFloat* threshold
 );
 
@@ -367,7 +376,8 @@ cnFloat* cnBestPointByDiverseDensity(
 
 
 cnBool cnBestPointByScore(
-  cnTopology topology, cnList(cnPointBag)* pointBags, cnFloat** bestPoint
+  cnFunction* distanceFunction, cnFloat* center, cnList(cnPointBag)* pointBags,
+  cnFloat** bestPoint
 ) {
   cnFloat bestScore = -HUGE_VAL, score = bestScore;
   cnCount negBagCount = 0, posBagCount = 0, maxEitherBags = 8;
@@ -424,9 +434,13 @@ cnBool cnBestPointByScore(
         }
       }
       if (!allGood) continue;
-      if (!cnChooseThreshold(topology, pointBags, point, &score, NULL)) {
+
+      // State the new center, then find the threshold.
+      memcpy(center, point, valueCount * sizeof(cnFloat));
+      if (!cnChooseThreshold(distanceFunction, pointBags, &score, NULL)) {
         cnFailTo(DONE, "Search failed.");
       }
+
       // Print and check.
       if (score > bestScore) {
         printf("(");
@@ -455,7 +469,7 @@ cnBool cnBestPointByScore(
 
 
 cnBool cnChooseThreshold(
-  cnTopology topology, cnList(cnPointBag)* pointBags, cnFloat* center,
+  cnFunction* distanceFunction, cnList(cnPointBag)* pointBags,
   cnFloat* score, cnFloat* threshold
 ) {
   cnCount valueCount =
@@ -464,7 +478,6 @@ cnBool cnChooseThreshold(
   cnBagDistance* distances = malloc(pointBags->count * sizeof(cnBagDistance));
   cnBagDistance* distancesEnd = distances + pointBags->count;
   cnBool result = cnFalse;
-  cnFloat* searchStartEnd = center + valueCount;
   cnFloat thresholdStorage;
 
   if (!distances) cnFailTo(DONE, "No distances.");
@@ -493,18 +506,9 @@ cnBool cnChooseThreshold(
     if (!distance->near) continue; // Done with this one.
     // Look at each point in the bag.
     for (; point < pointsEnd; point += valueCount) {
-      cnFloat currentDistance = 0;
-      cnFloat* startValue;
-      cnFloat* value;
-      for (
-        startValue = center, value = point;
-        startValue < searchStartEnd;
-        startValue++, value++
-      ) {
-        // TODO Defer to abstract distance function like cnMahalanobisDistance!
-        cnFloat diff = *startValue - *value;
-        currentDistance += diff * diff;
-      }
+      // Find the distance and compare.
+      cnFloat currentDistance;
+      distanceFunction->evaluate(distanceFunction, point, &currentDistance);
       if (currentDistance > distance->far) {
         // New max found.
         // If currentDistance were NaN, the above > should fail, so we don't
@@ -520,13 +524,10 @@ cnBool cnChooseThreshold(
     }
   }
 
-  // Flip any unset fars also to infinity, and sqrt the distances.
+  // Flip any unset fars also to infinity.
   for (distance = distances; distance < distancesEnd; distance++) {
     if (distance->far < 0) {
       distance->far = HUGE_VAL;
-    } else {
-      distance->far = sqrt(distance->far);
-      distance->near = sqrt(distance->near);
     }
   }
 
@@ -952,23 +953,21 @@ cnBool cnLearnSplitModel(
     goto DONE;
   }
 
-  // We got points. Try to learn something.
-  // TODO Distinguish errors from no best point?
+  // We got points and a distance function. Try to learn something.
   // cnBuildInitialKernel(split->function->outTopology, &pointBags);
-  if (!
-    //(searchStart =
-    //  cnBestPointByDiverseDensity(split->function->outTopology, &pointBags))
-    cnBestPointByScore(split->function->outTopology, &pointBags, &searchStart)
-  ) cnFailTo(DONE, "Best point failure.");
+  // searchStart =
+  //   cnBestPointByDiverseDensity(split->function->outTopology, &pointBags);
+  if (!cnBestPointByScore(
+    distanceFunction, gaussian->mean, &pointBags, &searchStart
+  )) cnFailTo(DONE, "Best point failure.");
   if (searchStart) {
     // TODO Determine better center and shape.
     // TODO Check for errors.
     memcpy(gaussian->mean, searchStart, outCount * sizeof(cnFloat));
     // TODO Pass the distance function here!
-    if (!cnChooseThreshold(
-      split->function->outTopology, &pointBags, gaussian->mean, NULL,
-      &threshold
-    )) cnFailTo(DONE, "Search failed.");
+    if (!cnChooseThreshold(distanceFunction, &pointBags, NULL, &threshold)) {
+      cnFailTo(DONE, "Search failed.");
+    }
   } else {
     // Nothing was any good. Any mean and threshold is arbitrary, so just let
     // them be 0. Mean was already defaulted to zero.
