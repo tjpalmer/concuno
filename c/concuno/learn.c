@@ -122,7 +122,8 @@ cnBool cnBestPointByScore(
  */
 cnBool cnChooseThreshold(
   cnFunction* distanceFunction, cnList(cnPointBag)* pointBags,
-  cnFloat* score, cnFloat* threshold
+  cnFloat* score, cnFloat* threshold,
+  cnList(cnFloat)* nearPosPoints, cnList(cnFloat)* nearNegPoints
 );
 
 
@@ -160,6 +161,18 @@ cnBool cnLearnSplitModel(
 
 
 void cnLogPointBags(cnSplitNode* split, cnList(cnPointBag)* pointBags);
+
+
+/**
+ * Finds a threshold, fits the distribution, and repeats (until what level of
+ * convergence?).
+ *
+ * Need to abstract the distribution type.
+ */
+cnBool cnLoopFit(
+  cnFunction* distanceFunction, cnGaussian* distribution,
+  cnList(cnPointBag)* pointBags, cnFloat* threshold
+);
 
 
 cnLeafNode* cnPickBestLeaf(cnRootNode* tree, cnList(cnBag)* bags);
@@ -437,9 +450,9 @@ cnBool cnBestPointByScore(
 
       // State the new center, then find the threshold.
       memcpy(center, point, valueCount * sizeof(cnFloat));
-      if (!cnChooseThreshold(distanceFunction, pointBags, &score, NULL)) {
-        cnFailTo(DONE, "Search failed.");
-      }
+      if (!
+        cnChooseThreshold(distanceFunction, pointBags, &score, NULL, NULL, NULL)
+      ) cnFailTo(DONE, "Search failed.");
 
       // Print and check.
       if (score > bestScore) {
@@ -470,7 +483,8 @@ cnBool cnBestPointByScore(
 
 cnBool cnChooseThreshold(
   cnFunction* distanceFunction, cnList(cnPointBag)* pointBags,
-  cnFloat* score, cnFloat* threshold
+  cnFloat* score, cnFloat* threshold,
+  cnList(cnFloat)* nearPosPoints, cnList(cnFloat)* nearNegPoints
 ) {
   cnCount valueCount =
     pointBags->count ? ((cnPointBag*)pointBags->items)->valueCount : 0;
@@ -961,11 +975,9 @@ cnBool cnLearnSplitModel(
     distanceFunction, gaussian->mean, &pointBags, &searchStart
   )) cnFailTo(DONE, "Best point failure.");
   if (searchStart) {
-    // TODO Determine better center and shape.
-    // TODO Check for errors.
+    // Init the mean and kick the fit off.
     memcpy(gaussian->mean, searchStart, outCount * sizeof(cnFloat));
-    // TODO Pass the distance function here!
-    if (!cnChooseThreshold(distanceFunction, &pointBags, NULL, &threshold)) {
+    if (!cnLoopFit(distanceFunction, gaussian, &pointBags, &threshold)) {
       cnFailTo(DONE, "Search failed.");
     }
   } else {
@@ -1125,6 +1137,26 @@ void cnLogPointBags(cnSplitNode* split, cnList(cnPointBag)* pointBags) {
 
   // All done.
   fclose(file);
+}
+
+
+cnBool cnLoopFit(
+  cnFunction* distanceFunction, cnGaussian* distribution,
+  cnList(cnPointBag)* pointBags, cnFloat* threshold
+) {
+  cnBool result = cnFalse;
+
+  if (!cnChooseThreshold(
+    // TODO Pass in lists for gathering affected points.
+    distanceFunction, pointBags, NULL, threshold, NULL, NULL
+  )) cnFailTo(DONE, "Search failed.");
+
+  // TODO Determine better center and shape.
+
+  result = cnTrue;
+
+  DONE:
+  return result;
 }
 
 
