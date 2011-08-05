@@ -94,16 +94,23 @@ cnFloat* cnBestPointByDiverseDensity(
  * Get the best point based on thresholding by the grand score. If set to null,
  * no point could be found.
  *
- * Because the distance function doesn't take point a, only point b, the point
- * under consideration needs copied into the "center" before evaluating
- * distance.
+ * Uses the distribution to manipulate the distance function. The distribution
+ * is part of the result.
+ *
+ * TODO Rename and/or split this?
+ *
+ * TODO Maintain a distance function internally since that's driven from the
+ * TODO distribution anyway?
+ *
+ * TODO Determine all leaf probabilities in determining threshold, or is that
+ * TODO too expensive?
  *
  * TODO Always store the best point in the center when done? If so, use a
  * TODO different indicator for whether any point found?
  */
 cnBool cnBestPointByScore(
-  cnFunction* distanceFunction, cnFloat* center, cnList(cnPointBag)* pointBags,
-  cnFloat** bestPoint
+  cnFunction* distanceFunction, cnGaussian* distribution,
+  cnList(cnPointBag)* pointBags, cnFloat** bestPoint
 );
 
 
@@ -389,8 +396,8 @@ cnFloat* cnBestPointByDiverseDensity(
 
 
 cnBool cnBestPointByScore(
-  cnFunction* distanceFunction, cnFloat* center, cnList(cnPointBag)* pointBags,
-  cnFloat** bestPoint
+  cnFunction* distanceFunction, cnGaussian* distribution,
+  cnList(cnPointBag)* pointBags, cnFloat** bestPoint
 ) {
   cnFloat bestScore = -HUGE_VAL, score = bestScore;
   cnCount negBagCount = 0, posBagCount = 0, maxEitherBags = 8;
@@ -448,8 +455,8 @@ cnBool cnBestPointByScore(
       }
       if (!allGood) continue;
 
-      // State the new center, then find the threshold.
-      memcpy(center, point, valueCount * sizeof(cnFloat));
+      // Store the new center, then find the threshold.
+      memcpy(distribution->mean, point, valueCount * sizeof(cnFloat));
       if (!
         cnChooseThreshold(distanceFunction, pointBags, &score, NULL, NULL, NULL)
       ) cnFailTo(DONE, "Search failed.");
@@ -972,7 +979,7 @@ cnBool cnLearnSplitModel(
   // searchStart =
   //   cnBestPointByDiverseDensity(split->function->outTopology, &pointBags);
   if (!cnBestPointByScore(
-    distanceFunction, gaussian->mean, &pointBags, &searchStart
+    distanceFunction, gaussian, &pointBags, &searchStart
   )) cnFailTo(DONE, "Best point failure.");
   if (searchStart) {
     // Init the mean and kick the fit off.
