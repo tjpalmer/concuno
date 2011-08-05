@@ -149,7 +149,8 @@ cnBool cnChooseThreshold(
  * provide a pointer, make sure it's meaningful or else -HUGE_VAL.
  */
 cnFloat cnChooseThresholdWithDistances(
-  cnBagDistance* distances, cnBagDistance* distancesEnd, cnFloat* score
+  cnBagDistance* distances, cnBagDistance* distancesEnd, cnFloat* score,
+  cnList(cnFloat)* nearPosPoints, cnList(cnFloat)* nearNegPoints
 );
 
 
@@ -601,7 +602,9 @@ cnBool cnChooseThreshold(
   }
 
   // Find the right threshold for these distances and bag labels.
-  *threshold = cnChooseThresholdWithDistances(distances, distancesEnd, score);
+  *threshold = cnChooseThresholdWithDistances(
+    distances, distancesEnd, score, nearPosPoints, nearNegPoints
+  );
   result = cnTrue;
 
   DONE:
@@ -636,7 +639,8 @@ int cnChooseThreshold_compare(const void* a, const void* b) {
 }
 
 cnFloat cnChooseThresholdWithDistances(
-  cnBagDistance* distances, cnBagDistance* distancesEnd, cnFloat* score
+  cnBagDistance* distances, cnBagDistance* distancesEnd, cnFloat* score,
+  cnList(cnFloat)* nearPosPoints, cnList(cnFloat)* nearNegPoints
 ) {
   //  FILE* file = fopen("cnChooseThreshold.log", "w");
   // TODO Just allow sorting the original data instead of malloc here?
@@ -830,6 +834,28 @@ cnFloat cnChooseThresholdWithDistances(
       threshold, bestYesProb, bestYesCount, bestNoProb, bestNoCount,
       bestScore
     );
+  }
+
+  // See if points are wanted, and provide those if so.
+  if (nearPosPoints || nearNegPoints) {
+    for (dist = dists; dist < distsEnd; dist++) {
+      // TODO Remove redundancy of <= (or '! <=' as '>' here)!!!
+      if (dist->edge == cnChooseThreshold_Near) {
+        cnList(cnFloat)* nearPoints;
+        // See if we've passed the insides.
+        if (dist->distance->near > threshold) break;
+        // It's a near distance, so that's what we want. See if pos or neg.
+        if (dist->distance->bag->bag->label) {
+          nearPoints = nearPosPoints;
+        } else {
+          nearPoints = nearNegPoints;
+        }
+        // Add the point, if we want this kind.
+        if (nearPoints) {
+          // TODO Push.
+        }
+      }
+    }
   }
 
   // Free the pointer array, provide the score if wanted, and return the thresh.
