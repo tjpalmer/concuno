@@ -27,6 +27,11 @@ typedef struct cnBagDistance {
    */
   cnFloat near;
 
+  /**
+   * The actual point itself as stored in the point bag.
+   */
+  cnFloat* nearPoint;
+
 } cnBagDistance;
 
 
@@ -399,9 +404,12 @@ cnBool cnBestPointByScore(
   cnFunction* distanceFunction, cnGaussian* distribution,
   cnList(cnPointBag)* pointBags, cnFloat** bestPoint
 ) {
+  cnFunction* bestFunction = NULL;
   cnFloat bestScore = -HUGE_VAL, score = bestScore;
+  cnFloat bestThreshold;
   cnCount negBagCount = 0, posBagCount = 0, maxEitherBags = 8;
   cnBool result = cnFalse;
+  cnFloat threshold;
   cnCount valueCount =
     pointBags->count ? ((cnPointBag*)pointBags->items)->valueCount : 0;
 
@@ -455,20 +463,56 @@ cnBool cnBestPointByScore(
       }
       if (!allGood) continue;
 
+      // TODO Check all bests so far. We don't want too many. How to limit?
+      // TODO Push everything onto the big heap? Probably not. Too much to
+      // TODO track, and we'd need to see whether new points are in any of the
+      // TODO many volumes under consideration. But I don't want an arbitrary
+      // TODO threshold nor number, either. Threshold on potential p-value seems
+      // TODO at least nicer than limiting quantity ...
+      // TODO
+      // TODO Checking if inside boundary requires looking at each, because
+      // TODO would have a different threshold.
+      // TODO
+      // TODO With all points in all bags in a KD-Tree, we could easily remove
+      // TODO from consideration all points scooped up to a certain point.
+      if (bestFunction) {
+        // Check that we don't already contain this point.
+        // This doesn't seem to speed things up much, perhaps due to the number
+        // of inside points being small. However, it does allow to see where
+        // we should split to separate options.
+        // TODO This is dangerous until we can also climb means and fit!
+        // TODO Check whether inside or outside is positive!!!
+        cnFloat distance;
+        if (!distanceFunction->evaluate(distanceFunction, point, &distance)) {
+          cnFailTo(DONE, "No distance for point.");
+        }
+        // TODO Don't duplicate <= from the threshold predicate!
+        if (distance <= threshold) goto SKIP_POINT;
+      }
+
       // Store the new center, then find the threshold.
       memcpy(distribution->mean, point, valueCount * sizeof(cnFloat));
-      if (!
-        cnChooseThreshold(distanceFunction, pointBags, &score, NULL, NULL, NULL)
-      ) cnFailTo(DONE, "Search failed.");
+      if (!cnChooseThreshold(
+        distanceFunction, pointBags, &score, &threshold, NULL, NULL
+      )) cnFailTo(DONE, "Search failed.");
 
-      // Print and check.
+      // Check if best. TODO Check if better than any of the list of best.
       if (score > bestScore) {
         printf("(");
         cnVectorPrint(stdout, valueCount, point);
         printf(": %.4lg) ", score);
         *bestPoint = point;
         bestScore = score;
+
+        // TODO Track multiple bests.
+        bestThreshold = threshold;
+        cnFunctionDrop(bestFunction);
+        if (!(bestFunction = cnFunctionCopy(distanceFunction))) {
+          cnFailTo(DONE, "No best copy.");
+        }
       }
+
+      SKIP_POINT:
       // Progress tracker.
       if (
         (1 + (point - (cnFloat*)pointBag->pointMatrix) / valueCount) % 100 == 0
@@ -484,6 +528,7 @@ cnBool cnBestPointByScore(
   result = cnTrue;
 
   DONE:
+  cnFunctionDrop(bestFunction);
   return result;
 }
 
@@ -513,6 +558,7 @@ cnBool cnChooseThreshold(
     // Min is really 0, but -1 lets us see unchanged values.
     distance->far = -1;
     distance->near = HUGE_VAL;
+    distance->nearPoint = NULL;
     distance++;
   } cnEnd;
   // TODO Do I really want a search start?
@@ -541,6 +587,8 @@ cnBool cnChooseThreshold(
         // If currentDistance were NaN, the above < should fail, so we don't
         // expect to see any NaNs here.
         distance->near = currentDistance;
+        // Remember the near point for later, for when we want that.
+        distance->nearPoint = point;
       }
     }
   }
@@ -1152,6 +1200,8 @@ cnBool cnLoopFit(
   cnList(cnPointBag)* pointBags, cnFloat* threshold
 ) {
   cnBool result = cnFalse;
+
+  // TODO This isn't the right place for the loop!
 
   if (!cnChooseThreshold(
     // TODO Pass in lists for gathering affected points.
