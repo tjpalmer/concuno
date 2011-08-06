@@ -115,7 +115,8 @@ cnFloat* cnBestPointByDiverseDensity(
  */
 cnBool cnBestPointByScore(
   cnFunction* distanceFunction, cnGaussian* distribution,
-  cnList(cnPointBag)* pointBags, cnFloat** bestPoint
+  cnList(cnPointBag)* pointBags,
+  cnFunction** bestFunction, cnFloat* bestThreshold
 );
 
 
@@ -174,18 +175,6 @@ cnBool cnLearnSplitModel(
 
 
 void cnLogPointBags(cnSplitNode* split, cnList(cnPointBag)* pointBags);
-
-
-/**
- * Finds a threshold, fits the distribution, and repeats (until what level of
- * convergence?).
- *
- * Need to abstract the distribution type.
- */
-cnBool cnLoopFit(
-  cnFunction* distanceFunction, cnGaussian* distribution,
-  cnList(cnPointBag)* pointBags, cnFloat* threshold
-);
 
 
 cnLeafNode* cnPickBestLeaf(cnRootNode* tree, cnList(cnBag)* bags);
@@ -403,12 +392,12 @@ cnFloat* cnBestPointByDiverseDensity(
 
 cnBool cnBestPointByScore(
   cnFunction* distanceFunction, cnGaussian* distribution,
-  cnList(cnPointBag)* pointBags, cnFloat** bestPoint
+  cnList(cnPointBag)* pointBags,
+  cnFunction** bestFunction, cnFloat* bestThreshold
 ) {
-  cnFunction* bestFunction = NULL;
   cnFloat bestScore = -HUGE_VAL, score = bestScore;
-  cnFloat bestThreshold;
   cnCount negBagCount = 0, posBagCount = 0, maxEitherBags = 8;
+  cnList(cnFloat) posPointsIn;
   cnBool result = cnFalse;
   cnFloat threshold;
   cnCount valueCount =
@@ -437,8 +426,12 @@ cnBool cnBestPointByScore(
   // TODO In any case, the overfit matter might be moot with a validation set,
   // TODO so long as we can at least finish fast.
 
+  // Init point list.
+  cnListInit(&posPointsIn, valueCount * sizeof(cnFloat));
+
   // No best yet.
-  *bestPoint = NULL;
+  *bestFunction = NULL;
+  *bestThreshold = cnNaN();
 
   printf("Score-ish: ");
   cnListEachBegin(pointBags, cnPointBag, pointBag) {
@@ -476,7 +469,7 @@ cnBool cnBestPointByScore(
       // TODO
       // TODO With all points in all bags in a KD-Tree, we could easily remove
       // TODO from consideration all points scooped up to a certain point.
-      if (bestFunction) {
+      if (*bestFunction) {
         // Check that we don't already contain this point.
         // This doesn't seem to speed things up much, perhaps due to the number
         // of inside points being small. However, it does allow to see where
@@ -491,26 +484,45 @@ cnBool cnBestPointByScore(
         if (distance <= threshold) goto SKIP_POINT;
       }
 
-      // Store the new center, then find the threshold.
+      // Store the new center, then find the threshold and contained points.
       memcpy(distribution->mean, point, valueCount * sizeof(cnFloat));
+      cnListClear(&posPointsIn);
       if (!cnChooseThreshold(
-        distanceFunction, pointBags, &score, &threshold, NULL, NULL
+        distanceFunction, pointBags, &score, &threshold, &posPointsIn, NULL
       )) cnFailTo(DONE, "Search failed.");
 
       // Check if best. TODO Check if better than any of the list of best.
       if (score > bestScore) {
+        cnFloat fittedScore = -HUGE_VAL;
+
+        // Fit the distribution to the contained points.
+        // TODO Weighted? Negative points to push away?
+        // TODO Abstract this to arbitrary fits.
+        // TODO Is it too expensive to do this here? Defer to when we have only
+        // TODO points that we really like?
+        cnVectorMean(
+          valueCount, distribution->mean, posPointsIn.count, posPointsIn.items
+        );
+        cnListClear(&posPointsIn);
+        if (!cnChooseThreshold(
+          distanceFunction, pointBags, &fittedScore, &threshold,
+          &posPointsIn, NULL
+        )) cnFailTo(DONE, "Search failed.");
+        if (fittedScore < score) {
+          printf("Fit worse (%.2lf < %.2lf)! ", fittedScore, score);
+        }
+
         printf("(");
-        cnVectorPrint(stdout, valueCount, point);
+        cnVectorPrint(stdout, valueCount, distribution->mean);
         printf(": %.4lg) ", score);
-        *bestPoint = point;
         bestScore = score;
 
         // TODO Track multiple bests.
-        bestThreshold = threshold;
-        cnFunctionDrop(bestFunction);
-        if (!(bestFunction = cnFunctionCopy(distanceFunction))) {
+        cnFunctionDrop(*bestFunction);
+        if (!(*bestFunction = cnFunctionCopy(distanceFunction))) {
           cnFailTo(DONE, "No best copy.");
         }
+        *bestThreshold = threshold;
       }
 
       SKIP_POINT:
@@ -529,7 +541,7 @@ cnBool cnBestPointByScore(
   result = cnTrue;
 
   DONE:
-  cnFunctionDrop(bestFunction);
+  cnListDispose(&posPointsIn);
   return result;
 }
 
@@ -852,7 +864,10 @@ cnFloat cnChooseThresholdWithDistances(
         }
         // Add the point, if we want this kind.
         if (nearPoints) {
-          // TODO Push.
+          // Condensing these to an independent matrix. Costly? Probably not
+          // just for those in the threshold? Or in ugly cases, could it get
+          // bad?
+          cnListPush(nearPoints, dist->distance->nearPoint);
         }
       }
     }
@@ -1012,10 +1027,10 @@ cnBool cnLearnSplitModel(
   cnLearner* learner, cnSplitNode* split, cnList(cnBindingBag)* bindingBags
 ) {
   // TODO Other topologies, etc.
+  cnFunction* bestFunction = NULL;
   cnFunction* distanceFunction;
   cnGaussian* gaussian;
   cnCount outCount = split->function->outCount;
-  cnFloat* searchStart;
   cnFloat threshold = 0.0;
   cnBool result = cnFalse;
   cnList(cnPointBag) pointBags;
@@ -1053,20 +1068,17 @@ cnBool cnLearnSplitModel(
   // searchStart =
   //   cnBestPointByDiverseDensity(split->function->outTopology, &pointBags);
   if (!cnBestPointByScore(
-    distanceFunction, gaussian, &pointBags, &searchStart
+    distanceFunction, gaussian, &pointBags, &bestFunction, &threshold
   )) cnFailTo(DONE, "Best point failure.");
-  if (searchStart) {
-    // Init the mean and kick the fit off.
-    memcpy(gaussian->mean, searchStart, outCount * sizeof(cnFloat));
-    if (!cnLoopFit(distanceFunction, gaussian, &pointBags, &threshold)) {
-      cnFailTo(DONE, "Search failed.");
-    }
+  if (bestFunction) {
+    // Replace the initial with the best found.
+    cnFunctionDrop(distanceFunction);
+    distanceFunction = bestFunction;
   } else {
     // Nothing was any good. Any mean and threshold is arbitrary, so just let
     // them be 0. Mean was already defaulted to zero.
     threshold = 0.0;
   }
-  printf("Threshold: %lg\n", threshold);
 
   // We have an answer. Record it.
   split->predicate = cnPredicateCreateDistanceThreshold(
@@ -1218,28 +1230,6 @@ void cnLogPointBags(cnSplitNode* split, cnList(cnPointBag)* pointBags) {
 
   // All done.
   fclose(file);
-}
-
-
-cnBool cnLoopFit(
-  cnFunction* distanceFunction, cnGaussian* distribution,
-  cnList(cnPointBag)* pointBags, cnFloat* threshold
-) {
-  cnBool result = cnFalse;
-
-  // TODO This isn't the right place for the loop!
-
-  if (!cnChooseThreshold(
-    // TODO Pass in lists for gathering affected points.
-    distanceFunction, pointBags, NULL, threshold, NULL, NULL
-  )) cnFailTo(DONE, "Search failed.");
-
-  // TODO Determine better center and shape.
-
-  result = cnTrue;
-
-  DONE:
-  return result;
 }
 
 
