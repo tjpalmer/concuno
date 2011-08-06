@@ -3,7 +3,6 @@
 	<name>concuno</name>
 	<comment></comment>
 	<projects>
-		<project>eigen</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>
