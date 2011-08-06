@@ -134,6 +134,7 @@ cnBool cnBestPointByScore(
  * TODO Actually, all I do here is find distances then pick a threshold.
  */
 cnBool cnChooseThreshold(
+  cnBool yesLabel,
   cnFunction* distanceFunction, cnList(cnPointBag)* pointBags,
   cnFloat* score, cnFloat* threshold,
   cnList(cnFloat)* nearPosPoints, cnList(cnFloat)* nearNegPoints
@@ -148,8 +149,14 @@ cnBool cnChooseThreshold(
  * If score is not null, assign the highest score to it. Also consider any
  * previously held values to be the highest previously. Therefore, if you
  * provide a pointer, make sure it's meaningful or else -HUGE_VAL.
+ *
+ * Here, yesLabel says whether it expects the "yes" branch to have a higher
+ * probability. We constrain this because it doesn't make sense to use positive
+ * bags for learning negative features. It could happen legitimately, but it's
+ * more likely about fishing for statistics.
  */
 cnFloat cnChooseThresholdWithDistances(
+  cnBool yesLabel,
   cnBagDistance* distances, cnBagDistance* distancesEnd, cnFloat* score,
   cnList(cnFloat)* nearPosPoints, cnList(cnFloat)* nearNegPoints
 );
@@ -437,12 +444,16 @@ cnBool cnBestPointByScore(
   cnListEachBegin(pointBags, cnPointBag, pointBag) {
     cnFloat* point = pointBag->pointMatrix;
     cnFloat* matrixEnd = point + pointBag->pointCount * valueCount;
+
+    // See if we have already looked at enough bags.
     if (posBagCount >= maxEitherBags && negBagCount >= maxEitherBags) break;
     if (pointBag->bag->label) {
       if (posBagCount++ >= maxEitherBags) continue;
     } else {
       if (negBagCount++ >= maxEitherBags) continue;
     }
+
+    // Guess we're going to try this one out.
     printf("B%c:%ld ", pointBag->bag->label ? '+' : '-', pointBag->pointCount);
     fflush(stdout);
     for (; point < matrixEnd; point += valueCount) {
@@ -488,6 +499,7 @@ cnBool cnBestPointByScore(
       memcpy(distribution->mean, point, valueCount * sizeof(cnFloat));
       cnListClear(&posPointsIn);
       if (!cnChooseThreshold(
+        pointBag->bag->label,
         distanceFunction, pointBags, &score, &threshold, &posPointsIn, NULL
       )) cnFailTo(DONE, "Search failed.");
 
@@ -496,19 +508,20 @@ cnBool cnBestPointByScore(
         cnFloat fittedScore = -HUGE_VAL;
 
         // Fit the distribution to the contained points.
+        // TODO Loop this fit and schec
         // TODO Weighted? Negative points to push away?
         // TODO Abstract this to arbitrary fits.
-        // TODO Is it too expensive to do this here? Defer to when we have only
-        // TODO points that we really like?
         cnVectorMean(
           valueCount, distribution->mean, posPointsIn.count, posPointsIn.items
         );
         cnListClear(&posPointsIn);
         if (!cnChooseThreshold(
+          pointBag->bag->label,
           distanceFunction, pointBags, &fittedScore, &threshold,
           &posPointsIn, NULL
         )) cnFailTo(DONE, "Search failed.");
         if (fittedScore < score) {
+          // TODO This happens frequently, even for better end results. Why?
           printf("Fit worse (%.2lf < %.2lf)! ", fittedScore, score);
         }
 
@@ -547,6 +560,7 @@ cnBool cnBestPointByScore(
 
 
 cnBool cnChooseThreshold(
+  cnBool yesLabel,
   cnFunction* distanceFunction, cnList(cnPointBag)* pointBags,
   cnFloat* score, cnFloat* threshold,
   cnList(cnFloat)* nearPosPoints, cnList(cnFloat)* nearNegPoints
@@ -564,7 +578,6 @@ cnBool cnChooseThreshold(
   // For convenience, point threshold at least somewhere.
   if (!threshold) threshold = &thresholdStorage;
   // Init distances to infinity.
-  // TODO In iterative fill, these need to retain their former values.
   distance = distances;
   cnListEachBegin(pointBags, cnPointBag, pointBag) {
     distance->bag = pointBag;
@@ -615,7 +628,7 @@ cnBool cnChooseThreshold(
 
   // Find the right threshold for these distances and bag labels.
   *threshold = cnChooseThresholdWithDistances(
-    distances, distancesEnd, score, nearPosPoints, nearNegPoints
+    yesLabel, distances, distancesEnd, score, nearPosPoints, nearNegPoints
   );
   result = cnTrue;
 
@@ -651,6 +664,7 @@ int cnChooseThreshold_compare(const void* a, const void* b) {
 }
 
 cnFloat cnChooseThresholdWithDistances(
+  cnBool yesLabel,
   cnBagDistance* distances, cnBagDistance* distancesEnd, cnFloat* score,
   cnList(cnFloat)* nearPosPoints, cnList(cnFloat)* nearNegPoints
 ) {
@@ -803,13 +817,17 @@ cnFloat cnChooseThresholdWithDistances(
     noProb = noCount ? posAsNoCount / (cnFloat)noCount : 0;
     // Figure out which one really is the max.
     if (yesProb > noProb) {
-      // Yes wins the boths. Revert no.
+      // Yes wins the boths. See if this is allowed.
+      if (!yesLabel) continue;
+      // It is. Revert no.
       posAsNoCount -= posBothCount;
       negAsNoCount -= negBothCount;
       noCount = posAsNoCount + negAsNoCount;
       noProb = noCount ? posAsNoCount / (cnFloat)noCount : 0;
     } else {
-      // No wins the boths. Revert yes.
+      // No wins the boths. See if this is allowed.
+      if (yesLabel) continue;
+      // It is. Revert yes.
       posAsYesCount -= posBothCount;
       negAsYesCount -= negBothCount;
       yesCount = posAsYesCount + negAsYesCount;
@@ -857,11 +875,11 @@ cnFloat cnChooseThresholdWithDistances(
         // See if we've passed the insides.
         if (dist->distance->near > threshold) break;
         // It's a near distance, so that's what we want. See if pos or neg.
-        if (dist->distance->bag->bag->label) {
-          nearPoints = nearPosPoints;
-        } else {
-          nearPoints = nearNegPoints;
-        }
+        // TODO Rename pos and neg for matching and non-matching??? The idea is
+        // TODO which points contribute to the higher vs. lower probability.
+        nearPoints = dist->distance->bag->bag->label ?
+          (yesLabel ? nearPosPoints : nearNegPoints) :
+          (yesLabel ? nearNegPoints : nearPosPoints);
         // Add the point, if we want this kind.
         if (nearPoints) {
           // Condensing these to an independent matrix. Costly? Probably not
