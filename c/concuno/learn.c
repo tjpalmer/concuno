@@ -509,25 +509,22 @@ cnBool cnBestPointByScore(
       if (score > bestScore) {
         cnFloat fittedScore = -HUGE_VAL;
 
-        // Leave out fitting for now. Something's not right with it.
-        if (cnFalse) {
-          // Fit the distribution to the contained points.
-          // TODO Loop this fit and check for convergence.
-          // TODO Weighted? Negative points to push away?
-          // TODO Abstract this to arbitrary fits.
-          cnVectorMean(
-            valueCount, distribution->mean, posPointsIn.count, posPointsIn.items
-          );
-          cnListClear(&posPointsIn);
-          if (!cnChooseThreshold(
-            pointBag->bag->label,
-            distanceFunction, pointBags, &fittedScore, &threshold,
-            &posPointsIn, NULL
-          )) cnFailTo(DONE, "Search failed.");
-          if (fittedScore < score) {
-            // TODO This happens frequently, even for better end results. Why?
-            printf("Fit worse (%.2lf < %.2lf)! ", fittedScore, score);
-          }
+        // Fit the distribution to the contained points.
+        // TODO Loop this fit, and check for convergence.
+        // TODO Weighted? Negative points to push away?
+        // TODO Abstract this to arbitrary fits.
+        cnVectorMean(
+          valueCount, distribution->mean, posPointsIn.count, posPointsIn.items
+        );
+        cnListClear(&posPointsIn);
+        if (!cnChooseThreshold(
+          pointBag->bag->label,
+          distanceFunction, pointBags, &fittedScore, &threshold,
+          &posPointsIn, NULL
+        )) cnFailTo(DONE, "Search failed.");
+        if (fittedScore < score) {
+          // TODO This happens frequently, even for better end results. Why?
+          printf("Fit worse (%.2lf < %.2lf)! ", fittedScore, score);
         }
 
         printf("(");
@@ -874,10 +871,11 @@ cnFloat cnChooseThresholdWithDistances(
   // See if points are wanted, and provide those if so.
   if (nearPosPoints || nearNegPoints) {
     for (dist = dists; dist < distsEnd; dist++) {
-      // TODO Remove redundancy of <= (or '! <=' as '>' here)!!!
-      if (dist->edge == cnChooseThreshold_Near) {
+      // Both near and both are good enough.
+      if (dist->edge != cnChooseThreshold_Far) {
         cnList(cnFloat)* nearPoints;
         // See if we've passed the insides.
+        // TODO Remove redundancy of <= (or '! <=' as '>' here)!!!
         if (dist->distance->near > threshold) break;
         // It's a near distance, so that's what we want. See if pos or neg.
         // TODO Rename pos and neg for matching and non-matching??? The idea is
