@@ -265,9 +265,20 @@ cnBool cnvPickFunctions(cnList(cnEntityFunction*)* functions, cnType* type) {
         // Actually, skip this N^2 thing for now. For many items per bag and few
         // bags, this is both extremely slow and allows overfit, since there are
         // so many options to consider.
-        continue;
+        //continue;
       }
+
+      // Distance.
       if (!(distance = cnEntityFunctionCreateDistance(function))) {
+        cnFailTo(FAIL, "No distance %s.", cnStr(&function->name));
+      }
+      if (!cnListPush(functions, &distance)) {
+        cnEntityFunctionDrop(distance);
+        cnFailTo(FAIL, "Function %s not pushed.", cnStr(&distance->name));
+      }
+
+      // Difference.
+      if (!(distance = cnEntityFunctionCreateDifference(function))) {
         cnFailTo(FAIL, "No distance %s.", cnStr(&function->name));
       }
       if (!cnListPush(functions, &distance)) {

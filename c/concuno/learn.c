@@ -403,7 +403,7 @@ cnBool cnBestPointByScore(
   cnFunction** bestFunction, cnFloat* bestThreshold
 ) {
   cnFloat bestScore = -HUGE_VAL, score = bestScore;
-  cnCount negBagCount = 0, posBagCount = 0, maxEitherBags = 8;
+  cnCount negBagsLeft = 8, posBagsLeft = 8;
   cnList(cnFloat) posPointsIn;
   cnBool result = cnFalse;
   cnFloat threshold;
@@ -446,11 +446,13 @@ cnBool cnBestPointByScore(
     cnFloat* matrixEnd = point + pointBag->pointCount * valueCount;
 
     // See if we have already looked at enough bags.
-    if (posBagCount >= maxEitherBags && negBagCount >= maxEitherBags) break;
+    if (!(posBagsLeft || negBagsLeft)) break;
     if (pointBag->bag->label) {
-      if (posBagCount++ >= maxEitherBags) continue;
+      if (!posBagsLeft) continue;
+      posBagsLeft--;
     } else {
-      if (negBagCount++ >= maxEitherBags) continue;
+      if (!negBagsLeft) continue;
+      negBagsLeft--;
     }
 
     // Guess we're going to try this one out.
@@ -507,22 +509,25 @@ cnBool cnBestPointByScore(
       if (score > bestScore) {
         cnFloat fittedScore = -HUGE_VAL;
 
-        // Fit the distribution to the contained points.
-        // TODO Loop this fit and schec
-        // TODO Weighted? Negative points to push away?
-        // TODO Abstract this to arbitrary fits.
-        cnVectorMean(
-          valueCount, distribution->mean, posPointsIn.count, posPointsIn.items
-        );
-        cnListClear(&posPointsIn);
-        if (!cnChooseThreshold(
-          pointBag->bag->label,
-          distanceFunction, pointBags, &fittedScore, &threshold,
-          &posPointsIn, NULL
-        )) cnFailTo(DONE, "Search failed.");
-        if (fittedScore < score) {
-          // TODO This happens frequently, even for better end results. Why?
-          printf("Fit worse (%.2lf < %.2lf)! ", fittedScore, score);
+        // Leave out fitting for now. Something's not right with it.
+        if (cnFalse) {
+          // Fit the distribution to the contained points.
+          // TODO Loop this fit and check for convergence.
+          // TODO Weighted? Negative points to push away?
+          // TODO Abstract this to arbitrary fits.
+          cnVectorMean(
+            valueCount, distribution->mean, posPointsIn.count, posPointsIn.items
+          );
+          cnListClear(&posPointsIn);
+          if (!cnChooseThreshold(
+            pointBag->bag->label,
+            distanceFunction, pointBags, &fittedScore, &threshold,
+            &posPointsIn, NULL
+          )) cnFailTo(DONE, "Search failed.");
+          if (fittedScore < score) {
+            // TODO This happens frequently, even for better end results. Why?
+            printf("Fit worse (%.2lf < %.2lf)! ", fittedScore, score);
+          }
         }
 
         printf("(");
@@ -846,7 +851,7 @@ cnFloat cnChooseThresholdWithDistances(
     //    );
     if (currentScore > bestScore) {
       threshold = cnChooseThreshold_edgeDist(dist);
-      if (dist < distsEnd) {
+      if (dist < distsEnd - 1) {
         // Actually go halfway to the next, if there is one.
         threshold = (threshold + cnChooseThreshold_edgeDist(dist + 1)) / 2;
       }
@@ -1323,6 +1328,9 @@ cnLeafNode* cnPickBestLeaf(cnRootNode* tree, cnList(cnBag)* bags) {
     cnBindingBag* noEnd;
     cnFloat score;
 
+    // If this group is empty, just skip it.
+    if (!group->bindingBags.count) continue;
+
     // Try to allocate maximal space in advance, so we don't have trouble later.
     // Just seems simpler (for cleanup) and not likely to be a memory issue.
     if (!cnListExpandMulti(&noGroup->bindingBags, group->bindingBags.count)) {
@@ -1608,7 +1616,7 @@ cnRootNode* cnTryExpansionsAtLeaf(cnLearnerConfig* config, cnLeafNode* leaf) {
   } cnEnd;
 
   // Significance test.
-  if (bestTree && bestPValue < 0.05) {
+  if (bestTree && bestPValue < 0.1) {
     // Good to go! TODO Multiple comparisons problem!!!
     goto DONE;
   }

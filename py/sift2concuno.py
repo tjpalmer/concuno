@@ -1,5 +1,12 @@
 #!/usr/bin/env python
 
+
+"""
+Runs SIFT demo software on a set of images, then parses the result files to
+convert them to a feature table usable by concuno.
+"""
+
+
 def combine_sift(dir):
     from os import listdir
     from os.path import join
@@ -38,7 +45,9 @@ def combine_sift(dir):
                         raise ValueError(
                             'Unexpected feature count: %d' % feature_count)
 
+
 data_dir = '../temp/images'
+
 
 def main():
     from os import listdir
@@ -59,6 +68,7 @@ def main():
                     if other > file and is_input_image(other):
                         match_sift(dir, file, other)
     print 'Done!'
+
 
 def match_sift(dir, file1, file2):
     from os import mkdir
@@ -84,6 +94,7 @@ def match_sift(dir, file1, file2):
             ], output_file
         print 'Output: %s' % output_file
 
+
 def read_features(input, line_number, feature_size):
     while True:
         # See if we have a feature line.
@@ -102,6 +113,7 @@ def read_features(input, line_number, feature_size):
             values += input.readline().split()
             line_number += 1
         yield values
+
 
 def sift(dir, file):
     from os.path import getsize, isfile, join
@@ -123,10 +135,13 @@ def sift(dir, file):
                 call(sift_exe, stdin=input, stdout=output)
             print 'Output: %s' % output_file
 
+
 sift_dir = '../temp/siftDemoV4'
+
 
 def sift_text_file(original_image_file):
     return 'sift_' + original_image_file.replace('.pgm', '.txt')
+
 
 if __name__ == '__main__':
     main()
