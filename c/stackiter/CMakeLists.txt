@@ -8,7 +8,7 @@ add_executable(
 
 target_link_libraries(
   stackiter-learn
-  concuno
+  concuno-static
   #${blas_LIBRARY}
   #${cblas_LIBRARY}
   ${math_LIBRARY}

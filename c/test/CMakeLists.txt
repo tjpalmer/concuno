@@ -5,6 +5,6 @@ add_executable(
 
 target_link_libraries(
   concuno-test
-  concuno
+  concuno-static
   ${math_LIBRARY}
 )

@@ -1,10 +1,10 @@
 add_executable(
-  vision-learn
-  vision-learn.c
+  concuno-run
+  run.c
 )
 
 target_link_libraries(
-  vision-learn
-  concuno
+  concuno-run
+  concuno-static
   ${math_LIBRARY}
 )

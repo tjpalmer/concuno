@@ -1,6 +1,6 @@
 subdirs(
   concuno
+  run
   stackiter
   test
-  vision
 )

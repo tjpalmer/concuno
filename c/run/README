@@ -1,0 +1,6 @@
+This is the main application for concuno, loading data in tabular form and used
+like so:
+
+concuno-run features_table.txt labels_table.txt Label
+
+Yes, I need more documentation than that.
