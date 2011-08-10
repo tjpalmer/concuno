@@ -24,6 +24,30 @@ typedef double cnFloat;
 typedef long cnIndex;
 
 
+/**
+ * Pointer to an array of unknown count of anything.
+ */
+typedef void* cnArrAny;
+
+
+/**
+ * Pointer to an array of unknown count of a particular type.
+ */
+#define cnArr(Type) Type*
+
+
+/**
+ * Pointer to a single anything.
+ */
+typedef void* cnRefAny;
+
+
+/**
+ * Pointer to one thing of a particular type.
+ */
+#define cnRef(Type) Type*
+
+
 typedef struct cnList {
   cnCount count;
   cnCount itemSize;
@@ -46,6 +70,9 @@ typedef cnList(char) cnString;
 
 /**
  * Stores an ND array of items.
+ *
+ * TODO It would actually be good to use this sometime. For now, I just hack
+ * TODO Lists into submission.
  */
 typedef struct cnGridAny {
 
@@ -72,6 +99,12 @@ typedef struct cnGridAny {
 } cnGridAny;
 
 
+/**
+ * Faux generics. Use this rather than cnGridAny, when you can.
+ */
+#define cnGrid(Type) cnGridAny
+
+
 #define cnFailTo(label, message, ...) { \
   printf(message "\n", ## __VA_ARGS__); \
   goto label; \
@@ -79,9 +112,47 @@ typedef struct cnGridAny {
 
 
 /**
- * Faux generics. Use this rather than cnGridAny, when you can.
+ * A binary heap usable as a priority queue.
+ *
+ * I'm experimenting with providing this only in pointer form, as I've more than
+ * once needed to change from expanded to pointer form,
  */
-#define cnGrid(Type) cnGridAny
+typedef cnRef(struct{
+
+  /**
+   * Set this if you need extra information for comparing items.
+   */
+  cnRefAny info;
+
+  /**
+   * The items in the heap. Note that items are always pointers.
+   *
+   * TODO After complaining about expanded forms, I want to use an expanded list
+   * TODO here. I really like tying its life in here. Grr.
+   */
+  cnList(cnRefAny) items;
+
+  /**
+   * Set to non-null if you want automatic info destruction.
+   */
+  cnBool (*destroyInfo)(cnRefAny info);
+
+  /**
+   * Set to non-null if you want automatic item destruction.
+   *
+   * Called before destroyInfo.
+   */
+  cnBool (*destroyItem)(cnRefAny info, cnRefAny item);
+
+  /**
+   * Says whether a is less than b.
+   */
+  cnBool (*less)(cnRefAny info, cnRefAny a, cnRefAny b);
+
+}) cnHeapAny;
+
+
+#define cnHeap(Type) cnHeapAny
 
 
 /**
@@ -102,6 +173,27 @@ cnBool cnGridInit2d(cnGridAny* grid, cnCount nrows, cnCount ncols);
  * requested.
  */
 cnBool cnGridInitNd(cnGridAny* grid, const cnList(cnCount)* dims);
+
+
+/**
+ * All the contents will be cleared out and/or init'd. You still need to set at
+ * least the less function for things work, though.
+ *
+ * TODO An option for initial contents for O(n) heapify?
+ */
+cnHeapAny cnHeapCreate(void);
+
+
+void cnHeapDestroy(cnHeapAny heap);
+
+
+cnRefAny cnHeapPeek(cnHeapAny heap);
+
+
+cnRefAny cnHeapPull(cnHeapAny heap);
+
+
+void cnHeapPush(cnHeapAny heap, cnRefAny item);
 
 
 /**

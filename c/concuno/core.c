@@ -4,6 +4,55 @@
 #include "core.h"
 
 
+cnHeapAny cnHeapCreate(void) {
+  cnHeapAny heap = malloc(sizeof(cnHeapAny));
+  if (!heap) cnFailTo(DONE, "No heap.");
+  heap->destroyInfo = NULL;
+  heap->destroyItem = NULL;
+  heap->info = NULL;
+  cnListInit(&heap->items, sizeof(cnRefAny));
+  heap->less = NULL;
+  DONE:
+  return heap;
+}
+
+
+void cnHeapDestroy(cnHeapAny heap) {
+  // Items.
+  if (heap->destroyItem) {
+    cnListEachBegin(&heap->items, cnRefAny, item) {
+      heap->destroyItem(heap->info, *item);
+    } cnEnd;
+  }
+  cnListDispose(&heap->items);
+
+  // Info.
+  if (heap->destroyInfo) heap->destroyInfo(heap->info);
+
+  // Heap.
+  // TODO Clear everything out for extra safety?
+  free(heap);
+}
+
+
+cnRefAny cnHeapPeek(cnHeapAny heap) {
+  // Dereference to the stored pointer, if we have anything.
+  return heap->items.items ? *(cnRef(cnRefAny))heap->items.items : NULL;
+}
+
+
+cnRefAny cnHeapPull(cnHeapAny heap) {
+  cnRefAny pulled = cnHeapPeek(heap);
+  // TODO Remove it from the heap.
+  return pulled;
+}
+
+
+void cnHeapPush(cnHeapAny heap, cnRefAny item) {
+  // TODO
+}
+
+
 cnBool cnIsNaN(cnFloat x) {
   // TODO _isnan for Windows?
   #ifdef isnan
