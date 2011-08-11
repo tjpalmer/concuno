@@ -11,6 +11,9 @@
 void testBinomial(void);
 
 
+void testHeap(void);
+
+
 void testMultinomial(void);
 
 
@@ -24,20 +27,23 @@ void testUnitRand(void);
 
 
 int main(void) {
-  switch (1) {
-  case 0:
+  switch ('h') {
+  case 'b':
     testBinomial();
     break;
-  case 1:
+  case 'h':
+    testHeap();
+    break;
+  case 'm':
     testMultinomial();
     break;
-  case 2:
+  case 'p':
     testPermutations();
     break;
-  case 3:
+  case 'r':
     testPropagate();
     break;
-  case 4:
+  case 'u':
     testUnitRand();
     break;
   default:
@@ -81,6 +87,47 @@ void testBinomial(void) {
   DONE:
   cnBinomialDestroy(binomial);
   cnRandomDestroy(random);
+}
+
+
+void testHeap_destroyItem(cnRefAny unused, cnRefAny item) {
+  free(item);
+}
+
+cnBool testHeap_greater(cnRefAny unused, cnRefAny a, cnRefAny b) {
+  cnFloat indexA = *(cnRef(cnFloat))a;
+  cnFloat indexB = *(cnRef(cnFloat))b;
+  // Make it a max heap for kicks.
+  return indexA > indexB;
+}
+
+#define testHeap_COUNT 10
+
+void testHeap(void) {
+  cnHeap(cnIndex) heap = cnHeapCreate(testHeap_greater);
+  cnIndex i;
+  if (!heap) cnFailTo(DONE, "No heap.");
+
+  // Load the heap.
+  heap->destroyItem = testHeap_destroyItem;
+  for (i = 0; i < testHeap_COUNT; i++) {
+    cnFloat* number = malloc(sizeof(cnFloat));
+    if (!number) cnFailTo(DONE, "No float %ld.", i);
+    *number = cnUnitRand();
+    if (!cnHeapPush(heap, number)) cnFailTo(DONE, "No push %ld.", i);
+  }
+
+  // Drain the heap.
+  printf("Pulling: ");
+  while (heap->items.count) {
+    cnFloat* number = cnHeapPull(heap);
+    printf(" %lf", *number);
+    free(number);
+  }
+  printf("\n");
+
+  DONE:
+  cnHeapDestroy(heap);
 }
 
 

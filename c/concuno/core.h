@@ -117,7 +117,7 @@ typedef struct cnGridAny {
  * I'm experimenting with providing this only in pointer form, as I've more than
  * once needed to change from expanded to pointer form,
  */
-typedef cnRef(struct{
+typedef struct cnHeapStruct {
 
   /**
    * Set this if you need extra information for comparing items.
@@ -142,16 +142,22 @@ typedef cnRef(struct{
    *
    * Called before destroyInfo.
    */
-  cnBool (*destroyItem)(cnRefAny info, cnRefAny item);
+  void (*destroyItem)(cnRefAny info, cnRefAny item);
 
   /**
    * Says whether a is less than b.
    */
   cnBool (*less)(cnRefAny info, cnRefAny a, cnRefAny b);
 
-}) cnHeapAny;
+}* cnHeapAny;
 
 
+/**
+ * Since all heaps here are of pointers, it might be good enough form just to
+ * say cnHeap(cnIndex) to mean a heap of _pointers_ to indices, for example.
+ * It's just convention, and saying cnHeap(cnRef(cnIndex)) or even just
+ * cnHeap(cnIndex*) could be a bother.
+ */
 #define cnHeap(Type) cnHeapAny
 
 
@@ -181,7 +187,7 @@ cnBool cnGridInitNd(cnGridAny* grid, const cnList(cnCount)* dims);
  *
  * TODO An option for initial contents for O(n) heapify?
  */
-cnHeapAny cnHeapCreate(void);
+cnHeapAny cnHeapCreate(cnBool (*less)(cnRefAny info, cnRefAny a, cnRefAny b));
 
 
 void cnHeapDestroy(cnHeapAny heap);
@@ -193,7 +199,7 @@ cnRefAny cnHeapPeek(cnHeapAny heap);
 cnRefAny cnHeapPull(cnHeapAny heap);
 
 
-void cnHeapPush(cnHeapAny heap, cnRefAny item);
+cnBool cnHeapPush(cnHeapAny heap, cnRefAny item);
 
 
 /**

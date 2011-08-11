@@ -4,20 +4,51 @@
 #include "core.h"
 
 
-cnHeapAny cnHeapCreate(void) {
-  cnHeapAny heap = malloc(sizeof(cnHeapAny));
+/**
+ * Bubbles the item at the given index down the heap.
+ */
+void cnHeapDown(cnHeapAny heap, cnIndex index);
+
+
+/**
+ * Provides the kids of the given parent index, using -1 to mean no such kid.
+ */
+void cnHeapKids(
+  cnHeapAny heap, cnIndex parentIndex,
+  cnRef(cnIndex) kid1Index, cnRef(cnIndex) kid2Index
+);
+
+
+/**
+ * Provides the parent of the given kid index, providing -1 for no parent (in
+ * the case of the root at index 0).
+ */
+cnIndex cnHeapParent(cnHeapAny heap, cnIndex kidIndex);
+
+
+/**
+ * Bubbles the item at the given index up the heap.
+ */
+void cnHeapUp(cnHeapAny heap, cnIndex index);
+
+
+cnHeapAny cnHeapCreate(cnBool (*less)(cnRefAny info, cnRefAny a, cnRefAny b)) {
+  cnHeapAny heap = malloc(sizeof(struct cnHeapStruct));
   if (!heap) cnFailTo(DONE, "No heap.");
   heap->destroyInfo = NULL;
   heap->destroyItem = NULL;
   heap->info = NULL;
   cnListInit(&heap->items, sizeof(cnRefAny));
-  heap->less = NULL;
+  heap->less = less;
   DONE:
   return heap;
 }
 
 
 void cnHeapDestroy(cnHeapAny heap) {
+  // No op on null.
+  if (!heap) return;
+
   // Items.
   if (heap->destroyItem) {
     cnListEachBegin(&heap->items, cnRefAny, item) {
@@ -35,6 +66,76 @@ void cnHeapDestroy(cnHeapAny heap) {
 }
 
 
+void cnHeapDown(cnHeapAny heap, cnIndex index) {
+  while (index >= 0) {
+    cnRef(cnRefAny) item = ((cnArr(cnRefAny))heap->items.items) + index;
+    cnIndex kidIndex;
+    cnRef(cnRefAny) kidItem;
+    cnIndex kid2Index;
+
+    // Find the kids, and see if they exist.
+    cnHeapKids(heap, index, &kidIndex, &kid2Index);
+    if (kidIndex >= 0) {
+      // Presume swapping with kid 1 for now.
+      kidItem = ((cnArr(cnRefAny)) heap->items.items) + kidIndex;
+    } else {
+      // We're at the bottom.
+      break;
+    }
+    if (kid2Index >= 0) {
+      cnRef(cnRefAny) kid2Item =
+        ((cnArr(cnRefAny))heap->items.items) + kid2Index;
+      // TODO Error checking on less? It hypothetically could fail ...
+      if (heap->less(heap, *kid2Item, *kidItem)) {
+        // Actually, kid 2 is smaller, so use it.
+        kidIndex = kid2Index;
+        kidItem = kid2Item;
+      }
+    }
+
+    // Check position.
+    // TODO Error checking on less? It hypothetically could fail ...
+    if (heap->less(heap, *kidItem, *item)) {
+      // Swap with the lesser kid.
+      cnRefAny tempItem;
+      tempItem = *item;
+      *item = *kidItem;
+      *kidItem = tempItem;
+      // And move down the tree.
+      index = kidIndex;
+    } else {
+      // We don't need to go any further.
+      break;
+    }
+  }
+}
+
+
+void cnHeapKids(
+  cnHeapAny heap, cnIndex parentIndex,
+  cnRef(cnIndex) kid1Index, cnRef(cnIndex) kid2Index
+) {
+  // TODO Use a "B-Heap" or Emde Boas layout or some such for more efficient
+  // TODO memory access.
+  // The following is repetitive, but simple enough.
+  if (kid1Index) {
+    *kid1Index = 2 * parentIndex + 1;
+    if (*kid1Index >= heap->items.count) *kid1Index = -1;
+  }
+  if (kid2Index) {
+    *kid2Index = 2 * parentIndex + 2;
+    if (*kid2Index >= heap->items.count) *kid2Index = -1;
+  }
+}
+
+
+cnIndex cnHeapParent(cnHeapAny heap, cnIndex kidIndex) {
+  // TODO Use a "B-Heap" or Emde Boas layout or some such for more efficient
+  // TODO memory access.
+  return kidIndex ? (kidIndex - 1) / 2 : -1;
+}
+
+
 cnRefAny cnHeapPeek(cnHeapAny heap) {
   // Dereference to the stored pointer, if we have anything.
   return heap->items.items ? *(cnRef(cnRefAny))heap->items.items : NULL;
@@ -43,13 +144,53 @@ cnRefAny cnHeapPeek(cnHeapAny heap) {
 
 cnRefAny cnHeapPull(cnHeapAny heap) {
   cnRefAny pulled = cnHeapPeek(heap);
-  // TODO Remove it from the heap.
+  if (heap->items.count) {
+    // TODO With a different memory layout, is the last item still always legit?
+    // Swap the bottom item to the top.
+    // We always store pointers here, so hack the array type.
+    // For the last item, this is inefficient, but that's not a common use case.
+    ((cnArr(cnRefAny))heap->items.items)[0] =
+      ((cnArr(cnRefAny))heap->items.items)[heap->items.count - 1];
+    ((cnArr(cnRefAny))heap->items.items)[heap->items.count - 1] = NULL;
+    // We always remove the last, so this is easy.
+    heap->items.count--;
+    cnHeapDown(heap, 0);
+  } else {
+    // TODO Error or okay to pull from an empty heap?
+  }
   return pulled;
 }
 
 
-void cnHeapPush(cnHeapAny heap, cnRefAny item) {
-  // TODO
+cnBool cnHeapPush(cnHeapAny heap, cnRefAny item) {
+  cnBool result = cnFalse;
+  if (!cnListPush(&heap->items, &item)) cnFailTo(DONE, "No push.");
+  cnHeapUp(heap, heap->items.count - 1);
+  result = cnTrue;
+  DONE:
+  return result;
+}
+
+
+void cnHeapUp(cnHeapAny heap, cnIndex index) {
+  while (index) {
+    cnRef(cnRefAny) item = ((cnArr(cnRefAny))heap->items.items) + index;
+    cnIndex parentIndex = cnHeapParent(heap, index);
+    cnRef(cnRefAny) parentItem =
+      ((cnArr(cnRefAny))heap->items.items) + parentIndex;
+    // TODO Error checking on less? It hypothetically could fail ...
+    if (heap->less(heap->info, *item, *parentItem)) {
+      // Swap parent and kid.
+      cnRefAny temp = *parentItem;
+      *parentItem = *item;
+      *item = temp;
+      // And keep moving up the tree.
+      index = parentIndex;
+    } else {
+      // All good now.
+      break;
+    }
+  }
 }
 
 
