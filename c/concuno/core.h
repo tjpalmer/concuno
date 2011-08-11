@@ -117,7 +117,7 @@ typedef struct cnGridAny {
  * I'm experimenting with providing this only in pointer form, as I've more than
  * once needed to change from expanded to pointer form,
  */
-typedef struct cnHeapStruct {
+typedef struct cnHeapAny {
 
   /**
    * Set this if you need extra information for comparing items.

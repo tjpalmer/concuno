@@ -11,6 +11,7 @@ add_library(concuno-static STATIC
   numpy-mtrand/distributions.c
   numpy-mtrand/initarray.c
   numpy-mtrand/randomkit.c
+  search.c
   stats.c
   tree.c
 )

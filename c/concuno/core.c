@@ -33,7 +33,7 @@ void cnHeapUp(cnHeapAny heap, cnIndex index);
 
 
 cnHeapAny cnHeapCreate(cnBool (*less)(cnRefAny info, cnRefAny a, cnRefAny b)) {
-  cnHeapAny heap = malloc(sizeof(struct cnHeapStruct));
+  cnHeapAny heap = malloc(sizeof(struct cnHeapAny));
   if (!heap) cnFailTo(DONE, "No heap.");
   heap->destroyInfo = NULL;
   heap->destroyItem = NULL;
