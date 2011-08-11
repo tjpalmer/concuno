@@ -117,8 +117,26 @@ void testHeap(void) {
     if (!cnHeapPush(heap, number)) cnFailTo(DONE, "No push %ld.", i);
   }
 
-  // Drain the heap.
-  printf("Pulling: ");
+  // Drain the heap partially.
+  printf("Pulling half: ");
+  while (heap->items.count > testHeap_COUNT / 2) {
+    cnFloat* number = cnHeapPull(heap);
+    printf(" %lf", *number);
+    free(number);
+  }
+  printf("\n");
+
+  // Load the heap again.
+  heap->destroyItem = testHeap_destroyItem;
+  for (i = 0; i < testHeap_COUNT / 2; i++) {
+    cnFloat* number = malloc(sizeof(cnFloat));
+    if (!number) cnFailTo(DONE, "No 2nd float %ld.", i);
+    *number = cnUnitRand();
+    if (!cnHeapPush(heap, number)) cnFailTo(DONE, "No 2nd push %ld.", i);
+  }
+
+  // Drain the heap completely.
+  printf("Pulling all: ");
   while (heap->items.count) {
     cnFloat* number = cnHeapPull(heap);
     printf(" %lf", *number);
