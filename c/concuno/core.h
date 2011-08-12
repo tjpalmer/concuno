@@ -182,6 +182,12 @@ cnBool cnGridInitNd(cnGridAny* grid, const cnList(cnCount)* dims);
 
 
 /**
+ * Clears out the heap contents, destroying the items if destroyItem is set.
+ */
+void cnHeapClear(cnHeapAny heap);
+
+
+/**
  * All the contents will be cleared out and/or init'd. You still need to set at
  * least the less function for things work, though.
  *

@@ -32,6 +32,16 @@ cnIndex cnHeapParent(cnHeapAny heap, cnIndex kidIndex);
 void cnHeapUp(cnHeapAny heap, cnIndex index);
 
 
+void cnHeapClear(cnHeapAny heap) {
+  if (heap->destroyItem) {
+    cnListEachBegin(&heap->items, cnRefAny, item) {
+      heap->destroyItem(heap->info, *item);
+    } cnEnd;
+  }
+  cnListClear(&heap->items);
+}
+
+
 cnHeapAny cnHeapCreate(cnBool (*less)(cnRefAny info, cnRefAny a, cnRefAny b)) {
   cnHeapAny heap = malloc(sizeof(struct cnHeapAny));
   if (!heap) cnFailTo(DONE, "No heap.");
@@ -50,18 +60,14 @@ void cnHeapDestroy(cnHeapAny heap) {
   if (!heap) return;
 
   // Items.
-  if (heap->destroyItem) {
-    cnListEachBegin(&heap->items, cnRefAny, item) {
-      heap->destroyItem(heap->info, *item);
-    } cnEnd;
-  }
+  cnHeapClear(heap);
   cnListDispose(&heap->items);
 
   // Info.
   if (heap->destroyInfo) heap->destroyInfo(heap->info);
 
   // Heap.
-  // TODO Clear everything out for extra safety?
+  // TODO Null everything out for extra safety?
   free(heap);
 }
 
