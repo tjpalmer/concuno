@@ -2,6 +2,8 @@
 #define concuno_core_h
 
 
+// TODO Abstract out standard libraries?
+#include <stdio.h>
 #include <stdlib.h>
 
 

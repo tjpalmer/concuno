@@ -506,6 +506,13 @@ cnBool cnTreeMaxLeafBags(
 
 
 /**
+ * Writes the tree to the given file, in a format readable by machines and
+ * people.
+ */
+cnBool cnTreeWrite(cnRootNode* tree, FILE* file);
+
+
+/**
  * Propagates a bags to the leaves, storing a leaf binding bag for each leaf.
  */
 cnBool cnTreePropagateBag(

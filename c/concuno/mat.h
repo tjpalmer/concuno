@@ -5,9 +5,8 @@
 // Linear algebra stuff goes here.
 
 
-// Try to abstract out these standard libraries?
+// TODO Abstract out standard libraries?
 #include <math.h>
-#include <stdio.h>
 
 #include "core.h"
 

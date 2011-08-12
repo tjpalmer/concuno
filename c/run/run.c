@@ -101,6 +101,10 @@ int main(int argc, char** argv) {
   learnedTree = cnLearnTree(&learner);
   if (!learnedTree) cnFailTo(DONE, "No learned tree.");
 
+  // Display the learned tree.
+  printf("\n");
+  cnTreeWrite(learnedTree, stdout);
+
   result = EXIT_SUCCESS;
 
   DONE:

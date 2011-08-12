@@ -1,5 +1,4 @@
 #include <math.h>
-#include <stdio.h>
 
 #include "cluster.h"
 #include "mat.h"

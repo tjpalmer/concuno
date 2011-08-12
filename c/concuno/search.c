@@ -1,5 +1,4 @@
 #include "search.h"
-#include <stdio.h>
 
 
 typedef struct cnSearcherSelf {

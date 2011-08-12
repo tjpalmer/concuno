@@ -1,5 +1,4 @@
 #include <assert.h>
-#include <stdio.h>
 #include <string.h>
 #include "mat.h"
 #include "tree.h"
@@ -1326,6 +1325,51 @@ cnBool cnTreePropagateBags(
 
   DONE:
   cnListDispose(&leafBindingBags);
+  return result;
+}
+
+cnBool cnTreeWrite_leaf(cnLeafNode* leaf, FILE* file, cnString* indent);
+cnBool cnTreeWrite_root(cnRootNode* root, FILE* file, cnString* indent);
+
+cnBool cnTreeWrite_any(cnNode* node, FILE* file, cnString* indent) {
+  cnBool result = cnFalse;
+  switch (node->type) {
+  case cnNodeTypeLeaf:
+    cnTreeWrite_leaf((cnLeafNode*)node, file, indent);
+    break;
+  case cnNodeTypeRoot:
+    cnTreeWrite_root((cnRootNode*)node, file, indent);
+    break;
+  case cnNodeTypeSplit:
+    break;
+  case cnNodeTypeVar:
+    break;
+  default:
+    cnFailTo(DONE, "No such type: %u", node->type);
+  }
+  result = cnTrue;
+  DONE:
+  return result;
+}
+
+cnBool cnTreeWrite_leaf(cnLeafNode* leaf, FILE* file, cnString* indent) {
+  // TODO Check error states?
+  fprintf(file, "%sLeaf %ld\n", cnStr(indent), leaf->node.id);
+  return cnTrue;
+}
+
+cnBool cnTreeWrite_root(cnRootNode* root, FILE* file, cnString* indent) {
+  // TODO Check error states?
+  fprintf(file, "%sRoot %ld\n", cnStr(indent), root->node.id);
+  return cnTrue;
+}
+
+cnBool cnTreeWrite(cnRootNode* tree, FILE* file) {
+  cnString indent;
+  cnBool result = cnFalse;
+  cnStringInit(&indent);
+  result = cnTreeWrite_any(&tree->node, file, &indent);
+  cnStringDispose(&indent);
   return result;
 }
 

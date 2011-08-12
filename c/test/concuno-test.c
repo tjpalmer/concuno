@@ -27,7 +27,7 @@ void testUnitRand(void);
 
 
 int main(void) {
-  switch ('h') {
+  switch ('r') {
   case 'b':
     testBinomial();
     break;
@@ -286,6 +286,11 @@ void testPropagate(void) {
   split->predicate->dispose = NULL;
   split->predicate->data = NULL;
   split->predicate->evaluate = testPropagate_EqualEvaluate;
+
+  // Print the tree while we're at it.
+  cnTreeWrite(&tree, stdout);
+  printf("\n");
+  cnFailTo(DONE, "Skipping prop. TODO Remove this failure!");
 
   // Prepare bogus data.
   for (c = data; *c; c++) {
