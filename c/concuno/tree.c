@@ -1328,39 +1328,131 @@ cnBool cnTreePropagateBags(
   return result;
 }
 
+void cnTreeWrite_dedent(cnString* indent);
+cnBool cnTreeWrite_indent(cnString* indent);
 cnBool cnTreeWrite_leaf(cnLeafNode* leaf, FILE* file, cnString* indent);
 cnBool cnTreeWrite_root(cnRootNode* root, FILE* file, cnString* indent);
+cnBool cnTreeWrite_split(cnSplitNode* split, FILE* file, cnString* indent);
+cnBool cnTreeWrite_var(cnVarNode* var, FILE* file, cnString* indent);
 
-cnBool cnTreeWrite_any(cnNode* node, FILE* file, cnString* indent) {
+void cnTreeWrite_dedent(cnString* indent) {
+  // TODO Some cnStringCountPut to considate this kind of thing?
+  indent->count -= 2;
+  ((char*)indent->items)[indent->count - 1] = '\0';
+}
+
+cnBool cnTreeWrite_indent(cnString* indent) {
+  return cnStringPushStr(indent, "  ");
+}
+
+cnBool cnTreeWrite_any(
+  cnNode* node, FILE* file, cnString* indent, char* delimiter
+) {
+  cnCount kidCount;
   cnBool result = cnFalse;
+
+  fprintf(file, "{\n");
+  if (!cnTreeWrite_indent(indent)) cnFailTo(DONE, "No indent.");
+
+  // Handle each node type.
   switch (node->type) {
   case cnNodeTypeLeaf:
-    cnTreeWrite_leaf((cnLeafNode*)node, file, indent);
+    if (!cnTreeWrite_leaf((cnLeafNode*)node, file, indent)) {
+      cnFailTo(DONE, "No leaf.");
+    }
     break;
   case cnNodeTypeRoot:
-    cnTreeWrite_root((cnRootNode*)node, file, indent);
+    if (!cnTreeWrite_root((cnRootNode*)node, file, indent)) {
+      cnFailTo(DONE, "No root.");
+    }
     break;
   case cnNodeTypeSplit:
+    if (!cnTreeWrite_split((cnSplitNode*)node, file, indent)) {
+      cnFailTo(DONE, "No split.");
+    }
     break;
   case cnNodeTypeVar:
+    if (!cnTreeWrite_var((cnVarNode*)node, file, indent)) {
+      cnFailTo(DONE, "No var.");
+    }
     break;
   default:
     cnFailTo(DONE, "No such type: %u", node->type);
   }
+
+  // Handle the kids, if any.
+  kidCount = cnNodeKidCount(node);
+  if (kidCount) {
+    cnIndex k;
+    cnNode** kids = cnNodeKids(node);
+    // TODO Check errors.
+    // TODO Does JSON allow single-quotes? (Stupid JSON quotes either way.)
+    fprintf(file, "%s'kids': [", cnStr(indent));
+    //if (!cnTreeWrite_indent(indent)) cnFailTo(DONE, "No indent.");
+    for (k = 0; k < kidCount; k++) {
+      char* delimiter = k < kidCount - 1 ? ", " : "";
+      cnTreeWrite_any(kids[k], file, indent, delimiter);
+      // Stupid no trailing JSON commas. TODO Or are they allowed?
+    }
+    //cnTreeWrite_dedent(indent);
+    fprintf(file, "]\n");
+  }
+
+  // Close the object.
+  cnTreeWrite_dedent(indent);
+  fprintf(file, "%s}%s", cnStr(indent), delimiter);
+
+  // Winned.
   result = cnTrue;
+
   DONE:
   return result;
 }
 
 cnBool cnTreeWrite_leaf(cnLeafNode* leaf, FILE* file, cnString* indent) {
   // TODO Check error states?
-  fprintf(file, "%sLeaf %ld\n", cnStr(indent), leaf->node.id);
+  fprintf(file, "%s'type': 'Leaf',\n", cnStr(indent));
+  fprintf(file, "%s'probability': %lg\n", cnStr(indent), leaf->probability);
   return cnTrue;
 }
 
 cnBool cnTreeWrite_root(cnRootNode* root, FILE* file, cnString* indent) {
   // TODO Check error states?
-  fprintf(file, "%sRoot %ld\n", cnStr(indent), root->node.id);
+  fprintf(file, "%s'type': 'Root',\n", cnStr(indent));
+  return cnTrue;
+}
+
+cnBool cnTreeWrite_split(cnSplitNode* split, FILE* file, cnString* indent) {
+  // TODO Check error states?
+  fprintf(file, "%s'type': 'Split',\n", cnStr(indent));
+  if (split->function) {
+    cnCount arity = split->function->inCount;
+    cnIndex i;
+
+    // Function name.
+    // TODO Escape strings (like function name)!!
+    fprintf(
+      file, "%s'function': '%s',\n",
+      cnStr(indent), cnStr(&split->function->name)
+    );
+
+    // Var indices.
+    fprintf(file, "%s'vars': [", cnStr(indent));
+    for (i = 0; i < arity; i++) {
+      if (i) fprintf(file, ", ");
+      fprintf(file, "%ld", split->varIndices[i]);
+    }
+    fprintf(file, "],\n");
+
+    // TODO Predicate.
+  }
+
+  return cnTrue;
+}
+
+cnBool cnTreeWrite_var(cnVarNode* var, FILE* file, cnString* indent) {
+  // TODO Check error states?
+  fprintf(file, "%s'type': 'Var',\n", cnStr(indent));
   return cnTrue;
 }
 
@@ -1368,7 +1460,7 @@ cnBool cnTreeWrite(cnRootNode* tree, FILE* file) {
   cnString indent;
   cnBool result = cnFalse;
   cnStringInit(&indent);
-  result = cnTreeWrite_any(&tree->node, file, &indent);
+  result = cnTreeWrite_any(&tree->node, file, &indent, "\n");
   cnStringDispose(&indent);
   return result;
 }
