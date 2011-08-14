@@ -1443,7 +1443,9 @@ cnBool cnTreeWrite_split(cnSplitNode* split, FILE* file, cnString* indent) {
     }
     fprintf(file, "],\n");
 
+    fprintf(file, "%s\"predicate\": {", cnStr(indent));
     // TODO Predicate.
+    fprintf(file, "},\n");
   }
 
   return cnTrue;
