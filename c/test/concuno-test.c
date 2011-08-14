@@ -284,7 +284,7 @@ void testPropagate(void) {
   }
   split->predicate->copy = NULL;
   split->predicate->dispose = NULL;
-  split->predicate->data = NULL;
+  split->predicate->info = NULL;
   split->predicate->evaluate = testPropagate_EqualEvaluate;
 
   // Print the tree while we're at it.

@@ -1386,15 +1386,13 @@ cnBool cnTreeWrite_any(
     cnIndex k;
     cnNode** kids = cnNodeKids(node);
     // TODO Check errors.
-    // TODO Does JSON allow single-quotes? (Stupid JSON quotes either way.)
-    fprintf(file, "%s'kids': [", cnStr(indent));
-    //if (!cnTreeWrite_indent(indent)) cnFailTo(DONE, "No indent.");
+    // Wouldn't it be great if JSON didn't require quotation marks on keys?
+    fprintf(file, "%s\"kids\": [", cnStr(indent));
     for (k = 0; k < kidCount; k++) {
       char* delimiter = k < kidCount - 1 ? ", " : "";
       cnTreeWrite_any(kids[k], file, indent, delimiter);
-      // Stupid no trailing JSON commas. TODO Or are they allowed?
+      // Stupid no trailing JSON commas.
     }
-    //cnTreeWrite_dedent(indent);
     fprintf(file, "]\n");
   }
 
@@ -1411,20 +1409,21 @@ cnBool cnTreeWrite_any(
 
 cnBool cnTreeWrite_leaf(cnLeafNode* leaf, FILE* file, cnString* indent) {
   // TODO Check error states?
-  fprintf(file, "%s'type': 'Leaf',\n", cnStr(indent));
-  fprintf(file, "%s'probability': %lg\n", cnStr(indent), leaf->probability);
+  fprintf(file, "%s\"type\": \"Leaf\",\n", cnStr(indent));
+  fprintf(file, "%s\"probability\": %lg\n", cnStr(indent), leaf->probability);
+  fprintf(file, "%s\"strength\": %lg\n", cnStr(indent), leaf->strength);
   return cnTrue;
 }
 
 cnBool cnTreeWrite_root(cnRootNode* root, FILE* file, cnString* indent) {
   // TODO Check error states?
-  fprintf(file, "%s'type': 'Root',\n", cnStr(indent));
+  fprintf(file, "%s\"type\": \"Root\",\n", cnStr(indent));
   return cnTrue;
 }
 
 cnBool cnTreeWrite_split(cnSplitNode* split, FILE* file, cnString* indent) {
   // TODO Check error states?
-  fprintf(file, "%s'type': 'Split',\n", cnStr(indent));
+  fprintf(file, "%s\"type\": \"Split\",\n", cnStr(indent));
   if (split->function) {
     cnCount arity = split->function->inCount;
     cnIndex i;
@@ -1432,12 +1431,12 @@ cnBool cnTreeWrite_split(cnSplitNode* split, FILE* file, cnString* indent) {
     // Function name.
     // TODO Escape strings (like function name)!!
     fprintf(
-      file, "%s'function': '%s',\n",
+      file, "%s\"function\": \"%s\",\n",
       cnStr(indent), cnStr(&split->function->name)
     );
 
     // Var indices.
-    fprintf(file, "%s'vars': [", cnStr(indent));
+    fprintf(file, "%s\"vars\": [", cnStr(indent));
     for (i = 0; i < arity; i++) {
       if (i) fprintf(file, ", ");
       fprintf(file, "%ld", split->varIndices[i]);
@@ -1452,7 +1451,7 @@ cnBool cnTreeWrite_split(cnSplitNode* split, FILE* file, cnString* indent) {
 
 cnBool cnTreeWrite_var(cnVarNode* var, FILE* file, cnString* indent) {
   // TODO Check error states?
-  fprintf(file, "%s'type': 'Var',\n", cnStr(indent));
+  fprintf(file, "%s\"type\": \"Var\",\n", cnStr(indent));
   return cnTrue;
 }
 

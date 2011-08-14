@@ -123,7 +123,7 @@ struct cnFunction {
  */
 struct cnPredicate {
 
-  void* data;
+  void* info;
 
   //  cnCount inCount;
   //
@@ -143,6 +143,15 @@ struct cnPredicate {
   cnBool (*evaluate)(cnPredicate* predicate, void* in);
 
 };
+
+
+typedef struct cnPredicateThresholdInfo {
+
+  cnFunction* distanceFunction;
+
+  cnFloat threshold;
+
+}* cnPredicateThresholdInfo;
 
 
 struct cnProperty {

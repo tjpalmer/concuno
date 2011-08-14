@@ -1717,8 +1717,9 @@ cnBool cnUpdateLeafProbabilitiesWithBindingBags(
       // rule of succession, introduced by Laplace. It's well founded.
       // TODO Still could parameterize the beta, if we want, but I hate
       // TODO parameters.
+      group->leaf->strength = total + 2 * bonus;
       group->leaf->probability = (total || bonus) ?
-        (posCount + bonus) / (total + 2 * bonus) : 0.5;
+        (posCount + bonus) / group->leaf->strength : 0.5;
 
       if (group->leaf->probability >= previousProb) {
         // This can happen in degenerate cases. Imagine leaves with the
@@ -1744,7 +1745,7 @@ cnBool cnUpdateLeafProbabilitiesWithBindingBags(
     } cnEnd;
     printf(
       "Leaf %ld with prob: %lf of %.2lf (really %lf of %ld)\n",
-      maxGroupIndex + 1, maxProb, maxTotal + 2 * bonus,
+      maxGroupIndex + 1, maxProb, maxGroup->leaf->strength,
       maxTotal ? maxPosCount / (cnFloat)maxTotal : 0.5, maxTotal
     );
     previousProb = maxProb;

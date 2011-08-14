@@ -131,7 +131,22 @@ typedef struct cnLeafNode {
 
   cnNode node;
 
+  /**
+   * The probability of a binding at this node belonging to the target concept.
+   */
   cnFloat probability;
+
+  /**
+   * The strength of the probability, based on the amount of data, including any
+   * prior. In max-per-bag mode, this is the number of bags for which this leaf
+   * is max (again plus any prior).
+   *
+   * This value might often (always currently?) be an integer value, but it's
+   * not necessarily limited to integers, in the general sense.
+   *
+   * TODO What would strength mean in independent bindings mode?
+   */
+  cnFloat strength;
 
 } cnLeafNode;
 

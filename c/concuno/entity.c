@@ -303,27 +303,22 @@ void cnPredicateDrop(cnPredicate* predicate) {
 }
 
 
-typedef struct {
-  cnFunction* distanceFunction;
-  cnFloat threshold;
-} cnPredicateCreateDistanceThreshold_Data;
-
 cnPredicate* cnPredicateCreateDistanceThreshold_Copy(cnPredicate* predicate) {
-  cnPredicateCreateDistanceThreshold_Data* data = predicate->data;
-  cnFunction* function = cnFunctionCopy(data->distanceFunction);
+  cnPredicateThresholdInfo info = predicate->info;
+  cnFunction* function = cnFunctionCopy(info->distanceFunction);
   cnPredicate* copy;
   // Copy even the function because there could be mutable data inside.
   if (!function) return NULL;
-  copy = cnPredicateCreateDistanceThreshold(function, data->threshold);
+  copy = cnPredicateCreateDistanceThreshold(function, info->threshold);
   if (!copy) cnFunctionDrop(function);
   return copy;
 }
 
 void cnPredicateCreateDistanceThreshold_Dispose(cnPredicate* predicate) {
-  cnPredicateCreateDistanceThreshold_Data* data = predicate->data;
-  cnFunctionDrop(data->distanceFunction);
-  free(data);
-  predicate->data = NULL;
+  cnPredicateThresholdInfo info = predicate->info;
+  cnFunctionDrop(info->distanceFunction);
+  free(info);
+  predicate->info = NULL;
   predicate->dispose = NULL;
   predicate->evaluate = NULL;
 }
@@ -331,7 +326,7 @@ void cnPredicateCreateDistanceThreshold_Dispose(cnPredicate* predicate) {
 cnBool cnPredicateCreateDistanceThreshold_Evaluate(
   cnPredicate* predicate, void* in
 ) {
-  cnPredicateCreateDistanceThreshold_Data* data = predicate->data;
+  cnPredicateThresholdInfo data = predicate->info;
   cnFloat distance;
   if (
     !data->distanceFunction->evaluate(data->distanceFunction, in, &distance)
@@ -348,19 +343,19 @@ cnPredicate* cnPredicateCreateDistanceThreshold(
   cnFunction* distanceFunction, cnFloat threshold
 ) {
   cnPredicate* predicate = malloc(sizeof(cnPredicate));
-  cnPredicateCreateDistanceThreshold_Data* data;
+  cnPredicateThresholdInfo info;
   if (!predicate) {
     return NULL;
   }
-  data = malloc(sizeof(cnPredicateCreateDistanceThreshold_Data));
-  if (!data) {
+  info = malloc(sizeof(struct cnPredicateThresholdInfo));
+  if (!info) {
     free(predicate);
     return NULL;
   }
   // Good to go.
-  data->distanceFunction = distanceFunction;
-  data->threshold = threshold;
-  predicate->data = data;
+  info->distanceFunction = distanceFunction;
+  info->threshold = threshold;
+  predicate->info = info;
   predicate->copy = cnPredicateCreateDistanceThreshold_Copy;
   predicate->dispose = cnPredicateCreateDistanceThreshold_Dispose;
   predicate->evaluate = cnPredicateCreateDistanceThreshold_Evaluate;
