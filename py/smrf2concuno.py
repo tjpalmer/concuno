@@ -11,8 +11,8 @@ def main():
     from os.path import join
     from time import strftime
     base = '../temp'
-    name = 'red_or_green_or_blue_or_yellow'
-    case = '20d'
+    name = 'rgb_triangle'
+    case = '10d'
     time = strftime('%Y%m%d')
     with open(join(base, 'smrf', name, case) + '.json') as file:
         bags, fields = json.load(file)

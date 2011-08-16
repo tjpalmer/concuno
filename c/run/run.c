@@ -264,7 +264,7 @@ cnBool cnvPickFunctions(cnList(cnEntityFunction*)* functions, cnType* type) {
       cnFailTo(FAIL, "Function not pushed.");
     }
     // TODO Distance (and difference?) angle, too?
-    if (!strcmp("Location", cnStr(&function->name))) {
+    if (cnTrue || !strcmp("Location", cnStr(&function->name))) {
       cnEntityFunction* distance;
       if (cnTrue) {
         // Actually, skip this N^2 thing for now. For many items per bag and few
