@@ -2,6 +2,7 @@
 #include <string.h>
 
 #include "entity.h"
+#include "io.h"
 
 
 void cnBagDispose(cnBag* bag) {
@@ -235,6 +236,11 @@ void cnFunctionDrop(cnFunction* function) {
 }
 
 
+cnBool cnFunctionWrite(cnFunction* function, FILE* file, cnString* indent) {
+  return function->write ? function->write(function, file, indent) : cnFalse;
+}
+
+
 /**
  * A helper for various composite entity functions.
  */
@@ -326,17 +332,47 @@ void cnPredicateCreateDistanceThreshold_Dispose(cnPredicate* predicate) {
 cnBool cnPredicateCreateDistanceThreshold_Evaluate(
   cnPredicate* predicate, void* in
 ) {
-  cnPredicateThresholdInfo data = predicate->info;
+  cnPredicateThresholdInfo info = predicate->info;
   cnFloat distance;
   if (
-    !data->distanceFunction->evaluate(data->distanceFunction, in, &distance)
+    !info->distanceFunction->evaluate(info->distanceFunction, in, &distance)
   ) {
     // TODO Something better than this abuse.
     return -1;
   }
   // TODO I'd prefer <, but need better a handling of bulks of equal distances
   // TODO in threshold choosing. I've hit the problem before.
-  return distance <= data->threshold;
+  return distance <= info->threshold;
+}
+
+cnBool cnPredicateCreateDistanceThreshold_write(
+  cnPredicate* predicate, FILE* file, cnString* indent
+) {
+  cnPredicateThresholdInfo info = predicate->info;
+  cnBool result = cnFalse;
+
+  // TODO Check error state?
+  fprintf(file, "{\n");
+  cnIndent(indent);
+  fprintf(file, "%s\"name\": \"DistanceThreshold\",\n", cnStr(indent));
+
+  // Distance function.
+  fprintf(file, "%s\"function\": ", cnStr(indent));
+  // TODO Check error!
+  cnFunctionWrite(info->distanceFunction, file, indent);
+  fprintf(file, ",\n");
+
+  // Threshold.
+  fprintf(file, "%s\"threshold\": %lg\n", cnStr(indent), info->threshold);
+
+  cnDedent(indent);
+  // TODO The real work.
+  fprintf(file, "%s}", cnStr(indent));
+
+  // Winned!
+  result = cnTrue;
+
+  return result;
 }
 
 cnPredicate* cnPredicateCreateDistanceThreshold(
@@ -359,7 +395,13 @@ cnPredicate* cnPredicateCreateDistanceThreshold(
   predicate->copy = cnPredicateCreateDistanceThreshold_Copy;
   predicate->dispose = cnPredicateCreateDistanceThreshold_Dispose;
   predicate->evaluate = cnPredicateCreateDistanceThreshold_Evaluate;
+  predicate->write = cnPredicateCreateDistanceThreshold_write;
   return predicate;
+}
+
+
+cnBool cnPredicateWrite(cnPredicate* predicate, FILE* file, cnString* indent) {
+  return predicate->write ? predicate->write(predicate, file, indent) : cnFalse;
 }
 
 

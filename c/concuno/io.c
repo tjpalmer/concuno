@@ -1,6 +1,18 @@
 #include "io.h"
 
 
+void cnDedent(cnString* indent) {
+  // TODO Some cnStringCountPut to considate this kind of thing?
+  indent->count -= 2;
+  ((char*)indent->items)[indent->count - 1] = '\0';
+}
+
+
+cnBool cnIndent(cnString* indent) {
+  return cnStringPushStr(indent, "  ");
+}
+
+
 char* cnParseStr(char* begin, char** end) {
   cnBool pastSpace = cnFalse;
   char* c;

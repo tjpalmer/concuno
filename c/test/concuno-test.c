@@ -218,7 +218,7 @@ void testPermutations(void) {
 }
 
 
-void testPropagate_CharsDiffGet(
+void testPropagate_charsDiffGet(
   cnEntityFunction* function, cnEntity* ins, void* outs
 ) {
   char a = *(char*)(ins[0]);
@@ -232,8 +232,27 @@ void testPropagate_CharsDiffGet(
   }
 }
 
-cnBool testPropagate_EqualEvaluate(cnPredicate* predicate, void* in) {
+cnBool testPropagate_equalEvaluate(cnPredicate* predicate, void* in) {
   return !*(cnFloat*)in;
+}
+
+cnBool testPropagate_write(
+  cnPredicate* predicate, FILE* file, cnString* indent
+) {
+  cnBool result = cnFalse;
+
+  // TODO Check error state?
+  fprintf(file, "{");
+  if (predicate->evaluate == testPropagate_equalEvaluate) {
+    fprintf(file, "\"evaluate\": \"Equal\"");
+  } else cnFailTo(DONE, "Unknown evaluate.");
+  fprintf(file, "}");
+
+  // Winned!
+  result = cnTrue;
+
+  DONE:
+  return result;
 }
 
 void testPropagate(void) {
@@ -259,7 +278,7 @@ void testPropagate(void) {
   if (!(entityFunction = cnEntityFunctionCreate("CharsDiff", 2, 1))) {
     cnFailTo(DONE, "No function.");
   }
-  entityFunction->get = testPropagate_CharsDiffGet;
+  entityFunction->get = testPropagate_charsDiffGet;
   entityFunction->outType = type;
 
   // Add var nodes.
@@ -285,12 +304,12 @@ void testPropagate(void) {
   split->predicate->copy = NULL;
   split->predicate->dispose = NULL;
   split->predicate->info = NULL;
-  split->predicate->evaluate = testPropagate_EqualEvaluate;
+  split->predicate->evaluate = testPropagate_equalEvaluate;
+  split->predicate->write = testPropagate_write;
 
   // Print the tree while we're at it.
   cnTreeWrite(&tree, stdout);
-  printf("\n");
-  cnFailTo(DONE, "Skipping prop. TODO Remove this failure!");
+  printf("\n\n");
 
   // Prepare bogus data.
   for (c = data; *c; c++) {

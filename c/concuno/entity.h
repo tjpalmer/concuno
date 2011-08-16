@@ -99,10 +99,12 @@ struct cnEntityFunction {
 
 /**
  * Just a generic function with private data. The meaning depends on context.
+ *
+ * TODO Unify function and predicate! (Maybe even fold in entity function?)
  */
 struct cnFunction {
 
-  void* data;
+  void* info;
 
   // TODO Name or types or anything?
 
@@ -114,6 +116,14 @@ struct cnFunction {
    * Return value indicates status.
    */
   cnBool (*evaluate)(cnFunction* function, void* in, void* out);
+
+  /**
+   * Writes the predicate in JSON format without surrounding whitespace.
+   *
+   * TODO Instead provide structured, reflective access (such as via property
+   * TODO metadata or hashtables), and have various IO elsewhere?
+   */
+  cnBool (*write)(cnFunction* function, FILE* file, cnString* indent);
 
 };
 
@@ -141,6 +151,14 @@ struct cnPredicate {
    * TODO Error indicated by result other than true or false? Maybe too sneaky.
    */
   cnBool (*evaluate)(cnPredicate* predicate, void* in);
+
+  /**
+   * Writes the predicate in JSON format without surrounding whitespace.
+   *
+   * TODO Instead provide structured, reflective access (such as via property
+   * TODO metadata or hashtables), and have various IO elsewhere?
+   */
+  cnBool (*write)(cnPredicate* predicate, FILE* file, cnString* indent);
 
 };
 
@@ -298,6 +316,13 @@ void cnPredicateDrop(cnPredicate* predicate);
 cnPredicate* cnPredicateCreateDistanceThreshold(
   cnFunction* distanceFunction, cnFloat threshold
 );
+
+
+/**
+ * Uses the predicate's write function to write itself to the file as a JSON
+ * object.
+ */
+cnBool cnPredicateWrite(cnPredicate* predicate, FILE* file, cnString* indent);
 
 
 /**

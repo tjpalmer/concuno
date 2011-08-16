@@ -248,6 +248,11 @@ cnBool stLearnConcept(
     goto DISPOSE_LEARNER;
   }
 
+  // Display the learned tree.
+  printf("\n");
+  cnTreeWrite(learnedTree, stdout);
+  printf("\n");
+
   // We made it!
   // TODO Any stats?
   result = cnTrue;

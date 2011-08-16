@@ -1,5 +1,7 @@
 #include <assert.h>
 #include <string.h>
+
+#include "io.h"
 #include "mat.h"
 #include "tree.h"
 
@@ -1328,31 +1330,17 @@ cnBool cnTreePropagateBags(
   return result;
 }
 
-void cnTreeWrite_dedent(cnString* indent);
-cnBool cnTreeWrite_indent(cnString* indent);
 cnBool cnTreeWrite_leaf(cnLeafNode* leaf, FILE* file, cnString* indent);
 cnBool cnTreeWrite_root(cnRootNode* root, FILE* file, cnString* indent);
 cnBool cnTreeWrite_split(cnSplitNode* split, FILE* file, cnString* indent);
 cnBool cnTreeWrite_var(cnVarNode* var, FILE* file, cnString* indent);
 
-void cnTreeWrite_dedent(cnString* indent) {
-  // TODO Some cnStringCountPut to considate this kind of thing?
-  indent->count -= 2;
-  ((char*)indent->items)[indent->count - 1] = '\0';
-}
-
-cnBool cnTreeWrite_indent(cnString* indent) {
-  return cnStringPushStr(indent, "  ");
-}
-
-cnBool cnTreeWrite_any(
-  cnNode* node, FILE* file, cnString* indent, char* delimiter
-) {
+cnBool cnTreeWrite_any(cnNode* node, FILE* file, cnString* indent) {
   cnCount kidCount;
   cnBool result = cnFalse;
 
   fprintf(file, "{\n");
-  if (!cnTreeWrite_indent(indent)) cnFailTo(DONE, "No indent.");
+  if (!cnIndent(indent)) cnFailTo(DONE, "No indent.");
 
   // Handle each node type.
   switch (node->type) {
@@ -1389,19 +1377,25 @@ cnBool cnTreeWrite_any(
     // Wouldn't it be great if JSON didn't require quotation marks on keys?
     fprintf(file, "%s\"kids\": [", cnStr(indent));
     for (k = 0; k < kidCount; k++) {
-      char* delimiter = k < kidCount - 1 ? ", " : "";
-      cnTreeWrite_any(kids[k], file, indent, delimiter);
-      // Stupid no trailing JSON commas.
+      if (!cnTreeWrite_any(kids[k], file, indent)) {
+        cnFailTo(CLOSE, "No kid write.");
+      }
+      if (k < kidCount - 1) {
+        // Stupid no trailing JSON commas.
+        fprintf(file, ", ");
+      }
     }
     fprintf(file, "]\n");
   }
 
-  // Close the object.
-  cnTreeWrite_dedent(indent);
-  fprintf(file, "%s}%s", cnStr(indent), delimiter);
-
   // Winned.
   result = cnTrue;
+
+  CLOSE:
+  // Need to dedent if indented.
+  cnDedent(indent);
+  // Close the object.
+  fprintf(file, "%s}", cnStr(indent));
 
   DONE:
   return result;
@@ -1410,7 +1404,7 @@ cnBool cnTreeWrite_any(
 cnBool cnTreeWrite_leaf(cnLeafNode* leaf, FILE* file, cnString* indent) {
   // TODO Check error states?
   fprintf(file, "%s\"type\": \"Leaf\",\n", cnStr(indent));
-  fprintf(file, "%s\"probability\": %lg\n", cnStr(indent), leaf->probability);
+  fprintf(file, "%s\"probability\": %lg,\n", cnStr(indent), leaf->probability);
   fprintf(file, "%s\"strength\": %lg\n", cnStr(indent), leaf->strength);
   return cnTrue;
 }
@@ -1422,6 +1416,8 @@ cnBool cnTreeWrite_root(cnRootNode* root, FILE* file, cnString* indent) {
 }
 
 cnBool cnTreeWrite_split(cnSplitNode* split, FILE* file, cnString* indent) {
+  cnBool result = cnFalse;
+
   // TODO Check error states?
   fprintf(file, "%s\"type\": \"Split\",\n", cnStr(indent));
   if (split->function) {
@@ -1443,12 +1439,18 @@ cnBool cnTreeWrite_split(cnSplitNode* split, FILE* file, cnString* indent) {
     }
     fprintf(file, "],\n");
 
-    fprintf(file, "%s\"predicate\": {", cnStr(indent));
-    // TODO Predicate.
-    fprintf(file, "},\n");
+    fprintf(file, "%s\"predicate\": ", cnStr(indent));
+    if (!cnPredicateWrite(split->predicate, file, indent)) {
+      cnFailTo(DONE, "No predicate write.");
+    }
+    fprintf(file, ",\n");
   }
 
-  return cnTrue;
+  // Winned!
+  result = cnTrue;
+
+  DONE:
+  return result;
 }
 
 cnBool cnTreeWrite_var(cnVarNode* var, FILE* file, cnString* indent) {
@@ -1461,7 +1463,8 @@ cnBool cnTreeWrite(cnRootNode* tree, FILE* file) {
   cnString indent;
   cnBool result = cnFalse;
   cnStringInit(&indent);
-  result = cnTreeWrite_any(&tree->node, file, &indent, "\n");
+  // TODO In future stream abstraction, store indent level directly.
+  result = cnTreeWrite_any(&tree->node, file, &indent);
   cnStringDispose(&indent);
   return result;
 }

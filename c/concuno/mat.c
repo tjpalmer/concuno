@@ -19,13 +19,20 @@ cnFloat cnSquaredEuclideanDistance(cnCount size, cnFloat* x, cnFloat* y) {
 }
 
 
-void cnVectorPrint(FILE* file, cnCount size, cnFloat* values){
+void cnVectorPrint(FILE* file, cnCount size, cnFloat* values) {
+  cnVectorPrintDelimited(file, size, values, " ");
+}
+
+
+void cnVectorPrintDelimited(
+  FILE* file, cnCount size, cnFloat* values, char* delimiter
+) {
   // TODO Awesomer printing a la Matlab or better?
   cnFloat *value = values, *end = values + size;
   for (; value < end; value++) {
     if (value > values) {
-      fprintf(file, " ");
+      fprintf(file, "%s", delimiter);
     }
-    fprintf(file, "%.4le", *value);
+    fprintf(file, "%lg", *value);
   }
 }

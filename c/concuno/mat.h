@@ -24,4 +24,9 @@ cnFloat cnSquaredEuclideanDistance(cnCount size, cnFloat* x, cnFloat* y);
 void cnVectorPrint(FILE* file, cnCount size, cnFloat* values);
 
 
+void cnVectorPrintDelimited(
+  FILE* file, cnCount size, cnFloat* values, char* delimiter
+);
+
+
 #endif

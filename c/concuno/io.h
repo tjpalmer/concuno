@@ -7,6 +7,23 @@
 
 
 /**
+ * Reduce the indent by the canonical amount.
+ *
+ * TODO Abstract this better into stream facility and for easier auto dedent on
+ * TODO error cases.
+ */
+void cnDedent(cnString* indent);
+
+
+/**
+ * Increase the indent by the canonical amount.
+ *
+ * TODO Abstract this better into stream facility.
+ */
+cnBool cnIndent(cnString* indent);
+
+
+/**
  * Finds a non-whitespace string if it exists, overwriting the first trailing
  * whitespace (if any) with a null char. The end will point past that null
  * char if added, or at the already existing null char if at the end. This

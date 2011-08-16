@@ -3,6 +3,8 @@
 #include <math.h>
 #include <string.h>
 
+#include "io.h"
+#include "mat.h"
 #include "numpy-mtrand/distributions.h"
 #include "numpy-mtrand/randomkit.h"
 #include "stats.h"
@@ -91,14 +93,14 @@ cnCount cnBinomialSample(cnBinomial binomial) {
 cnBool cnFunctionEvaluateMahalanobisDistance(
   cnFunction* function, void* in, void* out
 ) {
-  *((cnFloat*)out) = cnMahalanobisDistance(function->data, in);
+  *((cnFloat*)out) = cnMahalanobisDistance(function->info, in);
   // Always good.
   return cnTrue;
 }
 
 
 cnFunction* cnFunctionCreateMahalanobisDistance_copy(cnFunction* function) {
-  cnGaussian* other = function->data;
+  cnGaussian* other = function->info;
   cnGaussian* gaussian = malloc(sizeof(cnGaussian));
   cnFunction* copy;
   if (!gaussian) return NULL;
@@ -115,17 +117,42 @@ cnFunction* cnFunctionCreateMahalanobisDistance_copy(cnFunction* function) {
 }
 
 void cnFunctionCreateMahalanobisDistance_dispose(cnFunction* function) {
-  cnGaussianDispose(function->data);
-  free(function->data);
+  cnGaussianDispose(function->info);
+  free(function->info);
+}
+
+cnBool cnFunctionCreateMahalanobisDistance_write(
+  cnFunction* function, FILE* file, cnString* indent
+) {
+  cnGaussian* gaussian = function->info;
+  cnBool result = cnFalse;
+
+  // TODO Check error state?
+  fprintf(file, "{\n");
+  cnIndent(indent);
+  fprintf(file, "%s\"name\": \"MahalanobisDistance\",\n", cnStr(indent));
+  fprintf(file, "%s\"center\": [", cnStr(indent));
+  cnVectorPrintDelimited(file, gaussian->dims, gaussian->mean, ", ");
+  fprintf(file, "]\n");
+  // TODO Covariance!
+  // TODO Strength (for use as later prior)!
+  cnDedent(indent);
+  fprintf(file, "%s}", cnStr(indent));
+
+  // Winned!
+  result = cnTrue;
+
+  return result;
 }
 
 cnFunction* cnFunctionCreateMahalanobisDistance(cnGaussian* gaussian) {
   cnFunction* function = malloc(sizeof(cnFunction));
   if (!function) return NULL;
-  function->data = gaussian;
+  function->info = gaussian;
   function->copy = cnFunctionCreateMahalanobisDistance_copy;
   function->dispose = cnFunctionCreateMahalanobisDistance_dispose;
   function->evaluate = cnFunctionEvaluateMahalanobisDistance;
+  function->write = cnFunctionCreateMahalanobisDistance_write;
   return function;
 }
 
@@ -287,7 +314,7 @@ void cnMultinomialSample(cnMultinomial multinomial, cnCount* out) {
 
 cnBool cnPermutations(
   cnCount options, cnCount count,
-  cnBool (*handler)(void* data, cnCount count, cnIndex* permutation),
+  cnBool (*handler)(void* info, cnCount count, cnIndex* permutation),
   void* data
 ) {
   cnBool result = cnFalse;
