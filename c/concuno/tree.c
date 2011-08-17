@@ -296,6 +296,7 @@ void cnNodeDrop(cnNode* node) {
 void cnLeafNodeInit(cnLeafNode* leaf) {
   cnNodeInit(&leaf->node, cnNodeTypeLeaf);
   leaf->probability = 0;
+  leaf->strength = 0;
 }
 
 
@@ -1549,7 +1550,7 @@ cnBool cnVarNodePropagateBindingBag(
     cnEntity* entitiesIn = cnListGet(&bindingBag->bindings, b);
     cnBool anyLeft = cnFalse;
     // Find the entities to add on.
-    cnListEachBegin(&bindingBag->bag->entities, cnEntity, entityOut) {
+    cnListEachBegin(bindingBag->bag->entities, cnEntity, entityOut) {
       cnBool found = cnFalse;
       cnEntity* entityIn = entitiesIn;
       cnEntity* entitiesInEnd = entityIn + bindingBag->entityCount;

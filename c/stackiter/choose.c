@@ -24,24 +24,23 @@ cnBool stPlaceLiveItems(
 
 
 cnBool stAllBagsFalse(cnList(stState)* states, cnList(cnBag)* bags) {
-  cnBool result = cnTrue;
+  cnBool result = cnFalse;
+
   cnListEachBegin(states, stState, state) {
     // Every state gets a bag.
     cnBag* bag;
-    if (!(bag = cnListExpand(bags))) {
-      printf("Failed to push bag.\n");
-      result = cnFalse;
-      break;
-    }
-    cnBagInit(bag);
+    if (!(bag = cnListExpand(bags))) cnFailTo(DONE, "Failed to push bag.");
+    if (!cnBagInit(bag)) cnFailTo(DONE, "No bag init.");
     // Each bag gets the live items.
-    if (!stPlaceLiveItems(&state->items, &bag->entities)) {
-      printf("Failed to push entities.\n");
-      result = cnFalse;
-      break;
+    if (!stPlaceLiveItems(&state->items, bag->entities)) {
+      cnFailTo(DONE, "Failed to push entities.");
     }
   } cnEnd;
-  // All done.
+
+  // Winned.
+  result = cnTrue;
+
+  DONE:
   return result;
 }
 
@@ -49,7 +48,7 @@ cnBool stAllBagsFalse(cnList(stState)* states, cnList(cnBag)* bags) {
 cnBool stChooseDropWhereLandOnOther(
   cnList(stState)* states, cnList(cnBag)* bags
 ) {
-  cnBool result = cnTrue;
+  cnBool result = cnFalse;
   cnBool formerHadGrasp = cnFalse;
   stId graspedId = -1;
   const stState* ungraspState = NULL;
@@ -85,19 +84,15 @@ cnBool stChooseDropWhereLandOnOther(
         if (label == cnFalse || label == cnTrue) {
           cnBag* bag;
           if (!(bag = cnListExpand(bags))) {
-            printf("Failed to push bag.\n");
-            result = cnFalse;
-            break;
+            cnFailTo(DONE, "Failed to push bag.");
           }
           // Now init the bag in the list.
-          cnBagInit(bag);
+          if (!cnBagInit(bag)) cnFailTo(DONE, "No bag init.");
           bag->label = label;
           // If we defer placing entity pointers until after we've stored the
           // bag itself, then cleanup from failure is easier.
-          if (!stPlaceLiveItems(&ungraspState->items, &bag->entities)) {
-            printf("Failed to push entities.\n");
-            result = cnFalse;
-            break;
+          if (!stPlaceLiveItems(&ungraspState->items, bag->entities)) {
+            cnFailTo(DONE, "Failed to push entities.");
           }
         }
         ungraspState = NULL;
@@ -105,9 +100,7 @@ cnBool stChooseDropWhereLandOnOther(
     } else {
       cnBool hasGrasp;
       if (!stFindGraspedItems(state, &graspedItems)) {
-        printf("Failed to push grasped items.\n");
-        result = cnFalse;
-        break;
+        cnFailTo(DONE, "Failed to push grasped items.");
       }
       hasGrasp = graspedItems.count;
       if (hasGrasp) {
@@ -123,6 +116,11 @@ cnBool stChooseDropWhereLandOnOther(
       formerHadGrasp = hasGrasp;
     }
   } cnEnd;
+
+  // Winned!
+  result = cnTrue;
+
+  DONE:
   cnListDispose(&graspedItems);
   return result;
 }
@@ -130,7 +128,7 @@ cnBool stChooseDropWhereLandOnOther(
 
 cnBool stChooseWhereNoneMoving(cnList(stState)* states, cnList(cnBag)* bags) {
   cnFloat epsilon = 1e-2;
-  cnBool result = cnTrue;
+  cnBool result = cnFalse;
   cnListEachBegin(states, stState, state) {
     // Every state gets a bag.
     cnBag* bag;
@@ -159,21 +157,19 @@ cnBool stChooseWhereNoneMoving(cnList(stState)* states, cnList(cnBag)* bags) {
       continue;
     }
     // We want it.
-    if (!(bag = cnListExpand(bags))) {
-      printf("Failed to push bag.\n");
-      result = cnFalse;
-      break;
-    }
-    cnBagInit(bag);
+    if (!(bag = cnListExpand(bags))) cnFailTo(DONE, "Failed to push bag.");
+    if (!cnBagInit(bag)) cnFailTo(DONE, "No bag init.");
     bag->label = label;
     // Each bag gets the live items.
-    if (!stPlaceLiveItems(&state->items, &bag->entities)) {
-      printf("Failed to push entities.\n");
-      result = cnFalse;
-      break;
+    if (!stPlaceLiveItems(&state->items, bag->entities)) {
+      cnFailTo(DONE, "Failed to push entities.");
     }
   } cnEnd;
-  // All done.
+
+  // Winned!
+  result = cnTrue;
+
+  DONE:
   return result;
 }
 

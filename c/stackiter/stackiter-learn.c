@@ -102,8 +102,7 @@ cnBool stClusterStuff(
   // Choose out the states we want to focus on.
   cnListInit(&bags, sizeof(cnBag));
   if (!stAllBagsFalse(states, &bags)) {
-    printf("Failed to choose bags.\n");
-    goto DISPOSE_BAGS;
+    cnFailTo(DISPOSE_BAGS, "Failed to choose bags.");
   }
 
   // The last function right now should be velocity. TODO Watch out for changes!

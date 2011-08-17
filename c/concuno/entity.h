@@ -16,9 +16,10 @@ typedef struct cnBag {
   // TODO id? Or are pointer addresses good enough (if stable)?
 
   /**
-   * Entities in the pool.
+   * Entities in the pool. The same entity list might be shared by multiple
+   * bag samples. Therefore, it is _not_ disposed of with the bag.
    */
-  cnList(cnEntity) entities;
+  cnList(cnEntity)* entities;
 
   /**
    * Positive or negative bag.
@@ -27,12 +28,13 @@ typedef struct cnBag {
 
   /**
    * Entities known to participate in the labeling. These should be bound to
-   * vars first, in the order given here.
+   * vars first, in the order given here. Each index in the outer list
+   * corresponds to the same indexed var down a tree branch.
    *
    * For learning, do not provide any functions used in originally identifying
    * the participants, or you might only learn what you already know.
    */
-  cnList(cnEntity) participants;
+  cnList(cnList(cnEntity)*) participantOptions;
 
 } cnBag;
 
@@ -260,7 +262,7 @@ struct cnType {
 void cnBagDispose(cnBag* bag);
 
 
-void cnBagInit(cnBag* bag);
+cnBool cnBagInit(cnBag* bag);
 
 
 cnEntityFunction* cnEntityFunctionCreateDifference(cnEntityFunction* base);

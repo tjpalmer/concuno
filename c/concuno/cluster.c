@@ -49,7 +49,7 @@ cnBool cnClusterOnFunction(cnList(cnBag)* bags, cnEntityFunction* function) {
   // Count the points, and allocate space.
   // TODO Do we need to be bag aware at all? Any bias from all together?
   cnListEachBegin(bags, cnBag, bag) {
-    pointCount += bag->entities.count;
+    pointCount += bag->entities->count;
   } cnEnd;
   printf("%ld points total\n", pointCount);
   points = malloc(pointCount * function->outCount * sizeof(cnFloat));
@@ -60,7 +60,7 @@ cnBool cnClusterOnFunction(cnList(cnBag)* bags, cnEntityFunction* function) {
   // Get the point data.
   point = points;
   cnListEachBegin(bags, cnBag, bag) {
-    cnListEachBegin(&bag->entities, void*, entity) {
+    cnListEachBegin(bag->entities, void*, entity) {
       function->get(function, entity, point);
       point += function->outCount;
     } cnEnd;

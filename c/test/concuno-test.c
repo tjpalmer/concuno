@@ -268,9 +268,10 @@ void testPropagate(void) {
   cnType* type = NULL;
 
   // Init stuff.
-  cnBagInit(&bag);
   cnListInit(&leafBindingBags, sizeof(cnLeafBindingBag));
-  if (!cnRootNodeInit(&tree, cnFalse)) cnFailTo(DONE, "No tree.");
+  if (!(cnBagInit(&bag) && cnRootNodeInit(&tree, cnFalse))) {
+    cnFailTo(DONE, "No bag or tree init.");
+  }
   // TODO Float required because of NaN convention. Fix this!
   if (!(type = cnTypeCreate("Float", sizeof(cnFloat)))) {
     cnFailTo(DONE, "No type.");
@@ -314,7 +315,7 @@ void testPropagate(void) {
   // Prepare bogus data.
   for (c = data; *c; c++) {
     cnEntity entity = c;
-    cnListPush(&bag.entities, &entity);
+    cnListPush(bag.entities, &entity);
   }
 
   // Propagate.

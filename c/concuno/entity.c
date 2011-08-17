@@ -6,15 +6,38 @@
 
 
 void cnBagDispose(cnBag* bag) {
-  cnListDispose(&bag->entities);
-  cnBagInit(bag);
+  // The entities might be cleared out in advance if managed elsewhere.
+  if (bag->entities) {
+    cnListDispose(bag->entities);
+    free(bag->entities);
+  }
+
+  // Other stuff.
+  bag->label = cnFalse;
+  bag->entities = NULL;
+  // TODO Destroy individual lists, too??
+  // TODO How to manage these?
+  cnListDispose(&bag->participantOptions);
 }
 
 
-void cnBagInit(cnBag* bag) {
+cnBool cnBagInit(cnBag* bag) {
+  cnBool result = cnFalse;
+
+  // Safety first.
   bag->label = cnFalse;
-  cnListInit(&bag->entities, sizeof(cnEntity));
-  cnListInit(&bag->participants, sizeof(cnEntity));
+  bag->entities = malloc(sizeof(cnList(cnEntity)));
+  cnListInit(&bag->participantOptions, sizeof(cnList(cnEntity)*));
+
+  // Check on and finish up entities.
+  if (!bag->entities) cnFailTo(DONE, "No bag entities.");
+  cnListInit(bag->entities, sizeof(cnEntity));
+
+  // Winned!
+  result = cnTrue;
+
+  DONE:
+  return result;
 }
 
 
