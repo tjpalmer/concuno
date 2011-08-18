@@ -9,10 +9,11 @@ Converts smrf2 JSON files to concuno-readable data and label table files.
 def main():
     import json
     from os.path import join
+    from sys import argv
     from time import strftime
     base = '../temp'
-    name = 'rgb_triangle'
-    case = '10d'
+    name = argv[1]
+    case = argv[2]
     time = strftime('%Y%m%d')
     with open(join(base, 'smrf', name, case) + '.json') as file:
         bags, fields = json.load(file)
