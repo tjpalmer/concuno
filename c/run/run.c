@@ -116,6 +116,9 @@ int main(int argc, char** argv) {
   cnLearnerDispose(&learner);
   cnSchemaDispose(&schema);
   cnListDispose(&labels);
+  cnListEachBegin(&functions, cnEntityFunction*, function) {
+    cnEntityFunctionDrop(*function);
+  } cnEnd;
   cnListDispose(&functions);
   cnListDispose(&features);
   cnListEachBegin(&bags, cnBag, bag) {
