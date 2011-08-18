@@ -270,7 +270,7 @@ void testPropagate(void) {
 
   // Init stuff.
   cnListInit(&leafBindingBags, sizeof(cnLeafBindingBag));
-  initOkay &= cnBagInit(&bag);
+  initOkay &= cnBagInit(&bag, NULL);
   initOkay &= cnRootNodeInit(&tree, cnFalse);
   if (!initOkay) cnFailTo(DONE, "Init failed.");
   // TODO Float required because of NaN convention. Fix this!

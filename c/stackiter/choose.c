@@ -33,7 +33,7 @@ cnBool stAllBagsFalse(
     // Every state gets a bag.
     cnBag* bag;
     if (!(bag = cnListExpand(bags))) cnFailTo(DONE, "Failed to push bag.");
-    if (!cnBagInit(bag)) cnFailTo(DONE, "No bag init.");
+    if (!cnBagInit(bag, NULL)) cnFailTo(DONE, "No bag init.");
     // Each bag gets the live items.
     if (!stPlaceLiveItems(&state->items, bag->entities)) {
       cnFailTo(DONE, "Failed to push entities.");
@@ -91,7 +91,7 @@ cnBool stChooseDropWhereLandOnOther(
             cnFailTo(DONE, "Failed to push bag.");
           }
           // Now init the bag in the list.
-          if (!cnBagInit(bag)) cnFailTo(DONE, "No bag init.");
+          if (!cnBagInit(bag, NULL)) cnFailTo(DONE, "No bag init.");
           bag->label = label;
           // If we defer placing entity pointers until after we've stored the
           // bag itself, then cleanup from failure is easier.
@@ -139,6 +139,7 @@ cnBool stChooseWhereNoneMoving(
   cnListEachBegin(states, stState, state) {
     // Every state gets a bag.
     cnBag* bag;
+    cnList(cnEntity)* entities = NULL;
     cnBool keep = cnTrue;
     // Assume bags have none moving by default.
     cnBool label = cnTrue;
@@ -149,6 +150,9 @@ cnBool stChooseWhereNoneMoving(
         item->velocity[1] * item->velocity[1]
       );
       if (item->grasped) {
+        // Ignore cases where items are grasped until we have support for
+        // discrete topologies.
+        // TODO Get back to this!
         keep = cnFalse;
         break;
       }
@@ -164,13 +168,25 @@ cnBool stChooseWhereNoneMoving(
       continue;
     }
     // We want it.
-    if (!(bag = cnListExpand(bags))) cnFailTo(DONE, "Failed to push bag.");
-    if (!cnBagInit(bag)) cnFailTo(DONE, "No bag init.");
-    bag->label = label;
+    // First make an entity list usable for multiple bags.
+    if (!(entities = malloc(sizeof(cnList(cnEntity))))) {
+      cnFailTo(DONE, "No entity list.");
+    }
+    cnListInit(entities, sizeof(cnEntity));
+    // Push it on the list.
+    if (!cnListPush(entityLists, &entities)) {
+      cnListDispose(entities);
+      free(entities);
+      cnFailTo(DONE, "Failed to push entities list.");
+    }
     // Each bag gets the live items.
-    if (!stPlaceLiveItems(&state->items, bag->entities)) {
+    if (!stPlaceLiveItems(&state->items, entities)) {
       cnFailTo(DONE, "Failed to push entities.");
     }
+    // Make a bag from it. TODO Bag per stationary item!
+    if (!(bag = cnListExpand(bags))) cnFailTo(DONE, "Failed to push bag.");
+    if (!cnBagInit(bag, entities)) cnFailTo(DONE, "No bag init.");
+    bag->label = label;
   } cnEnd;
 
   // Winned!

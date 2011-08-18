@@ -26,17 +26,17 @@ void cnBagDispose(cnBag* bag) {
 }
 
 
-cnBool cnBagInit(cnBag* bag) {
+cnBool cnBagInit(cnBag* bag, cnList(cnEntity)* entities) {
   cnBool result = cnFalse;
 
   // Safety first.
   bag->label = cnFalse;
-  bag->entities = malloc(sizeof(cnList(cnEntity)));
+  bag->entities = entities ? entities : malloc(sizeof(cnList(cnEntity)));
   cnListInit(&bag->participantOptions, sizeof(cnList(cnEntity)*));
 
   // Check on and finish up entities.
   if (!bag->entities) cnFailTo(DONE, "No bag entities.");
-  cnListInit(bag->entities, sizeof(cnEntity));
+  if (!entities) cnListInit(bag->entities, sizeof(cnEntity));
 
   // Winned!
   result = cnTrue;

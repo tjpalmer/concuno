@@ -265,7 +265,7 @@ struct cnType {
 void cnBagDispose(cnBag* bag);
 
 
-cnBool cnBagInit(cnBag* bag);
+cnBool cnBagInit(cnBag* bag, cnList(cnEntity)* entities);
 
 
 cnEntityFunction* cnEntityFunctionCreateDifference(cnEntityFunction* base);
