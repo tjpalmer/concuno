@@ -23,7 +23,10 @@ cnBool stPlaceLiveItems(
 );
 
 
-cnBool stAllBagsFalse(cnList(stState)* states, cnList(cnBag)* bags) {
+cnBool stAllBagsFalse(
+  cnList(stState)* states, cnList(cnBag)* bags,
+  cnList(cnList(cnEntity)*)* entityLists
+) {
   cnBool result = cnFalse;
 
   cnListEachBegin(states, stState, state) {
@@ -46,7 +49,8 @@ cnBool stAllBagsFalse(cnList(stState)* states, cnList(cnBag)* bags) {
 
 
 cnBool stChooseDropWhereLandOnOther(
-  cnList(stState)* states, cnList(cnBag)* bags
+  cnList(stState)* states, cnList(cnBag)* bags,
+  cnList(cnList(cnEntity)*)* entityLists
 ) {
   cnBool result = cnFalse;
   cnBool formerHadGrasp = cnFalse;
@@ -126,7 +130,10 @@ cnBool stChooseDropWhereLandOnOther(
 }
 
 
-cnBool stChooseWhereNoneMoving(cnList(stState)* states, cnList(cnBag)* bags) {
+cnBool stChooseWhereNoneMoving(
+  cnList(stState)* states, cnList(cnBag)* bags,
+  cnList(cnList(cnEntity)*)* entityLists
+) {
   cnFloat epsilon = 1e-2;
   cnBool result = cnFalse;
   cnListEachBegin(states, stState, state) {

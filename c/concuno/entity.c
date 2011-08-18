@@ -6,18 +6,23 @@
 
 
 void cnBagDispose(cnBag* bag) {
-  // The entities might be cleared out in advance if managed elsewhere.
+  // If managed elsewhere, the list might be nulled, so check it.
   if (bag->entities) {
     cnListDispose(bag->entities);
     free(bag->entities);
   }
 
+  // Participants are always owned by the bag, however.
+  // TODO Really? By allowing outside control, but it be made more efficient?
+  cnListEachBegin(&bag->participantOptions, cnList(cnEntity)*, list) {
+    cnListDispose(*list);
+    free(*list);
+  } cnEnd;
+  cnListDispose(&bag->participantOptions);
+
   // Other stuff.
   bag->label = cnFalse;
   bag->entities = NULL;
-  // TODO Destroy individual lists, too??
-  // TODO How to manage these?
-  cnListDispose(&bag->participantOptions);
 }
 
 

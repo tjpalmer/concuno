@@ -106,13 +106,17 @@ cnBool cnDensityEstimate(cnCount size, cnCount count, cnFloat* points) {
     stepIndices[dim] = 0;
     point[dim] = min[dim];
   }
-  // TODO Multivariate Gaussian in stats!
-  // TODO Variance in relation to step size???
+  // TODO Multivariate Gaussian in stats! Isotropic okay for now, though.
   cnVectorMin(1, &maxStepSize, size, stepSize);
   kernelFactor = 1 / pow(2 * cnPi * maxStepSize, 0.5 * size);
   //printf("Min: "); cnVectorPrint(stdout, size, min); printf("\n");
   //printf("Max: "); cnVectorPrint(stdout, size, max); printf("\n");
   //printf("Step: "); cnVectorPrint(stdout, size, step); printf("\n");
+
+  // TODO Replace this with a loop on points and finding the right box for each
+  // TODO point! This nonsense here is crazy slow!
+  // TODO Current: O(points x grid size).
+  // TODO Better: O(points x kernel size).
 
   // Loop through all dimensions, etc., where slowest loop is earliest dim.
   // Recursion is another option here, but this seems more convenient at the

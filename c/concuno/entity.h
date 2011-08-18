@@ -33,6 +33,9 @@ typedef struct cnBag {
    *
    * For learning, do not provide any functions used in originally identifying
    * the participants, or you might only learn what you already know.
+   *
+   * These participant lists are considered to be owned by the bag but not the
+   * actual entities themselves.
    */
   cnList(cnList(cnEntity)*) participantOptions;
 

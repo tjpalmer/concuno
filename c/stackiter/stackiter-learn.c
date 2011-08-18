@@ -21,7 +21,10 @@ cnBool stInitSchemaAndEntityFunctions(
 cnBool stLearnConcept(
   cnList(stState)* states,
   cnList(cnEntityFunction*)* functions,
-  cnBool (*choose)(cnList(stState)* states, cnList(cnBag)* bags)
+  cnBool (*choose)(
+    cnList(stState)* states, cnList(cnBag)* bags,
+    cnList(cnList(cnEntity)*)* entityLists
+  )
 );
 
 
@@ -59,7 +62,7 @@ int main(int argc, char** argv) {
   case 1:
     // Attempt learning the "falls on" predictive concept.
     if (!stLearnConcept(
-      &states, &entityFunctions, stChooseDropWhereLandOnOther
+      &states, &entityFunctions, stChooseWhereNoneMoving
     )) {
       printf("No learned tree.\n");
       goto DROP_FUNCTIONS;
@@ -101,7 +104,7 @@ cnBool stClusterStuff(
 
   // Choose out the states we want to focus on.
   cnListInit(&bags, sizeof(cnBag));
-  if (!stAllBagsFalse(states, &bags)) {
+  if (!stAllBagsFalse(states, &bags, NULL)) {
     cnFailTo(DISPOSE_BAGS, "Failed to choose bags.");
   }
 
@@ -214,19 +217,27 @@ cnBool stInitSchemaAndEntityFunctions(
 cnBool stLearnConcept(
   cnList(stState)* states,
   cnList(cnEntityFunction*)* functions,
-  cnBool (*choose)(cnList(stState)* states, cnList(cnBag)* bags)
+  cnBool (*choose)(
+    cnList(stState)* states, cnList(cnBag)* bags,
+    cnList(cnList(cnEntity)*)* entityLists
+  )
 ) {
   cnList(cnBag) bags;
-  cnRootNode* learnedTree;
+  cnList(cnList(cnEntity)*) entityLists;
+  cnRootNode* learnedTree = NULL;
   cnLearner learner;
   cnBool result = cnFalse;
   cnCount trueCount;
 
-  // Choose out the states we want to focus on.
+  // Init for safety.
   cnListInit(&bags, sizeof(cnBag));
-  if (!choose(states, &bags)) {
-    printf("Failed to choose bags.\n");
-    goto DISPOSE_BAGS;
+  cnListInit(&entityLists, sizeof(cnList(cnEntity)*));
+  // Failable thing last.
+  if (!cnLearnerInit(&learner, NULL)) cnFailTo(DONE, "No learner.");
+
+  // Choose out the states we want to focus on.
+  if (!choose(states, &bags, &entityLists)) {
+    cnFailTo(DONE, "Failed to choose bags.");
   }
   trueCount = 0;
   cnListEachBegin(&bags, cnBag, bag) {
@@ -239,13 +250,10 @@ cnBool stLearnConcept(
   cnListShuffle(&bags);
 
   // Learn a tree.
-  if (!cnLearnerInit(&learner, NULL)) cnFailTo(DISPOSE_BAGS, "No learner.");
   learner.bags = &bags;
   learner.entityFunctions = functions;
   learnedTree = cnLearnTree(&learner);
-  if (!learnedTree) {
-    goto DISPOSE_LEARNER;
-  }
+  if (!learnedTree) cnFailTo(DONE, "No learned tree.");
 
   // Display the learned tree.
   printf("\n");
@@ -259,14 +267,20 @@ cnBool stLearnConcept(
   // Dispose of the learned tree.
   cnNodeDrop(&learnedTree->node);
 
-  DISPOSE_LEARNER:
+  DONE:
+  // Learner.
   cnLearnerDispose(&learner);
-
-  DISPOSE_BAGS:
+  // Bags.
   cnListEachBegin(&bags, cnBag, bag) {
     cnBagDispose(bag);
   } cnEnd;
   cnListDispose(&bags);
-
+  // Lists in the bags.
+  cnListEachBegin(&entityLists, cnList(cnEntity)*, list) {
+    cnListDispose(*list);
+    free(*list);
+  } cnEnd;
+  cnListDispose(&entityLists);
+  // Result.
   return result;
 }
