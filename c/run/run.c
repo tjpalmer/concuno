@@ -59,9 +59,10 @@ int main(int argc, char** argv) {
   cnListAny features;
   cnType* featureType;
   cnList(cnEntityFunction*) functions;
+  cnBool initOkay = cnTrue;
   cnListAny labels;
   cnType* labelType;
-  cnRootNode* learnedTree;
+  cnRootNode* learnedTree = NULL;
   cnLearner learner;
   cnSchema schema;
 
@@ -71,7 +72,9 @@ int main(int argc, char** argv) {
   cnListInit(&features, 0);
   cnListInit(&functions, sizeof(cnEntityFunction*));
   cnListInit(&labels, 0);
-  if (!cnSchemaInitDefault(&schema)) cnFailTo(DONE, "No schema.");
+  initOkay &= cnSchemaInitDefault(&schema);
+  initOkay &= cnLearnerInit(&learner, NULL);
+  if (!initOkay) cnFailTo(DONE, "Init failed.");
 
   if (argc < 4) cnFailTo(
     DONE, "Usage: %s <features-file> <labels-file> <label-id>", argv[0]
@@ -109,6 +112,8 @@ int main(int argc, char** argv) {
   result = EXIT_SUCCESS;
 
   DONE:
+  cnNodeDrop(&learnedTree->node);
+  cnLearnerDispose(&learner);
   cnSchemaDispose(&schema);
   cnListDispose(&labels);
   cnListDispose(&functions);

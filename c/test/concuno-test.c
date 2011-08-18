@@ -261,6 +261,7 @@ void testPropagate(void) {
   char* data = "Hello!";
   cnEntityFunction* entityFunction = NULL;
   cnIndex i;
+  cnBool initOkay = cnTrue;
   cnList(cnLeafBindingBag) leafBindingBags;
   cnSplitNode* split;
   cnVarNode* vars[2];
@@ -269,9 +270,9 @@ void testPropagate(void) {
 
   // Init stuff.
   cnListInit(&leafBindingBags, sizeof(cnLeafBindingBag));
-  if (!(cnBagInit(&bag) && cnRootNodeInit(&tree, cnFalse))) {
-    cnFailTo(DONE, "No bag or tree init.");
-  }
+  initOkay &= cnBagInit(&bag);
+  initOkay &= cnRootNodeInit(&tree, cnFalse);
+  if (!initOkay) cnFailTo(DONE, "Init failed.");
   // TODO Float required because of NaN convention. Fix this!
   if (!(type = cnTypeCreate("Float", sizeof(cnFloat)))) {
     cnFailTo(DONE, "No type.");
