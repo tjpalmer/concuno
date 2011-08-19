@@ -14,9 +14,8 @@ void cnBagDispose(cnBag* bag) {
 
   // Participants are always owned by the bag, however.
   // TODO Really? By allowing outside control, but it be made more efficient?
-  cnListEachBegin(&bag->participantOptions, cnList(cnEntity)*, list) {
-    cnListDispose(*list);
-    free(*list);
+  cnListEachBegin(&bag->participantOptions, cnList(cnEntity), list) {
+    cnListDispose(list);
   } cnEnd;
   cnListDispose(&bag->participantOptions);
 
@@ -32,7 +31,7 @@ cnBool cnBagInit(cnBag* bag, cnList(cnEntity)* entities) {
   // Safety first.
   bag->label = cnFalse;
   bag->entities = entities ? entities : malloc(sizeof(cnList(cnEntity)));
-  cnListInit(&bag->participantOptions, sizeof(cnList(cnEntity)*));
+  cnListInit(&bag->participantOptions, sizeof(cnList(cnEntity)));
 
   // Check on and finish up entities.
   if (!bag->entities) cnFailTo(DONE, "No bag entities.");

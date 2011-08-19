@@ -36,8 +36,14 @@ typedef struct cnBag {
    *
    * These participant lists are considered to be owned by the bag but not the
    * actual entities themselves.
+   *
+   * TODO This doesn't allow for intermediate null lists (say constraining var
+   * TODO 0 and var 2 but not 1), unless we say that empty lists mean
+   * TODO unconstrained rather than no options. Would we ever want to say no
+   * TODO options? If so, we need to allow null to distinguish from empty,
+   * TODO which means storing pointers or maybe a struct with a separate bool.
    */
-  cnList(cnList(cnEntity)*) participantOptions;
+  cnList(cnList(cnEntity)) participantOptions;
 
 } cnBag;
 

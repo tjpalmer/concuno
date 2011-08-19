@@ -1549,8 +1549,15 @@ cnBool cnVarNodePropagateBindingBag(
   for (b = 0; b < bindingBag->bindings.count; b++) {
     cnEntity* entitiesIn = cnListGet(&bindingBag->bindings, b);
     cnBool anyLeft = cnFalse;
+    // Figure out if we have constrained options.
+    cnList(cnEntity)* entitiesOut =
+      cnListGet(&bindingBag->bag->participantOptions, bindingBag->entityCount);
+    if (!(entitiesOut && entitiesOut->count)) {
+      // No constraints after all.
+      entitiesOut = bindingBag->bag->entities;
+    }
     // Find the entities to add on.
-    cnListEachBegin(bindingBag->bag->entities, cnEntity, entityOut) {
+    cnListEachBegin(entitiesOut, cnEntity, entityOut) {
       cnBool found = cnFalse;
       cnEntity* entityIn = entitiesIn;
       cnEntity* entitiesInEnd = entityIn + bindingBag->entityCount;

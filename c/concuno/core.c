@@ -215,6 +215,7 @@ void cnListClear(cnListAny* list) {
 
 
 void cnListDispose(cnListAny* list) {
+  if (!list) return;
   free(list->items);
   cnListInit(list, list->itemSize);
 }

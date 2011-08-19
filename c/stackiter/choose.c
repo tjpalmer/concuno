@@ -136,19 +136,16 @@ cnBool stChooseWhereNoneMoving(
 ) {
   cnFloat epsilon = 1e-2;
   cnBool result = cnFalse;
+
+  // Find bags.
   cnListEachBegin(states, stState, state) {
     // Every state gets a bag.
-    cnBag* bag;
     cnList(cnEntity)* entities = NULL;
     cnBool keep = cnTrue;
     // Assume bags have none moving by default.
-    cnBool label = cnTrue;
+
     // Label based on whether any are moving.
     cnListEachBegin(&state->items, stItem, item) {
-      cnFloat speed = sqrt(
-        item->velocity[0] * item->velocity[0] +
-        item->velocity[1] * item->velocity[1]
-      );
       if (item->grasped) {
         // Ignore cases where items are grasped until we have support for
         // discrete topologies.
@@ -156,37 +153,71 @@ cnBool stChooseWhereNoneMoving(
         keep = cnFalse;
         break;
       }
-      if (item->alive && speed > epsilon) {
-        // Well, this one had moving after all.
-        label = cnFalse;
-        break;
-      }
-      // TODO Check orientation velocity?
     } cnEnd;
     if (!keep) {
       // We don't want this state at all.
       continue;
     }
+
     // We want it.
     // First make an entity list usable for multiple bags.
     if (!(entities = malloc(sizeof(cnList(cnEntity))))) {
       cnFailTo(DONE, "No entity list.");
     }
     cnListInit(entities, sizeof(cnEntity));
+
     // Push it on the list.
     if (!cnListPush(entityLists, &entities)) {
       cnListDispose(entities);
       free(entities);
       cnFailTo(DONE, "Failed to push entities list.");
     }
+
     // Each bag gets the live items.
     if (!stPlaceLiveItems(&state->items, entities)) {
       cnFailTo(DONE, "Failed to push entities.");
     }
-    // Make a bag from it. TODO Bag per stationary item!
-    if (!(bag = cnListExpand(bags))) cnFailTo(DONE, "Failed to push bag.");
-    if (!cnBagInit(bag, entities)) cnFailTo(DONE, "No bag init.");
-    bag->label = label;
+
+    // Create a bag for each item, where we constrain the first binding and
+    // label based on whether the item is moving.
+    cnListEachBegin(entities, cnEntity, entity) {
+      cnBag* bag;
+      cnList(cnEntity)* participant;
+      stItem* item = *(stItem**)entity;
+      cnFloat speed;
+
+      // Bag.
+      if (!(bag = cnListExpand(bags))) cnFailTo(FAIL, "Failed to push bag.");
+      // With provided entities, bag init doesn't fail.
+      cnBagInit(bag, entities);
+
+      // Participant.
+      if (!(participant = cnListExpand(&bag->participantOptions))) {
+        // Hide the bag and fail.
+        bags->count--;
+        cnFailTo(FAIL, "Failed to push participant list.");
+      }
+      cnListInit(participant, sizeof(cnEntity));
+      // Push the (pointer to the) item, after earlier safety init.
+      if (!cnListPush(participant, entity)) cnFailTo(FAIL, "No participant.");
+
+      // See if this item is moving or not.
+      // TODO Check orientation velocity, too?
+      speed = sqrt(
+        item->velocity[0] * item->velocity[0] +
+        item->velocity[1] * item->velocity[1]
+      );
+      // True here is stationary.
+      bag->label = speed < epsilon;
+    } cnEnd;
+
+    // Doing okay.
+    continue;
+
+    FAIL:
+    cnListDispose(entities);
+    free(entities);
+    goto DONE;
   } cnEnd;
 
   // Winned!
