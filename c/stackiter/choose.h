@@ -35,13 +35,13 @@ cnBool stChooseDropWhereLandOnOther(
 
 
 /**
- * TODO Replace this with 'stChooseNonmoving', where the nonmoving entities
- * TODO are participants in true bags, and moving are participants in false.
+ * Create a bag for each live item, constraining it to be first bound. Each bag
+ * is labeled true if the item's not moving.
  *
- * The entity lists from the bags are provided separately, because sometimes we
- * do sub-state bags.
+ * The entity lists from the bags are provided separately, because here we do
+ * sub-state bags.
  */
-cnBool stChooseWhereNoneMoving(
+cnBool stChooseWhereNotMoving(
   cnList(stState)* states, cnList(cnBag)* bags,
   cnList(cnList(cnEntity)*)* entityLists
 );

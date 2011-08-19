@@ -130,7 +130,7 @@ cnBool stChooseDropWhereLandOnOther(
 }
 
 
-cnBool stChooseWhereNoneMoving(
+cnBool stChooseWhereNotMoving(
   cnList(stState)* states, cnList(cnBag)* bags,
   cnList(cnList(cnEntity)*)* entityLists
 ) {
@@ -168,6 +168,7 @@ cnBool stChooseWhereNoneMoving(
 
     // Push it on the list.
     if (!cnListPush(entityLists, &entities)) {
+      // If it didn't get on the list, it won't be freed later. Free it now.
       cnListDispose(entities);
       free(entities);
       cnFailTo(DONE, "Failed to push entities list.");
@@ -187,7 +188,7 @@ cnBool stChooseWhereNoneMoving(
       cnFloat speed;
 
       // Bag.
-      if (!(bag = cnListExpand(bags))) cnFailTo(FAIL, "Failed to push bag.");
+      if (!(bag = cnListExpand(bags))) cnFailTo(DONE, "Failed to push bag.");
       // With provided entities, bag init doesn't fail.
       cnBagInit(bag, entities);
 
@@ -195,11 +196,11 @@ cnBool stChooseWhereNoneMoving(
       if (!(participant = cnListExpand(&bag->participantOptions))) {
         // Hide the bag and fail.
         bags->count--;
-        cnFailTo(FAIL, "Failed to push participant list.");
+        cnFailTo(DONE, "Failed to push participant list.");
       }
       cnListInit(participant, sizeof(cnEntity));
       // Push the (pointer to the) item, after earlier safety init.
-      if (!cnListPush(participant, entity)) cnFailTo(FAIL, "No participant.");
+      if (!cnListPush(participant, entity)) cnFailTo(DONE, "No participant.");
 
       // See if this item is moving or not.
       // TODO Check orientation velocity, too?
@@ -210,14 +211,6 @@ cnBool stChooseWhereNoneMoving(
       // True here is stationary.
       bag->label = speed < epsilon;
     } cnEnd;
-
-    // Doing okay.
-    continue;
-
-    FAIL:
-    cnListDispose(entities);
-    free(entities);
-    goto DONE;
   } cnEnd;
 
   // Winned!
