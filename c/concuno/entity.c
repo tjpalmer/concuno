@@ -45,7 +45,7 @@ cnBool cnBagInit(cnBag* bag, cnList(cnEntity)* entities) {
 }
 
 
-void cnEntityFunctionCreateDifference_Get(
+void cnEntityFunctionCreateDifference_get(
   cnEntityFunction* function, cnEntity* ins, void* outs
 ) {
   // TODO Remove float assumption here.
@@ -77,7 +77,7 @@ void cnEntityFunctionCreateDifference_Get(
 cnEntityFunction* cnEntityFunctionCreateDifference(cnEntityFunction* base) {
   cnEntityFunction* function = malloc(sizeof(cnEntityFunction));
   if (!function) return NULL;
-  function->data = (void*)base;
+  function->data = base;
   function->dispose = NULL;
   function->inCount = 2;
   cnStringInit(&function->name);
@@ -94,7 +94,7 @@ cnEntityFunction* cnEntityFunctionCreateDifference(cnEntityFunction* base) {
     return NULL;
   }
   function->outType = base->outType;
-  function->get = cnEntityFunctionCreateDifference_Get;
+  function->get = cnEntityFunctionCreateDifference_get;
   // Deal with this last, to make sure everything else is sane first.
   if (!cnStringPushStr(&function->name, "Difference")) {
     cnEntityFunctionDrop(function);
@@ -108,7 +108,7 @@ cnEntityFunction* cnEntityFunctionCreateDifference(cnEntityFunction* base) {
 }
 
 
-void cnEntityFunctionCreateDistance_Get(
+void cnEntityFunctionCreateDistance_get(
   cnEntityFunction* function, cnEntity* ins, void* outs
 ) {
   // TODO Remove float assumption here.
@@ -124,7 +124,7 @@ void cnEntityFunctionCreateDistance_Get(
   }
   // Get the difference. Reusing the current function object in the call below
   // is somewhat abusive, but it's been carefully tailored to be safe.
-  cnEntityFunctionCreateDifference_Get(function, ins, diff);
+  cnEntityFunctionCreateDifference_get(function, ins, diff);
   // Get the norm of the difference.
   *result = 0;
   for (i = 0; i < function->outCount; i++) {
@@ -139,7 +139,7 @@ cnEntityFunction* cnEntityFunctionCreateDistance(cnEntityFunction* base) {
   // TODO Combine setup with difference? Differences indicated below.
   cnEntityFunction* function = malloc(sizeof(cnEntityFunction));
   if (!function) return NULL;
-  function->data = (void*)base;
+  function->data = base;
   function->dispose = NULL;
   function->inCount = 2;
   cnStringInit(&function->name);
@@ -156,7 +156,7 @@ cnEntityFunction* cnEntityFunctionCreateDistance(cnEntityFunction* base) {
     return NULL;
   }
   function->outType = base->outType;
-  function->get = cnEntityFunctionCreateDistance_Get; // Also different!
+  function->get = cnEntityFunctionCreateDistance_get; // Also different!
   // Deal with this last, to make sure everything else is sane first.
   if (!cnStringPushStr(&function->name, "Distance")) { // Also different!
     cnEntityFunctionDrop(function);
@@ -170,7 +170,7 @@ cnEntityFunction* cnEntityFunctionCreateDistance(cnEntityFunction* base) {
 }
 
 
-void cnEntityFunctionCreateProperty_Get(
+void cnEntityFunctionCreateProperty_get(
   cnEntityFunction* function, cnEntity* ins, void* outs
 ) {
   cnProperty* property = function->data;
@@ -192,16 +192,55 @@ void cnEntityFunctionCreateProperty_Get(
 cnEntityFunction* cnEntityFunctionCreateProperty(cnProperty* property) {
   cnEntityFunction* function = malloc(sizeof(cnEntityFunction));
   if (!function) return NULL;
-  function->data = (void*)property; // Treat as const anyway!
+  function->data = property;
   function->dispose = NULL;
   function->inCount = 1;
   function->outCount = property->count;
   function->outTopology = property->topology;
   function->outType = property->type;
-  function->get = cnEntityFunctionCreateProperty_Get;
+  function->get = cnEntityFunctionCreateProperty_get;
   cnStringInit(&function->name);
   // The one thing that can fail directly here.
   if (!cnStringPushStr(&function->name, cnStr((cnString*)&property->name))) {
+    cnEntityFunctionDrop(function);
+    return NULL;
+  }
+  return function;
+}
+
+
+void cnEntityFunctionCreateValid_get(
+  cnEntityFunction* function, cnEntity* ins, void* outs
+) {
+  cnIndex i;
+  cnFloat* out = outs;
+  for (i = 0; i < function->inCount; i++) {
+    if (!ins[i]) {
+      // No good, so false.
+      // TODO Something other than float output.
+      // TODO Meanwhile, is -1.0 or 0.0 better? Does it matter?
+      *out = 0.0;
+      return;
+    }
+  }
+  // All clear.
+  *out = 1.0;
+}
+
+cnEntityFunction* cnEntityFunctionCreateValid(cnSchema* schema, cnCount arity) {
+  cnEntityFunction* function = malloc(sizeof(cnEntityFunction));
+  if (!function) return NULL;
+  function->data = NULL;
+  function->dispose = NULL;
+  function->inCount = arity;
+  function->outCount = 1;
+  function->outTopology = cnTopologyEuclidean; // TODO Discrete or ordinal?
+  function->outType = schema->floatType; // TODO Integer or some such?
+  function->get = cnEntityFunctionCreateValid_get;
+  cnStringInit(&function->name);
+  // The one thing that can fail directly here.
+  // TODO Customize name by arity?
+  if (!cnStringPushStr(&function->name, "Valid")) {
     cnEntityFunctionDrop(function);
     return NULL;
   }
@@ -310,6 +349,22 @@ cnEntityFunction* cnPushPropertyFunction(
 ) {
   cnEntityFunction* function;
   if ((function = cnEntityFunctionCreateProperty(property))) {
+    // So far, so good.
+    if (!cnListPush(functions, &function)) {
+      // Nope, we failed.
+      cnEntityFunctionDrop(function);
+      function = NULL;
+    }
+  }
+  return function;
+}
+
+
+cnEntityFunction* cnPushValidFunction(
+  cnList(cnEntityFunction*)* functions, cnSchema* schema, cnCount arity
+) {
+  cnEntityFunction* function;
+  if ((function = cnEntityFunctionCreateValid(schema, arity))) {
     // So far, so good.
     if (!cnListPush(functions, &function)) {
       // Nope, we failed.

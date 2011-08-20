@@ -159,8 +159,19 @@ cnBool stInitSchemaAndEntityFunctions(
   cnListInit(functions, sizeof(cnEntityFunction*));
   // TODO Look up the type by name.
   itemType = cnListGetPointer(&schema->types, 1);
+
+  // Valid.
   if (cnTrue) {
-    // Color.
+    if (!cnPushValidFunction(functions, schema, 1)) {
+      cnFailTo(FAIL, "Failed to push Valid1.");
+    }
+    if (!cnPushValidFunction(functions, schema, 2)) {
+      cnFailTo(FAIL, "Failed to push Valid2.");
+    }
+  }
+
+  // Color.
+  if (cnTrue) {
     if (!(function = cnPushPropertyFunction(
       functions, cnListGet(&itemType->properties, 0)
     ))) {
@@ -173,8 +184,9 @@ cnBool stInitSchemaAndEntityFunctions(
       goto FAIL;
     }
   }
+
+  // Location.
   if (cnTrue) {
-    // Location.
     // TODO Look up the property by name.
     if (!(function = cnPushPropertyFunction(
       functions, cnListGet(&itemType->properties, 1)
@@ -193,8 +205,9 @@ cnBool stInitSchemaAndEntityFunctions(
       goto FAIL;
     }
   }
+
+  // Velocity.
   if (cnFalse) {
-    // Velocity.
     // TODO Look up the property by name.
     if (!(function = cnPushPropertyFunction(
       functions, cnListGet(&itemType->properties, 2)

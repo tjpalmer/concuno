@@ -286,6 +286,18 @@ cnEntityFunction* cnEntityFunctionCreateDistance(cnEntityFunction* base);
 cnEntityFunction* cnEntityFunctionCreateProperty(cnProperty* property);
 
 
+/**
+ * Creates an entity function that determines merely whether all the arguments
+ * actually have bindings.
+ *
+ * These functions should be considered before others, if the aim is for simple
+ * and comprehensible trees.
+ *
+ * TODO Consider error branches off var nodes?
+ */
+cnEntityFunction* cnEntityFunctionCreateValid(cnSchema* schema, cnCount arity);
+
+
 void cnEntityFunctionDrop(cnEntityFunction* function);
 
 
@@ -369,6 +381,11 @@ cnEntityFunction* cnPushDistanceFunction(
 
 cnEntityFunction* cnPushPropertyFunction(
   cnList(cnEntityFunction*)* functions, cnProperty* property
+);
+
+
+cnEntityFunction* cnPushValidFunction(
+  cnList(cnEntityFunction*)* functions, cnSchema* schema, cnCount arity
 );
 
 

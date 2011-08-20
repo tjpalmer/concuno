@@ -257,7 +257,13 @@ cnType* cnvLoadTable(
 
 
 cnBool cnvPickFunctions(cnList(cnEntityFunction*)* functions, cnType* type) {
-  // For now, just put in one identity function for each property.
+  // For now, just put in valid and common functions for each property.
+  if (!cnPushValidFunction(functions, type->schema, 1)) {
+    cnFailTo(FAIL, "No valid 1.");
+  }
+  if (!cnPushValidFunction(functions, type->schema, 2)) {
+    cnFailTo(FAIL, "No valid 2.");
+  }
   cnListEachBegin(&type->properties, cnProperty, property) {
     cnEntityFunction* function;
     if (property == type->properties.items) {
