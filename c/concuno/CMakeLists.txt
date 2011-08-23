@@ -5,6 +5,7 @@ add_library(concuno-static STATIC
   cluster.c
   core.c
   entity.c
+  kdtree.c
   learn.c
   mat.c
   io.c

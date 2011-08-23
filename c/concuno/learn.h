@@ -6,6 +6,9 @@
 #include "tree.h"
 
 
+cnCBegin;
+
+
 /**
  * The whole Learner thing is a placeholder. I can't imagine not wanting a few
  * configuration options at some point.
@@ -90,6 +93,9 @@ cnBool cnLearnerInit(cnLearner* learner, cnRandom random);
  * TODO Fill a list of trees for beam search purposes?
  */
 cnRootNode* cnLearnTree(cnLearner* learner);
+
+
+cnCEnd;
 
 
 #endif

@@ -5,6 +5,9 @@
 #include "entity.h"
 
 
+cnCBegin;
+
+
 /**
  * An arbitrary length array of entity pointers.
  */
@@ -548,6 +551,9 @@ cnBool cnTreePropagateBags(
 
 
 cnVarNode* cnVarNodeCreate(cnBool addLeaf);
+
+
+cnCEnd;
 
 
 #endif

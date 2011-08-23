@@ -5,6 +5,9 @@
 #include "core.h"
 
 
+cnCBegin;
+
+
 /**
  * A search option is a state in a forward graph search process. It's entirely
  * abstract, managed by the client.
@@ -103,6 +106,9 @@ void cnSearcherDestroy(cnSearcher searcher);
  * available inside the searcher.
  */
 cnBool cnSearch(cnSearcher searcher);
+
+
+cnCEnd;
 
 
 #endif

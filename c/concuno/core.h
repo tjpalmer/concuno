@@ -7,6 +7,18 @@
 #include <stdlib.h>
 
 
+#ifdef __cplusplus
+  #define cnCBegin extern "C" {
+  #define cnCEnd }
+#else
+  #define cnCBegin
+  #define cnCEnd
+#endif
+
+
+cnCBegin;
+
+
 // Prettier in some contexts than the braces.
 #define cnEnd }
 
@@ -386,6 +398,9 @@ cnBool cnStringPushChar(cnString* string, char c);
 
 
 cnBool cnStringPushStr(cnString* string, char* str);
+
+
+cnCEnd;
 
 
 #endif

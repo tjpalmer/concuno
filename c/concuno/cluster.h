@@ -5,7 +5,13 @@
 #include "entity.h"
 
 
+cnCBegin;
+
+
 cnBool cnClusterOnFunction(cnList(cnBag)* bags, cnEntityFunction* function);
+
+
+cnCEnd;
 
 
 #endif

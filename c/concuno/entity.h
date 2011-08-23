@@ -5,6 +5,9 @@
 #include "core.h"
 
 
+cnCBegin;
+
+
 /**
  * Entities are defined entirely by properties and entity functions.
  */
@@ -431,6 +434,9 @@ cnType* cnTypeCreate(char* name, cnCount size);
  * Doesn't dispose of the schema. Schemas manage types, not vice versa.
  */
 void cnTypeDrop(cnType* type);
+
+
+cnCEnd;
 
 
 #endif

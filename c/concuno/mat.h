@@ -11,6 +11,9 @@
 #include "core.h"
 
 
+cnCBegin;
+
+
 // TODO Something else on Windows?
 #define cnPi M_PI
 
@@ -27,6 +30,9 @@ void cnVectorPrint(FILE* file, cnCount size, cnFloat* values);
 void cnVectorPrintDelimited(
   FILE* file, cnCount size, cnFloat* values, char* delimiter
 );
+
+
+cnCEnd;
 
 
 #endif

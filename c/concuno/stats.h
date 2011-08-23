@@ -5,6 +5,9 @@
 #include "entity.h"
 
 
+cnCBegin;
+
+
 typedef struct{}* cnBinomial;
 
 
@@ -195,6 +198,9 @@ cnFloat* cnVectorMean(cnCount size, cnFloat* out, cnCount count, cnFloat* in);
  * Returns out.
  */
 cnFloat* cnVectorMin(cnCount size, cnFloat* out, cnCount count, cnFloat* in);
+
+
+cnCEnd;
 
 
 #endif

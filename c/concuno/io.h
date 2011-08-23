@@ -6,6 +6,9 @@
 #include "core.h"
 
 
+cnCBegin;
+
+
 /**
  * Reduce the indent by the canonical amount.
  *
@@ -41,6 +44,9 @@ char* cnParseStr(char* begin, char** end);
  * error, returns the negative count of chars read.
  */
 cnCount cnReadLine(FILE* file, cnString* string);
+
+
+cnCEnd;
 
 
 #endif
