@@ -62,7 +62,7 @@ int main(int argc, char** argv) {
   case 1:
     // Attempt learning the "falls on" predictive concept.
     if (!stLearnConcept(
-      &states, &entityFunctions, stChooseWhereNotMoving
+      &states, &entityFunctions, stChooseDropWhereLandOnOther
     )) {
       printf("No learned tree.\n");
       goto DROP_FUNCTIONS;

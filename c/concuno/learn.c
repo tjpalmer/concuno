@@ -239,14 +239,14 @@ void cnBuildInitialKernel(cnTopology topology, cnList(cnPointBag)* pointBags) {
   positivePointCount = 0;
   printf("pointBags->count: %ld\n", pointBags->count);
   if (pointBags->count > 0) {
-    valueCount = ((cnPointBag*)pointBags->items)->valueCount;
+    valueCount = ((cnPointBag*)pointBags->items)->pointMatrix.valueCount;
   }
   printf("valueCount: %ld\n", valueCount);
   cnListEachBegin(pointBags, cnPointBag, pointBag) {
     // Just use the positives for the initial kernel.
     if (!pointBag->bag->label) continue;
-    point = pointBag->pointMatrix;
-    matrixEnd = point + pointBag->pointCount * valueCount;
+    point = pointBag->pointMatrix.points;
+    matrixEnd = point + pointBag->pointMatrix.pointCount * valueCount;
     for (; point < matrixEnd; point += valueCount) {
       cnBool allGood = cnTrue;
       cnFloat* value = point;
@@ -275,8 +275,8 @@ void cnBuildInitialKernel(cnTopology topology, cnList(cnPointBag)* pointBags) {
   cnListEachBegin(pointBags, cnPointBag, pointBag) {
     // Just use the positives for the initial kernel.
     if (!pointBag->bag->label) continue;
-    point = pointBag->pointMatrix;
-    matrixEnd = point + pointBag->pointCount * valueCount;
+    point = pointBag->pointMatrix.points;
+    matrixEnd = point + pointBag->pointMatrix.pointCount * valueCount;
     for (; point < matrixEnd; point += valueCount) {
       cnBool allGood = cnTrue;
       cnFloat *value = point, *positiveValue = positivePoint;
@@ -328,12 +328,12 @@ cnFloat* cnBestPointByDiverseDensity(
   cnFloat* bestPoint = NULL;
   cnFloat bestSumYet = HUGE_VAL;
   cnCount posBagCount = 0, maxPosBags = 4;
-  cnCount valueCount =
-    pointBags->count ? ((cnPointBag*)pointBags->items)->valueCount : 0;
+  cnCount valueCount = pointBags->count ?
+    ((cnPointBag*)pointBags->items)->pointMatrix.valueCount : 0;
   printf("DD-ish: ");
   cnListEachBegin(pointBags, cnPointBag, pointBag) {
-    cnFloat* point = pointBag->pointMatrix;
-    cnFloat* matrixEnd = point + pointBag->pointCount * valueCount;
+    cnFloat* point = pointBag->pointMatrix.points;
+    cnFloat* matrixEnd = point + pointBag->pointMatrix.pointCount * valueCount;
     if (!pointBag->bag->label) continue;
     if (posBagCount++ >= maxPosBags) break;
     printf("B ");
@@ -351,8 +351,9 @@ cnFloat* cnBestPointByDiverseDensity(
       if (!allGood) continue;
       cnListEachBegin(pointBags, cnPointBag, pointBag2) {
         cnFloat minDistance = HUGE_VAL;
-        cnFloat* point2 = pointBag2->pointMatrix;
-        cnFloat* matrixEnd2 = point2 + pointBag2->pointCount * valueCount;
+        cnFloat* point2 = pointBag2->pointMatrix.points;
+        cnFloat* matrixEnd2 =
+          point2 + pointBag2->pointMatrix.pointCount * valueCount;
         for (; point2 < matrixEnd2; point2 += valueCount) {
           cnFloat distance = 0;
           cnFloat* value2;
@@ -406,8 +407,8 @@ cnBool cnBestPointByScore(
   cnList(cnFloat) posPointsIn;
   cnBool result = cnFalse;
   cnFloat threshold;
-  cnCount valueCount =
-    pointBags->count ? ((cnPointBag*)pointBags->items)->valueCount : 0;
+  cnCount valueCount = pointBags->count ?
+    ((cnPointBag*)pointBags->items)->pointMatrix.valueCount : 0;
 
   // TODO Build a kd-tree (or set thereof) for approximate nearest neighbor
   // TODO sampling, and then use bounds to cut off searches once better scores
@@ -441,8 +442,8 @@ cnBool cnBestPointByScore(
 
   printf("Score-ish: ");
   cnListEachBegin(pointBags, cnPointBag, pointBag) {
-    cnFloat* point = pointBag->pointMatrix;
-    cnFloat* matrixEnd = point + pointBag->pointCount * valueCount;
+    cnFloat* point = pointBag->pointMatrix.points;
+    cnFloat* matrixEnd = point + pointBag->pointMatrix.pointCount * valueCount;
 
     // See if we have already looked at enough bags.
     if (!(posBagsLeft || negBagsLeft)) break;
@@ -455,7 +456,10 @@ cnBool cnBestPointByScore(
     }
 
     // Guess we're going to try this one out.
-    printf("B%c:%ld ", pointBag->bag->label ? '+' : '-', pointBag->pointCount);
+    printf(
+      "B%c:%ld ",
+      pointBag->bag->label ? '+' : '-', pointBag->pointMatrix.pointCount
+    );
     fflush(stdout);
     for (; point < matrixEnd; point += valueCount) {
       cnBool allGood = cnTrue;
@@ -542,7 +546,8 @@ cnBool cnBestPointByScore(
       SKIP_POINT:
       // Progress tracker.
       if (
-        (1 + (point - (cnFloat*)pointBag->pointMatrix) / valueCount) % 100 == 0
+        (1 + (point - (cnFloat*)pointBag->pointMatrix.points) / valueCount)
+        % 100 == 0
       ) {
         printf(".");
         fflush(stdout);
@@ -566,8 +571,8 @@ cnBool cnChooseThreshold(
   cnFloat* score, cnFloat* threshold,
   cnList(cnFloat)* nearPosPoints, cnList(cnFloat)* nearNegPoints
 ) {
-  cnCount valueCount =
-    pointBags->count ? ((cnPointBag*)pointBags->items)->valueCount : 0;
+  cnCount valueCount = pointBags->count ?
+    ((cnPointBag*)pointBags->items)->pointMatrix.valueCount : 0;
   cnBagDistance* distance;
   cnBagDistance* distances = malloc(pointBags->count * sizeof(cnBagDistance));
   cnBagDistance* distancesEnd = distances + pointBags->count;
@@ -595,8 +600,8 @@ cnBool cnChooseThreshold(
   // Narrow the distance to each bag.
   for (distance = distances; distance < distancesEnd; distance++) {
     cnPointBag* pointBag = distance->bag;
-    cnFloat* point = pointBag->pointMatrix;
-    cnFloat* pointsEnd = point + pointBag->pointCount * valueCount;
+    cnFloat* point = pointBag->pointMatrix.points;
+    cnFloat* pointsEnd = point + pointBag->pointMatrix.pointCount * valueCount;
     if (!distance->near) continue; // Done with this one.
     // Look at each point in the bag.
     for (; point < pointsEnd; point += valueCount) {
@@ -1239,10 +1244,12 @@ void cnLogPointBags(cnSplitNode* split, cnList(cnPointBag)* pointBags) {
 
   // Print out the data.
   cnListEachBegin(pointBags, cnPointBag, pointBag) {
-    cnFloat* point = pointBag->pointMatrix;
-    cnFloat* pointsEnd = point + pointBag->pointCount * pointBag->valueCount;
-    for (; point < pointsEnd; point += pointBag->valueCount) {
-      cnVectorPrint(file, pointBag->valueCount, point);
+    cnFloat* point = pointBag->pointMatrix.points;
+    cnFloat* pointsEnd =
+      point +
+      pointBag->pointMatrix.pointCount * pointBag->pointMatrix.valueCount;
+    for (; point < pointsEnd; point += pointBag->pointMatrix.valueCount) {
+      cnVectorPrint(file, pointBag->pointMatrix.valueCount, point);
       fprintf(file, " %u", pointBag->bag->label);
       fprintf(file, "\n");
     }

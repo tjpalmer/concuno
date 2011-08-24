@@ -527,8 +527,9 @@ cnCount cnNodeVarDepth(cnNode* node) {
 
 void cnPointBagDispose(cnPointBag* pointBag) {
   if (pointBag) {
+    // TODO Split out point matrix init?
     free(pointBag->bindingPointIndices);
-    free(pointBag->pointMatrix);
+    free(pointBag->pointMatrix.points);
     cnPointBagInit(pointBag);
   }
 }
@@ -537,10 +538,11 @@ void cnPointBagDispose(cnPointBag* pointBag) {
 void cnPointBagInit(cnPointBag* pointBag) {
   pointBag->bag = NULL;
   pointBag->bindingPointIndices = NULL;
-  pointBag->valueCount = 0;
-  pointBag->valueSize = 0;
-  pointBag->pointMatrix = NULL;
-  pointBag->pointCount = 0;
+  // TODO Split out point matrix dispose?
+  pointBag->pointMatrix.valueCount = 0;
+  pointBag->pointMatrix.valueSize = 0;
+  pointBag->pointMatrix.points = NULL;
+  pointBag->pointMatrix.pointCount = 0;
 }
 
 
@@ -687,14 +689,16 @@ cnPointBag* cnSplitNodePointBag(
     if (!(pointBag = malloc(sizeof(cnPointBag)))) {
       cnFailTo(FAIL, "No point bag.");
     }
-  } else if (pointBag->pointMatrix) {
+  } else if (pointBag->pointMatrix.points) {
     // Failing to DONE on purpose here, so we don't free their data!
-    cnFailTo(DONE, "Point bag has %ld points already!", pointBag->pointCount);
+    cnFailTo(DONE,
+      "Point bag has %ld points already!", pointBag->pointMatrix.pointCount
+    );
   }
   cnPointBagInit(pointBag);
   pointBag->bag = bindingBag->bag;
-  pointBag->valueCount = split->function->outCount;
-  pointBag->valueSize = split->function->outType->size;
+  pointBag->pointMatrix.valueCount = split->function->outCount;
+  pointBag->pointMatrix.valueSize = split->function->outType->size;
 
   // See if we have potential duplicate points. If so, combine them for
   // efficiency. This can speed things up a lot for deep areas of trees with
@@ -773,9 +777,10 @@ cnPointBag* cnSplitNodePointBag(
   // Null (dummy bindings) will yield NaN as needed, so every binding yields a
   // point.
   // TODO What about for non-float outputs???
-  pointBag->pointCount = bindingBag->bindings.count;
-  if (!(pointBag->pointMatrix = malloc(
-    pointBag->pointCount * pointBag->valueCount * pointBag->valueSize
+  pointBag->pointMatrix.pointCount = bindingBag->bindings.count;
+  if (!(pointBag->pointMatrix.points = malloc(
+    pointBag->pointMatrix.pointCount *
+    pointBag->pointMatrix.valueCount * pointBag->pointMatrix.valueSize
   ))) cnFailTo(FAIL, "No point matrix.");
   // Put args on the stack.
   if (!(args = cnStackAlloc(split->function->inCount * sizeof(void*)))) {
@@ -783,7 +788,7 @@ cnPointBag* cnSplitNodePointBag(
   }
 
   // Calculate the points.
-  values = pointBag->pointMatrix;
+  values = pointBag->pointMatrix.points;
   cnListEachBegin(&bindingBag->bindings, cnEntity, entities) {
     // Gather the arguments.
     cnIndex a;
@@ -794,7 +799,9 @@ cnPointBag* cnSplitNodePointBag(
     // TODO Check for errors once we provide such things.
     split->function->get(split->function, args, values);
     // Move to the next vector.
-    values = ((char*)values) + pointBag->valueCount * pointBag->valueSize;
+    values =
+      ((char*)values) +
+      pointBag->pointMatrix.valueCount * pointBag->pointMatrix.valueSize;
   } cnEnd;
 
   // We winned.
@@ -851,7 +858,7 @@ cnBool cnSplitNodePointBags(
     if (!cnSplitNodePointBag(split, bindingBag, pointBag)) {
       cnFailTo(FAIL, "No point bag.");
     }
-    validBindingsCount += pointBag->pointCount;
+    validBindingsCount += pointBag->pointMatrix.pointCount;
     pointBag++;
   } cnEnd;
   printf("Points built: %ld\n", validBindingsCount);
@@ -862,7 +869,7 @@ cnBool cnSplitNodePointBags(
 
   FAIL:
   cnListEachBegin(pointBags, cnPointBag, pointBag) {
-    free(pointBag->pointMatrix);
+    free(pointBag->pointMatrix.points);
   } cnEnd;
   cnListClear(pointBags);
 
@@ -916,14 +923,16 @@ cnBool cnSplitNodePropagateBindingBag(
   // have multiple bindings for a single point, and it shouldn't be horribly
   // expensive for the common case.
   if (!(
-    pointBindingBagOuts = malloc(pointBag->pointCount * sizeof(cnBindingBag*))
+    pointBindingBagOuts =
+      malloc(pointBag->pointMatrix.pointCount * sizeof(cnBindingBag*))
   )) cnFailTo(DONE, "No point binding bag assignments.");
 
   // Go through the points.
   p = 0;
-  point = pointBag->pointMatrix;
-  pointsEnd = point + pointBag->pointCount * pointBag->valueCount;
-  for (; point < pointsEnd; point += pointBag->valueCount) {
+  point = pointBag->pointMatrix.points;
+  pointsEnd = point +
+    pointBag->pointMatrix.pointCount * pointBag->pointMatrix.valueCount;
+  for (; point < pointsEnd; point += pointBag->pointMatrix.valueCount) {
     // Check for error.
     cnBool allGood = cnTrue;
     cnFloat* value = point;
@@ -980,8 +989,7 @@ cnBool cnSplitNodePropagateBindingBag(
   DONE:
   free(pointBindingBagOuts);
   if (pointBag) {
-    free(pointBag->bindingPointIndices);
-    free(pointBag->pointMatrix);
+    cnPointBagDispose(pointBag);
     free(pointBag);
   }
   for (splitIndex = 0; splitIndex < cnSplitCount; splitIndex++) {

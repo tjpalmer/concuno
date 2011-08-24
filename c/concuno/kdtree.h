@@ -9,42 +9,6 @@
 cnCBegin;
 
 
-/**
- * Just a matrix of vectors, really.
- *
- * TODO Get grid working sometime?
- *
- * TODO Use this inside cnPointBag?
- */
-typedef struct cnPointMatrix {
-
-  /**
-   * The total number of points in the bag.
-   */
-  cnCount pointCount;
-
-  /**
-   * An array of pointCount vectors of size valueCount each.
-   *
-   * TODO Arbitrary topologies?
-   */
-  cnFloat* points;
-
-  /**
-   * It's easy to imagine KD trees on angles, quaternions, categories, or other.
-   *
-   * TODO Support other than Euclidean.
-   */
-  cnTopology topology;
-
-  /**
-   * Number of homogeneous values per point.
-   */
-  cnCount valueCount;
-
-}* cnPointMatrix;
-
-
 typedef struct cnKdSplitter {
 
   // TODO Modes such as random projection or PCA?

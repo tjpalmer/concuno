@@ -51,6 +51,48 @@ typedef struct cnBindingBagList {
 
 
 /**
+ * Just a matrix of vectors, really.
+ *
+ * TODO Get grid working sometime?
+ *
+ * TODO Use this inside cnPointBag?
+ */
+typedef struct cnPointMatrix {
+
+  /**
+   * The total number of points in the bag.
+   */
+  cnCount pointCount;
+
+  /**
+   * An array of pointCount points of valueCount values each.
+   *
+   * TODO Arbitrary topologies?
+   */
+  cnFloat* points;
+  // Or cnGridAny points; ??
+
+  /**
+   * It's easy to imagine KD trees on angles, quaternions, categories, or other.
+   *
+   * TODO Support other than Euclidean.
+   */
+  cnTopology topology;
+
+  /**
+   * Number of homogeneous values per point.
+   */
+  cnCount valueCount;
+
+  /**
+   * The size of each value.
+   */
+  cnCount valueSize;
+
+}* cnPointMatrix;
+
+
+/**
  * A set of points for a bag, in some topology, given by some entity function.
  * For discrete topologies, the term "point" is abusive, but I still like it
  * better than other options considered.
@@ -77,25 +119,9 @@ typedef struct cnPointBag {
   cnIndex* bindingPointIndices;
 
   /**
-   * The total number of points in the bag.
-   */
-  cnCount pointCount;
-
-  /**
    * One point at a time.
    */
-  void* pointMatrix;
-  // Or cnGridAny points; ??
-
-  /**
-   * Number of homogeneous values per point.
-   */
-  cnCount valueCount;
-
-  /**
-   * The size of each value.
-   */
-  cnCount valueSize;
+  struct cnPointMatrix pointMatrix;
 
 } cnPointBag;
 
