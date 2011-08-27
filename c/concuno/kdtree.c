@@ -2,6 +2,10 @@
 
 
 cnRootNode* cnKdSplit(cnKdSplitter splitter) {
+  if (splitter->pointMatrix->topology != cnTopologyEuclidean) {
+    cnFailTo(DONE, "Only Euclidean for now.");
+  }
+  DONE:
   return NULL;
 }
 

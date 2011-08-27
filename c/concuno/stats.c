@@ -400,6 +400,34 @@ void cnRandomDestroy(cnRandom random) {
 }
 
 
+cnFloat cnScalarCovariance(
+  cnCount count,
+  cnCount skipA, cnFloat* inA,
+  cnCount skipB, cnFloat* inB
+) {
+  cnIndex i;
+  cnFloat sumA = 0.0;
+  cnFloat sumB = 0.0;
+  cnFloat sumAB = 0.0;
+  for (i = 0; i < count; i++) {
+    sumA += *inA;
+    sumB += *inB;
+    sumAB += *inA * *inB;
+    inA += skipA;
+    inB += skipB;
+  }
+  // From Wikipedia: E(A * B) - E(A) * E(B)
+  // And subtract 1 from the denominator for "unbiased".
+  return (sumAB - (sumA * sumB) / count) / (count - 1);
+}
+
+
+cnFloat cnScalarVariance(cnCount count, cnCount skip, cnFloat* in) {
+  // TODO Is this right?
+  return cnScalarCovariance(count, skip, in, skip, in);
+}
+
+
 cnFloat cnUnitRand() {
   // TODO This is a horrible implementation right now. Do much improvement!
   cnCount value = rand();

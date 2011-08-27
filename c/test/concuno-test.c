@@ -26,8 +26,11 @@ void testPropagate(void);
 void testUnitRand(void);
 
 
+void testVariance(void);
+
+
 int main(void) {
-  switch ('r') {
+  switch ('v') {
   case 'b':
     testBinomial();
     break;
@@ -45,6 +48,9 @@ int main(void) {
     break;
   case 'u':
     testUnitRand();
+    break;
+  case 'v':
+    testVariance();
     break;
   default:
     printf("No test requested.\n");
@@ -358,4 +364,14 @@ void testUnitRand(void) {
     printf("%lg ", cnUnitRand());
   }
   printf("\n");
+}
+
+
+void testVariance(void) {
+  cnFloat a[] = {1.5, 3.2, -0.1, 4.1, 12.3};
+  cnFloat b[] = {6.7, 1.8, 0.2, 4.5, 4.3};
+  cnFloat variance = cnScalarVariance(5, 1, a);
+  cnFloat covariance = cnScalarCovariance(5, 1, a, 1, b);
+  printf("Variance: %lg\n", variance);
+  printf("Covariance: %lg\n", covariance);
 }

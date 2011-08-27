@@ -165,6 +165,26 @@ void cnRandomDestroy(cnRandom random);
 
 
 /**
+ * The 1D variance of the given data.
+ *
+ * Skip units are float indices, not bytes.
+ */
+cnFloat cnScalarCovariance(
+  cnCount count,
+  cnCount skipA, cnFloat* inA,
+  cnCount skipB, cnFloat* inB
+);
+
+
+/**
+ * The 1D variance of the given data.
+ *
+ * Skip units are float indices, not bytes.
+ */
+cnFloat cnScalarVariance(cnCount count, cnCount skip, cnFloat* in);
+
+
+/**
  * Generates a sample from a uniform distribution between 0 inclusive and 1
  * exclusive.
  *
