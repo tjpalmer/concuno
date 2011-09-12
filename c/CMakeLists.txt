@@ -1,6 +1,6 @@
 subdirs(
   concuno
+  domains
   run
-  stackiter
   test
 )

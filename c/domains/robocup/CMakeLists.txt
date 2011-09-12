@@ -1,0 +1,11 @@
+add_executable(
+  rcss-test
+  rcss-test.c
+  load.c
+)
+
+target_link_libraries(
+  rcss-test
+  concuno-static
+  ${math_LIBRARY}
+)
