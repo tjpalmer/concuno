@@ -126,13 +126,28 @@ cnBool cnrParseContents(FILE* file) {
 
 
 cnBool cnrParseRcgLine(char* line) {
+  char c;
+  int count;
   cnBool result = cnFalse;
+  char* type;
 
-  // TODO Stuff.
+  // Make sure we have a paren.
+  if (sscanf(line, "%1s%n", &c, &count) <= 0) {
+    // Nothing on this line.
+    goto SUCCESS;
+  }
+  if (c != '(') cnFailTo(DONE, "Expected '('.");
+  line += count;
+
+  // Get our line type.
+  cnParseStr(line, &type);
+  if (!*type) cnFailTo(DONE, "No line type.");
 
   // Winned.
+  SUCCESS:
   result = cnTrue;
 
+  DONE:
   return result;
 }
 
