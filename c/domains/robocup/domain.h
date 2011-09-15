@@ -5,11 +5,72 @@
 #include <concuno.h>
 
 
-typedef struct cnrPlayer {
+typedef enum {
+
+  cnrTypeBall,
+
+  cnrTypePlayer,
+
+} cnrType;
+
+
+/**
+ * Usually just 0 for left (or keepers?) or 1 for right (or takers?).
+ */
+typedef cnIndex cnrTeam;
+
+
+typedef cnIndex cnrTime;
+
+
+typedef struct cnrItem {
+
+  cnrType type;
 
   cnFloat location[2];
 
+  // TODO Velocity.
+
+}* cnrItem;
+
+
+typedef struct cnrBall {
+
+  struct cnrItem item;
+
+  // Probably that's all we'll ever have in here.
+
+}* cnrBall;
+
+
+typedef struct cnrPlayer {
+
+  struct cnrItem item;
+
+  // TODO Explicit ball posession indicator?
+
+  cnrTeam team;
+
 }* cnrPlayer;
+
+
+typedef struct cnrState {
+
+  struct cnrBall ball;
+
+  cnList(struct cnrPlayer) players;
+
+  /**
+   * The secondary clock of the game that ticks during setup or after fouls.
+   */
+  cnrTime subtime;
+
+  /**
+   * The primary clock of the game.
+   */
+  cnrTime time;
+
+}* cnrState;
 
 
 #endif
