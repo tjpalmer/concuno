@@ -140,7 +140,7 @@ cnBool cnrParseRcgLine(char* line) {
   line += count;
 
   // Get our line type.
-  cnParseStr(line, &type);
+  type = cnParseStr(line, &line);
   if (!*type) cnFailTo(DONE, "No line type.");
 
   // Winned.
