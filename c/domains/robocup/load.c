@@ -36,6 +36,13 @@ cnBool cnrParseRcgLines(FILE* file);
 
 
 /**
+ * Parse a show command. The leading paren and the show token have both already
+ * been consumed from the line.
+ */
+cnBool cnrParseShow(char* line);
+
+
+/**
  * Parses a double-quote terminated string. The open double-quote should already
  * be consumed.
  *
@@ -143,6 +150,11 @@ cnBool cnrParseRcgLine(char* line) {
   type = cnParseStr(line, &line);
   if (!*type) cnFailTo(DONE, "No line type.");
 
+  // Dispatch by type. TODO Hash table? Anything other than show?
+  if (!strcmp(type, "show")) {
+    if (!cnrParseShow(line)) cnFailTo(DONE, "Failed to parse show.");
+  }
+
   // Winned.
   SUCCESS:
   result = cnTrue;
@@ -173,6 +185,20 @@ cnBool cnrParseRcgLines(FILE* file) {
 
   DONE:
   cnStringDispose(&line);
+  return result;
+}
+
+
+cnBool cnrParseShow(char* line) {
+  cnIndex stepIndex;
+  cnBool result = cnFalse;
+
+  // Find where we are.
+  stepIndex = strtol(line, &line, 10);
+
+  // Winned.
+  result = cnTrue;
+
   return result;
 }
 
