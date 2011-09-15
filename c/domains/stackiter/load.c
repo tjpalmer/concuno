@@ -128,7 +128,6 @@ cnBool stHandleDestroy(stParser* parser, char* args) {
   cnIndex* index = (cnIndex*)cnListGet(&parser->indices, id);
   cnIndex* indices = parser->indices.items;
   cnList(stItem)* items;
-  stItem *item, *endItem;
   if (!index) {
     printf("Bad id: %ld\n", id);
     return cnFalse;
@@ -140,13 +139,16 @@ cnBool stHandleDestroy(stParser* parser, char* args) {
   // Remove the destroyed item.
   items = &parser->state.items;
   cnListRemove(items, *index);
-  endItem = cnListEnd(items);
-  // Reduce the index of successive items.
-  for (item = cnListGet(items, *index); item < endItem; item++) {
-    // All items ids in our list should be valid, so index directly.
-    // TODO Could optimize further if we assume seeing items always in
-    // TODO increasing order.
-    indices[item->id]--;
+  if (*index < items->count) {
+    // It wasn't last, so reduce the index of successive items.
+    stItem* item;
+    stItem* endItem = cnListEnd(items);
+    for (item = cnListGet(items, *index); item < endItem; item++) {
+      // All items ids in our list should be valid, so index directly.
+      // TODO Could optimize further if we assume seeing items always in
+      // TODO increasing order.
+      indices[item->id]--;
+    }
   }
   *index = 0;
   return cnTrue;
