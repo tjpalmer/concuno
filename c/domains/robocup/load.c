@@ -16,6 +16,21 @@ cnBool cnrParseContents(char** line);
 
 
 /**
+ * Parses a double-quote terminated string. The open double-quote should already
+ * be consumed.
+ *
+ * Assumes no backslash escaping of anything and can therefore return pointers
+ * into the original line. The closing double-quote will be replaced with a null
+ * char.
+ *
+ * If there is no terminating null char, a null pointer is returned.
+ *
+ * TODO Are escapes really not supported?
+ */
+char* cnrParseQuoted(char** line);
+
+
+/**
  * Parses a single rcg line.
  */
 cnBool cnrParseRcgLine(char* line);
@@ -32,15 +47,6 @@ cnBool cnrParseRcgLines(FILE* file);
  * been consumed from the line.
  */
 cnBool cnrParseShow(char* line);
-
-
-/**
- * Parses a double-quote terminated string. The open double-quote should already
- * be consumed.
- *
- * TODO Is backslash escaping used?
- */
-//cnBool cnrParseString(FILE* file);
 
 
 cnBool cnrLoadGameLog(char* name) {
@@ -82,23 +88,25 @@ cnBool cnrLoadGameLog(char* name) {
 
 
 cnBool cnrParseContents(char** line) {
-  char c;
   cnBool result = cnFalse;
 
-  while ((c = cnParseChar(*line, line)) && c != ')') {
-    switch (c) {
+  while (*(*line = cnNextChar(*line)) && **line != ')') {
+    switch (**line) {
     case '(':
+      (*line)++;
       if (!cnrParseContents(line)) cnFailTo(DONE, "Failed parsing contents.");
       break;
     case '"':
-      //if (!cnrParseString(file)) cnFailTo(DONE, "Failed parsing string.");
+      (*line)++;
+      if (!cnrParseQuoted(line)) cnFailTo(DONE, "Failed parsing string.");
       break;
     default:
       // TODO Parse ids and numbers. Anything else?
+      (*line)++;
       break;
     }
   }
-  if (c != ')') cnFailTo(DONE, "Premature end of line.");
+  if (**line != ')') cnFailTo(DONE, "Premature end of line.");
 
   // Winned.
   result = cnTrue;
@@ -108,19 +116,38 @@ cnBool cnrParseContents(char** line) {
 }
 
 
+char* cnrParseQuoted(char** line) {
+  // Assume we got it.
+  char* result = *line;
+
+  for (; **line != '"'; (*line)++) {
+    if (!**line) {
+      // Nope. Failed.
+      result = NULL;
+      cnFailTo(DONE, "Unterminated string.");
+    }
+  }
+
+  // Found the end.
+  **line = '\0';
+
+  DONE:
+  return result;
+}
+
+
 cnBool cnrParseRcgLine(char* line) {
-  char c;
-  int count;
   cnBool result = cnFalse;
   char* type;
 
   // Make sure we have a paren.
-  if (sscanf(line, "%1s%n", &c, &count) <= 0) {
-    // Nothing on this line.
+  line = cnNextChar(line);
+  if (!*line) {
+    // Empty line. That's okay.
     goto SUCCESS;
   }
-  if (c != '(') cnFailTo(DONE, "Expected '('.");
-  line += count;
+  if (*line != '(') cnFailTo(DONE, "Expected '('.");
+  line++;
 
   // Get our line type.
   type = cnParseStr(line, &line);
@@ -179,40 +206,3 @@ cnBool cnrParseShow(char* line) {
   DONE:
   return result;
 }
-
-
-//cnBool cnrParseString(FILE* file) {
-//  int c;
-//  cnBool result = cnFalse;
-//
-//  if ((c = fgetc(file)) == EOF) cnFailTo(DONE, "Untermined string.");
-//
-//  if (c == '(') {
-//    // Parenthesized string.
-//    printf("\"(");
-//    if (!cnrParseContents(file)) cnFailTo(DONE, "Failed paren string.");
-//    if ((c = fgetc(file)) == EOF) cnFailTo(DONE, "Untermined string.");
-//    if (c != '"') cnFailTo(DONE, "No ending double-quote on paren string.");
-//    printf("\"");
-//  }
-//
-//  while ((c = cnrAdvance(file)) && c != '"') {
-//    // TODO Also break string on newline?
-//    if (c == '\\') {
-//      // Escape sequence.
-//      // TODO Is this really how escapes work for rcss log files?
-//      int i = fgetc(file);
-//      if (i == EOF) break;
-//      // TODO Do something with the escaped char.
-//    }
-//  }
-//
-//  if (ferror(file)) cnFailTo(DONE, "Failed advancing.");
-//  if (feof(file)) cnFailTo(DONE, "Unterminated string.");
-//
-//  // Winned.
-//  result = cnTrue;
-//
-//  DONE:
-//  return result;
-//}

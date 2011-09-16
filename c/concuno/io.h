@@ -27,6 +27,13 @@ cnBool cnIndent(cnString* indent);
 
 
 /**
+ * Returns the address of the next non-whitespace char in the string, if any.
+ * Otherwise returns the address of the null char ending the string.
+ */
+char* cnNextChar(char* begin);
+
+
+/**
  * Finds a non-whitespace char if it exists. The end will point past that char
  * if any, or at the already existing null char if at the end. The function
  * returns the value of that non-whitespace char or a null char if none was

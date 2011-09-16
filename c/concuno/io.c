@@ -12,6 +12,14 @@ cnBool cnIndent(cnString* indent) {
   return cnStringPushStr(indent, "  ");
 }
 
+
+char* cnNextChar(char* begin) {
+  // Loop to nonwhite, and return that address.
+  for (; *begin && isspace(*begin); begin++) {}
+  return begin;
+}
+
+
 char cnParseChar(char* begin, char** end) {
   // Loop to nonwhite.
   for (; *begin && isspace(*begin); begin++) {}
