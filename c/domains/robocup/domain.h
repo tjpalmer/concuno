@@ -49,6 +49,11 @@ typedef struct cnrPlayer {
 
   // TODO Explicit ball posession indicator?
 
+  /**
+   * Unique only by team.
+   */
+  cnIndex index;
+
   cnrTeam team;
 
 }* cnrPlayer;

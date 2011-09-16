@@ -12,6 +12,15 @@ cnBool cnIndent(cnString* indent) {
   return cnStringPushStr(indent, "  ");
 }
 
+char cnParseChar(char* begin, char** end) {
+  // Loop to nonwhite.
+  for (; *begin && isspace(*begin); begin++) {}
+  // Point end to where we found, or one later if not at the end of the string.
+  *end = begin;
+  if (*begin) (*end)++;
+  // Return the char found.
+  return *begin;
+}
 
 char* cnParseStr(char* begin, char** end) {
   cnBool pastSpace = cnFalse;

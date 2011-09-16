@@ -9,18 +9,10 @@ typedef struct cnrRcgParser {
 
 
 /**
- * Skips whitespace, returning nonspace or null char (for eof or error).
- *
- * Check for error with ferror after returning.
- */
-char cnrAdvance(FILE* file);
-
-
-/**
  * Parses the contents of a parenthesized expression (or the top level of the
  * file). The open paren should already be consumed.
  */
-cnBool cnrParseContents(FILE* file);
+cnBool cnrParseContents(char** line);
 
 
 /**
@@ -48,20 +40,7 @@ cnBool cnrParseShow(char* line);
  *
  * TODO Is backslash escaping used?
  */
-cnBool cnrParseString(FILE* file);
-
-
-char cnrAdvance(FILE* file) {
-  int i;
-  while ((i = fgetc(file)) != EOF) {
-    if (!isspace(i)) {
-      // The nonspace we're looking for.
-      return (char)i;
-    }
-    if (i == '\n') fputc(i, stdout);
-  }
-  return '\0';
-}
+//cnBool cnrParseString(FILE* file);
 
 
 cnBool cnrLoadGameLog(char* name) {
@@ -102,27 +81,24 @@ cnBool cnrLoadGameLog(char* name) {
 }
 
 
-cnBool cnrParseContents(FILE* file) {
+cnBool cnrParseContents(char** line) {
   char c;
   cnBool result = cnFalse;
 
-  while ((c = cnrAdvance(file)) && c != ')') {
+  while ((c = cnParseChar(*line, line)) && c != ')') {
     switch (c) {
     case '(':
-      fputc(c, stdout);
-      if (!cnrParseContents(file)) cnFailTo(DONE, "Failed parsing contents.");
+      if (!cnrParseContents(line)) cnFailTo(DONE, "Failed parsing contents.");
       break;
     case '"':
-      if (!cnrParseString(file)) cnFailTo(DONE, "Failed parsing string.");
+      //if (!cnrParseString(file)) cnFailTo(DONE, "Failed parsing string.");
       break;
     default:
       // TODO Parse ids and numbers. Anything else?
       break;
     }
   }
-  if (ferror(file)) cnFailTo(DONE, "Failed advancing.");
-  if (c == ')') fputc(c, stdout);
-  // TODO Also track when ')' appropriate (e.g., not at file top)?
+  if (c != ')') cnFailTo(DONE, "Premature end of line.");
 
   // Winned.
   result = cnTrue;
@@ -195,42 +171,7 @@ cnBool cnrParseShow(char* line) {
 
   // Find where we are.
   stepIndex = strtol(line, &line, 10);
-
-  // Winned.
-  result = cnTrue;
-
-  return result;
-}
-
-
-cnBool cnrParseString(FILE* file) {
-  int c;
-  cnBool result = cnFalse;
-
-  if ((c = fgetc(file)) == EOF) cnFailTo(DONE, "Untermined string.");
-
-  if (c == '(') {
-    // Parenthesized string.
-    printf("\"(");
-    if (!cnrParseContents(file)) cnFailTo(DONE, "Failed paren string.");
-    if ((c = fgetc(file)) == EOF) cnFailTo(DONE, "Untermined string.");
-    if (c != '"') cnFailTo(DONE, "No ending double-quote on paren string.");
-    printf("\"");
-  }
-
-  while ((c = cnrAdvance(file)) && c != '"') {
-    // TODO Also break string on newline?
-    if (c == '\\') {
-      // Escape sequence.
-      // TODO Is this really how escapes work for rcss log files?
-      int i = fgetc(file);
-      if (i == EOF) break;
-      // TODO Do something with the escaped char.
-    }
-  }
-
-  if (ferror(file)) cnFailTo(DONE, "Failed advancing.");
-  if (feof(file)) cnFailTo(DONE, "Unterminated string.");
+  if (!cnrParseContents(&line)) cnFailTo(DONE, "Failed parsing line content.");
 
   // Winned.
   result = cnTrue;
@@ -238,3 +179,40 @@ cnBool cnrParseString(FILE* file) {
   DONE:
   return result;
 }
+
+
+//cnBool cnrParseString(FILE* file) {
+//  int c;
+//  cnBool result = cnFalse;
+//
+//  if ((c = fgetc(file)) == EOF) cnFailTo(DONE, "Untermined string.");
+//
+//  if (c == '(') {
+//    // Parenthesized string.
+//    printf("\"(");
+//    if (!cnrParseContents(file)) cnFailTo(DONE, "Failed paren string.");
+//    if ((c = fgetc(file)) == EOF) cnFailTo(DONE, "Untermined string.");
+//    if (c != '"') cnFailTo(DONE, "No ending double-quote on paren string.");
+//    printf("\"");
+//  }
+//
+//  while ((c = cnrAdvance(file)) && c != '"') {
+//    // TODO Also break string on newline?
+//    if (c == '\\') {
+//      // Escape sequence.
+//      // TODO Is this really how escapes work for rcss log files?
+//      int i = fgetc(file);
+//      if (i == EOF) break;
+//      // TODO Do something with the escaped char.
+//    }
+//  }
+//
+//  if (ferror(file)) cnFailTo(DONE, "Failed advancing.");
+//  if (feof(file)) cnFailTo(DONE, "Unterminated string.");
+//
+//  // Winned.
+//  result = cnTrue;
+//
+//  DONE:
+//  return result;
+//}

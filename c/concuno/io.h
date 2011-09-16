@@ -27,6 +27,17 @@ cnBool cnIndent(cnString* indent);
 
 
 /**
+ * Finds a non-whitespace char if it exists. The end will point past that char
+ * if any, or at the already existing null char if at the end. The function
+ * returns the value of that non-whitespace char or a null char if none was
+ * found. An example follows:
+ *
+ * char c = cnParseChar(source, &source);
+ */
+char cnParseChar(char* begin, char** end);
+
+
+/**
  * Finds a non-whitespace string if it exists, overwriting the first trailing
  * whitespace (if any) with a null char. The end will point past that null
  * char if added, or at the already existing null char if at the end. This
