@@ -78,4 +78,13 @@ typedef struct cnrState {
 }* cnrState;
 
 
+void cnrItemInit(cnrItem item, cnrType type);
+
+
+void cnrPlayerInit(cnrPlayer player);
+
+
+void cnrStateInit(cnrState state);
+
+
 #endif

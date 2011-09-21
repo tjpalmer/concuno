@@ -4,7 +4,26 @@
 
 
 typedef struct cnrRcgParser {
+
   // TODO
+
+  /**
+   * The index in the current parentheses. Points into.
+   */
+  cnIndex* index;
+
+  /**
+   * Stack of indices in parenthesized content.
+   */
+  cnList(cnIndex) indices;
+
+  /**
+   * The state currently being put together.
+   */
+  cnrState state;
+
+  cnList(struct cnrState) states;
+
 }* cnrRcgParser;
 
 
@@ -12,7 +31,7 @@ typedef struct cnrRcgParser {
  * Parses the contents of a parenthesized expression (or the top level of the
  * file). The open paren should already be consumed.
  */
-cnBool cnrParseContents(char** line);
+cnBool cnrParseContents(cnrRcgParser parser, char** line);
 
 
 /**
@@ -27,34 +46,54 @@ cnBool cnrParseContents(char** line);
  *
  * TODO Are escapes really not supported?
  */
-char* cnrParseQuoted(char** line);
+char* cnrParseQuoted(cnrRcgParser parser, char** line);
 
 
 /**
  * Parses a single rcg line.
  */
-cnBool cnrParseRcgLine(char* line);
+cnBool cnrParseRcgLine(cnrRcgParser parser, char* line);
 
 
 /**
  * Parses all lines in the file. The rcg format is a line-oriented format.
  */
-cnBool cnrParseRcgLines(FILE* file);
+cnBool cnrParseRcgLines(cnrRcgParser parser, FILE* file);
+
+
+/**
+ * Trigger the beginning of contents.
+ */
+cnBool cnrParserTriggerContentsBegin(cnrRcgParser parser);
+
+
+/**
+ * Trigger the beginning of contents.
+ */
+cnBool cnrParserTriggerContentsEnd(cnrRcgParser parser);
 
 
 /**
  * Parse a show command. The leading paren and the show token have both already
  * been consumed from the line.
  */
-cnBool cnrParseShow(char* line);
+cnBool cnrParseShow(cnrRcgParser parser, char* line);
+
+
+void cnrRcgParserDispose(cnrRcgParser parser);
+
+
+void cnrRcgParserInit(cnrRcgParser parser);
 
 
 cnBool cnrLoadGameLog(char* name) {
   FILE* file = NULL;
   cnString line;
+  struct cnrRcgParser parser;
   cnBool result = cnFalse;
 
   // Init stuff and open file.
+  cnrRcgParserInit(&parser);
   cnStringInit(&line);
   if (!(file = fopen(name, "r"))) cnFailTo(DONE, "Couldn't open file!");
 
@@ -75,7 +114,7 @@ cnBool cnrLoadGameLog(char* name) {
   }
 
   // Parse everything.
-  if (!cnrParseRcgLines(file)) cnFailTo(DONE, "Failed parsing.");
+  if (!cnrParseRcgLines(&parser, file)) cnFailTo(DONE, "Failed parsing.");
 
   // Winned!
   result = cnTrue;
@@ -83,30 +122,44 @@ cnBool cnrLoadGameLog(char* name) {
   DONE:
   if (file) fclose(file);
   cnStringDispose(&line);
+  cnrRcgParserDispose(&parser);
   return result;
 }
 
 
-cnBool cnrParseContents(char** line) {
+cnBool cnrParseContents(cnrRcgParser parser, char** line) {
   cnBool result = cnFalse;
 
+  if (!cnrParserTriggerContentsBegin(parser)) {
+    cnFailTo(DONE, "Failed begin trigger.");
+  }
   while (*(*line = cnNextChar(*line)) && **line != ')') {
     switch (**line) {
     case '(':
       (*line)++;
-      if (!cnrParseContents(line)) cnFailTo(DONE, "Failed parsing contents.");
+      if (!cnrParseContents(parser, line)) {
+        cnFailTo(DONE, "Failed parsing contents.");
+      }
       break;
     case '"':
       (*line)++;
-      if (!cnrParseQuoted(line)) cnFailTo(DONE, "Failed parsing string.");
+      if (!cnrParseQuoted(parser, line)) {
+        cnFailTo(DONE, "Failed parsing string.");
+      }
       break;
     default:
       // TODO Parse ids and numbers. Anything else?
       (*line)++;
       break;
     }
+    // Go on to the next index.
+    parser->index++;
   }
   if (**line != ')') cnFailTo(DONE, "Premature end of line.");
+
+  if (!cnrParserTriggerContentsEnd(parser)) {
+    cnFailTo(DONE, "Failed end trigger.");
+  }
 
   // Winned.
   result = cnTrue;
@@ -116,7 +169,7 @@ cnBool cnrParseContents(char** line) {
 }
 
 
-char* cnrParseQuoted(char** line) {
+char* cnrParseQuoted(cnrRcgParser parser, char** line) {
   // Assume we got it.
   char* result = *line;
 
@@ -136,7 +189,7 @@ char* cnrParseQuoted(char** line) {
 }
 
 
-cnBool cnrParseRcgLine(char* line) {
+cnBool cnrParseRcgLine(cnrRcgParser parser, char* line) {
   cnBool result = cnFalse;
   char* type;
 
@@ -155,7 +208,7 @@ cnBool cnrParseRcgLine(char* line) {
 
   // Dispatch by type. TODO Hash table? Anything other than show?
   if (!strcmp(type, "show")) {
-    if (!cnrParseShow(line)) cnFailTo(DONE, "Failed to parse show.");
+    if (!cnrParseShow(parser, line)) cnFailTo(DONE, "Failed to parse show.");
   }
 
   // Winned.
@@ -167,7 +220,7 @@ cnBool cnrParseRcgLine(char* line) {
 }
 
 
-cnBool cnrParseRcgLines(FILE* file) {
+cnBool cnrParseRcgLines(cnrRcgParser parser, FILE* file) {
   cnString line;
   cnCount lineCount = 0;
   cnCount readCount;
@@ -177,7 +230,7 @@ cnBool cnrParseRcgLines(FILE* file) {
 
   while ((readCount = cnReadLine(file, &line)) > 0) {
     lineCount++;
-    if (!cnrParseRcgLine(cnStr(&line))) {
+    if (!cnrParseRcgLine(parser, cnStr(&line))) {
       cnFailTo(DONE, "Failed parsing line %ld.", lineCount);
     }
   }
@@ -192,17 +245,79 @@ cnBool cnrParseRcgLines(FILE* file) {
 }
 
 
-cnBool cnrParseShow(char* line) {
+cnBool cnrParserTriggerContentsBegin(cnrRcgParser parser) {
+  cnBool result = cnFalse;
+  cnIndex zero = 0;
+
+  // Push a new index on.
+  if (!(parser->index = cnListPush(&parser->indices, &zero))) {
+    cnFailTo(DONE, "No index.");
+  }
+
+  // TODO State management?
+
+  // Winned.
+  result = cnTrue;
+
+  DONE:
+  return cnTrue;
+}
+
+
+cnBool cnrParserTriggerContentsEnd(cnrRcgParser parser) {
+  cnBool result = cnFalse;
+
+  // Pop the index.
+  parser->indices.count--;
+  if (parser->indices.count) {
+    // The index itself is always at the previous memory address, since we don't
+    // do any reallocation on pop.
+    parser->index--;
+  } else {
+    // No indices left.
+    parser->index = NULL;
+  }
+
+  // TODO Anything else?
+
+  // Winned.
+  result = cnTrue;
+
+  // DONE:
+  return cnTrue;
+}
+
+
+cnBool cnrParseShow(cnrRcgParser parser, char* line) {
   cnIndex stepIndex;
   cnBool result = cnFalse;
 
+  // Prepare a new state to work with.
+  //cnListExpand()
+
   // Find where we are.
   stepIndex = strtol(line, &line, 10);
-  if (!cnrParseContents(&line)) cnFailTo(DONE, "Failed parsing line content.");
+  if (!cnrParseContents(parser, &line)) {
+    cnFailTo(DONE, "Failed parsing line content.");
+  }
 
   // Winned.
   result = cnTrue;
 
   DONE:
   return result;
+}
+
+
+void cnrRcgParserDispose(cnrRcgParser parser) {
+  cnListDispose(&parser->indices);
+  cnListDispose(&parser->states);
+}
+
+
+void cnrRcgParserInit(cnrRcgParser parser) {
+  cnListInit(&parser->indices, sizeof(cnIndex));
+  cnListInit(&parser->states, sizeof(struct cnrState));
+  // Later point this to the current state being parsed.
+  parser->state = NULL;
 }
