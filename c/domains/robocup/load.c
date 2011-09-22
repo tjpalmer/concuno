@@ -3,19 +3,44 @@
 #include "load.h"
 
 
+typedef enum {
+
+  /**
+   * A show line is being parsed.
+   */
+  cnrRcgModeShow,
+
+  /**
+   * A particular item within a show is being parsed.
+   */
+  cnrRcgModeShowItem,
+
+  /**
+   * The id of a show item is being parsed.
+   */
+  cnrRcgModeShowItemId,
+
+  /**
+   * Top-level line parsing is underway.
+   */
+  cnrRcgModeTop,
+
+} cnrRcgMode;
+
+
 typedef struct cnrRcgParser {
 
   // TODO
 
   /**
-   * The index in the current parentheses. Points into.
+   * The index in the current parentheses.
    */
-  cnIndex* index;
+  cnIndex index;
 
   /**
-   * Stack of indices in parenthesized content.
+   * The current mode of the parser.
    */
-  cnList(cnIndex) indices;
+  cnrRcgMode mode;
 
   /**
    * The state currently being put together.
@@ -32,6 +57,15 @@ typedef struct cnrRcgParser {
  * file). The open paren should already be consumed.
  */
 cnBool cnrParseContents(cnrRcgParser parser, char** line);
+
+
+/**
+ * An identifier following some kind of rules.
+ */
+cnBool cnrParseId(cnrRcgParser parser, char** line);
+
+
+cnBool cnrParseNumber(cnrRcgParser parser, char** line);
 
 
 /**
@@ -71,6 +105,12 @@ cnBool cnrParserTriggerContentsBegin(cnrRcgParser parser);
  * Trigger the beginning of contents.
  */
 cnBool cnrParserTriggerContentsEnd(cnrRcgParser parser);
+
+
+/**
+ * Trigger an id. Treat id as temporary only for this function call.
+ */
+cnBool cnrParserTriggerId(cnrRcgParser parser, char* id);
 
 
 /**
@@ -128,35 +168,53 @@ cnBool cnrLoadGameLog(char* name) {
 
 
 cnBool cnrParseContents(cnrRcgParser parser, char** line) {
+  cnIndex index = 0;
   cnBool result = cnFalse;
 
   if (!cnrParserTriggerContentsBegin(parser)) {
     cnFailTo(DONE, "Failed begin trigger.");
   }
   while (*(*line = cnNextChar(*line)) && **line != ')') {
-    switch (**line) {
+    char c = **line;
+    // Set the index with each loop iteration. The C stack will help us be
+    // where we need to be otherwise.
+    parser->index = index;
+
+    // Now see what to do next.
+    switch (c) {
     case '(':
+      // Nested parens.
       (*line)++;
       if (!cnrParseContents(parser, line)) {
         cnFailTo(DONE, "Failed parsing contents.");
       }
       break;
     case '"':
+      // Double-quoted string.
       (*line)++;
       if (!cnrParseQuoted(parser, line)) {
         cnFailTo(DONE, "Failed parsing string.");
       }
       break;
     default:
-      // TODO Parse ids and numbers. Anything else?
-      (*line)++;
+      // Something else.
+      if (('0' <= c && c <= '9') || c == '.') {
+        // Number.
+        if (!cnrParseNumber(parser, line)) cnFailTo(DONE, "Failed number.");
+      } else {
+        // Treat anything else as an identifier.
+        if (!cnrParseId(parser, line)) cnFailTo(DONE, "Failed number.");
+      }
       break;
     }
-    // Go on to the next index.
-    parser->index++;
+
+    // Increment.
+    index++;
   }
   if (**line != ')') cnFailTo(DONE, "Premature end of line.");
 
+  // Good to go. Move on.
+  (**line)++;
   if (!cnrParserTriggerContentsEnd(parser)) {
     cnFailTo(DONE, "Failed end trigger.");
   }
@@ -166,6 +224,39 @@ cnBool cnrParseContents(cnrRcgParser parser, char** line) {
 
   DONE:
   return result;
+}
+
+
+cnBool cnrParseId(cnrRcgParser parser, char** line) {
+  char c;
+  char* id = *line;
+  cnBool result = cnFalse;
+  cnBool triggerResult;
+
+  // Parse and handle.
+  for (; **line && !(isspace(**line) || **line == ')'); (*line)++) {}
+
+  // Remember the old char for reverting, then chop to a string.
+  c = **line;
+  **line = '\0';
+  // Trigger and revert.
+  triggerResult = cnrParserTriggerId(parser, id);
+  **line = c;
+  // Only check failure after revert.
+  if (!triggerResult) cnFailTo(DONE, "Failed id trigger.");
+
+  // Winned.
+  result = cnTrue;
+
+  DONE:
+  return result;
+}
+
+
+cnBool cnrParseNumber(cnrRcgParser parser, char** line) {
+  // TODO!
+  (*line)++;
+  return cnTrue;
 }
 
 
@@ -181,8 +272,9 @@ char* cnrParseQuoted(cnrRcgParser parser, char** line) {
     }
   }
 
-  // Found the end.
+  // Found the end. Mark it and go past.
   **line = '\0';
+  (**line)++;
 
   DONE:
   return result;
@@ -247,44 +339,82 @@ cnBool cnrParseRcgLines(cnrRcgParser parser, FILE* file) {
 
 cnBool cnrParserTriggerContentsBegin(cnrRcgParser parser) {
   cnBool result = cnFalse;
-  cnIndex zero = 0;
-
-  // Push a new index on.
-  if (!(parser->index = cnListPush(&parser->indices, &zero))) {
-    cnFailTo(DONE, "No index.");
-  }
 
   // TODO State management?
+
+  // Mode state "stack".
+  switch (parser->mode) {
+  case cnrRcgModeShow:
+    parser->mode = cnrRcgModeShowItem;
+    break;
+  case cnrRcgModeShowItem:
+    parser->mode = cnrRcgModeShowItemId;
+    break;
+  case cnrRcgModeTop:
+    parser->mode = cnrRcgModeShow;
+    break;
+  default:
+    cnFailTo(DONE, "Unknown parser mode: %d", parser->mode);
+  }
 
   // Winned.
   result = cnTrue;
 
   DONE:
-  return cnTrue;
+  return result;
 }
 
 
 cnBool cnrParserTriggerContentsEnd(cnrRcgParser parser) {
   cnBool result = cnFalse;
 
-  // Pop the index.
-  parser->indices.count--;
-  if (parser->indices.count) {
-    // The index itself is always at the previous memory address, since we don't
-    // do any reallocation on pop.
-    parser->index--;
-  } else {
-    // No indices left.
-    parser->index = NULL;
+  // TODO Anything else?
+
+  // Mode state "stack".
+  switch (parser->mode) {
+  case cnrRcgModeShow:
+    parser->mode = cnrRcgModeTop;
+    break;
+  case cnrRcgModeShowItem:
+    parser->mode = cnrRcgModeShow;
+    break;
+  case cnrRcgModeShowItemId:
+    parser->mode = cnrRcgModeShowItem;
+    break;
+  default:
+    cnFailTo(DONE, "Unknown parser mode: %d", parser->mode);
   }
 
-  // TODO Anything else?
+  // Winned.
+  result = cnTrue;
+
+  DONE:
+  return result;
+}
+
+
+cnBool cnrParserTriggerId(cnrRcgParser parser, char* id) {
+  cnBool result = cnFalse;
+
+  // Mode state machine.
+  switch (parser->mode) {
+  case cnrRcgModeShowItemId:
+    if (!parser->index) {
+      // TODO Choose or create focus item.
+      // TODO For players, however, we don't know until the number.
+      // printf("%s ", id);
+    }
+    break;
+  default:
+    // Ignore.
+    break;
+  }
 
   // Winned.
   result = cnTrue;
 
   // DONE:
-  return cnTrue;
+  return result;
 }
 
 
@@ -300,24 +430,26 @@ cnBool cnrParseShow(cnrRcgParser parser, char* line) {
   if (!cnrParseContents(parser, &line)) {
     cnFailTo(DONE, "Failed parsing line content.");
   }
+  //printf("\n");
 
   // Winned.
   result = cnTrue;
 
   DONE:
+  parser->mode = cnrRcgModeTop;
   return result;
 }
 
 
 void cnrRcgParserDispose(cnrRcgParser parser) {
-  cnListDispose(&parser->indices);
   cnListDispose(&parser->states);
 }
 
 
 void cnrRcgParserInit(cnrRcgParser parser) {
-  cnListInit(&parser->indices, sizeof(cnIndex));
   cnListInit(&parser->states, sizeof(struct cnrState));
   // Later point this to the current state being parsed.
+  parser->index = 0;
+  parser->mode = cnrRcgModeTop;
   parser->state = NULL;
 }
