@@ -21,6 +21,11 @@ typedef enum {
   cnrRcgModeShowItemId,
 
   /**
+   * Some other kid of a show item.
+   */
+  cnrRcgModeShowItemKid,
+
+  /**
    * Top-level line parsing is underway.
    */
   cnrRcgModeTop,
@@ -111,6 +116,12 @@ cnBool cnrParserTriggerContentsEnd(cnrRcgParser parser);
  * Trigger an id. Treat id as temporary only for this function call.
  */
 cnBool cnrParserTriggerId(cnrRcgParser parser, char* id);
+
+
+/**
+ * Trigger an number.
+ */
+cnBool cnrParserTriggerNumber(cnrRcgParser parser, cnFloat number);
 
 
 /**
@@ -254,8 +265,24 @@ cnBool cnrParseId(cnrRcgParser parser, char** line) {
 
 
 cnBool cnrParseNumber(cnrRcgParser parser, char** line) {
-  // TODO!
-  (*line)++;
+  char* end;
+  cnFloat number;
+  cnBool result = cnFalse;
+
+  // Parser the number.
+  number = strtod(*line, &end);
+  if (!end) cnFailTo(DONE, "No number.");
+  *line = end;
+
+  // Handle it.
+  if (!cnrParserTriggerNumber(parser, number)) {
+    cnFailTo(DONE, "Failed number trigger.");
+  }
+
+  // Winned.
+  result = cnTrue;
+
+  DONE:
   return cnTrue;
 }
 
@@ -348,7 +375,11 @@ cnBool cnrParserTriggerContentsBegin(cnrRcgParser parser) {
     parser->mode = cnrRcgModeShowItem;
     break;
   case cnrRcgModeShowItem:
-    parser->mode = cnrRcgModeShowItemId;
+    if (parser->index) {
+      parser->mode = cnrRcgModeShowItemKid;
+    } else {
+      parser->mode = cnrRcgModeShowItemId;
+    }
     break;
   case cnrRcgModeTop:
     parser->mode = cnrRcgModeShow;
@@ -379,6 +410,7 @@ cnBool cnrParserTriggerContentsEnd(cnrRcgParser parser) {
     parser->mode = cnrRcgModeShow;
     break;
   case cnrRcgModeShowItemId:
+  case cnrRcgModeShowItemKid:
     parser->mode = cnrRcgModeShowItem;
     break;
   default:
@@ -402,7 +434,32 @@ cnBool cnrParserTriggerId(cnrRcgParser parser, char* id) {
     if (!parser->index) {
       // TODO Choose or create focus item.
       // TODO For players, however, we don't know until the number.
-      // printf("%s ", id);
+      //printf("%s ", id);
+    }
+    break;
+  default:
+    // Ignore.
+    break;
+  }
+
+  // Winned.
+  result = cnTrue;
+
+  // DONE:
+  return result;
+}
+
+
+cnBool cnrParserTriggerNumber(cnrRcgParser parser, cnFloat number) {
+  cnBool result = cnFalse;
+
+  // Mode state machine.
+  switch (parser->mode) {
+  case cnrRcgModeShowItemId:
+    if (parser->index == 1) {
+      // TODO Choose or create focus item.
+      // TODO For players, however, we don't know until the number.
+      //printf("%lg ", number);
     }
     break;
   default:
