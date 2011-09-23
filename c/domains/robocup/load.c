@@ -43,6 +43,11 @@ typedef struct cnrRcgParser {
   cnIndex index;
 
   /**
+   * The item (ball or player) currently being parsed, if any.
+   */
+  cnrItem item;
+
+  /**
    * The current mode of the parser.
    */
   cnrRcgMode mode;
@@ -167,6 +172,8 @@ cnBool cnrLoadGameLog(char* name) {
   // Parse everything.
   if (!cnrParseRcgLines(&parser, file)) cnFailTo(DONE, "Failed parsing.");
 
+  printf("Loaded %ld states.\n", parser.states.count);
+
   // Winned!
   result = cnTrue;
 
@@ -283,7 +290,7 @@ cnBool cnrParseNumber(cnrRcgParser parser, char** line) {
   result = cnTrue;
 
   DONE:
-  return cnTrue;
+  return result;
 }
 
 
@@ -408,6 +415,7 @@ cnBool cnrParserTriggerContentsEnd(cnrRcgParser parser) {
     break;
   case cnrRcgModeShowItem:
     parser->mode = cnrRcgModeShow;
+    parser->item = NULL;
     break;
   case cnrRcgModeShowItemId:
   case cnrRcgModeShowItemKid:
@@ -435,6 +443,19 @@ cnBool cnrParserTriggerId(cnrRcgParser parser, char* id) {
       // TODO Choose or create focus item.
       // TODO For players, however, we don't know until the number.
       //printf("%s ", id);
+      if (!strcmp(id, "b")) {
+        // Ball.
+        parser->item = &parser->state->ball.item;
+      } else if (!(strcmp(id, "l") && strcmp(id, "r"))) {
+        // Player. We don't preallocate these, so make space now.
+        cnrPlayer player = cnListExpand(&parser->state->players);
+        if (!player) cnFailTo(DONE, "No player.");
+        cnrPlayerInit(player);
+        // Be explicit here for clarity.
+        player->team = *id == 'l' ? 0 : 1;
+        // And track the item.
+        parser->item = &player->item;
+      }
     }
     break;
   default:
@@ -445,7 +466,7 @@ cnBool cnrParserTriggerId(cnrRcgParser parser, char* id) {
   // Winned.
   result = cnTrue;
 
-  // DONE:
+  DONE:
   return result;
 }
 
@@ -457,9 +478,13 @@ cnBool cnrParserTriggerNumber(cnrRcgParser parser, cnFloat number) {
   switch (parser->mode) {
   case cnrRcgModeShowItemId:
     if (parser->index == 1) {
-      // TODO Choose or create focus item.
-      // TODO For players, however, we don't know until the number.
-      //printf("%lg ", number);
+      cnrPlayer player = (cnrPlayer)parser->item;
+      if (player->item.type != cnrTypePlayer) {
+        cnFailTo(DONE, "Index %ld of non-player.", (cnIndex)number);
+      }
+      // TODO Verify nonduplicate player?
+      player->index = number;
+      //printf("P%ld%02ld ", player->team, player->index);
     }
     break;
   default:
@@ -470,7 +495,7 @@ cnBool cnrParserTriggerNumber(cnrRcgParser parser, cnFloat number) {
   // Winned.
   result = cnTrue;
 
-  // DONE:
+  DONE:
   return result;
 }
 
@@ -480,7 +505,10 @@ cnBool cnrParseShow(cnrRcgParser parser, char* line) {
   cnBool result = cnFalse;
 
   // Prepare a new state to work with.
-  //cnListExpand()
+  if (!(parser->state = cnListExpand(&parser->states))) {
+    cnFailTo(DONE, "No new state.");
+  }
+  cnrStateInit(parser->state);
 
   // Find where we are.
   stepIndex = strtol(line, &line, 10);
@@ -499,6 +527,9 @@ cnBool cnrParseShow(cnrRcgParser parser, char* line) {
 
 
 void cnrRcgParserDispose(cnrRcgParser parser) {
+  cnListEachBegin(&parser->states, struct cnrState, state) {
+    cnrStateDispose(state);
+  } cnEnd;
   cnListDispose(&parser->states);
 }
 
@@ -507,6 +538,7 @@ void cnrRcgParserInit(cnrRcgParser parser) {
   cnListInit(&parser->states, sizeof(struct cnrState));
   // Later point this to the current state being parsed.
   parser->index = 0;
+  parser->item = NULL;
   parser->mode = cnrRcgModeTop;
   parser->state = NULL;
 }

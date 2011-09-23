@@ -1,6 +1,7 @@
 add_executable(
   rcss-test
   rcss-test.c
+  domain.c
   load.c
 )
 

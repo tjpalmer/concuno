@@ -84,6 +84,13 @@ void cnrItemInit(cnrItem item, cnrType type);
 void cnrPlayerInit(cnrPlayer player);
 
 
+/**
+ * Currently, after state disposal, it's actually reinit'd.
+ * TODO Will this always hold?
+ */
+void cnrStateDispose(cnrState state);
+
+
 void cnrStateInit(cnrState state);
 
 

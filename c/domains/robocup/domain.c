@@ -18,9 +18,15 @@ void cnrPlayerInit(cnrPlayer player) {
 }
 
 
+void cnrStateDispose(cnrState state) {
+  cnListDispose(&state->players);
+  cnrStateInit(state);
+}
+
+
 void cnrStateInit(cnrState state) {
-  cnrItemInit(&state.ball.item, cnrTypeBall);
-  cnListInit(state->players, sizeof(struct cnrPlayer));
+  cnrItemInit(&state->ball.item, cnrTypeBall);
+  cnListInit(&state->players, sizeof(struct cnrPlayer));
   // Seems first times are 0 1, so 0 0 should be an okay bogus.
   state->subtime = 0;
   state->time = 0;
