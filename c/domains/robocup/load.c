@@ -57,7 +57,7 @@ typedef struct cnrRcgParser {
    */
   cnrState state;
 
-  cnList(struct cnrState) states;
+  cnList(struct cnrState)* states;
 
 }* cnrRcgParser;
 
@@ -147,7 +147,7 @@ void cnrRcgParserDispose(cnrRcgParser parser);
 void cnrRcgParserInit(cnrRcgParser parser);
 
 
-cnBool cnrLoadGameLog(char* name) {
+cnBool cnrLoadGameLog(cnList(struct cnrState)* states, char* name) {
   FILE* file = NULL;
   cnString line;
   struct cnrRcgParser parser;
@@ -155,6 +155,7 @@ cnBool cnrLoadGameLog(char* name) {
 
   // Init stuff and open file.
   cnrRcgParserInit(&parser);
+  parser.states = states;
   cnStringInit(&line);
   if (!(file = fopen(name, "r"))) cnFailTo(DONE, "Couldn't open file!");
 
@@ -176,8 +177,6 @@ cnBool cnrLoadGameLog(char* name) {
 
   // Parse everything.
   if (!cnrParseRcgLines(&parser, file)) cnFailTo(DONE, "Failed parsing.");
-
-  printf("Loaded %ld states.\n", parser.states.count);
 
   // Winned!
   result = cnTrue;
@@ -524,7 +523,7 @@ cnBool cnrParseShow(cnrRcgParser parser, char* line) {
   cnBool result = cnFalse;
 
   // Prepare a new state to work with.
-  if (!(parser->state = cnListExpand(&parser->states))) {
+  if (!(parser->state = cnListExpand(parser->states))) {
     cnFailTo(DONE, "No new state.");
   }
   cnrStateInit(parser->state);
@@ -555,18 +554,16 @@ void cnrRcgParserItemLocation(
 
 
 void cnrRcgParserDispose(cnrRcgParser parser) {
-  cnListEachBegin(&parser->states, struct cnrState, state) {
-    cnrStateDispose(state);
-  } cnEnd;
-  cnListDispose(&parser->states);
+  // TODO Anything?
+  cnrRcgParserInit(parser);
 }
 
 
 void cnrRcgParserInit(cnrRcgParser parser) {
-  cnListInit(&parser->states, sizeof(struct cnrState));
   // Later point this to the current state being parsed.
   parser->index = 0;
   parser->item = NULL;
   parser->mode = cnrRcgModeTop;
   parser->state = NULL;
+  parser->states = NULL;
 }

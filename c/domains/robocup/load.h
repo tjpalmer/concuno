@@ -11,7 +11,7 @@
  *
  * TODO What to load it into? For now, just parse.
  */
-cnBool cnrLoadGameLog(char* name);
+cnBool cnrLoadGameLog(cnList(struct cnrState)* states, char* name);
 
 
 #endif
