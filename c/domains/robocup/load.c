@@ -136,6 +136,11 @@ cnBool cnrParserTriggerNumber(cnrRcgParser parser, cnFloat number);
 cnBool cnrParseShow(cnrRcgParser parser, char* line);
 
 
+void cnrRcgParserItemLocation(
+  cnrRcgParser parser, cnIndex xIndex, cnFloat value
+);
+
+
 void cnrRcgParserDispose(cnrRcgParser parser);
 
 
@@ -186,7 +191,7 @@ cnBool cnrLoadGameLog(char* name) {
 
 
 cnBool cnrParseContents(cnrRcgParser parser, char** line) {
-  cnIndex index = 0;
+  cnIndex index = -1;
   cnBool result = cnFalse;
 
   if (!cnrParserTriggerContentsBegin(parser)) {
@@ -196,7 +201,7 @@ cnBool cnrParseContents(cnrRcgParser parser, char** line) {
     char c = **line;
     // Set the index with each loop iteration. The C stack will help us be
     // where we need to be otherwise.
-    parser->index = index;
+    parser->index = ++index;
 
     // Now see what to do next.
     switch (c) {
@@ -216,7 +221,7 @@ cnBool cnrParseContents(cnrRcgParser parser, char** line) {
       break;
     default:
       // Something else.
-      if (('0' <= c && c <= '9') || c == '.') {
+      if (('0' <= c && c <= '9') || c == '.' || c == '-') {
         // Number.
         if (!cnrParseNumber(parser, line)) cnFailTo(DONE, "Failed number.");
       } else {
@@ -225,14 +230,11 @@ cnBool cnrParseContents(cnrRcgParser parser, char** line) {
       }
       break;
     }
-
-    // Increment.
-    index++;
   }
   if (**line != ')') cnFailTo(DONE, "Premature end of line.");
 
   // Good to go. Move on.
-  (**line)++;
+  (*line)++;
   if (!cnrParserTriggerContentsEnd(parser)) {
     cnFailTo(DONE, "Failed end trigger.");
   }
@@ -414,6 +416,7 @@ cnBool cnrParserTriggerContentsEnd(cnrRcgParser parser) {
     parser->mode = cnrRcgModeTop;
     break;
   case cnrRcgModeShowItem:
+    //printf("(%lg %lg) ", parser->item->location[0], parser->item->location[1]);
     parser->mode = cnrRcgModeShow;
     parser->item = NULL;
     break;
@@ -476,6 +479,22 @@ cnBool cnrParserTriggerNumber(cnrRcgParser parser, cnFloat number) {
 
   // Mode state machine.
   switch (parser->mode) {
+  case cnrRcgModeShowItem:
+    if (parser->item) {
+      switch (parser->item->type) {
+      case cnrTypeBall:
+        // Ball location at indices 1, 2.
+        cnrRcgParserItemLocation(parser, 1, number);
+        break;
+      case cnrTypePlayer:
+        // Player location at indices 7, 8.
+        cnrRcgParserItemLocation(parser, 7, number);
+        break;
+      default:
+        cnFailTo(DONE, "Unknown item type %d.", parser->item->type);
+      }
+    }
+    break;
   case cnrRcgModeShowItemId:
     if (parser->index == 1) {
       cnrPlayer player = (cnrPlayer)parser->item;
@@ -523,6 +542,15 @@ cnBool cnrParseShow(cnrRcgParser parser, char* line) {
   DONE:
   parser->mode = cnrRcgModeTop;
   return result;
+}
+
+
+void cnrRcgParserItemLocation(
+  cnrRcgParser parser, cnIndex xIndex, cnFloat value
+) {
+  if (xIndex <= parser->index && parser->index <= xIndex + 1) {
+    parser->item->location[parser->index - xIndex] = value;
+  }
 }
 
 
