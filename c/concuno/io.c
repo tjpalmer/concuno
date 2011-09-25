@@ -1,3 +1,4 @@
+#include <string.h>
 #include "io.h"
 
 
@@ -90,4 +91,17 @@ cnCount cnReadLine(FILE* file, cnString* string) {
     }
   }
   return count;
+}
+
+
+cnBool cnStrEndsWith(char* string, char* ending) {
+  cnCount endingLength = strlen(ending);
+  cnCount stringLength = strlen(string);
+  if (stringLength >= endingLength) {
+    // Long enough. Check the contents.
+    return strcmp(string + stringLength - endingLength, ending) ?
+      // Zero means equal. Nonzero means different.
+      cnFalse : cnTrue;
+  }
+  return cnFalse;
 }

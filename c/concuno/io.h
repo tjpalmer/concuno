@@ -64,6 +64,12 @@ char* cnParseStr(char* begin, char** end);
 cnCount cnReadLine(FILE* file, cnString* string);
 
 
+/**
+ * Returns true if and only if the string ends with ending.
+ */
+cnBool cnStrEndsWith(char* string, char* ending);
+
+
 cnCEnd;
 
 
