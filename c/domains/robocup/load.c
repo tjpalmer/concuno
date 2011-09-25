@@ -478,6 +478,13 @@ cnBool cnrParserTriggerNumber(cnrRcgParser parser, cnFloat number) {
 
   // Mode state machine.
   switch (parser->mode) {
+  case cnrRcgModeShow:
+    if (parser->index == 1) {
+      parser->state->time = (cnrTime)number;
+      // TODO Subtime (during penalty kicks) is only implicit in rcg files.
+      // TODO Track it?
+    }
+    break;
   case cnrRcgModeShowItem:
     if (parser->item) {
       switch (parser->item->type) {

@@ -47,6 +47,8 @@ typedef struct cnrPlayer {
 
   struct cnrItem item;
 
+  // TODO Actions indicated where?
+
   // TODO Explicit ball posession indicator?
 
   /**
