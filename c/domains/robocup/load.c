@@ -26,9 +26,24 @@ typedef enum {
   cnrRcgModeShowItemKid,
 
   /**
+   * A team line is being parsed.
+   */
+  cnrRcgModeTeam,
+
+  /**
    * Top-level line parsing is underway.
    */
   cnrRcgModeTop,
+
+  /**
+   * Top-level line parsing is underway.
+   */
+  cnrRcgModeTopShow,
+
+  /**
+   * Top-level line parsing is underway.
+   */
+  cnrRcgModeTopTeam,
 
 } cnrRcgMode;
 
@@ -135,6 +150,13 @@ cnBool cnrParserTriggerNumber(cnrRcgParser parser, cnFloat number);
  * been consumed from the line.
  */
 cnBool cnrParseShow(cnrRcgParser parser, char* line);
+
+
+/**
+ * Parse a team command. The leading paren and the show token have both already
+ * been consumed from the line.
+ */
+cnBool cnrParseTeam(cnrRcgParser parser, char* line);
 
 
 void cnrRcgParserItemLocation(
@@ -352,6 +374,8 @@ cnBool cnrParseRcgLine(cnrRcgParser parser, char* line) {
   // Dispatch by type. TODO Hash table? Anything other than show?
   if (!strcmp(type, "show")) {
     if (!cnrParseShow(parser, line)) cnFailTo(DONE, "Failed to parse show.");
+  } else if (!strcmp(type, "team")) {
+    if (!cnrParseTeam(parser, line)) cnFailTo(DONE, "Failed to parse show.");
   }
   // TODO (team 1 WrightEagle HELIOS2011 0 0)
 
@@ -406,8 +430,11 @@ cnBool cnrParserTriggerContentsBegin(cnrRcgParser parser) {
       parser->mode = cnrRcgModeShowItemId;
     }
     break;
-  case cnrRcgModeTop:
+  case cnrRcgModeTopShow:
     parser->mode = cnrRcgModeShow;
+    break;
+  case cnrRcgModeTopTeam:
+    parser->mode = cnrRcgModeTeam;
     break;
   default:
     cnFailTo(DONE, "Unknown parser mode: %d", parser->mode);
@@ -429,6 +456,7 @@ cnBool cnrParserTriggerContentsEnd(cnrRcgParser parser) {
   // Mode state "stack".
   switch (parser->mode) {
   case cnrRcgModeShow:
+  case cnrRcgModeTeam:
     parser->mode = cnrRcgModeTop;
     break;
   case cnrRcgModeShowItem:
@@ -477,6 +505,24 @@ cnBool cnrParserTriggerId(cnrRcgParser parser, char* id) {
       }
     }
     break;
+  case cnrRcgModeTeam:
+    if (parser->index == 1 || parser->index == 2) {
+      cnrTeam team = parser->index - 1;
+      if (parser->game->teamNames.count == team) {
+        // Team index as expected.
+        cnString name;
+        cnStringInit(&name);
+        if (!cnStringPushStr(&name, id)) cnFailTo(DONE, "No team name %s.", id);
+        if (!cnListPush(&parser->game->teamNames, &name)) {
+          // Clean then fail.
+          cnStringDispose(&name);
+          cnFailTo(DONE, "No push name.");
+        }
+      } else {
+        cnFailTo(DONE, "Not ready for team name %ld.\n", team);
+      }
+    }
+    break;
   default:
     // Ignore.
     break;
@@ -496,7 +542,7 @@ cnBool cnrParserTriggerNumber(cnrRcgParser parser, cnFloat number) {
   // Mode state machine.
   switch (parser->mode) {
   case cnrRcgModeShow:
-    if (parser->index == 1) {
+    if (!parser->index) {
       parser->state->time = (cnrTime)number;
       // TODO Subtime (during penalty kicks) is only implicit in rcg files.
       // TODO Track it?
@@ -543,7 +589,6 @@ cnBool cnrParserTriggerNumber(cnrRcgParser parser, cnFloat number) {
 
 
 cnBool cnrParseShow(cnrRcgParser parser, char* line) {
-  cnIndex stepIndex;
   cnBool result = cnFalse;
 
   // Prepare a new state to work with.
@@ -552,8 +597,27 @@ cnBool cnrParseShow(cnrRcgParser parser, char* line) {
   }
   cnrStateInit(parser->state);
 
-  // Find where we are.
-  stepIndex = strtol(line, &line, 10);
+  // Parse through the rest.
+  parser->mode = cnrRcgModeTopShow;
+  if (!cnrParseContents(parser, &line)) {
+    cnFailTo(DONE, "Failed parsing line content.");
+  }
+  //printf("\n");
+
+  // Winned.
+  result = cnTrue;
+
+  DONE:
+  parser->mode = cnrRcgModeTop;
+  return result;
+}
+
+
+cnBool cnrParseTeam(cnrRcgParser parser, char* line) {
+  cnBool result = cnFalse;
+
+  // Parse through the rest.
+  parser->mode = cnrRcgModeTopTeam;
   if (!cnrParseContents(parser, &line)) {
     cnFailTo(DONE, "Failed parsing line content.");
   }

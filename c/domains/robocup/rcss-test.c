@@ -21,6 +21,10 @@ int main(int argc, char** argv) {
   name = argv[1];
   if (!cnrLoadGameLog(&game, name)) cnFailTo(DONE, "Failed to load: %s", name);
 
+  cnListEachBegin(&game.teamNames, cnString, name) {
+    printf("Team: %s\n", cnStr(name));
+  } cnEnd;
+
   // Now look at the command log to see what actions were taken.
   // Assume the file is in the same place but named rcl instead of rcg.
   if (cnStrEndsWith(name, ".rcg")) {
