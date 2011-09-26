@@ -35,7 +35,10 @@ typedef enum {
 
 typedef struct cnrRcgParser {
 
-  // TODO
+  /**
+   * The game being loaded into.
+   */
+  cnrGame game;
 
   /**
    * The index in the current parentheses.
@@ -56,8 +59,6 @@ typedef struct cnrRcgParser {
    * The state currently being put together.
    */
   cnrState state;
-
-  cnList(struct cnrState)* states;
 
 }* cnrRcgParser;
 
@@ -147,7 +148,22 @@ void cnrRcgParserDispose(cnrRcgParser parser);
 void cnrRcgParserInit(cnrRcgParser parser);
 
 
-cnBool cnrLoadGameLog(cnList(struct cnrState)* states, char* name) {
+cnBool cnrLoadCommandLog(cnrGame game, char* name) {
+  FILE* file = NULL;
+  cnBool result = cnFalse;
+
+  // TODO Load the file, eh?
+
+  // Winned.
+  result = cnTrue;
+
+  // DONE:
+  if (file) fclose(file);
+  return result;
+}
+
+
+cnBool cnrLoadGameLog(cnrGame game, char* name) {
   FILE* file = NULL;
   cnString line;
   struct cnrRcgParser parser;
@@ -155,7 +171,7 @@ cnBool cnrLoadGameLog(cnList(struct cnrState)* states, char* name) {
 
   // Init stuff and open file.
   cnrRcgParserInit(&parser);
-  parser.states = states;
+  parser.game = game;
   cnStringInit(&line);
   if (!(file = fopen(name, "r"))) cnFailTo(DONE, "Couldn't open file!");
 
@@ -337,6 +353,7 @@ cnBool cnrParseRcgLine(cnrRcgParser parser, char* line) {
   if (!strcmp(type, "show")) {
     if (!cnrParseShow(parser, line)) cnFailTo(DONE, "Failed to parse show.");
   }
+  // TODO (team 1 WrightEagle HELIOS2011 0 0)
 
   // Winned.
   SUCCESS:
@@ -454,7 +471,7 @@ cnBool cnrParserTriggerId(cnrRcgParser parser, char* id) {
         if (!player) cnFailTo(DONE, "No player.");
         cnrPlayerInit(player);
         // Be explicit here for clarity.
-        player->team = *id == 'l' ? 0 : 1;
+        player->team = *id == 'l' ? cnrTeamLeft : cnrTeamRight;
         // And track the item.
         parser->item = &player->item;
       }
@@ -530,7 +547,7 @@ cnBool cnrParseShow(cnrRcgParser parser, char* line) {
   cnBool result = cnFalse;
 
   // Prepare a new state to work with.
-  if (!(parser->state = cnListExpand(parser->states))) {
+  if (!(parser->state = cnListExpand(&parser->game->states))) {
     cnFailTo(DONE, "No new state.");
   }
   cnrStateInit(parser->state);
@@ -567,10 +584,9 @@ void cnrRcgParserDispose(cnrRcgParser parser) {
 
 
 void cnrRcgParserInit(cnrRcgParser parser) {
-  // Later point this to the current state being parsed.
+  parser->game = NULL;
   parser->index = 0;
   parser->item = NULL;
   parser->mode = cnrRcgModeTop;
   parser->state = NULL;
-  parser->states = NULL;
 }

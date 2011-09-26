@@ -6,21 +6,20 @@
 
 
 int main(int argc, char** argv) {
+  struct cnrGame game;
   char* name;
-  cnList(struct cnrState) states;
   int result = EXIT_FAILURE;
 
   // Init first.
-  cnListInit(&states, sizeof(struct cnrState));
+  cnrGameInit(&game);
 
   // Check args.
   if (argc < 2) cnFailTo(DONE, "No file specified.");
 
   // Load all the states in the game log.
+  // TODO Check if rcl or rcg to work either way.
   name = argv[1];
-  if (!cnrLoadGameLog(&states, name)) {
-    cnFailTo(DONE, "Failed to load: %s", name);
-  }
+  if (!cnrLoadGameLog(&game, name)) cnFailTo(DONE, "Failed to load: %s", name);
 
   // Now look at the command log to see what actions were taken.
   // Assume the file is in the same place but named rcl instead of rcg.
@@ -29,19 +28,18 @@ int main(int argc, char** argv) {
     cnIndex lastIndex = strlen(name) - 1;
     name[lastIndex] = 'l';
     printf("Wanting to read %s\n", name);
-    // TODO cnrLoadCommandLog(&states, name);
+    if (!cnrLoadCommandLog(&game, name)) {
+      cnFailTo(DONE, "Failed to load: %s", name);
+    }
   }
 
   // Report.
-  printf("Loaded %ld states.\n", states.count);
+  printf("Loaded %ld states.\n", game.states.count);
 
   // Winned.
   result = EXIT_SUCCESS;
 
   DONE:
-  cnListEachBegin(&states, struct cnrState, state) {
-    cnrStateDispose(state);
-  } cnEnd;
-  cnListDispose(&states);
+  cnrGameDispose(&game);
   return result;
 }

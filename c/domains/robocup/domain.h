@@ -15,9 +15,18 @@ typedef enum {
 
 
 /**
- * Usually just 0 for left (or keepers?) or 1 for right (or takers?).
+ * Index rather than enum because I want to use it as an index. In the abstract,
+ * although perhaps not in RoboCup, there also could technically be more than
+ * two teams.
  */
 typedef cnIndex cnrTeam;
+
+#define cnrTeamLeft 0
+#define cnrTeamRight 1
+
+// Are keepers (in keepaway) the left team?
+#define cnrTeamKeepers 0
+#define cnrTeamTakers 1
 
 
 typedef cnIndex cnrTime;
@@ -78,6 +87,21 @@ typedef struct cnrState {
   cnrTime time;
 
 }* cnrState;
+
+
+typedef struct cnrGame {
+
+  cnList(struct cnrState) states;
+
+  cnList(cnString) teamNames;
+
+}* cnrGame;
+
+
+void cnrGameDispose(cnrGame game);
+
+
+void cnrGameInit(cnrGame game);
 
 
 void cnrItemInit(cnrItem item, cnrType type);

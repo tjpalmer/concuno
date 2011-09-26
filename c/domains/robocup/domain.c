@@ -1,6 +1,27 @@
 #include "domain.h"
 
 
+void cnrGameDispose(cnrGame game) {
+  // Dispose states.
+  cnListEachBegin(&game->states, struct cnrState, state) {
+    cnrStateDispose(state);
+  } cnEnd;
+  cnListDispose(&game->states);
+
+  // Dispose team names.
+  cnListEachBegin(&game->teamNames, cnString, name) {
+    cnStringDispose(name);
+  } cnEnd;
+  cnListDispose(&game->teamNames);
+}
+
+
+void cnrGameInit(cnrGame game) {
+  cnListInit(&game->states, sizeof(struct cnrState));
+  cnListInit(&game->teamNames, sizeof(cnString));
+}
+
+
 void cnrItemInit(cnrItem item, cnrType type) {
   item->location[0] = 0.0;
   item->location[1] = 0.0;
