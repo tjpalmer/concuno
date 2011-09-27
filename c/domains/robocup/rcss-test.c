@@ -21,6 +21,7 @@ int main(int argc, char** argv) {
   name = argv[1];
   if (!cnrLoadGameLog(&game, name)) cnFailTo(DONE, "Failed to load: %s", name);
 
+  // Show all team names.
   cnListEachBegin(&game.teamNames, cnString, name) {
     printf("Team: %s\n", cnStr(name));
   } cnEnd;

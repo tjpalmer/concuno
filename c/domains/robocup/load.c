@@ -519,7 +519,7 @@ cnBool cnrParserTriggerId(cnrRcgParser parser, char* id) {
           cnFailTo(DONE, "No push name.");
         }
       } else {
-        cnFailTo(DONE, "Not ready for team name %ld.\n", team);
+        // TODO Validate unchanged team names?
       }
     }
     break;
@@ -556,8 +556,8 @@ cnBool cnrParserTriggerNumber(cnrRcgParser parser, cnFloat number) {
         cnrRcgParserItemLocation(parser, 1, number);
         break;
       case cnrTypePlayer:
-        // Player location at indices 7, 8.
-        cnrRcgParserItemLocation(parser, 7, number);
+        // Player location at indices 3, 4.
+        cnrRcgParserItemLocation(parser, 3, number);
         break;
       default:
         cnFailTo(DONE, "Unknown item type %d.", parser->item->type);
