@@ -65,6 +65,13 @@ typedef struct cnrPlayer {
    */
   cnIndex index;
 
+  /**
+   * Body angle.
+   *
+   * TODO What units?
+   */
+  cnFloat orientation;
+
   cnrTeam team;
 
 }* cnrPlayer;

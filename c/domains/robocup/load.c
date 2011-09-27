@@ -558,6 +558,10 @@ cnBool cnrParserTriggerNumber(cnrRcgParser parser, cnFloat number) {
       case cnrTypePlayer:
         // Player location at indices 3, 4.
         cnrRcgParserItemLocation(parser, 3, number);
+        if (parser->index == 7) {
+          // Body angle. TODO Units?
+          ((cnrPlayer)parser->item)->orientation = number;
+        }
         break;
       default:
         cnFailTo(DONE, "Unknown item type %d.", parser->item->type);
