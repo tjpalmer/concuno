@@ -6,6 +6,9 @@
 #include "core.h"
 
 
+// TODO Move a lot of this to a separate concuno/string.h of my own?
+
+
 cnCBegin;
 
 
@@ -16,6 +19,18 @@ cnCBegin;
  * TODO error cases.
  */
 void cnDedent(cnString* indent);
+
+
+/**
+ * Finds the first delimiter in the string, replaces it with a null char,
+ * changes string to point past the placed null char, and returns the address of
+ * the original string, if the delimiter is found. If not found, leaves the
+ * string unchanged and returns a null pointer. Use like so:
+ *
+ * char* token = cnDelimit(&text, ',');
+ * if (!token) ...
+ */
+char* cnDelimit(char** string, char delimiter);
 
 
 /**

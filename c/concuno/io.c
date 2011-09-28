@@ -9,6 +9,22 @@ void cnDedent(cnString* indent) {
 }
 
 
+char* cnDelimit(char** string, char delimiter) {
+  char* begin = *string;
+  // Loop to delimiter.
+  for (; **string && **string != delimiter; (*string)++) {}
+  if (**string == delimiter) {
+    // Found it. Slice it, point after, and return the old start.
+    **string = '\0';
+    (*string)++;
+    return begin;
+  } else {
+    // No show.
+    return NULL;
+  }
+}
+
+
 cnBool cnIndent(cnString* indent) {
   return cnStringPushStr(indent, "  ");
 }

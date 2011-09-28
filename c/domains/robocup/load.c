@@ -170,6 +170,9 @@ void cnrRcgParserDispose(cnrRcgParser parser);
 void cnrRcgParserInit(cnrRcgParser parser);
 
 
+cnBool cnrRclParseLine(cnrGame game, char* line);
+
+
 cnBool cnrLoadCommandLog(cnrGame game, char* name) {
   FILE* file = NULL;
   cnString line;
@@ -182,9 +185,9 @@ cnBool cnrLoadCommandLog(cnrGame game, char* name) {
   // TODO Load the file, eh?
   while ((readCount = cnReadLine(file, &line)) > 0) {
     lineCount++;
-    //if (!cnrParseRcgLine(parser, cnStr(&line))) {
-    //  cnFailTo(DONE, "Failed parsing line %ld.", lineCount);
-    //}
+    if (!cnrRclParseLine(game, cnStr(&line))) {
+      cnFailTo(DONE, "Failed parsing line %ld.", lineCount);
+    }
   }
   if (readCount < 0) cnFailTo(DONE, "Failed reading line.");
 
@@ -670,4 +673,20 @@ void cnrRcgParserInit(cnrRcgParser parser) {
   parser->item = NULL;
   parser->mode = cnrRcgModeTop;
   parser->state = NULL;
+}
+
+
+cnBool cnrRclParseLine(cnrGame game, char* line) {
+  char* token;
+  cnBool result = cnFalse;
+
+  // Format: time,subtime\t(Recv|\(...\)) TeamName_N: (command (content))
+  if (!(token = cnDelimit(&line, ','))) cnFailTo(DONE, "No comma.");
+  // TODO Parse to number or skip?
+
+  // Winned.
+  result = cnTrue;
+
+  DONE:
+  return result;
 }
