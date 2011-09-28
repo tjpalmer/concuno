@@ -34,6 +34,19 @@ char* cnDelimit(char** string, char delimiter);
 
 
 /**
+ * Finds the first delimiter in the string, replaces it with a null char,
+ * changes string to point past the placed null char, puts an integer
+ * represention in i, puts the address of the original string in token, and
+ * returns true if the delimiter is found and if the token is parseable as an
+ * int. If not found, leaves the string unchanged, points string to the end of
+ * the original string, token to null, and also returns false. Use like so:
+ *
+ * if (!cnDelimitInt(&text, &token, &number, ',')) ...
+ */
+cnBool cnDelimitInt(char** string, char** token, cnInt* i, char delimiter);
+
+
+/**
  * Increase the indent by the canonical amount.
  *
  * TODO Abstract this better into stream facility.

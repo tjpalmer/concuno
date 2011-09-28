@@ -677,14 +677,46 @@ void cnrRcgParserInit(cnrRcgParser parser) {
 
 
 cnBool cnrRclParseLine(cnrGame game, char* line) {
-  char* token;
+  cnIndex playerIndex;
   cnBool result = cnFalse;
+  cnIndex subtime;
+  cnrTeam team;
+  cnIndex time;
+  char* token;
 
   // Format: time,subtime\t(Recv|\(...\)) TeamName_N: (command (content))
-  if (!(token = cnDelimit(&line, ','))) cnFailTo(DONE, "No comma.");
-  // TODO Parse to number or skip?
+  if (!cnDelimitInt(&line, NULL, &time, ',')) cnFailTo(DONE, "No time.");
+  if (!cnDelimitInt(&line, NULL, &subtime, '\t')) cnFailTo(DONE, "No subtime.");
 
-  // Winned.
+  // Ignore cases with parens.
+  if (*line == '(') goto WIN;
+
+  // Check for some other line type. We only care about Recv.
+  if (!(token = cnParseStr(line, &line))) cnFailTo(DONE, "No line type.");
+  if (strcmp(token, "Recv")) goto WIN;
+
+  // Team name and index.
+  if (!(token = cnDelimit(&line, '_'))) cnFailTo(DONE, "No team_player split.");
+  team = 0;
+  cnListEachBegin(&game->teamNames, cnString, name) {
+    // Break if we have it, and inc if not.
+    if (!strcmp(token, cnStr(name))) break;
+    team++;
+  } cnEnd;
+  if (team >= game->teamNames.count) cnFailTo(DONE, "Unrecognized team.");
+
+  // Player index.
+  if (!cnDelimitInt(&line, &token, &playerIndex, ':')) {
+    // Ignore coach, and fail otherwise.
+    if (!strcmp(token, "Coach")) goto WIN;
+    cnFailTo(DONE, "No player.");
+  }
+
+  // TODO Find which state we're on.
+  // TODO Find the player in the state.
+  // TODO Parser deeper for kicks.
+
+  WIN:
   result = cnTrue;
 
   DONE:

@@ -29,13 +29,16 @@ typedef enum {cnFalse, cnTrue} cnBool;
 typedef unsigned char cnByte;
 
 
-typedef long cnCount;
+typedef long cnInt;
+
+
+typedef cnInt cnCount;
 
 
 typedef double cnFloat;
 
 
-typedef long cnIndex;
+typedef cnInt cnIndex;
 
 
 /**

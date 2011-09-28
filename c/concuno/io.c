@@ -25,6 +25,29 @@ char* cnDelimit(char** string, char delimiter) {
 }
 
 
+cnBool cnDelimitInt(char** string, char** token, cnInt* i, char delimiter) {
+  char* intEnd;
+  cnInt temp;
+  char* tempToken;
+
+  // First delimit the token.
+  tempToken = cnDelimit(string, delimiter);
+  if (token) *token = tempToken;
+  if (!tempToken) return cnFalse;
+
+  // Now convert to int.
+  // TODO Hand-code instead of using strtol to avoid dependence on errno.
+  temp = strtol(tempToken, &intEnd, 10);
+
+  // Now see if we consumed the whole token, failing if not.
+  if (*intEnd) return cnFalse;
+
+  // Must be good to go (except for ignoring errno and therefore overflow).
+  *i = temp;
+  return cnTrue;
+}
+
+
 cnBool cnIndent(cnString* indent) {
   return cnStringPushStr(indent, "  ");
 }
