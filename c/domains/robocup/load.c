@@ -172,15 +172,28 @@ void cnrRcgParserInit(cnrRcgParser parser);
 
 cnBool cnrLoadCommandLog(cnrGame game, char* name) {
   FILE* file = NULL;
+  cnString line;
+  cnCount lineCount = 0;
+  cnCount readCount;
   cnBool result = cnFalse;
 
+  cnStringInit(&line);
+  if (!(file = fopen(name, "r"))) cnFailTo(DONE, "Couldn't open file!");
   // TODO Load the file, eh?
+  while ((readCount = cnReadLine(file, &line)) > 0) {
+    lineCount++;
+    //if (!cnrParseRcgLine(parser, cnStr(&line))) {
+    //  cnFailTo(DONE, "Failed parsing line %ld.", lineCount);
+    //}
+  }
+  if (readCount < 0) cnFailTo(DONE, "Failed reading line.");
 
   // Winned.
   result = cnTrue;
 
-  // DONE:
+  DONE:
   if (file) fclose(file);
+  cnStringDispose(&line);
   return result;
 }
 

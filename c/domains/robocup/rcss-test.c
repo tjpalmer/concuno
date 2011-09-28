@@ -32,7 +32,7 @@ int main(int argc, char** argv) {
     // Abusively just modify the arg. TODO Is this legit?
     cnIndex lastIndex = strlen(name) - 1;
     name[lastIndex] = 'l';
-    printf("Wanting to read %s\n", name);
+    printf("Trying also to read %s\n", name);
     if (!cnrLoadCommandLog(&game, name)) {
       cnFailTo(DONE, "Failed to load: %s", name);
     }
