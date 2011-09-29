@@ -8,44 +8,44 @@ typedef enum {
   /**
    * A show line is being parsed.
    */
-  cnrRcgModeShow,
+  cnrParseModeShow,
 
   /**
    * A particular item within a show is being parsed.
    */
-  cnrRcgModeShowItem,
+  cnrParseModeShowItem,
 
   /**
    * The id of a show item is being parsed.
    */
-  cnrRcgModeShowItemId,
+  cnrParseModeShowItemId,
 
   /**
    * Some other kid of a show item.
    */
-  cnrRcgModeShowItemKid,
+  cnrParseModeShowItemKid,
 
   /**
    * A team line is being parsed.
    */
-  cnrRcgModeTeam,
+  cnrParseModeTeam,
 
   /**
    * Top-level line parsing is underway.
    */
-  cnrRcgModeTop,
+  cnrParseModeTop,
 
   /**
    * Top-level line parsing is underway.
    */
-  cnrRcgModeTopShow,
+  cnrParseModeTopShow,
 
   /**
    * Top-level line parsing is underway.
    */
-  cnrRcgModeTopTeam,
+  cnrParseModeTopTeam,
 
-} cnrRcgMode;
+} cnrParseMode;
 
 
 typedef struct cnrRcgParser {
@@ -68,30 +68,30 @@ typedef struct cnrRcgParser {
   /**
    * The current mode of the parser.
    */
-  cnrRcgMode mode;
+  cnrParseMode mode;
 
   /**
    * The state currently being put together.
    */
   cnrState state;
 
-}* cnrRcgParser;
+}* cnrParser;
 
 
 /**
  * Parses the contents of a parenthesized expression (or the top level of the
  * file). The open paren should already be consumed.
  */
-cnBool cnrParseContents(cnrRcgParser parser, char** line);
+cnBool cnrParseContents(cnrParser parser, char** line);
 
 
 /**
  * An identifier following some kind of rules.
  */
-cnBool cnrParseId(cnrRcgParser parser, char** line);
+cnBool cnrParseId(cnrParser parser, char** line);
 
 
-cnBool cnrParseNumber(cnrRcgParser parser, char** line);
+cnBool cnrParseNumber(cnrParser parser, char** line);
 
 
 /**
@@ -106,68 +106,68 @@ cnBool cnrParseNumber(cnrRcgParser parser, char** line);
  *
  * TODO Are escapes really not supported?
  */
-char* cnrParseQuoted(cnrRcgParser parser, char** line);
+char* cnrParseQuoted(cnrParser parser, char** line);
 
 
 /**
  * Parses a single rcg line.
  */
-cnBool cnrParseRcgLine(cnrRcgParser parser, char* line);
+cnBool cnrParseRcgLine(cnrParser parser, char* line);
 
 
 /**
  * Parses all lines in the file. The rcg format is a line-oriented format.
  */
-cnBool cnrParseRcgLines(cnrRcgParser parser, FILE* file);
+cnBool cnrParseRcgLines(cnrParser parser, FILE* file);
 
 
 /**
  * Trigger the beginning of contents.
  */
-cnBool cnrParserTriggerContentsBegin(cnrRcgParser parser);
+cnBool cnrParserTriggerContentsBegin(cnrParser parser);
 
 
 /**
  * Trigger the beginning of contents.
  */
-cnBool cnrParserTriggerContentsEnd(cnrRcgParser parser);
+cnBool cnrParserTriggerContentsEnd(cnrParser parser);
 
 
 /**
  * Trigger an id. Treat id as temporary only for this function call.
  */
-cnBool cnrParserTriggerId(cnrRcgParser parser, char* id);
+cnBool cnrParserTriggerId(cnrParser parser, char* id);
 
 
 /**
  * Trigger an number.
  */
-cnBool cnrParserTriggerNumber(cnrRcgParser parser, cnFloat number);
+cnBool cnrParserTriggerNumber(cnrParser parser, cnFloat number);
 
 
 /**
  * Parse a show command. The leading paren and the show token have both already
  * been consumed from the line.
  */
-cnBool cnrParseShow(cnrRcgParser parser, char* line);
+cnBool cnrParseShow(cnrParser parser, char* line);
 
 
 /**
  * Parse a team command. The leading paren and the show token have both already
  * been consumed from the line.
  */
-cnBool cnrParseTeam(cnrRcgParser parser, char* line);
+cnBool cnrParseTeam(cnrParser parser, char* line);
 
 
 void cnrRcgParserItemLocation(
-  cnrRcgParser parser, cnIndex xIndex, cnFloat value
+  cnrParser parser, cnIndex xIndex, cnFloat value
 );
 
 
-void cnrRcgParserDispose(cnrRcgParser parser);
+void cnrRcgParserDispose(cnrParser parser);
 
 
-void cnrRcgParserInit(cnrRcgParser parser);
+void cnrRcgParserInit(cnrParser parser);
 
 
 cnBool cnrRclParseLine(cnrGame game, char* line);
@@ -243,7 +243,7 @@ cnBool cnrLoadGameLog(cnrGame game, char* name) {
 }
 
 
-cnBool cnrParseContents(cnrRcgParser parser, char** line) {
+cnBool cnrParseContents(cnrParser parser, char** line) {
   cnIndex index = -1;
   cnBool result = cnFalse;
 
@@ -300,7 +300,7 @@ cnBool cnrParseContents(cnrRcgParser parser, char** line) {
 }
 
 
-cnBool cnrParseId(cnrRcgParser parser, char** line) {
+cnBool cnrParseId(cnrParser parser, char** line) {
   char c;
   char* id = *line;
   cnBool result = cnFalse;
@@ -326,7 +326,7 @@ cnBool cnrParseId(cnrRcgParser parser, char** line) {
 }
 
 
-cnBool cnrParseNumber(cnrRcgParser parser, char** line) {
+cnBool cnrParseNumber(cnrParser parser, char** line) {
   char* end;
   cnFloat number;
   cnBool result = cnFalse;
@@ -349,7 +349,7 @@ cnBool cnrParseNumber(cnrRcgParser parser, char** line) {
 }
 
 
-char* cnrParseQuoted(cnrRcgParser parser, char** line) {
+char* cnrParseQuoted(cnrParser parser, char** line) {
   // Assume we got it.
   char* result = *line;
 
@@ -370,7 +370,7 @@ char* cnrParseQuoted(cnrRcgParser parser, char** line) {
 }
 
 
-cnBool cnrParseRcgLine(cnrRcgParser parser, char* line) {
+cnBool cnrParseRcgLine(cnrParser parser, char* line) {
   cnBool result = cnFalse;
   char* type;
 
@@ -404,7 +404,7 @@ cnBool cnrParseRcgLine(cnrRcgParser parser, char* line) {
 }
 
 
-cnBool cnrParseRcgLines(cnrRcgParser parser, FILE* file) {
+cnBool cnrParseRcgLines(cnrParser parser, FILE* file) {
   cnString line;
   cnCount lineCount = 0;
   cnCount readCount;
@@ -429,28 +429,28 @@ cnBool cnrParseRcgLines(cnrRcgParser parser, FILE* file) {
 }
 
 
-cnBool cnrParserTriggerContentsBegin(cnrRcgParser parser) {
+cnBool cnrParserTriggerContentsBegin(cnrParser parser) {
   cnBool result = cnFalse;
 
   // TODO State management?
 
   // Mode state "stack".
   switch (parser->mode) {
-  case cnrRcgModeShow:
-    parser->mode = cnrRcgModeShowItem;
+  case cnrParseModeShow:
+    parser->mode = cnrParseModeShowItem;
     break;
-  case cnrRcgModeShowItem:
+  case cnrParseModeShowItem:
     if (parser->index) {
-      parser->mode = cnrRcgModeShowItemKid;
+      parser->mode = cnrParseModeShowItemKid;
     } else {
-      parser->mode = cnrRcgModeShowItemId;
+      parser->mode = cnrParseModeShowItemId;
     }
     break;
-  case cnrRcgModeTopShow:
-    parser->mode = cnrRcgModeShow;
+  case cnrParseModeTopShow:
+    parser->mode = cnrParseModeShow;
     break;
-  case cnrRcgModeTopTeam:
-    parser->mode = cnrRcgModeTeam;
+  case cnrParseModeTopTeam:
+    parser->mode = cnrParseModeTeam;
     break;
   default:
     cnFailTo(DONE, "Unknown parser mode: %d", parser->mode);
@@ -464,25 +464,25 @@ cnBool cnrParserTriggerContentsBegin(cnrRcgParser parser) {
 }
 
 
-cnBool cnrParserTriggerContentsEnd(cnrRcgParser parser) {
+cnBool cnrParserTriggerContentsEnd(cnrParser parser) {
   cnBool result = cnFalse;
 
   // TODO Anything else?
 
   // Mode state "stack".
   switch (parser->mode) {
-  case cnrRcgModeShow:
-  case cnrRcgModeTeam:
-    parser->mode = cnrRcgModeTop;
+  case cnrParseModeShow:
+  case cnrParseModeTeam:
+    parser->mode = cnrParseModeTop;
     break;
-  case cnrRcgModeShowItem:
+  case cnrParseModeShowItem:
     //printf("(%lg %lg) ", parser->item->location[0], parser->item->location[1]);
-    parser->mode = cnrRcgModeShow;
+    parser->mode = cnrParseModeShow;
     parser->item = NULL;
     break;
-  case cnrRcgModeShowItemId:
-  case cnrRcgModeShowItemKid:
-    parser->mode = cnrRcgModeShowItem;
+  case cnrParseModeShowItemId:
+  case cnrParseModeShowItemKid:
+    parser->mode = cnrParseModeShowItem;
     break;
   default:
     cnFailTo(DONE, "Unknown parser mode: %d", parser->mode);
@@ -496,12 +496,12 @@ cnBool cnrParserTriggerContentsEnd(cnrRcgParser parser) {
 }
 
 
-cnBool cnrParserTriggerId(cnrRcgParser parser, char* id) {
+cnBool cnrParserTriggerId(cnrParser parser, char* id) {
   cnBool result = cnFalse;
 
   // Mode state machine.
   switch (parser->mode) {
-  case cnrRcgModeShowItemId:
+  case cnrParseModeShowItemId:
     if (!parser->index) {
       // TODO Choose or create focus item.
       // TODO For players, however, we don't know until the number.
@@ -521,7 +521,7 @@ cnBool cnrParserTriggerId(cnrRcgParser parser, char* id) {
       }
     }
     break;
-  case cnrRcgModeTeam:
+  case cnrParseModeTeam:
     if (parser->index == 1 || parser->index == 2) {
       cnrTeam team = parser->index - 1;
       if (parser->game->teamNames.count == team) {
@@ -552,19 +552,19 @@ cnBool cnrParserTriggerId(cnrRcgParser parser, char* id) {
 }
 
 
-cnBool cnrParserTriggerNumber(cnrRcgParser parser, cnFloat number) {
+cnBool cnrParserTriggerNumber(cnrParser parser, cnFloat number) {
   cnBool result = cnFalse;
 
   // Mode state machine.
   switch (parser->mode) {
-  case cnrRcgModeShow:
+  case cnrParseModeShow:
     if (!parser->index) {
       parser->state->time = (cnrTime)number;
       // TODO Subtime (during penalty kicks) is only implicit in rcg files.
       // TODO Track it?
     }
     break;
-  case cnrRcgModeShowItem:
+  case cnrParseModeShowItem:
     if (parser->item) {
       switch (parser->item->type) {
       case cnrTypeBall:
@@ -584,7 +584,7 @@ cnBool cnrParserTriggerNumber(cnrRcgParser parser, cnFloat number) {
       }
     }
     break;
-  case cnrRcgModeShowItemId:
+  case cnrParseModeShowItemId:
     if (parser->index == 1) {
       cnrPlayer player = (cnrPlayer)parser->item;
       if (player->item.type != cnrTypePlayer) {
@@ -608,7 +608,7 @@ cnBool cnrParserTriggerNumber(cnrRcgParser parser, cnFloat number) {
 }
 
 
-cnBool cnrParseShow(cnrRcgParser parser, char* line) {
+cnBool cnrParseShow(cnrParser parser, char* line) {
   cnBool result = cnFalse;
 
   // Prepare a new state to work with.
@@ -618,7 +618,7 @@ cnBool cnrParseShow(cnrRcgParser parser, char* line) {
   cnrStateInit(parser->state);
 
   // Parse through the rest.
-  parser->mode = cnrRcgModeTopShow;
+  parser->mode = cnrParseModeTopShow;
   if (!cnrParseContents(parser, &line)) {
     cnFailTo(DONE, "Failed parsing line content.");
   }
@@ -628,16 +628,16 @@ cnBool cnrParseShow(cnrRcgParser parser, char* line) {
   result = cnTrue;
 
   DONE:
-  parser->mode = cnrRcgModeTop;
+  parser->mode = cnrParseModeTop;
   return result;
 }
 
 
-cnBool cnrParseTeam(cnrRcgParser parser, char* line) {
+cnBool cnrParseTeam(cnrParser parser, char* line) {
   cnBool result = cnFalse;
 
   // Parse through the rest.
-  parser->mode = cnrRcgModeTopTeam;
+  parser->mode = cnrParseModeTopTeam;
   if (!cnrParseContents(parser, &line)) {
     cnFailTo(DONE, "Failed parsing line content.");
   }
@@ -647,13 +647,13 @@ cnBool cnrParseTeam(cnrRcgParser parser, char* line) {
   result = cnTrue;
 
   DONE:
-  parser->mode = cnrRcgModeTop;
+  parser->mode = cnrParseModeTop;
   return result;
 }
 
 
 void cnrRcgParserItemLocation(
-  cnrRcgParser parser, cnIndex xIndex, cnFloat value
+  cnrParser parser, cnIndex xIndex, cnFloat value
 ) {
   if (xIndex <= parser->index && parser->index <= xIndex + 1) {
     parser->item->location[parser->index - xIndex] = value;
@@ -661,17 +661,17 @@ void cnrRcgParserItemLocation(
 }
 
 
-void cnrRcgParserDispose(cnrRcgParser parser) {
+void cnrRcgParserDispose(cnrParser parser) {
   // TODO Anything?
   cnrRcgParserInit(parser);
 }
 
 
-void cnrRcgParserInit(cnrRcgParser parser) {
+void cnrRcgParserInit(cnrParser parser) {
   parser->game = NULL;
   parser->index = 0;
   parser->item = NULL;
-  parser->mode = cnrRcgModeTop;
+  parser->mode = cnrParseModeTop;
   parser->state = NULL;
 }
 
