@@ -48,7 +48,7 @@ typedef enum {
 } cnrParseMode;
 
 
-typedef struct cnrRcgParser {
+typedef struct cnrParser {
 
   /**
    * The game being loaded into.
@@ -170,22 +170,28 @@ void cnrRcgParserDispose(cnrParser parser);
 void cnrRcgParserInit(cnrParser parser);
 
 
-cnBool cnrRclParseLine(cnrGame game, char* line);
+cnBool cnrRclParseLine(cnrParser parser, char* line);
 
 
 cnBool cnrLoadCommandLog(cnrGame game, char* name) {
   FILE* file = NULL;
   cnString line;
   cnCount lineCount = 0;
+  struct cnrParser parser;
   cnCount readCount;
   cnBool result = cnFalse;
 
+  // Inits.
+  cnrRcgParserInit(&parser);
+  parser.game = game;
   cnStringInit(&line);
+
+  // Load file, and parse lines.
   if (!(file = fopen(name, "r"))) cnFailTo(DONE, "Couldn't open file!");
   // TODO Load the file, eh?
   while ((readCount = cnReadLine(file, &line)) > 0) {
     lineCount++;
-    if (!cnrRclParseLine(game, cnStr(&line))) {
+    if (!cnrRclParseLine(&parser, cnStr(&line))) {
       cnFailTo(DONE, "Failed parsing line %ld.", lineCount);
     }
   }
@@ -197,6 +203,7 @@ cnBool cnrLoadCommandLog(cnrGame game, char* name) {
   DONE:
   if (file) fclose(file);
   cnStringDispose(&line);
+  cnrRcgParserDispose(&parser);
   return result;
 }
 
@@ -204,7 +211,7 @@ cnBool cnrLoadCommandLog(cnrGame game, char* name) {
 cnBool cnrLoadGameLog(cnrGame game, char* name) {
   FILE* file = NULL;
   cnString line;
-  struct cnrRcgParser parser;
+  struct cnrParser parser;
   cnBool result = cnFalse;
 
   // Init stuff and open file.
@@ -676,7 +683,7 @@ void cnrRcgParserInit(cnrParser parser) {
 }
 
 
-cnBool cnrRclParseLine(cnrGame game, char* line) {
+cnBool cnrRclParseLine(cnrParser parser, char* line) {
   cnIndex playerIndex;
   cnBool result = cnFalse;
   cnIndex subtime;
@@ -698,12 +705,14 @@ cnBool cnrRclParseLine(cnrGame game, char* line) {
   // Team name and index.
   if (!(token = cnDelimit(&line, '_'))) cnFailTo(DONE, "No team_player split.");
   team = 0;
-  cnListEachBegin(&game->teamNames, cnString, name) {
+  cnListEachBegin(&parser->game->teamNames, cnString, name) {
     // Break if we have it, and inc if not.
     if (!strcmp(token, cnStr(name))) break;
     team++;
   } cnEnd;
-  if (team >= game->teamNames.count) cnFailTo(DONE, "Unrecognized team.");
+  if (team >= parser->game->teamNames.count) {
+    cnFailTo(DONE, "Unrecognized team.");
+  }
 
   // Player index.
   if (!cnDelimitInt(&line, &token, &playerIndex, ':')) {
