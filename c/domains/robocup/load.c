@@ -6,6 +6,21 @@
 typedef enum {
 
   /**
+   * Commands issued by a client.
+   */
+  cnrParseModeCommand,
+
+  /**
+   * Identified kick command.
+   */
+  cnrParseModeCommandKick,
+
+  /**
+   * Any child of a command.
+   */
+  cnrParseModeCommandKid,
+
+  /**
    * A show line is being parsed.
    */
   cnrParseModeShow,
@@ -36,12 +51,17 @@ typedef enum {
   cnrParseModeTop,
 
   /**
-   * Top-level line parsing is underway.
+   * Top level of a command.
+   */
+  cnrParseModeTopCommand,
+
+  /**
+   * Top level of a show.
    */
   cnrParseModeTopShow,
 
   /**
-   * Top-level line parsing is underway.
+   * Top level of a team.
    */
   cnrParseModeTopTeam,
 
@@ -184,6 +204,7 @@ cnBool cnrLoadCommandLog(cnrGame game, char* name) {
   // Inits.
   cnrRcgParserInit(&parser);
   parser.game = game;
+  parser.state = (cnrState)parser.game->states.items;
   cnStringInit(&line);
 
   // Load file, and parse lines.
@@ -291,7 +312,10 @@ cnBool cnrParseContents(cnrParser parser, char** line) {
       break;
     }
   }
-  if (**line != ')') cnFailTo(DONE, "Premature end of line.");
+  if (**line != ')' && parser->mode != cnrParseModeCommand) {
+    // Contents should end in ')' except for the top level of commands.
+    cnFailTo(DONE, "Premature end of line.");
+  }
 
   // Good to go. Move on.
   (*line)++;
@@ -443,6 +467,9 @@ cnBool cnrParserTriggerContentsBegin(cnrParser parser) {
 
   // Mode state "stack".
   switch (parser->mode) {
+  case cnrParseModeCommand:
+    parser->mode = cnrParseModeCommandKid;
+    break;
   case cnrParseModeShow:
     parser->mode = cnrParseModeShowItem;
     break;
@@ -452,6 +479,9 @@ cnBool cnrParserTriggerContentsBegin(cnrParser parser) {
     } else {
       parser->mode = cnrParseModeShowItemId;
     }
+    break;
+  case cnrParseModeTopCommand:
+    parser->mode = cnrParseModeCommand;
     break;
   case cnrParseModeTopShow:
     parser->mode = cnrParseModeShow;
@@ -478,9 +508,14 @@ cnBool cnrParserTriggerContentsEnd(cnrParser parser) {
 
   // Mode state "stack".
   switch (parser->mode) {
+  case cnrParseModeCommand:
   case cnrParseModeShow:
   case cnrParseModeTeam:
     parser->mode = cnrParseModeTop;
+    break;
+  case cnrParseModeCommandKick:
+  case cnrParseModeCommandKid:
+    parser->mode = cnrParseModeCommand;
     break;
   case cnrParseModeShowItem:
     //printf("(%lg %lg) ", parser->item->location[0], parser->item->location[1]);
@@ -508,6 +543,11 @@ cnBool cnrParserTriggerId(cnrParser parser, char* id) {
 
   // Mode state machine.
   switch (parser->mode) {
+  case cnrParseModeCommandKid:
+    if (!parser->index && !strcmp(id, "kick")) {
+      parser->mode = cnrParseModeCommandKick;
+    }
+    break;
   case cnrParseModeShowItemId:
     if (!parser->index) {
       // TODO Choose or create focus item.
@@ -564,11 +604,21 @@ cnBool cnrParserTriggerNumber(cnrParser parser, cnFloat number) {
 
   // Mode state machine.
   switch (parser->mode) {
+  case cnrParseModeCommandKick:
+    // printf("(%ld %lg) ", parser->index, number);
+    break;
   case cnrParseModeShow:
     if (!parser->index) {
       parser->state->time = (cnrTime)number;
-      // TODO Subtime (during penalty kicks) is only implicit in rcg files.
-      // TODO Track it?
+      if (parser->state > (cnrState)parser->game->states.items) {
+        // Past the first.
+        cnrState previous = parser->state - 1;
+        if (previous->time == parser->state->time) {
+          // Must be a subtime increment. First submit is 0. Presumed to go up
+          // by 1 each for each show. Subtime is only implicit in rcg files.
+          parser->state->subtime = previous->subtime + 1;
+        }
+      }
     }
     break;
   case cnrParseModeShowItem:
@@ -686,6 +736,7 @@ void cnrRcgParserInit(cnrParser parser) {
 cnBool cnrRclParseLine(cnrParser parser, char* line) {
   cnIndex playerIndex;
   cnBool result = cnFalse;
+  cnrState statesEnd;
   cnIndex subtime;
   cnrTeam team;
   cnIndex time;
@@ -721,9 +772,40 @@ cnBool cnrRclParseLine(cnrParser parser, char* line) {
     cnFailTo(DONE, "No player.");
   }
 
-  // TODO Find which state we're on.
-  // TODO Find the player in the state.
-  // TODO Parser deeper for kicks.
+  // Find out which state we're in. Major time.
+  // TODO Unify time/subtime in some fashion? Array instead of separate vars?
+  statesEnd = cnListEnd(&parser->game->states);
+  while (parser->state->time < time) {
+    // Go to the next state, while we have any.
+    if (parser->state >= statesEnd) goto WIN;
+    parser->state++;
+  }
+  // If we haven't gotten to our next state, skip out.
+  if (parser->state->time > time) goto WIN;
+
+  // Subtime handling.
+  while (parser->state->subtime < subtime) {
+    // Go to the next state, while we have any.
+    if (parser->state >= statesEnd) goto WIN;
+    parser->state++;
+  }
+  // If we haven't gotten to our next state, skip out.
+  if (parser->state->subtime > subtime) goto WIN;
+
+  // Find the player in the state.
+  parser->item = NULL;
+  cnListEachBegin(&parser->state->players, struct cnrPlayer, player) {
+    if (team == player->team && playerIndex == player->index) {
+      parser->item = &player->item;
+    }
+  } cnEnd;
+  if (!parser->item) cnFailTo(DONE, "No player %ld/%ld.", team, playerIndex);
+
+  // Parse deeper for kicks (literally).
+  parser->mode = cnrParseModeTopCommand;
+  if (!cnrParseContents(parser, &line)) {
+    cnFailTo(DONE, "Failed command contents.");
+  }
 
   WIN:
   result = cnTrue;
