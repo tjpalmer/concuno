@@ -41,6 +41,8 @@ int main(int argc, char** argv) {
   // Report.
   printf("Loaded %ld states.\n", game.states.count);
 
+  // TODO Extract actions of hold or kick to player.
+
   // Winned.
   result = EXIT_SUCCESS;
 

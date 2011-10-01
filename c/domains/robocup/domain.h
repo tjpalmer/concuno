@@ -56,7 +56,21 @@ typedef struct cnrPlayer {
 
   struct cnrItem item;
 
-  // TODO Actions indicated where?
+  // TODO Better action representation?
+
+  /**
+   * Use NaN for no kick.
+   *
+   * TODO Units?
+   */
+  cnFloat kickAngle;
+
+  /**
+   * Use NaN for no kick.
+   *
+   * TODO Units?
+   */
+  cnFloat kickPower;
 
   // TODO Explicit ball posession indicator?
 

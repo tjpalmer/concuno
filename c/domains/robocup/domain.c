@@ -32,6 +32,9 @@ void cnrItemInit(cnrItem item, cnrType type) {
 void cnrPlayerInit(cnrPlayer player) {
   // Generic item stuff.
   cnrItemInit(&player->item, cnrTypePlayer);
+  // No kick to start with.
+  player->kickAngle = cnNaN();
+  player->kickPower = cnNaN();
   // Actual players start from 1, so 0 is a good invalid value.
   player->index = 0;
   // On the other hand, I expect 0 and 1 both for teams, so use -1 for bogus.

@@ -601,11 +601,22 @@ cnBool cnrParserTriggerId(cnrParser parser, char* id) {
 
 cnBool cnrParserTriggerNumber(cnrParser parser, cnFloat number) {
   cnBool result = cnFalse;
+  cnrPlayer player;
 
   // Mode state machine.
   switch (parser->mode) {
   case cnrParseModeCommandKick:
-    // printf("(%ld %lg) ", parser->index, number);
+    player = (cnrPlayer)parser->item;
+    switch (parser->index) {
+    case 1:
+      player->kickPower = number;
+      break;
+    case 2:
+      player->kickAngle = number;
+      break;
+    default:
+      cnFailTo(DONE, "Kick number at index %ld?", parser->index);
+    }
     break;
   case cnrParseModeShow:
     if (!parser->index) {
@@ -643,7 +654,7 @@ cnBool cnrParserTriggerNumber(cnrParser parser, cnFloat number) {
     break;
   case cnrParseModeShowItemId:
     if (parser->index == 1) {
-      cnrPlayer player = (cnrPlayer)parser->item;
+      player = (cnrPlayer)parser->item;
       if (player->item.type != cnrTypePlayer) {
         cnFailTo(DONE, "Index %ld of non-player.", (cnIndex)number);
       }
