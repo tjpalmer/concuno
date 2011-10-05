@@ -791,17 +791,25 @@ cnBool cnrRclParseLine(cnrParser parser, char* line) {
     parser->state++;
   }
   // If we haven't gotten to our next state, skip out.
-  if (parser->state >= statesEnd) goto WIN;
-  if (parser->state->time > time) goto WIN;
+  if (parser->state >= statesEnd || parser->state->time != time) goto WIN;
 
   // Subtime handling.
-  while (parser->state < statesEnd && parser->state->subtime < subtime) {
+  while (
+    parser->state < statesEnd &&
+    // Make sure we stay on the same time, in case things don't align.
+    // TODO Special handling for time 0?
+    parser->state->time == time &&
+    parser->state->subtime < subtime
+  ) {
     // Go to the next state, while we have any.
     parser->state++;
   }
   // If we haven't gotten to our next state, skip out.
-  if (parser->state >= statesEnd) goto WIN;
-  if (parser->state->subtime > subtime) goto WIN;
+  if (
+    parser->state >= statesEnd ||
+    parser->state->time != time ||
+    parser->state->subtime != subtime
+  ) goto WIN;
 
   // Find the player in the state.
   parser->item = NULL;
