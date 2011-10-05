@@ -786,21 +786,21 @@ cnBool cnrRclParseLine(cnrParser parser, char* line) {
   // Find out which state we're in. Major time.
   // TODO Unify time/subtime in some fashion? Array instead of separate vars?
   statesEnd = cnListEnd(&parser->game->states);
-  while (parser->state->time < time) {
+  while (parser->state < statesEnd && parser->state->time < time) {
     // Go to the next state, while we have any.
-    if (parser->state >= statesEnd) goto WIN;
     parser->state++;
   }
   // If we haven't gotten to our next state, skip out.
+  if (parser->state >= statesEnd) goto WIN;
   if (parser->state->time > time) goto WIN;
 
   // Subtime handling.
-  while (parser->state->subtime < subtime) {
+  while (parser->state < statesEnd && parser->state->subtime < subtime) {
     // Go to the next state, while we have any.
-    if (parser->state >= statesEnd) goto WIN;
     parser->state++;
   }
   // If we haven't gotten to our next state, skip out.
+  if (parser->state >= statesEnd) goto WIN;
   if (parser->state->subtime > subtime) goto WIN;
 
   // Find the player in the state.

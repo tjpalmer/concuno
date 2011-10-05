@@ -2,7 +2,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "choose.h"
 #include "load.h"
+
+
+cnBool cnrExtractInfo(cnrGame game);
 
 
 int main(int argc, char** argv) {
@@ -42,11 +46,48 @@ int main(int argc, char** argv) {
   printf("Loaded %ld states.\n", game.states.count);
 
   // TODO Extract actions of hold or kick to player.
+  if (!cnrExtractInfo(&game)) cnFailTo(DONE, "Failed extract.");
 
   // Winned.
   result = EXIT_SUCCESS;
 
   DONE:
   cnrGameDispose(&game);
+  return result;
+}
+
+
+
+cnBool cnrExtractInfo(cnrGame game) {
+  cnList(cnBag) bags;
+  cnList(cnList(cnEntity)*) entityLists;
+  cnBool result = cnFalse;
+
+  // Init for safety.
+  cnListInit(&bags, sizeof(cnBag));
+  cnListInit(&entityLists, sizeof(cnList(cnEntity)*));
+
+  cnrChoosePasses(game, &bags, &entityLists);
+  // TODO Export stuff.
+
+  // Winned.
+  result = cnTrue;
+
+  // DONE:
+  // TODO These disposals are duplicated from stackiter code. Centralize them!
+  // Bags.
+  cnListEachBegin(&bags, cnBag, bag) {
+    // Dispose the bag, but first hide entities if we manage them separately.
+    if (entityLists.count) bag->entities = NULL;
+    cnBagDispose(bag);
+  } cnEnd;
+  cnListDispose(&bags);
+  // Lists in the bags.
+  cnListEachBegin(&entityLists, cnList(cnEntity)*, list) {
+    cnListDispose(*list);
+    free(*list);
+  } cnEnd;
+  cnListDispose(&entityLists);
+  // Result.
   return result;
 }
