@@ -277,6 +277,16 @@ void cnBagDispose(cnBag* bag);
 cnBool cnBagInit(cnBag* bag, cnList(cnEntity)* entities);
 
 
+/**
+ * Disposes of all bags and entities in the given lists, as well as all the
+ * lists themselves. If entityLists is non-null, entities in each bag will be
+ * ignored. Otherwise, entities in bags will be disposed with the bags.
+ */
+void cnBagListDispose(
+  cnList(cnBag)* bags, cnList(cnList(cnEntity)*)* entityLists
+);
+
+
 cnEntityFunction* cnEntityFunctionCreateDifference(cnEntityFunction* base);
 
 

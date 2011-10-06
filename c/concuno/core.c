@@ -214,6 +214,12 @@ void cnListClear(cnListAny* list) {
 }
 
 
+void cnListDestroy(cnListAny* list) {
+  cnListDispose(list);
+  free(list);
+}
+
+
 void cnListDispose(cnListAny* list) {
   if (!list) return;
   free(list->items);

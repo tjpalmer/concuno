@@ -21,6 +21,9 @@ cnCBegin;
 cnFloat cnEuclideanDistance(cnCount size, cnFloat* x, cnFloat* y);
 
 
+cnFloat cnNorm(cnCount size, cnFloat* x);
+
+
 cnFloat cnSquaredEuclideanDistance(cnCount size, cnFloat* x, cnFloat* y);
 
 

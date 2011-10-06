@@ -8,7 +8,18 @@ cnFloat cnEuclideanDistance(cnCount size, cnFloat* x, cnFloat* y) {
 }
 
 
+cnFloat cnNorm(cnCount size, cnFloat* x) {
+  cnFloat norm = 0;
+  cnFloat* xEnd = x + size;
+  for (; x < xEnd; x++) {
+    norm += *x * *x;
+  }
+  return sqrt(norm);
+}
+
+
 cnFloat cnSquaredEuclideanDistance(cnCount size, cnFloat* x, cnFloat* y) {
+  // Doesn't use generic norm so as not to allocate a temporary diff vector.
   cnFloat distance = 0;
   cnFloat* xEnd = x + size;
   for (; x < xEnd; x++, y++) {

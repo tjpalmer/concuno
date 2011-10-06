@@ -5,8 +5,10 @@
 #include "domain.h"
 
 
-cnBool cnrChoosePasses(
-  cnrGame game, cnList(cnBag)* bags, cnList(cnList(cnEntity)*)* entityLists
+cnBool cnrChooseHoldsAndPasses(
+  cnrGame game,
+  cnList(cnBag)* holdBags, cnList(cnBag)* passBags,
+  cnList(cnList(cnEntity)*)* entityLists
 );
 
 

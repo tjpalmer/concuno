@@ -121,10 +121,7 @@ int main(int argc, char** argv) {
   } cnEnd;
   cnListDispose(&functions);
   cnListDispose(&features);
-  cnListEachBegin(&bags, cnBag, bag) {
-    cnBagDispose(bag);
-  } cnEnd;
-  cnListDispose(&bags);
+  cnBagListDispose(&bags, NULL);
   return result;
 }
 

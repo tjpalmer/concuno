@@ -237,6 +237,16 @@ cnBool cnIsNaN(cnFloat x);
 void cnListClear(cnListAny* list);
 
 
+/**
+ * Disposes of and frees the list.
+ */
+void cnListDestroy(cnListAny* list);
+
+
+/**
+ * Frees contents and resets the list to be usable as an empty list for items of
+ * the same size as before.
+ */
 void cnListDispose(cnListAny* list);
 
 

@@ -57,37 +57,31 @@ int main(int argc, char** argv) {
 }
 
 
-
 cnBool cnrExtractInfo(cnrGame game) {
-  cnList(cnBag) bags;
+  cnList(cnBag) holdBags;
   cnList(cnList(cnEntity)*) entityLists;
+  cnList(cnBag) passBags;
   cnBool result = cnFalse;
 
   // Init for safety.
-  cnListInit(&bags, sizeof(cnBag));
+  cnListInit(&holdBags, sizeof(cnBag));
+  cnListInit(&passBags, sizeof(cnBag));
   cnListInit(&entityLists, sizeof(cnList(cnEntity)*));
 
-  cnrChoosePasses(game, &bags, &entityLists);
+  if (!cnrChooseHoldsAndPasses(game, &holdBags, &passBags, &entityLists)) {
+    cnFailTo(DONE, "Choose failed.");
+  }
+
   // TODO Export stuff.
 
   // Winned.
   result = cnTrue;
 
-  // DONE:
-  // TODO These disposals are duplicated from stackiter code. Centralize them!
-  // Bags.
-  cnListEachBegin(&bags, cnBag, bag) {
-    // Dispose the bag, but first hide entities if we manage them separately.
-    if (entityLists.count) bag->entities = NULL;
-    cnBagDispose(bag);
-  } cnEnd;
-  cnListDispose(&bags);
-  // Lists in the bags.
-  cnListEachBegin(&entityLists, cnList(cnEntity)*, list) {
-    cnListDispose(*list);
-    free(*list);
-  } cnEnd;
-  cnListDispose(&entityLists);
+  DONE:
+  // Bags and entities. The entity lists get disposed with the first call,
+  // leaving bogus pointers inside the passBags, but they'll be unused.
+  cnBagListDispose(&holdBags, &entityLists);
+  cnBagListDispose(&passBags, &entityLists);
   // Result.
   return result;
 }

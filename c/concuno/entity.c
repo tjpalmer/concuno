@@ -45,6 +45,26 @@ cnBool cnBagInit(cnBag* bag, cnList(cnEntity)* entities) {
 }
 
 
+void cnBagListDispose(
+  cnList(cnBag)* bags, cnList(cnList(cnEntity)*)* entityLists
+) {
+  // Bags.
+  cnListEachBegin(bags, cnBag, bag) {
+    // Dispose the bag, but first hide entities if we manage them separately.
+    if (entityLists) bag->entities = NULL;
+    cnBagDispose(bag);
+  } cnEnd;
+  cnListDispose(bags);
+  // Lists in the bags.
+  if (entityLists) {
+    cnListEachBegin(entityLists, cnList(cnEntity)*, list) {
+      cnListDestroy(*list);
+    } cnEnd;
+    cnListDispose(entityLists);
+  }
+}
+
+
 void cnEntityFunctionCreateDifference_get(
   cnEntityFunction* function, cnEntity* ins, void* outs
 ) {

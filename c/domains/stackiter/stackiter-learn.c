@@ -283,19 +283,8 @@ cnBool stLearnConcept(
   DONE:
   // Learner.
   cnLearnerDispose(&learner);
-  // Bags.
-  cnListEachBegin(&bags, cnBag, bag) {
-    // Dispose the bag, but first hide entities if we manage them separately.
-    if (entityLists.count) bag->entities = NULL;
-    cnBagDispose(bag);
-  } cnEnd;
-  cnListDispose(&bags);
-  // Lists in the bags.
-  cnListEachBegin(&entityLists, cnList(cnEntity)*, list) {
-    cnListDispose(*list);
-    free(*list);
-  } cnEnd;
-  cnListDispose(&entityLists);
+  // Bags and entities.
+  cnBagListDispose(&bags, entityLists.count ? &entityLists : NULL);
   // Result.
   return result;
 }
