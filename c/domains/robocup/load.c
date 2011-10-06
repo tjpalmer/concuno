@@ -71,6 +71,11 @@ typedef enum {
 typedef struct cnrParser {
 
   /**
+   * The item is bogus and should be deleted after parsing.
+   */
+  cnBool deletePlayer;
+
+  /**
    * The game being loaded into.
    */
   cnrGame game;
@@ -519,6 +524,11 @@ cnBool cnrParserTriggerContentsEnd(cnrParser parser) {
     break;
   case cnrParseModeShowItem:
     //printf("(%lg %lg) ", parser->item->location[0], parser->item->location[1]);
+    if (parser->deletePlayer) {
+      // Pop off the most recent player. Players don't need disposed.
+      parser->state->players.count--;
+      parser->deletePlayer = cnFalse;
+    }
     parser->mode = cnrParseModeShow;
     parser->item = NULL;
     break;
@@ -642,9 +652,21 @@ cnBool cnrParserTriggerNumber(cnrParser parser, cnFloat number) {
       case cnrTypePlayer:
         // Player location at indices 3, 4.
         cnrRcgParserItemLocation(parser, 3, number);
-        if (parser->index == 7) {
+        switch (parser->index) {
+        case 2:
+          // Active status? It seems to be, but I haven't checked specs.
+          if (!number) {
+            // This player is actually bogus. Mark for deletion.
+            parser->deletePlayer = cnTrue;
+          }
+          break;
+        case 7:
           // Body angle. TODO Units?
           ((cnrPlayer)parser->item)->orientation = number;
+          break;
+        default:
+          // Skip it.
+          break;
         }
         break;
       default:
@@ -736,6 +758,7 @@ void cnrRcgParserDispose(cnrParser parser) {
 
 
 void cnrRcgParserInit(cnrParser parser) {
+  parser->deletePlayer = cnFalse;
   parser->game = NULL;
   parser->index = 0;
   parser->item = NULL;

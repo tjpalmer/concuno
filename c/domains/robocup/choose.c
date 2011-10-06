@@ -71,9 +71,10 @@ cnBool cnrExtractHoldOrPass(
   //    ballSpeed, ballDistance, ballSpeed <= 0.6 || ballDistance <= 0.6
   //  );
   if (ballSpeed > 0.6 && ballDistance > 0.6) {
-    // Presume it's a pass for now. Find the recipient.
+    // Presume it's a pass for now. Find the receiver, if within pi/10.
+    cnRadian minDiff = 0.1 * cnPi;
     cnRadian passAngle = atan2(ballVelocity[1], ballVelocity[0]);
-    printf("Pass: time %ld, angle %lg", state->time, passAngle);
+    cnrPlayer receiver = NULL;
     cnListEachBegin(&state->players, struct cnrPlayer, player) {
       // Actually, for the same state, pointer equality for player and kicker
       // should be good enough, but check indices to be more general.
@@ -84,14 +85,16 @@ cnBool cnrExtractHoldOrPass(
           playerLocation[1] - kickerLocation[1]
         };
         cnRadian playerAngle = atan2(playerDelta[1], playerDelta[0]);
-        cnRadian diff = cnWrapRadians(playerAngle - passAngle);
-        printf(", d%ld %lg (%lg %lg) ", player->index, diff, playerAngle, passAngle);
-        //        if (kicker) {
-        //          cnFailTo(DONE, "Multiple kickers at %ld.", state->time);
-        //        }
+        cnRadian diff = fabs(cnWrapRadians(playerAngle - passAngle));
+        if (diff < minDiff) {
+          minDiff = diff;
+          receiver = player;
+        }
       }
     } cnEnd;
-    printf("\n");
+    if (receiver) {
+      printf("Pass: time %ld, keeper %ld\n", state->time, receiver->index);
+    }
   }
 
   // Winned.
