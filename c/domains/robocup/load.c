@@ -362,7 +362,7 @@ cnBool cnrParseNumber(cnrParser parser, char** line) {
   cnFloat number;
   cnBool result = cnFalse;
 
-  // Parser the number.
+  // Parse the number.
   number = strtod(*line, &end);
   if (!end) cnFailTo(DONE, "No number.");
   *line = end;

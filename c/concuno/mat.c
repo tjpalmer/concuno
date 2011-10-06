@@ -47,3 +47,14 @@ void cnVectorPrintDelimited(
     fprintf(file, "%lg", *value);
   }
 }
+
+
+cnRadian cnWrapRadians(cnRadian angle) {
+  angle = fmod(angle, 2 * cnPi);
+  if (angle < -cnPi) {
+    angle += 2 * cnPi;
+  } else if (angle > cnPi) {
+    angle -= 2 * cnPi;
+  }
+  return angle;
+}

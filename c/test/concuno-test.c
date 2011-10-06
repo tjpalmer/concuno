@@ -23,6 +23,9 @@ void testPermutations(void);
 void testPropagate(void);
 
 
+void testRadians(void);
+
+
 void testUnitRand(void);
 
 
@@ -30,7 +33,7 @@ void testVariance(void);
 
 
 int main(void) {
-  switch ('v') {
+  switch ('s') {
   case 'b':
     testBinomial();
     break;
@@ -45,6 +48,9 @@ int main(void) {
     break;
   case 'r':
     testPropagate();
+    break;
+  case 's':
+    testRadians();
     break;
   case 'u':
     testUnitRand();
@@ -353,6 +359,28 @@ void testPropagate(void) {
   } cnEnd;
   cnListDispose(&leafBindingBags);
   cnBagDispose(&bag);
+}
+
+
+void testRadians(void) {
+  cnRadian a = cnPi - 0.01;
+  cnRadian b = -cnPi + 0.01;
+  printf(
+    "Radian difference %lg - %lg is %lg, and reverse is %lg.\n",
+    a, b, cnWrapRadians(a - b), cnWrapRadians(b - a)
+  );
+  a = -cnPi / 2;
+  b = cnPi / 2;
+  printf(
+    "Radian difference %lg - %lg is %lg, and reverse is %lg.\n",
+    a, b, cnWrapRadians(a - b), cnWrapRadians(b - a)
+  );
+  a = -cnPi / 2;
+  b = -cnPi / 4;
+  printf(
+    "Radian difference %lg - %lg is %lg, and reverse is %lg.\n",
+    a, b, cnWrapRadians(a - b), cnWrapRadians(b - a)
+  );
 }
 
 

@@ -12,9 +12,6 @@ cnBool stFindGraspedItems(const stState* state, cnList(stItem*)* items);
 cnBool stOnGround(const stItem* item);
 
 
-cnFloat stNorm(const cnFloat* values, cnCount count);
-
-
 /**
  * Place pointers to alive items into the entities vector.
  */
@@ -67,10 +64,10 @@ cnBool stChooseDropWhereLandOnOther(
         // World cleared. Say it's settled, but don't assign a label.
         settled = cnTrue;
       } else {
-        const stItem* item = stStateFindItem(state, graspedId);
+        stItem* item = stStateFindItem(state, graspedId);
         if (item) {
           // Still here. See if it's moving.
-          if (stNorm(item->velocity, 2) < 0.01) {
+          if (cnNorm(2, item->velocity) < 0.01) {
             // Stopped. See where it is.
             // TODO If the block bounced up, we might be catching it at the
             // TODO peak. Maybe we should check for that (by accel or
@@ -232,17 +229,6 @@ cnBool stFindGraspedItems(const stState* state, cnList(stItem*)* items) {
     }
   } cnEnd;
   return cnTrue;
-}
-
-
-cnFloat stNorm(const cnFloat* values, cnCount count) {
-  cnCount v;
-  cnFloat total = 0;
-  for (v = 0; v < count; v++) {
-    cnFloat value = values[v];
-    total += value * value;
-  }
-  return sqrt(total);
 }
 
 
