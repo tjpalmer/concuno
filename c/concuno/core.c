@@ -209,6 +209,13 @@ cnBool cnIsNaN(cnFloat x) {
 }
 
 
+cnListAny* cnListCreate(cnCount itemSize) {
+  cnListAny* list = malloc(sizeof(cnListAny));
+  if (list) cnListInit(list, itemSize);
+  return list;
+}
+
+
 void cnListClear(cnListAny* list) {
   list->count = 0;
 }

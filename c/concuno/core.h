@@ -238,6 +238,13 @@ void cnListClear(cnListAny* list);
 
 
 /**
+ * Allocates and inits a list for items of the given size. Returns null on
+ * error.
+ */
+cnListAny* cnListCreate(cnCount itemSize);
+
+
+/**
  * Disposes of and frees the list.
  */
 void cnListDestroy(cnListAny* list);

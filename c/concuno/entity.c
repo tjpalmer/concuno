@@ -65,6 +65,32 @@ void cnBagListDispose(
 }
 
 
+cnBool cnBagPushParticipant(cnBag* bag, cnIndex depth, cnEntity participant) {
+  cnList(cnEntity)* participantOptions;
+  cnBool result = cnFalse;
+
+  // Grow more lists if needed.
+  while (depth >= bag->participantOptions.count) {
+    if (!(participantOptions = cnListExpand(&bag->participantOptions))) {
+      cnFailTo(DONE, "Failed to grow participant options.");
+    }
+    cnListInit(participantOptions, sizeof(cnEntity));
+  }
+
+  // Expand the one for the right depth.
+  participantOptions = cnListGet(&bag->participantOptions, depth);
+  if (!cnListPush(participantOptions, participant)) {
+    cnFailTo(DONE, "Failed to push participant.");
+  }
+
+  // Winned.
+  result = cnTrue;
+
+  DONE:
+  return result;
+}
+
+
 void cnEntityFunctionCreateDifference_get(
   cnEntityFunction* function, cnEntity* ins, void* outs
 ) {

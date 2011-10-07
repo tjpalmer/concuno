@@ -287,6 +287,13 @@ void cnBagListDispose(
 );
 
 
+/**
+ * Pushes on the given participant to the options for the given depth (or
+ * parameter index, so to speak).
+ */
+cnBool cnBagPushParticipant(cnBag* bag, cnIndex depth, cnEntity participant);
+
+
 cnEntityFunction* cnEntityFunctionCreateDifference(cnEntityFunction* base);
 
 
