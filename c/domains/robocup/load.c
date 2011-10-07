@@ -21,6 +21,11 @@ typedef enum {
   cnrParseModeCommandKid,
 
   /**
+   * A text log command not related to a player.
+   */
+  cnrParseModeCommandNonPlayer,
+
+  /**
    * A show line is being parsed.
    */
   cnrParseModeShow,
@@ -54,6 +59,11 @@ typedef enum {
    * Top level of a command.
    */
   cnrParseModeTopCommand,
+
+  /**
+   * Top level of a non-player command.
+   */
+  cnrParseModeTopCommandNonPlayer,
 
   /**
    * Top level of a show.
@@ -488,6 +498,9 @@ cnBool cnrParserTriggerContentsBegin(cnrParser parser) {
   case cnrParseModeTopCommand:
     parser->mode = cnrParseModeCommand;
     break;
+  case cnrParseModeTopCommandNonPlayer:
+    parser->mode = cnrParseModeCommandNonPlayer;
+    break;
   case cnrParseModeTopShow:
     parser->mode = cnrParseModeShow;
     break;
@@ -514,6 +527,7 @@ cnBool cnrParserTriggerContentsEnd(cnrParser parser) {
   // Mode state "stack".
   switch (parser->mode) {
   case cnrParseModeCommand:
+  case cnrParseModeCommandNonPlayer:
   case cnrParseModeShow:
   case cnrParseModeTeam:
     parser->mode = cnrParseModeTop;
@@ -556,6 +570,12 @@ cnBool cnrParserTriggerId(cnrParser parser, char* id) {
   case cnrParseModeCommandKid:
     if (!parser->index && !strcmp(id, "kick")) {
       parser->mode = cnrParseModeCommandKick;
+    }
+    break;
+  case cnrParseModeCommandNonPlayer:
+    if (parser->index == 2 && !strcmp(id, "Keepaway")) {
+      // It's a new keepaway session.
+      parser->state->newSession = cnTrue;
     }
     break;
   case cnrParseModeShowItemId:
@@ -780,32 +800,6 @@ cnBool cnrRclParseLine(cnrParser parser, char* line) {
   if (!cnDelimitInt(&line, NULL, &time, ',')) cnFailTo(DONE, "No time.");
   if (!cnDelimitInt(&line, NULL, &subtime, '\t')) cnFailTo(DONE, "No subtime.");
 
-  // Ignore cases with parens.
-  if (*line == '(') goto WIN;
-
-  // Check for some other line type. We only care about Recv.
-  if (!(token = cnParseStr(line, &line))) cnFailTo(DONE, "No line type.");
-  if (strcmp(token, "Recv")) goto WIN;
-
-  // Team name and index.
-  if (!(token = cnDelimit(&line, '_'))) cnFailTo(DONE, "No team_player split.");
-  team = 0;
-  cnListEachBegin(&parser->game->teamNames, cnString, name) {
-    // Break if we have it, and inc if not.
-    if (!strcmp(token, cnStr(name))) break;
-    team++;
-  } cnEnd;
-  if (team >= parser->game->teamNames.count) {
-    cnFailTo(DONE, "Unrecognized team.");
-  }
-
-  // Player index.
-  if (!cnDelimitInt(&line, &token, &playerIndex, ':')) {
-    // Ignore coach, and fail otherwise.
-    if (!strcmp(token, "Coach")) goto WIN;
-    cnFailTo(DONE, "No player.");
-  }
-
   // Find out which state we're in. Major time.
   // TODO Unify time/subtime in some fashion? Array instead of separate vars?
   statesEnd = cnListEnd(&parser->game->states);
@@ -833,6 +827,40 @@ cnBool cnrRclParseLine(cnrParser parser, char* line) {
     parser->state->time != time ||
     parser->state->subtime != subtime
   ) goto WIN;
+
+  // Check for non-player lines.
+  if (*line == '(') {
+    // Skip the paren for content parsing.
+    line++;
+    parser->mode = cnrParseModeTopCommandNonPlayer;
+    if (!cnrParseContents(parser, &line)) {
+      cnFailTo(DONE, "Failed parsing non-player line.");
+    }
+    goto WIN;
+  }
+
+  // Check for some other line type. We only care about Recv.
+  if (!(token = cnParseStr(line, &line))) cnFailTo(DONE, "No line type.");
+  if (strcmp(token, "Recv")) goto WIN;
+
+  // Team name and index.
+  if (!(token = cnDelimit(&line, '_'))) cnFailTo(DONE, "No team_player split.");
+  team = 0;
+  cnListEachBegin(&parser->game->teamNames, cnString, name) {
+    // Break if we have it, and inc if not.
+    if (!strcmp(token, cnStr(name))) break;
+    team++;
+  } cnEnd;
+  if (team >= parser->game->teamNames.count) {
+    cnFailTo(DONE, "Unrecognized team.");
+  }
+
+  // Player index.
+  if (!cnDelimitInt(&line, &token, &playerIndex, ':')) {
+    // Ignore coach, and fail otherwise.
+    if (!strcmp(token, "Coach")) goto WIN;
+    cnFailTo(DONE, "No player.");
+  }
 
   // Find the player in the state.
   parser->item = NULL;

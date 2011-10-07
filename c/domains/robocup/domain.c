@@ -50,6 +50,7 @@ void cnrStateDispose(cnrState state) {
 
 void cnrStateInit(cnrState state) {
   cnrItemInit(&state->ball.item, cnrTypeBall);
+  state->newSession = cnFalse;
   cnListInit(&state->players, sizeof(struct cnrPlayer));
   // Seems first times are 0 1, so 0 0 should be an okay bogus.
   state->subtime = 0;

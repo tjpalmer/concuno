@@ -95,6 +95,14 @@ typedef struct cnrState {
 
   struct cnrBall ball;
 
+  /**
+   * This state is the beginning of a new session. In keepaway, that means the
+   * previous state signaled loss of possession.
+   *
+   * TODO For soccer, could this represent resumed play after certain events?
+   */
+  cnBool newSession;
+
   cnList(struct cnrPlayer) players;
 
   /**

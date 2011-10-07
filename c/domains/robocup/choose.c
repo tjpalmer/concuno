@@ -19,6 +19,9 @@ cnBool cnrChooseHoldsAndPasses(
   cnListEachBegin(&game->states, struct cnrState, state) {
     // Look through players in each state to find kicks.
     cnrPlayer kicker = NULL;
+    if (state->newSession) {
+      printf("New session at %ld.\n", state->time);
+    }
     cnListEachBegin(&state->players, struct cnrPlayer, player) {
       if (player->team == cnrTeamKeepers && !cnIsNaN(player->kickPower)) {
         if (kicker) {
