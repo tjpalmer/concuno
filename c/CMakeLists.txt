@@ -3,4 +3,5 @@ subdirs(
   domains
   run
   test
+  yajl
 )

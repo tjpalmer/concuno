@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <yajl/api/yajl_gen.h>
 
 #include "choose.h"
 #include "load.h"
@@ -99,20 +100,42 @@ cnBool cnrExtractInfo(cnrGame game) {
 
 
 cnBool cnrSaveBags(char* name, cnList(cnBag)* bags) {
+  const unsigned char* buffer;
+  size_t bufferSize;
   FILE* file = NULL;
+  yajl_gen gen = NULL;
   cnBool result = cnFalse;
 
   printf("Writing %s\n", name);
+  if (!(gen = yajl_gen_alloc(NULL))) cnFailTo(DONE, "No json formatter.");
   if (!(file = fopen(name, "w"))) cnFailTo(DONE, "Failed to open: %s", name);
 
+  if (!yajl_gen_config(gen, yajl_gen_beautify, 0)) {
+    cnFailTo(DONE, "No json beautify.");
+  }
+  if (yajl_gen_array_open(gen)) {
+    cnFailTo(DONE, "No array open.");
+  }
   cnListEachBegin(bags, cnBag, bag) {
     // TODO Export bag.
   } cnEnd;
+  if (yajl_gen_array_close(gen)) {
+    cnFailTo(DONE, "No array close.");
+  }
+
+  // Output.
+  if (yajl_gen_get_buf(gen, &buffer, &bufferSize)) {
+    cnFailTo(DONE, "No buffer.");
+  }
+  if (fwrite(buffer, sizeof(char), bufferSize, file) < bufferSize) {
+    cnFailTo(DONE, "Failed write.");
+  }
 
   // Winned.
   result = cnTrue;
 
   DONE:
   if (file) fclose(file);
+  if (gen) yajl_gen_free(gen);
   return result;
 }

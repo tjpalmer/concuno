@@ -10,4 +10,5 @@ target_link_libraries(
   rcss-test
   concuno-static
   ${math_LIBRARY}
+  yajl-static
 )
