@@ -110,16 +110,45 @@ cnBool cnrSaveBags(char* name, cnList(cnBag)* bags) {
   if (!(gen = yajl_gen_alloc(NULL))) cnFailTo(DONE, "No json formatter.");
   if (!(file = fopen(name, "w"))) cnFailTo(DONE, "Failed to open: %s", name);
 
-  if (!yajl_gen_config(gen, yajl_gen_beautify, 0)) {
+  if (!(
+    yajl_gen_config(gen, yajl_gen_beautify, cnTrue) &&
+    yajl_gen_config(gen, yajl_gen_indent_string, "  ")
+  )) {
     cnFailTo(DONE, "No json beautify.");
   }
-  if (yajl_gen_array_open(gen)) {
+  if (yajl_gen_array_open(gen) || yajl_gen_array_open(gen)) {
     cnFailTo(DONE, "No array open.");
   }
   cnListEachBegin(bags, cnBag, bag) {
-    // TODO Export bag.
+    if (yajl_gen_map_open(gen)) {
+      cnFailTo(DONE, "No bag open.");
+    }
+    if (
+      yajl_gen_string(gen, (const unsigned char*)"items", strlen("items"))
+    ) {
+      cnFailTo(DONE, "No items key.");
+    }
+    if (yajl_gen_array_open(gen)) {
+      cnFailTo(DONE, "No array open.");
+    }
+    // TODO Ball and players.
+    if (yajl_gen_array_close(gen)) {
+      cnFailTo(DONE, "No array close.");
+    }
+    // TODO Bag label. More?
+    if (yajl_gen_map_close(gen)) {
+      cnFailTo(DONE, "No bag open.");
+    }
   } cnEnd;
-  if (yajl_gen_array_close(gen)) {
+  if (yajl_gen_array_close(gen) || yajl_gen_array_open(gen)) {
+    cnFailTo(DONE, "No array close.");
+  }
+  if (
+    yajl_gen_string(gen, (const unsigned char*)"location", strlen("location"))
+  ) {
+    cnFailTo(DONE, "No array close.");
+  }
+  if (yajl_gen_array_close(gen) || yajl_gen_array_close(gen)) {
     cnFailTo(DONE, "No array close.");
   }
 
