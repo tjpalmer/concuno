@@ -116,20 +116,27 @@ cnBool cnrExtractHoldOrPass(
       }
     } cnEnd;
     if (receiver) {
-      bag = cnListExpand(passBags);
-      if (!bag) cnFailTo(DONE, "No pass bag pushed.");
+      if (!(bag = cnListExpand(passBags))) {
+        cnFailTo(DONE, "No pass bag pushed.");
+      }
       // With provided entities, bag init doesn't fail.
       cnBagInit(bag, entities);
-      printf("Pass: time %ld, keeper %ld\n", state->time, receiver->index);
+      printf(
+        "Pass at %ld by %ld to %ld.\n",
+        state->time, kicker->index, receiver->index
+      );
     }
   }
 
   // See if it's a hold.
   if (!bag) {
     // Must be, since we didn't already define a bag for passing.
-    // TODO Work this.
-    result = cnTrue;
-    goto DONE;
+    if (!(bag = cnListExpand(holdBags))) {
+      cnFailTo(DONE, "No pass bag pushed.");
+    }
+    // With provided entities, bag init doesn't fail.
+    cnBagInit(bag, entities);
+    printf("Hold at %ld by %ld.\n", state->time, kicker->index);
   }
 
   // We should have a bag by now. Pin the participants.
