@@ -30,9 +30,9 @@ cnBool cnrChooseHoldsAndPasses(
   cnListEachBegin(&game->states, struct cnrState, state) {
     // Look through players in each state to find kicks.
     cnrPlayer kicker = NULL;
-    if (state->newSession) {
-      printf("New session at %ld.\n", state->time);
-    }
+    //    if (state->newSession) {
+    //      printf("New session at %ld.\n", state->time);
+    //    }
     cnListEachBegin(&state->players, struct cnrPlayer, player) {
       if (player->team == cnrTeamKeepers && !cnIsNaN(player->kickPower)) {
         if (kicker) {
@@ -187,10 +187,10 @@ cnBool cnrExtractHoldOrPass(
       }
       // With provided entities, bag init doesn't fail.
       cnBagInit(bag, entities);
-      printf(
-        "Pass at %ld by %ld to %ld.%s\n",
-        state->time, kicker->index, receiver->index, label ? "" : " :("
-      );
+      //      printf(
+      //        "Pass at %ld by %ld to %ld.%s\n",
+      //        state->time, kicker->index, receiver->index, label ? "" : " :("
+      //      );
     }
   }
 
@@ -202,10 +202,10 @@ cnBool cnrExtractHoldOrPass(
     }
     // With provided entities, bag init doesn't fail.
     cnBagInit(bag, entities);
-    printf(
-      "Hold at %ld by %ld.%s\n",
-      state->time, kicker->index, label ? "" : " :("
-    );
+    //    printf(
+    //      "Hold at %ld by %ld.%s\n",
+    //      state->time, kicker->index, label ? "" : " :("
+    //    );
   }
 
   // We should have a bag by now. Pin the participants.

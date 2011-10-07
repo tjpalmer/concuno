@@ -9,6 +9,9 @@
 cnBool cnrExtractInfo(cnrGame game);
 
 
+cnBool cnrSaveBags(char* name, cnList(cnBag)* bags);
+
+
 int main(int argc, char** argv) {
   struct cnrGame game;
   char* name;
@@ -72,7 +75,15 @@ cnBool cnrExtractInfo(cnrGame game) {
     cnFailTo(DONE, "Choose failed.");
   }
 
-  // TODO Export stuff.
+  // Export stuff.
+  // TODO Allow specifying file names? Choose automatically by date?
+  // TODO Option for learning in concuno rather than saving?
+  if (!cnrSaveBags("keepaway-hold-bags.json", &holdBags)) {
+    cnFailTo(DONE, "Failed saving holds.")
+  }
+  if (!cnrSaveBags("keepaway-pass-bags.json", &passBags)) {
+    cnFailTo(DONE, "Failed saving passes.");
+  }
 
   // Winned.
   result = cnTrue;
@@ -83,5 +94,25 @@ cnBool cnrExtractInfo(cnrGame game) {
   cnBagListDispose(&holdBags, &entityLists);
   cnBagListDispose(&passBags, &entityLists);
   // Result.
+  return result;
+}
+
+
+cnBool cnrSaveBags(char* name, cnList(cnBag)* bags) {
+  FILE* file = NULL;
+  cnBool result = cnFalse;
+
+  printf("Writing %s\n", name);
+  if (!(file = fopen(name, "w"))) cnFailTo(DONE, "Failed to open: %s", name);
+
+  cnListEachBegin(bags, cnBag, bag) {
+    // TODO Export bag.
+  } cnEnd;
+
+  // Winned.
+  result = cnTrue;
+
+  DONE:
+  if (file) fclose(file);
   return result;
 }
