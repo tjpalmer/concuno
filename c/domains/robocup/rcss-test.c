@@ -10,6 +10,15 @@
 cnBool cnrExtractInfo(cnrGame game);
 
 
+cnBool cnrGenColumnVector(yajl_gen gen, cnCount count, cnFloat* x);
+
+
+cnBool cnrGenFloat(yajl_gen gen, cnFloat x);
+
+
+cnBool cnrGenStr(yajl_gen gen, char* str);
+
+
 cnBool cnrSaveBags(char* name, cnList(cnBag)* bags);
 
 
@@ -99,13 +108,43 @@ cnBool cnrExtractInfo(cnrGame game) {
 }
 
 
+cnBool cnrGenColumnVector(yajl_gen gen, cnCount count, cnFloat* x) {
+  cnFloat* end = x + count;
+  if (yajl_gen_array_open(gen)) cnErrTo(FAIL);
+  for (; x < end; x++) {
+    if (yajl_gen_array_open(gen)) cnErrTo(FAIL);
+    if (!cnrGenFloat(gen, *x)) cnErrTo(FAIL);
+    if (yajl_gen_array_close(gen)) cnErrTo(FAIL);
+  }
+  if (yajl_gen_array_close(gen)) cnErrTo(FAIL);
+
+  // Winned.
+  return cnTrue;
+
+  FAIL:
+  return cnFalse;
+}
+
+
+cnBool cnrGenFloat(yajl_gen gen, cnFloat x) {
+  // TODO Fancierness to get nicer results.
+  return yajl_gen_double(gen, x) ? cnFalse : cnTrue;
+}
+
+
+cnBool cnrGenStr(yajl_gen gen, char* str) {
+  return yajl_gen_string(gen, (unsigned char*)str, strlen(str)) ?
+    cnFalse : cnTrue;
+}
+
+
 cnBool cnrSaveBags(char* name, cnList(cnBag)* bags) {
   const unsigned char* buffer;
   size_t bufferSize;
   FILE* file = NULL;
   yajl_gen gen = NULL;
-  const unsigned char* itemsKey = (const unsigned char*)"items";
-  const unsigned char* locationKey = (const unsigned char*)"location";
+  char* itemsKey = "items";
+  char* locationKey = "location";
   cnBool result = cnFalse;
 
   printf("Writing %s\n", name);
@@ -119,42 +158,48 @@ cnBool cnrSaveBags(char* name, cnList(cnBag)* bags) {
   if (yajl_gen_array_open(gen) || yajl_gen_array_open(gen)) cnErrTo(DONE);
   cnListEachBegin(bags, cnBag, bag) {
     if (yajl_gen_map_open(gen)) cnErrTo(DONE);
-    if (
-      yajl_gen_string(gen, itemsKey, strlen((char*)itemsKey))
-    ) cnErrTo(DONE);
+    if (!cnrGenStr(gen, itemsKey)) cnErrTo(DONE);
     if (yajl_gen_array_open(gen)) cnErrTo(DONE);
     // Write each item (ball or player).
     cnListEachBegin(bag->entities, cnEntity, entity) {
+      cnIndex depth = 0;
       cnrItem item = *entity;
       if (yajl_gen_map_open(gen)) cnErrTo(DONE);
-      // Location as a 2D array column.
-      if (yajl_gen_string(gen, locationKey, strlen((char*)locationKey))) {
-        cnErrTo(DONE);
+      // Type as ball, left (team), or right (team).
+      if (!cnrGenStr(gen, "type")) cnErrTo(DONE);
+      if (item->type == cnrTypeBall) {
+        if (!cnrGenStr(gen, "ball")) cnErrTo(DONE);
+      } else {
+        cnrPlayer player = (cnrPlayer)item;
+        if (!cnrGenStr(gen, player->team ? "right" : "left")) cnErrTo(DONE);
       }
-      if (yajl_gen_array_open(gen)) cnErrTo(DONE);
-      if (yajl_gen_array_open(gen)) cnErrTo(DONE);
-      if (yajl_gen_double(gen, item->location[0])) cnErrTo(DONE);
-      if (yajl_gen_array_close(gen)) cnErrTo(DONE);
-      if (yajl_gen_array_open(gen)) cnErrTo(DONE);
-      if (yajl_gen_double(gen, item->location[1])) cnErrTo(DONE);
-      if (yajl_gen_array_close(gen)) cnErrTo(DONE);
-      if (yajl_gen_array_close(gen)) cnErrTo(DONE);
-      // Item type.
-      // TODO
+      // Location.
+      if (!cnrGenStr(gen, locationKey)) cnErrTo(DONE);
+      if (!cnrGenColumnVector(gen, 2, item->location)) cnErrTo(DONE);
       // Pinning.
-      // TODO
+      cnListEachBegin(&bag->participantOptions, cnList(cnEntity), options) {
+        if (options->count > 1) {
+          cnFailTo(
+            DONE, "%ld > 1 options at depth %ld.", options->count, depth
+          );
+        }
+        // Skip out if we found the player pinned.
+        if (item == *(cnrItem*)options->items) break;
+        depth++;
+      } cnEnd;
+      if (!cnrGenStr(gen, "__instantiable_depth__")) cnErrTo(DONE);
+      if (yajl_gen_integer(gen, depth)) cnErrTo(DONE);
       // End item.
       if (yajl_gen_map_close(gen)) cnErrTo(DONE);
     } cnEnd;
-    // TODO Ball and players.
     if (yajl_gen_array_close(gen)) cnErrTo(DONE);
-    // TODO Bag label. More?
+    // Bag label.
+    if (!cnrGenStr(gen, "__label__")) cnErrTo(DONE);
+    if (yajl_gen_bool(gen, bag->label)) cnErrTo(DONE);
     if (yajl_gen_map_close(gen)) cnErrTo(DONE);
   } cnEnd;
   if (yajl_gen_array_close(gen) || yajl_gen_array_open(gen)) cnErrTo(DONE);
-  if (yajl_gen_string(gen, locationKey, strlen((char*)locationKey))) {
-    cnErrTo(DONE);
-  }
+  if (!cnrGenStr(gen, locationKey)) cnErrTo(DONE);
   if (yajl_gen_array_close(gen) || yajl_gen_array_close(gen)) cnErrTo(DONE);
 
   // Output.

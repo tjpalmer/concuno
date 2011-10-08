@@ -79,7 +79,7 @@ cnBool cnBagPushParticipant(cnBag* bag, cnIndex depth, cnEntity participant) {
 
   // Expand the one for the right depth.
   participantOptions = cnListGet(&bag->participantOptions, depth);
-  if (!cnListPush(participantOptions, participant)) {
+  if (!cnListPush(participantOptions, &participant)) {
     cnFailTo(DONE, "Failed to push participant.");
   }
 
