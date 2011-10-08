@@ -122,8 +122,20 @@ typedef struct cnGridAny {
 #define cnGrid(Type) cnGridAny
 
 
+/**
+ * Use when not caring about messages.
+ *
+ * TODO Use __FILE__ but wrapped to show just the last file name, not full path.
+ */
+#define cnErrTo(label) { \
+  printf("Failed in %s at line %d.\n", __FUNCTION__, __LINE__); \
+  goto label; \
+}
+
+
 #define cnFailTo(label, message, ...) { \
-  printf(message "\n", ## __VA_ARGS__); \
+  printf( \
+    message " (in %s at line %d)\n", ## __VA_ARGS__, __FUNCTION__, __LINE__); \
   goto label; \
 }
 

@@ -104,6 +104,8 @@ cnBool cnrSaveBags(char* name, cnList(cnBag)* bags) {
   size_t bufferSize;
   FILE* file = NULL;
   yajl_gen gen = NULL;
+  const unsigned char* itemsKey = (const unsigned char*)"items";
+  const unsigned char* locationKey = (const unsigned char*)"location";
   cnBool result = cnFalse;
 
   printf("Writing %s\n", name);
@@ -113,51 +115,53 @@ cnBool cnrSaveBags(char* name, cnList(cnBag)* bags) {
   if (!(
     yajl_gen_config(gen, yajl_gen_beautify, cnTrue) &&
     yajl_gen_config(gen, yajl_gen_indent_string, "  ")
-  )) {
-    cnFailTo(DONE, "No json beautify.");
-  }
-  if (yajl_gen_array_open(gen) || yajl_gen_array_open(gen)) {
-    cnFailTo(DONE, "No array open.");
-  }
+  )) cnErrTo(DONE);
+  if (yajl_gen_array_open(gen) || yajl_gen_array_open(gen)) cnErrTo(DONE);
   cnListEachBegin(bags, cnBag, bag) {
-    if (yajl_gen_map_open(gen)) {
-      cnFailTo(DONE, "No bag open.");
-    }
+    if (yajl_gen_map_open(gen)) cnErrTo(DONE);
     if (
-      yajl_gen_string(gen, (const unsigned char*)"items", strlen("items"))
-    ) {
-      cnFailTo(DONE, "No items key.");
-    }
-    if (yajl_gen_array_open(gen)) {
-      cnFailTo(DONE, "No array open.");
-    }
+      yajl_gen_string(gen, itemsKey, strlen((char*)itemsKey))
+    ) cnErrTo(DONE);
+    if (yajl_gen_array_open(gen)) cnErrTo(DONE);
+    // Write each item (ball or player).
+    cnListEachBegin(bag->entities, cnEntity, entity) {
+      cnrItem item = *entity;
+      if (yajl_gen_map_open(gen)) cnErrTo(DONE);
+      // Location as a 2D array column.
+      if (yajl_gen_string(gen, locationKey, strlen((char*)locationKey))) {
+        cnErrTo(DONE);
+      }
+      if (yajl_gen_array_open(gen)) cnErrTo(DONE);
+      if (yajl_gen_array_open(gen)) cnErrTo(DONE);
+      if (yajl_gen_double(gen, item->location[0])) cnErrTo(DONE);
+      if (yajl_gen_array_close(gen)) cnErrTo(DONE);
+      if (yajl_gen_array_open(gen)) cnErrTo(DONE);
+      if (yajl_gen_double(gen, item->location[1])) cnErrTo(DONE);
+      if (yajl_gen_array_close(gen)) cnErrTo(DONE);
+      if (yajl_gen_array_close(gen)) cnErrTo(DONE);
+      // Item type.
+      // TODO
+      // Pinning.
+      // TODO
+      // End item.
+      if (yajl_gen_map_close(gen)) cnErrTo(DONE);
+    } cnEnd;
     // TODO Ball and players.
-    if (yajl_gen_array_close(gen)) {
-      cnFailTo(DONE, "No array close.");
-    }
+    if (yajl_gen_array_close(gen)) cnErrTo(DONE);
     // TODO Bag label. More?
-    if (yajl_gen_map_close(gen)) {
-      cnFailTo(DONE, "No bag open.");
-    }
+    if (yajl_gen_map_close(gen)) cnErrTo(DONE);
   } cnEnd;
-  if (yajl_gen_array_close(gen) || yajl_gen_array_open(gen)) {
-    cnFailTo(DONE, "No array close.");
+  if (yajl_gen_array_close(gen) || yajl_gen_array_open(gen)) cnErrTo(DONE);
+  if (yajl_gen_string(gen, locationKey, strlen((char*)locationKey))) {
+    cnErrTo(DONE);
   }
-  if (
-    yajl_gen_string(gen, (const unsigned char*)"location", strlen("location"))
-  ) {
-    cnFailTo(DONE, "No array close.");
-  }
-  if (yajl_gen_array_close(gen) || yajl_gen_array_close(gen)) {
-    cnFailTo(DONE, "No array close.");
-  }
+  if (yajl_gen_array_close(gen) || yajl_gen_array_close(gen)) cnErrTo(DONE);
 
   // Output.
-  if (yajl_gen_get_buf(gen, &buffer, &bufferSize)) {
-    cnFailTo(DONE, "No buffer.");
-  }
+  // TODO Alternatively set the gen print function to print directly!
+  if (yajl_gen_get_buf(gen, &buffer, &bufferSize)) cnErrTo(DONE);
   if (fwrite(buffer, sizeof(char), bufferSize, file) < bufferSize) {
-    cnFailTo(DONE, "Failed write.");
+    cnErrTo(DONE);
   }
 
   // Winned.
