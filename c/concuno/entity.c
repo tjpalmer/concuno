@@ -554,9 +554,7 @@ void cnPropertyDispose(cnProperty* property) {
 }
 
 
-void cnPropertyFieldGet(
-  const cnProperty* property, cnEntity entity, void* storage
-) {
+void cnPropertyFieldGet(cnProperty* property, cnEntity entity, void* storage) {
   memcpy(
     storage,
     ((char*)entity) + property->offset,
@@ -565,9 +563,7 @@ void cnPropertyFieldGet(
 }
 
 
-void cnPropertyFieldPut(
-  const cnProperty* property, cnEntity entity, void* value
-) {
+void cnPropertyFieldPut(cnProperty* property, cnEntity entity, void* value) {
   memcpy(
     ((char*)entity) + property->offset,
     value,

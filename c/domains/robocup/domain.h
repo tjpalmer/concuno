@@ -7,6 +7,11 @@
 
 typedef enum {
 
+  /**
+   * The matter in question works for any type of cnrItem.
+   */
+  cnrTypeAny,
+
   cnrTypeBall,
 
   cnrTypePlayer,
@@ -137,6 +142,15 @@ void cnrItemInit(cnrItem item, cnrType type);
 
 
 void cnrPlayerInit(cnrPlayer player);
+
+
+/**
+ * Inits the schema from scratch to have everything needed for current rcss
+ * needs.
+ *
+ * Dispose with cnSchemaDispose (since nothing special needed here).
+ */
+cnBool cnrSchemaInit(cnSchema* schema);
 
 
 /**

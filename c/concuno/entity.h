@@ -224,9 +224,9 @@ struct cnProperty {
    */
   void (*dispose)(cnProperty* property);
 
-  void (*get)(const cnProperty* property, cnEntity entity, void* storage);
+  void (*get)(cnProperty* property, cnEntity entity, void* storage);
 
-  void (*put)(const cnProperty* property, cnEntity entity, void* value);
+  void (*put)(cnProperty* property, cnEntity entity, void* value);
 
 };
 
