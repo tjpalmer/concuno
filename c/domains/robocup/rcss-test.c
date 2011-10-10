@@ -7,9 +7,6 @@
 #include "load.h"
 
 
-cnBool cnrExtractInfo(cnrGame game);
-
-
 cnBool cnrGenColumnVector(yajl_gen gen, cnCount count, cnFloat* x);
 
 
@@ -17,6 +14,24 @@ cnBool cnrGenFloat(yajl_gen gen, cnFloat x);
 
 
 cnBool cnrGenStr(yajl_gen gen, char* str);
+
+
+/**
+ * TODO This is duped from run's cnvPickFunctions. Perhaps centralize.
+ */
+cnBool cnrPickFunctions(cnList(cnEntityFunction*)* functions, cnType* type);
+
+
+cnBool cnrProcess(
+  cnrGame game,
+  cnBool (*process)(cnList(cnBag)* holdBags, cnList(cnBag)* passBags)
+);
+
+
+cnBool cnrProcessExport(cnList(cnBag)* holdBags, cnList(cnBag)* passBags);
+
+
+cnBool cnrProcessLearn(cnList(cnBag)* holdBags, cnList(cnBag)* passBags);
 
 
 cnBool cnrSaveBags(char* name, cnList(cnBag)* bags);
@@ -58,52 +73,14 @@ int main(int argc, char** argv) {
   // Report.
   printf("Loaded %ld states.\n", game.states.count);
 
-  // TODO Extract actions of hold or kick to player.
-  if (!cnrExtractInfo(&game)) cnFailTo(DONE, "Failed extract.");
+  // Extract actions of hold or kick to player, then process them.
+  if (!cnrProcess(&game, cnrProcessExport)) cnFailTo(DONE, "Failed extract.");
 
   // Winned.
   result = EXIT_SUCCESS;
 
   DONE:
   cnrGameDispose(&game);
-  return result;
-}
-
-
-cnBool cnrExtractInfo(cnrGame game) {
-  cnList(cnBag) holdBags;
-  cnList(cnList(cnEntity)*) entityLists;
-  cnList(cnBag) passBags;
-  cnBool result = cnFalse;
-
-  // Init for safety.
-  cnListInit(&holdBags, sizeof(cnBag));
-  cnListInit(&passBags, sizeof(cnBag));
-  cnListInit(&entityLists, sizeof(cnList(cnEntity)*));
-
-  if (!cnrChooseHoldsAndPasses(game, &holdBags, &passBags, &entityLists)) {
-    cnFailTo(DONE, "Choose failed.");
-  }
-
-  // Export stuff.
-  // TODO Allow specifying file names? Choose automatically by date?
-  // TODO Option for learning in concuno rather than saving?
-  if (!cnrSaveBags("keepaway-hold-bags.json", &holdBags)) {
-    cnFailTo(DONE, "Failed saving holds.")
-  }
-  if (!cnrSaveBags("keepaway-pass-bags.json", &passBags)) {
-    cnFailTo(DONE, "Failed saving passes.");
-  }
-
-  // Winned.
-  result = cnTrue;
-
-  DONE:
-  // Bags and entities. The entity lists get disposed with the first call,
-  // leaving bogus pointers inside the passBags, but they'll be unused.
-  cnBagListDispose(&holdBags, &entityLists);
-  cnBagListDispose(&passBags, &entityLists);
-  // Result.
   return result;
 }
 
@@ -135,6 +112,119 @@ cnBool cnrGenFloat(yajl_gen gen, cnFloat x) {
 cnBool cnrGenStr(yajl_gen gen, char* str) {
   return yajl_gen_string(gen, (unsigned char*)str, strlen(str)) ?
     cnFalse : cnTrue;
+}
+
+
+cnBool cnrPickFunctions(cnList(cnEntityFunction*)* functions, cnType* type) {
+  // For now, just put in valid and common functions for each property.
+  if (!cnPushValidFunction(functions, type->schema, 1)) {
+    cnFailTo(FAIL, "No valid 1.");
+  }
+  if (!cnPushValidFunction(functions, type->schema, 2)) {
+    cnFailTo(FAIL, "No valid 2.");
+  }
+  cnListEachBegin(&type->properties, cnProperty, property) {
+    cnEntityFunction* function;
+    if (property == type->properties.items) {
+      // Skip the first (the bag id).
+      continue;
+    }
+    if (!(function = cnEntityFunctionCreateProperty(property))) {
+      cnFailTo(FAIL, "No function.");
+    }
+    if (!cnListPush(functions, &function)) {
+      cnEntityFunctionDrop(function);
+      cnFailTo(FAIL, "Function not pushed.");
+    }
+    // TODO Distance (and difference?) angle, too?
+    if (cnTrue || !strcmp("Location", cnStr(&function->name))) {
+      cnEntityFunction* distance;
+      if (cnTrue) {
+        // Actually, skip this N^2 thing for now. For many items per bag and few
+        // bags, this is both extremely slow and allows overfit, since there are
+        // so many options to consider.
+        //continue;
+      }
+
+      // Distance.
+      if (!(distance = cnEntityFunctionCreateDistance(function))) {
+        cnFailTo(FAIL, "No distance %s.", cnStr(&function->name));
+      }
+      if (!cnListPush(functions, &distance)) {
+        cnEntityFunctionDrop(distance);
+        cnFailTo(FAIL, "Function %s not pushed.", cnStr(&distance->name));
+      }
+
+      // Difference.
+      if (!(distance = cnEntityFunctionCreateDifference(function))) {
+        cnFailTo(FAIL, "No distance %s.", cnStr(&function->name));
+      }
+      if (!cnListPush(functions, &distance)) {
+        cnEntityFunctionDrop(distance);
+        cnFailTo(FAIL, "Function %s not pushed.", cnStr(&distance->name));
+      }
+    }
+  } cnEnd;
+
+  // We winned!
+  return cnTrue;
+
+  FAIL:
+  // TODO Remove all added functions?
+  return cnFalse;
+}
+
+
+cnBool cnrProcess(
+  cnrGame game,
+  cnBool (*process)(cnList(cnBag)* holdBags, cnList(cnBag)* passBags)
+) {
+  cnList(cnBag) holdBags;
+  cnList(cnList(cnEntity)*) entityLists;
+  cnList(cnBag) passBags;
+  cnBool result = cnFalse;
+
+  // Init for safety.
+  cnListInit(&holdBags, sizeof(cnBag));
+  cnListInit(&passBags, sizeof(cnBag));
+  cnListInit(&entityLists, sizeof(cnList(cnEntity)*));
+
+  if (!cnrChooseHoldsAndPasses(game, &holdBags, &passBags, &entityLists)) {
+    cnFailTo(DONE, "Choose failed.");
+  }
+
+  // Process the bags.
+  if (!process(&holdBags, &passBags)) cnErrTo(DONE);
+
+  // Winned.
+  result = cnTrue;
+
+  DONE:
+  // Bags and entities. The entity lists get disposed with the first call,
+  // leaving bogus pointers inside the passBags, but they'll be unused.
+  cnBagListDispose(&holdBags, &entityLists);
+  cnBagListDispose(&passBags, &entityLists);
+  // Result.
+  return result;
+}
+
+
+cnBool cnrProcessExport(cnList(cnBag)* holdBags, cnList(cnBag)* passBags) {
+  // Export stuff.
+  // TODO Allow specifying file names? Choose automatically by date?
+  // TODO Option for learning in concuno rather than saving?
+  if (!cnrSaveBags("keepaway-hold-bags.json", holdBags)) cnErrTo(FAIL);
+  if (!cnrSaveBags("keepaway-pass-bags.json", passBags)) cnErrTo(FAIL);
+  return cnTrue;
+
+  FAIL:
+  return cnFalse;
+}
+
+
+cnBool cnrProcessLearn(cnList(cnBag)* holdBags, cnList(cnBag)* passBags) {
+  // TODO
+  return cnTrue;
 }
 
 
