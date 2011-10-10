@@ -88,7 +88,7 @@ void cnrPropertyFieldGet(cnProperty* property, cnEntity entity, void* storage) {
     }
   } else if (info->fieldType == cnrFieldTypeEnum) {
     // Out must be float.
-    unsigned int* in = (unsigned int*)(((char*)entity) + property->offset);
+    unsigned int* in = (unsigned int*)(((char*)entity) + info->offset);
     cnFloat* out = storage;
     cnFloat* outEnd = out + property->count;
     for (; out < outEnd; in++, out++) {
@@ -96,7 +96,7 @@ void cnrPropertyFieldGet(cnProperty* property, cnEntity entity, void* storage) {
     }
   } else if (info->fieldType == cnrFieldTypeInt) {
     // Out must be float.
-    cnInt* in = (cnInt*)(((char*)entity) + property->offset);
+    cnInt* in = (cnInt*)(((char*)entity) + info->offset);
     cnFloat* out = storage;
     cnFloat* outEnd = out + property->count;
     for (; out < outEnd; in++, out++) {
@@ -106,7 +106,7 @@ void cnrPropertyFieldGet(cnProperty* property, cnEntity entity, void* storage) {
     // Just copy.
     memcpy(
       storage,
-      ((char*)entity) + property->offset,
+      ((char*)entity) + info->offset,
       property->count * property->type->size
     );
   }
@@ -122,7 +122,7 @@ void cnrPropertyFieldPut(cnProperty* property, cnEntity entity, void* value) {
   } else if (info->fieldType == cnrFieldTypeEnum) {
     // In must be float.
     cnFloat* in = value;
-    unsigned int* out = (unsigned int*)(((char*)entity) + property->offset);
+    unsigned int* out = (unsigned int*)(((char*)entity) + info->offset);
     unsigned int* outEnd = out + property->count;
     for (; out < outEnd; in++, out++) {
       *out = (unsigned int)*in;
@@ -130,7 +130,7 @@ void cnrPropertyFieldPut(cnProperty* property, cnEntity entity, void* value) {
   } else if (info->fieldType == cnrFieldTypeInt) {
     // In must be float.
     cnFloat* in = value;
-    cnInt* out = (cnInt*)(((char*)entity) + property->offset);
+    cnInt* out = (cnInt*)(((char*)entity) + info->offset);
     cnInt* outEnd = out + property->count;
     for (; out < outEnd; in++, out++) {
       *out = (cnInt)*in;
@@ -138,7 +138,7 @@ void cnrPropertyFieldPut(cnProperty* property, cnEntity entity, void* value) {
   } else {
     // Just copy.
     memcpy(
-      ((char*)entity) + property->offset,
+      ((char*)entity) + info->offset,
       value,
       property->count * property->type->size
     );
@@ -172,9 +172,9 @@ cnBool cnrPropertyInitTypedField(
   // Easy things.
   property->containerType = containerType;
   property->count = count;
+  property->data = info;
   property->dispose = cnrPropertyFieldInfoDispose;
   property->get = cnrPropertyFieldGet;
-  property->offset = offset;
   property->put = cnrPropertyFieldPut;
   property->topology = cnTopologyEuclidean;
   property->type = type;
