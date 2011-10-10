@@ -74,7 +74,7 @@ int main(int argc, char** argv) {
   printf("Loaded %ld states.\n", game.states.count);
 
   // Extract actions of hold or kick to player, then process them.
-  if (!cnrProcess(&game, cnrProcessExport)) cnFailTo(DONE, "Failed extract.");
+  if (!cnrProcess(&game, cnrProcessLearn)) cnFailTo(DONE, "Failed extract.");
 
   // Winned.
   result = EXIT_SUCCESS;
@@ -223,8 +223,42 @@ cnBool cnrProcessExport(cnList(cnBag)* holdBags, cnList(cnBag)* passBags) {
 
 
 cnBool cnrProcessLearn(cnList(cnBag)* holdBags, cnList(cnBag)* passBags) {
-  // TODO
-  return cnTrue;
+  cnList(cnEntityFunction*) functions;
+  cnBool initOkay = cnTrue;
+  cnRootNode* learnedTree = NULL;
+  cnLearner learner;
+  cnBool result = cnFalse;
+  cnSchema schema;
+
+  // Inits.
+  cnListInit(&functions, sizeof(cnEntityFunction*));
+  initOkay &= cnrSchemaInit(&schema);
+  initOkay &= cnLearnerInit(&learner, NULL);
+  if (!initOkay) cnErrTo(DONE);
+  cnrPickFunctions(&functions, *(cnType**)cnListGet(&schema.types, 1));
+
+  // Learn something.
+  // TODO How to choose pass vs. hold?
+  cnListShuffle(passBags);
+  learner.bags = passBags;
+  learner.entityFunctions = &functions;
+  learnedTree = cnLearnTree(&learner);
+  if (!learnedTree) cnFailTo(DONE, "No learned tree.");
+
+  // TODO Print learned tree.
+
+  // Winned.
+  result = cnTrue;
+
+  DONE:
+  cnNodeDrop(&learnedTree->node);
+  cnLearnerDispose(&learner);
+  cnSchemaDispose(&schema);
+  cnListEachBegin(&functions, cnEntityFunction*, function) {
+    cnEntityFunctionDrop(*function);
+  } cnEnd;
+  cnListDispose(&functions);
+  return result;
 }
 
 

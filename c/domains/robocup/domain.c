@@ -163,7 +163,7 @@ cnBool cnrPropertyInitTypedField(
   property->dispose = NULL;
   // Failing things.
   if (!cnStringPushStr(&property->name, name)) cnErrTo(FAIL);
-  if (!(info = malloc(sizeof(cnrFieldInfo)))) {
+  if (!(info = malloc(sizeof(struct cnrFieldInfo)))) {
     cnFailTo(FAIL, "Failed to allocate field info.");
   }
   info->fieldType = fieldType;
