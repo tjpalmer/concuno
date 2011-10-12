@@ -125,10 +125,6 @@ cnBool cnrPickFunctions(cnList(cnEntityFunction*)* functions, cnType* type) {
   }
   cnListEachBegin(&type->properties, cnProperty, property) {
     cnEntityFunction* function;
-    if (property == type->properties.items) {
-      // Skip the first (the bag id).
-      continue;
-    }
     if (!(function = cnEntityFunctionCreateProperty(property))) {
       cnFailTo(FAIL, "No function.");
     }
@@ -245,7 +241,10 @@ cnBool cnrProcessLearn(cnList(cnBag)* holdBags, cnList(cnBag)* passBags) {
   learnedTree = cnLearnTree(&learner);
   if (!learnedTree) cnFailTo(DONE, "No learned tree.");
 
-  // TODO Print learned tree.
+  // Display the learned tree.
+  printf("\n");
+  cnTreeWrite(learnedTree, stdout);
+  printf("\n");
 
   // Winned.
   result = cnTrue;
