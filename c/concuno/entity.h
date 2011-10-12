@@ -307,6 +307,20 @@ cnEntityFunction* cnEntityFunctionCreateProperty(cnProperty* property);
 
 
 /**
+ * A ternary function needing one representing an origin, another representing
+ * one unit down the x (first) axis, and another who's coordinate in the new
+ * frame is the output value.
+ *
+ * Beyond two dimensions, the solution is underconstrained. For the moment, no
+ * promises are made as to what rotation is applied.
+ *
+ * TODO Allow greater arity for extra constraints in higher dimensions? High
+ * TODO arity is trouble.
+ */
+cnEntityFunction* cnEntityFunctionCreateReframe(cnEntityFunction* base);
+
+
+/**
  * Creates an entity function that determines merely whether all the arguments
  * actually have bindings.
  *

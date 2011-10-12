@@ -119,7 +119,6 @@ void cnEntityFunctionCreateDifference_get(
   cnStackFree(x);
 }
 
-
 cnEntityFunction* cnEntityFunctionCreateDifference(cnEntityFunction* base) {
   cnEntityFunction* function = malloc(sizeof(cnEntityFunction));
   if (!function) return NULL;
@@ -133,24 +132,24 @@ cnEntityFunction* cnEntityFunctionCreateDifference(cnEntityFunction* base) {
   //printf("outType: %s\n", cnStr(&base->outType->name));
   if (base->outType != base->outType->schema->floatType) {
     // TODO Supply a difference function for generic handling?
-    printf("Only works for floats so far.\n");
     // If this dispose follows the nulled dispose pointer, we're okay.
     // Oh, and init'd name is also important.
-    cnEntityFunctionDrop(function);
-    return NULL;
+    cnFailTo(FAIL, "Only works for floats so far.");
   }
   function->outType = base->outType;
   function->get = cnEntityFunctionCreateDifference_get;
   // Deal with this last, to make sure everything else is sane first.
   if (!cnStringPushStr(&function->name, "Difference")) {
-    cnEntityFunctionDrop(function);
-    return NULL;
+    cnErrTo(FAIL);
   }
   if (!cnStringPushStr(&function->name, cnStr((cnString*)&base->name))) {
-    cnEntityFunctionDrop(function);
-    return NULL;
+    cnErrTo(FAIL);
   }
   return function;
+
+  FAIL:
+  cnEntityFunctionDrop(function);
+  return NULL;
 }
 
 
@@ -195,24 +194,24 @@ cnEntityFunction* cnEntityFunctionCreateDistance(cnEntityFunction* base) {
   //printf("outType: %s\n", cnStr(&base->outType->name));
   if (base->outType != base->outType->schema->floatType) {
     // TODO Supply a difference function for generic handling?
-    printf("Only works for floats so far.\n");
     // If this dispose follows the nulled dispose pointer, we're okay.
     // Oh, and init'd name is also important.
-    cnEntityFunctionDrop(function);
-    return NULL;
+    cnFailTo(FAIL, "Only works for floats so far.");
   }
   function->outType = base->outType;
   function->get = cnEntityFunctionCreateDistance_get; // Also different!
   // Deal with this last, to make sure everything else is sane first.
   if (!cnStringPushStr(&function->name, "Distance")) { // Also different!
-    cnEntityFunctionDrop(function);
-    return NULL;
+    cnErrTo(FAIL);
   }
   if (!cnStringPushStr(&function->name, cnStr((cnString*)&base->name))) {
-    cnEntityFunctionDrop(function);
-    return NULL;
+    cnErrTo(FAIL);
   }
   return function;
+
+  FAIL:
+  cnEntityFunctionDrop(function);
+  return NULL;
 }
 
 
@@ -252,6 +251,83 @@ cnEntityFunction* cnEntityFunctionCreateProperty(cnProperty* property) {
     return NULL;
   }
   return function;
+}
+
+
+void cnEntityFunctionCreateReframe_get(
+  cnEntityFunction* function, cnEntity* ins, void* outs
+) {
+  // Some work here based on the stable computation technique for Givens
+  // rotations at Wikipedia: http://en.wikipedia.org/wiki/Givens_rotation
+  cnIndex i;
+  cnEntityFunction* base = function->data;
+  // Vectors are assumed small, so use stack memory.
+  // Our assumption that base->outCount == function->outCount allows the use
+  // of base here.
+  cnFloat* origin = cnStackAlloc(2 * base->outCount * sizeof(cnFloat));
+  cnFloat* target = origin + base->outCount;
+  cnFloat* result = outs;
+  if (!(origin && target)) {
+    // TODO Some way to report errors. Just NaN out for now.
+    cnFloat nan = cnNaN();
+    if (origin) cnStackFree(origin);
+    if (target) cnStackFree(target);
+    for (i = 0; i < base->outCount; i++) {
+      result[i] = nan;
+    }
+    return;
+  }
+
+  // First param specifies new frame origin. Second (target) is the new
+  // (1,0,0,...) vector, or in other words, one unit down the x axis.
+  base->get(base, ins, origin);
+  base->get(base, ins + 1, target);
+  base->get(base, ins + 2, result);
+  // Translate.
+  for (i = 0; i < base->outCount; i++) {
+    target[i] -= origin[i];
+    result[i] -= origin[i];
+  }
+  // TODO Rotate.
+  // TODO Scale.
+
+  cnStackFree(origin);
+  cnStackFree(target);
+}
+
+cnEntityFunction* cnEntityFunctionCreateReframe(cnEntityFunction* base) {
+  cnEntityFunction* function = malloc(sizeof(cnEntityFunction));
+  if (!function) return NULL;
+  function->data = base;
+  function->dispose = NULL;
+  function->inCount = 3;
+  cnStringInit(&function->name);
+  function->outCount = base->outCount; // TODO For all topologies?
+  function->outTopology = base->outTopology;
+  // TODO Verify non-nulls?
+  //printf("outType: %s\n", cnStr(&base->outType->name));
+  if (base->outType != base->outType->schema->floatType) {
+    // TODO Supply a difference function for generic handling?
+    // TODO Is a difference function enough for reframe or do we need extra
+    // TODO knowledge?
+    // If this dispose follows the nulled dispose pointer, we're okay.
+    // Oh, and init'd name is also important.
+    cnFailTo(FAIL, "Only works for floats so far.");
+  }
+  function->outType = base->outType;
+  function->get = cnEntityFunctionCreateReframe_get;
+  // Deal with this last, to make sure everything else is sane first.
+  if (!cnStringPushStr(&function->name, "Reframe")) {
+    cnErrTo(FAIL);
+  }
+  if (!cnStringPushStr(&function->name, cnStr((cnString*)&base->name))) {
+    cnErrTo(FAIL);
+  }
+  return function;
+
+  FAIL:
+  cnEntityFunctionDrop(function);
+  return NULL;
 }
 
 
