@@ -995,14 +995,18 @@ cnBool cnExpansionRedundant(
   cnListEachBegin(expansions, cnExpansion, expansion) {
     if (function == expansion->function) {
       // TODO Mark which functions are symmetric. Assume all arity 2 for now.
-      if (function->inCount == 2) {
+      // TODO Actually, for reframe with arity 3, the first two are still
+      // TODO symmetric. That hack is here for now, but it should be with the
+      // TODO functions.
+      if (function->inCount == 2 || function->inCount == 3) {
         if (
           indices[0] == expansion->varIndices[1] &&
           indices[1] == expansion->varIndices[0]
         ) {
           // Same indices but reversed. This is redundant.
           // The function creates mirror images anyway.
-          return cnTrue;
+          return
+            function->inCount == 2 || indices[2] == expansion->varIndices[2];
         }
       }
     }

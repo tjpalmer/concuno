@@ -159,6 +159,15 @@ cnBool cnrPickFunctions(cnList(cnEntityFunction*)* functions, cnType* type) {
         cnEntityFunctionDrop(distance);
         cnFailTo(FAIL, "Function %s not pushed.", cnStr(&distance->name));
       }
+
+      // Reframe.
+      if (!(distance = cnEntityFunctionCreateReframe(function))) {
+        cnFailTo(FAIL, "No reframe %s.", cnStr(&function->name));
+      }
+      if (!cnListPush(functions, &distance)) {
+        cnEntityFunctionDrop(distance);
+        cnFailTo(FAIL, "Function %s not pushed.", cnStr(&distance->name));
+      }
     }
   } cnEnd;
 
