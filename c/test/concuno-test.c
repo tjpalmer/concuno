@@ -377,10 +377,26 @@ void testReframe_get(cnEntityFunction* function, cnEntity* ins, void* outs) {
   }
 }
 
+void testReframe_case(
+  cnEntityFunction* reframe,
+  cnFloat x0, cnFloat y0, cnFloat x1, cnFloat y1, cnFloat x2, cnFloat y2
+) {
+  // Set up data.
+  double pointsData[][2] = {{x0, y0}, {x1, y1}, {x2, y2}};
+  double* points[] = {&pointsData[0][0], &pointsData[1][0], &pointsData[2][0]};
+  double result[2];
+  // Reframe and check result.
+  reframe->get(reframe, (void**)points, result);
+  printf(
+    "From (%g, %g) to (%g, %g) reframes (%g, %g) as: (%g, %g)\n",
+    points[0][0], points[0][1],
+    points[1][0], points[1][1],
+    points[2][0], points[2][1],
+    result[0], result[1]
+  );
+}
+
 void testReframe(void) {
-  double point[2];
-  double pointsData[][2] = {{0.0, 0.0}, {1.0, 1.0}, {0.0, 1.0}};
-  double* points[] = {&pointsData[0][0], &pointsData[0][1], &pointsData[0][2]};
   cnEntityFunction* direct = NULL;
   cnEntityFunction* reframe = NULL;
   cnSchema schema;
@@ -392,13 +408,8 @@ void testReframe(void) {
   direct->get = testReframe_get;
   if (!(reframe = cnEntityFunctionCreateReframe(direct))) cnFailTo(DONE);
 
-  // Test.
-  direct->get(direct, (void**)&points[2], point);
-  printf("%lf %lf\n", point[0], point[1]);
-
   // Test reframe.
-  reframe->get(reframe, (void**)points, point);
-  printf("%lf %lf\n", point[0], point[1]);
+  testReframe_case(reframe, 0.0, 0.0, 1.0, 1.0, 0.0, 1.0);
 
   DONE:
   cnSchemaDispose(&schema);

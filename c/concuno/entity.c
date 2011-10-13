@@ -336,15 +336,15 @@ void cnEntityFunctionCreateReframe_get(
       // At Wikipedia, ratio is t, and radius before being finished is u.
       cnFloat ratio = x / y;
       radius = copysign(sqrt(1 + ratio * ratio), y);
-      sine = 1.0 / radius;
-      cosine = sine * ratio;
+      sine = -1.0 / radius;
+      cosine = -sine * ratio;
       radius *= y;
     } else {
       // Alternative for |y| > |x|.
       cnFloat ratio = y / x;
       radius = copysign(sqrt(1 + ratio * ratio), x);
       cosine = 1.0 / radius;
-      sine = cosine * ratio;
+      sine = -cosine * ratio;
       radius *= x;
     }
 
@@ -352,11 +352,12 @@ void cnEntityFunctionCreateReframe_get(
     // The new target falls out automatically.
     target[0] = radius;
     target[i] = 0;
-    // The result needs the rotation applied.
+    // The result needs the rotation applied. Reuse x for a temp var.
     // TODO Back to stability, what happens to all these repeated changes to
-    // TODO result[0]?
-    result[0] = result[0] * cosine - result[1] * sine;
-    result[i] = result[0] * sine + result[i] * cosine;
+    // TODO result[0]? If this matters, could stacking pairs up help?
+    x = result[0];
+    result[0] = x * cosine - result[i] * sine;
+    result[i] = x * sine + result[i] * cosine;
   }
 
   // Scale. This is the other easy part.
