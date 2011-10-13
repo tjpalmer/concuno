@@ -74,25 +74,25 @@ int main(int argc, char** argv) {
   cnListInit(&labels, 0);
   initOkay &= cnSchemaInitDefault(&schema);
   initOkay &= cnLearnerInit(&learner, NULL);
-  if (!initOkay) cnFailTo(DONE, "Init failed.");
+  if (!initOkay) cnErrTo(DONE, "Init failed.");
 
-  if (argc < 4) cnFailTo(
+  if (argc < 4) cnErrTo(
     DONE, "Usage: %s <features-file> <labels-file> <label-id>", argv[0]
   );
 
   // Load all the data.
   featureType = cnvLoadTable(argv[1], "Feature", &schema, &features);
-  if (!featureType) cnFailTo(DONE, "Failed feature load.");
+  if (!featureType) cnErrTo(DONE, "Failed feature load.");
   labelType = cnvLoadTable(argv[2], "Label", &schema, &labels);
-  if (!labelType) cnFailTo(DONE, "Failed label load.");
+  if (!labelType) cnErrTo(DONE, "Failed label load.");
 
   // Build labeled bags.
   if (
     !cnvBuildBags(&bags, argv[3], labelType, &labels, featureType, &features)
-  ) cnFailTo(DONE, "No bags.");
+  ) cnErrTo(DONE, "No bags.");
   // Choose some functions. TODO How to specify which??
   if (!cnvPickFunctions(&functions, featureType)) {
-    cnFailTo(DONE, "No functions.");
+    cnErrTo(DONE, "No functions.");
   }
   printf("\n");
 
@@ -101,7 +101,7 @@ int main(int argc, char** argv) {
   learner.bags = &bags;
   learner.entityFunctions = &functions;
   learnedTree = cnLearnTree(&learner);
-  if (!learnedTree) cnFailTo(DONE, "No learned tree.");
+  if (!learnedTree) cnErrTo(DONE, "No learned tree.");
 
   // Display the learned tree.
   printf("\n");
@@ -143,15 +143,15 @@ cnBool cnvBuildBags(
       break;
     }
   } cnEnd;
-  if (labelOffset < 0) cnFailTo(DONE, "Label %s not found.", labelId);
+  if (labelOffset < 0) cnErrTo(DONE, "Label %s not found.", labelId);
 
   // Assume for now that the labels and features go in the same order.
   cnListEachBegin(labels, char, labelItem) {
     cnBag* bag = cnListExpand(bags);
     cnIndex bagId = *(cnFloat*)labelItem;
     // Check the bag allocation, and init the thing.
-    if (!bag) cnFailTo(DONE, "No bag.");
-    if (!cnBagInit(bag, NULL)) cnFailTo(DONE, "No bag init.");
+    if (!bag) cnErrTo(DONE, "No bag.");
+    if (!cnBagInit(bag, NULL)) cnErrTo(DONE, "No bag init.");
     bag->label = *(cnFloat*)(labelItem + labelOffset);
     // Add features.
     //printf("Reached bag %ld, labeled %u.\n", bagId, bag->label);
@@ -187,16 +187,16 @@ cnType* cnvLoadTable(
   cnListInit(&offsets, sizeof(cnvTypedOffset));
 
   // Create the type.
-  if (!(type = cnTypeCreate(typeName, 0))) cnFailTo(FAIL, "No type create.");
+  if (!(type = cnTypeCreate(typeName, 0))) cnErrTo(FAIL, "No type create.");
   type->schema = schema;
-  if (!cnListPush(&schema->types, &type)) cnFailTo(FAIL, "No type for schema.");
+  if (!cnListPush(&schema->types, &type)) cnErrTo(FAIL, "No type for schema.");
 
   // Open the file.
   file = fopen(fileName, "r");
-  if (!file) cnFailTo(FAIL, "Couldn't open '%s'.", fileName);
+  if (!file) cnErrTo(FAIL, "Couldn't open '%s'.", fileName);
 
   // Read the headers.
-  if (cnReadLine(file, &line) <= 0) cnFailTo(FAIL, "No headers.");
+  if (cnReadLine(file, &line) <= 0) cnErrTo(FAIL, "No headers.");
   remaining = cnStr(&line);
   while (cnTrue) {
     cnvTypedOffset* offset;
@@ -206,9 +206,9 @@ cnType* cnvLoadTable(
       // Strip % prefix, used there for Matlab convenience.
       next++;
     }
-    if (!(offset = cnListExpand(&offsets))) cnFailTo(FAIL, "No offset.");
+    if (!(offset = cnListExpand(&offsets))) cnErrTo(FAIL, "No offset.");
     if (!cnvPushOrExpandProperty(type, next, offset)) {
-      cnFailTo(FAIL, "Property stuck.");
+      cnErrTo(FAIL, "Property stuck.");
     }
   }
   // Now that we have the full type, it's stable.
@@ -221,17 +221,17 @@ cnType* cnvLoadTable(
   while ((countRead = cnReadLine(file, &line)) > 0) {
     cnEntity item;
     // Allocate then read the fields on this line.
-    if (!(item = cnListExpand(items))) cnFailTo(FAIL, "No item.");
+    if (!(item = cnListExpand(items))) cnErrTo(FAIL, "No item.");
     remaining = cnStr(&line);
     cnListEachBegin(&offsets, cnvTypedOffset, offset) {
       // TODO Don't assume all are floats! Need custom parsing?
       char* former = remaining;
       cnFloat value = strtod(remaining, &remaining);
-      if (remaining == former) cnFailTo(FAIL, "No data to read?");
+      if (remaining == former) cnErrTo(FAIL, "No data to read?");
       *(cnFloat*)(((char*)item) + offset->offset) = value;
     } cnEnd;
   }
-  if (countRead < 0) cnFailTo(FAIL, "Error reading line.");
+  if (countRead < 0) cnErrTo(FAIL, "Error reading line.");
 
   // We winned!
   goto DONE;
@@ -255,10 +255,10 @@ cnType* cnvLoadTable(
 cnBool cnvPickFunctions(cnList(cnEntityFunction*)* functions, cnType* type) {
   // For now, just put in valid and common functions for each property.
   if (!cnPushValidFunction(functions, type->schema, 1)) {
-    cnFailTo(FAIL, "No valid 1.");
+    cnErrTo(FAIL, "No valid 1.");
   }
   if (!cnPushValidFunction(functions, type->schema, 2)) {
-    cnFailTo(FAIL, "No valid 2.");
+    cnErrTo(FAIL, "No valid 2.");
   }
   cnListEachBegin(&type->properties, cnProperty, property) {
     cnEntityFunction* function;
@@ -267,11 +267,11 @@ cnBool cnvPickFunctions(cnList(cnEntityFunction*)* functions, cnType* type) {
       continue;
     }
     if (!(function = cnEntityFunctionCreateProperty(property))) {
-      cnFailTo(FAIL, "No function.");
+      cnErrTo(FAIL, "No function.");
     }
     if (!cnListPush(functions, &function)) {
       cnEntityFunctionDrop(function);
-      cnFailTo(FAIL, "Function not pushed.");
+      cnErrTo(FAIL, "Function not pushed.");
     }
     // TODO Distance (and difference?) angle, too?
     if (cnTrue || !strcmp("Location", cnStr(&function->name))) {
@@ -285,20 +285,20 @@ cnBool cnvPickFunctions(cnList(cnEntityFunction*)* functions, cnType* type) {
 
       // Distance.
       if (!(distance = cnEntityFunctionCreateDistance(function))) {
-        cnFailTo(FAIL, "No distance %s.", cnStr(&function->name));
+        cnErrTo(FAIL, "No distance %s.", cnStr(&function->name));
       }
       if (!cnListPush(functions, &distance)) {
         cnEntityFunctionDrop(distance);
-        cnFailTo(FAIL, "Function %s not pushed.", cnStr(&distance->name));
+        cnErrTo(FAIL, "Function %s not pushed.", cnStr(&distance->name));
       }
 
       // Difference.
       if (!(distance = cnEntityFunctionCreateDifference(function))) {
-        cnFailTo(FAIL, "No distance %s.", cnStr(&function->name));
+        cnErrTo(FAIL, "No distance %s.", cnStr(&function->name));
       }
       if (!cnListPush(functions, &distance)) {
         cnEntityFunctionDrop(distance);
-        cnFailTo(FAIL, "Function %s not pushed.", cnStr(&distance->name));
+        cnErrTo(FAIL, "Function %s not pushed.", cnStr(&distance->name));
       }
     }
   } cnEnd;
@@ -345,11 +345,11 @@ cnBool cnvPushOrExpandProperty(
   if (!property) {
     // Didn't find anything, so push a new property.
     property = cnListExpand(&type->properties);
-    if (!property) cnFailTo(DONE, "Failed to alloc %s property.", propertyName);
+    if (!property) cnErrTo(DONE, "Failed to alloc %s property.", propertyName);
     // TODO Assumed always float for now.
     if (!cnPropertyInitField(
       property, type, type->schema->floatType, propertyName, type->size, 1
-    )) cnFailTo(DONE, "Failed to init %s property.", propertyName);
+    )) cnErrTo(DONE, "Failed to init %s property.", propertyName);
   }
 
   // Update the type's overall size, too.

@@ -152,7 +152,7 @@ cnBool cnGroupLeafBindingBags(
     if (leafBindingBagGroups->count != leafBindingBags->count) {
       // TODO If not matching, we could at least check to see if the leaf ids
       // TODO in the groups match a subset of the leaves.
-      cnFailTo(
+      cnErrTo(
         DONE, "Group count %ld != leaf count %ld.",
         leafBindingBagGroups->count, leafBindingBags->count
       );
@@ -161,7 +161,7 @@ cnBool cnGroupLeafBindingBags(
     // Add empty binding bag groups. Should only apply for the first bag, at
     // most.
     if (!cnListExpandMulti(leafBindingBagGroups, leafBindingBags->count)) {
-      cnFailTo(DONE, "No leaf binding bag groups.");
+      cnErrTo(DONE, "No leaf binding bag groups.");
     }
     // Init each group.
     group = leafBindingBagGroups->items;
@@ -177,13 +177,13 @@ cnBool cnGroupLeafBindingBags(
   cnListEachBegin(leafBindingBags, cnLeafBindingBag, leafBindingBag) {
     // Sanity check. TODO Only needs done for the first bag!?!
     if (leafBindingBag->leaf != group->leaf) {
-      cnFailTo(DONE, "Wrong leaf for binding bag group.");
+      cnErrTo(DONE, "Wrong leaf for binding bag group.");
     }
     // Push on the binding bag if it's not empty.
     if (leafBindingBag->bindingBag.bindings.count) {
       if (!cnListPush(
         &group->bindingBags, &leafBindingBag->bindingBag
-      )) cnFailTo(DONE, "No space for binding bag.");
+      )) cnErrTo(DONE, "No space for binding bag.");
     }
     // On to the next leaf/group.
     group++;
@@ -307,7 +307,7 @@ cnBool cnLeafNodePropagateBindingBag(
   cnBool result = cnFalse;
   cnLeafBindingBag* binding = cnListExpand(leafBindingBags);
 
-  if (!binding) cnFailTo(DONE, "No leaf binding bag.");
+  if (!binding) cnErrTo(DONE, "No leaf binding bag.");
   binding->leaf = leaf;
   cnBindingBagInit(
     &binding->bindingBag, bindingBag->bag, bindingBag->entityCount
@@ -316,7 +316,7 @@ cnBool cnLeafNodePropagateBindingBag(
     if (!cnListPushAll(&binding->bindingBag.bindings, &bindingBag->bindings)) {
       // We couldn't really make the binding, so hide it.
       leafBindingBags->count--;
-      cnFailTo(DONE, "No bindings for bag.");
+      cnErrTo(DONE, "No bindings for bag.");
     }
   }
 
@@ -458,11 +458,11 @@ cnBool cnNodePropagateBindingBags(
   cnListEachBegin(bindingBags, cnBindingBag, bindingBag) {
     // Propagate.
     if (!cnNodePropagateBindingBag(node, bindingBag, &leafBindingBags)) {
-      cnFailTo(DONE, "No propagate.");
+      cnErrTo(DONE, "No propagate.");
     }
     // Group.
     if (!cnGroupLeafBindingBags(leafBindingBagGroups, &leafBindingBags)) {
-      cnFailTo(DONE, "No grouping.");
+      cnErrTo(DONE, "No grouping.");
     }
   } cnEnd;
 
@@ -687,11 +687,11 @@ cnPointBag* cnSplitNodePointBag(
   // Make a point bag id needed, and init either way.
   if (makeOwnPointBag) {
     if (!(pointBag = malloc(sizeof(cnPointBag)))) {
-      cnFailTo(FAIL, "No point bag.");
+      cnErrTo(FAIL, "No point bag.");
     }
   } else if (pointBag->pointMatrix.points) {
     // Failing to DONE on purpose here, so we don't free their data!
-    cnFailTo(DONE,
+    cnErrTo(DONE,
       "Point bag has %ld points already!", pointBag->pointMatrix.pointCount
     );
   }
@@ -717,7 +717,7 @@ cnPointBag* cnSplitNodePointBag(
 
     // Prepare a list of split bindings. Needed for sorting.
     if (!cnListExpandMulti(&splitBindings, bindingBag->bindings.count)) {
-      cnFailTo(FAIL, "No split bindings.");
+      cnErrTo(FAIL, "No split bindings.");
     }
     b = 0;
     splitBinding = splitBindings.items;
@@ -732,7 +732,7 @@ cnPointBag* cnSplitNodePointBag(
     if (!(
       pointBag->bindingPointIndices =
         malloc(splitBindings.count * sizeof(cnIndex))
-    )) cnFailTo(FAIL, "No binding point indices.");
+    )) cnErrTo(FAIL, "No binding point indices.");
 
     // Sort them, and keep only uniques.
     // TODO Restore original order somehow (saving index for each)?
@@ -759,7 +759,7 @@ cnPointBag* cnSplitNodePointBag(
         cnSplitNodePointBag_compareBindings(splitBinding, mostRecentlyKept)
       ) {
         if (!cnListPush(&uniqueBag.bindings, splitBinding->binding)) {
-          cnFailTo(FAIL, "No unique binding.");
+          cnErrTo(FAIL, "No unique binding.");
         }
         // Increment our point index and remember this point for comparison.
         p++;
@@ -781,10 +781,10 @@ cnPointBag* cnSplitNodePointBag(
   if (!(pointBag->pointMatrix.points = malloc(
     pointBag->pointMatrix.pointCount *
     pointBag->pointMatrix.valueCount * pointBag->pointMatrix.valueSize
-  ))) cnFailTo(FAIL, "No point matrix.");
+  ))) cnErrTo(FAIL, "No point matrix.");
   // Put args on the stack.
   if (!(args = cnStackAlloc(split->function->inCount * sizeof(void*)))) {
-    cnFailTo(FAIL, "No args.");
+    cnErrTo(FAIL, "No args.");
   }
 
   // Calculate the points.
@@ -835,10 +835,10 @@ cnBool cnSplitNodePointBags(
 
   // Init first for safety.
   if (pointBags->count) {
-    cnFailTo(FAIL, "Start with empty pointBags, not %ld.", pointBags->count);
+    cnErrTo(FAIL, "Start with empty pointBags, not %ld.", pointBags->count);
   }
   if (!cnListExpandMulti(pointBags, bindingBags->count)) {
-    cnFailTo(FAIL, "No point bags.");
+    cnErrTo(FAIL, "No point bags.");
   }
   pointBag = pointBags->items;
   cnListEachBegin(bindingBags, cnBindingBag, bindingBag) {
@@ -856,7 +856,7 @@ cnBool cnSplitNodePointBags(
   pointBag = pointBags->items;
   cnListEachBegin(bindingBags, cnBindingBag, bindingBag) {
     if (!cnSplitNodePointBag(split, bindingBag, pointBag)) {
-      cnFailTo(FAIL, "No point bag.");
+      cnErrTo(FAIL, "No point bag.");
     }
     validBindingsCount += pointBag->pointMatrix.pointCount;
     pointBag++;
@@ -916,7 +916,7 @@ cnBool cnSplitNodePropagateBindingBag(
 
   // Gather up points.
   if (!(pointBag = cnSplitNodePointBag(split, bindingBag, NULL))) {
-    cnFailTo(DONE, "No point bag.");
+    cnErrTo(DONE, "No point bag.");
   }
 
   // Prepare space for point assessment. This makes easier the case where we
@@ -925,7 +925,7 @@ cnBool cnSplitNodePropagateBindingBag(
   if (!(
     pointBindingBagOuts =
       malloc(pointBag->pointMatrix.pointCount * sizeof(cnBindingBag*))
-  )) cnFailTo(DONE, "No point binding bag assignments.");
+  )) cnErrTo(DONE, "No point binding bag assignments.");
 
   // Go through the points.
   p = 0;
@@ -952,7 +952,7 @@ cnBool cnSplitNodePropagateBindingBag(
       splitIndex = split->predicate->evaluate(split->predicate, point) ?
         cnSplitYes : cnSplitNo;
       // I hack -1 (turned unsigned) into this for errors at this point.
-      if (splitIndex >= cnSplitCount) cnFailTo(DONE, "Bad evaluate.");
+      if (splitIndex >= cnSplitCount) cnErrTo(DONE, "Bad evaluate.");
     }
 
     // Remember this choice for later, when we go through the bindings.
@@ -967,7 +967,7 @@ cnBool cnSplitNodePropagateBindingBag(
     cnIndex p = pointBag->bindingPointIndices ?
       pointBag->bindingPointIndices[b] : b;
     if (!cnListPush(&pointBindingBagOuts[p]->bindings, bindingIn)) {
-      cnFailTo(DONE, "No pushed binding.");
+      cnErrTo(DONE, "No pushed binding.");
     }
     b++;
   } cnEnd;
@@ -980,7 +980,7 @@ cnBool cnSplitNodePropagateBindingBag(
       bindingBag : bagsOut + splitIndex;
     if (!cnNodePropagateBindingBag(
       split->kids[splitIndex], bagOut, leafBindingBags
-    )) cnFailTo(DONE, "Split kid prop failed. Now what?\n");
+    )) cnErrTo(DONE, "Split kid prop failed. Now what?\n");
   }
 
   // Winned!
@@ -1046,10 +1046,10 @@ cnNode* cnTreeCopy(cnNode* node) {
     nodeSize = sizeof(cnVarNode);
     break;
   default:
-    cnFailTo(DONE, "No copy for type %u.", node->type);
+    cnErrTo(DONE, "No copy for type %u.", node->type);
   }
   copy = malloc(nodeSize);
-  if (!copy) cnFailTo(DONE, "Failed to allocate copy.");
+  if (!copy) cnErrTo(DONE, "Failed to allocate copy.");
   memcpy(copy, node, nodeSize);
   // Recursively copy.
   kid = cnNodeKids(copy);
@@ -1084,7 +1084,7 @@ cnFloat cnTreeLogMetric(cnRootNode* root, cnList(cnBag)* bags) {
   cnListInit(&counts, sizeof(cnLeafCount));
 
   // Count positives and negatives in each leaf.
-  if (!cnTreeMaxLeafCounts(root, &counts, bags)) cnFailTo(DONE, "No counts.");
+  if (!cnTreeMaxLeafCounts(root, &counts, bags)) cnErrTo(DONE, "No counts.");
   // Calculate the score.
   score = cnCountsLogMetric(&counts);
 
@@ -1116,19 +1116,19 @@ cnBool cnTreeMaxLeafCounts(
   // TODO Bindings out of leaves, then extra function to get the lists.
   cnListInit(&groups, sizeof(cnLeafBindingBagGroup));
   if (!cnTreePropagateBags(root, bags, &groups)) {
-    cnFailTo(DONE, "No propagate.");
+    cnErrTo(DONE, "No propagate.");
   }
 
   // Prepare space for counts at one go for efficiency.
   cnListClear(counts);
   if (!cnListExpandMulti(counts, groups.count)) {
-    cnFailTo(DONE, "No space for counts.");
+    cnErrTo(DONE, "No space for counts.");
   }
 
   // Prepare space to track which bags have been used up already.
   // TODO Could be bit-efficient, since bools, but don't stress it.
   bagsUsed = malloc(bags->count * sizeof(cnBool));
-  if (!bagsUsed) cnFailTo(DONE, "No used tracking.");
+  if (!bagsUsed) cnErrTo(DONE, "No used tracking.");
   // Clear it out manually, fearing bit representations.
   for (b = 0; b < bags->count; b++) bagsUsed[b] = cnFalse;
 
@@ -1218,7 +1218,7 @@ cnBool cnTreeMaxLeafBags(
   }
   // Allocate space right away.
   if (!cnListExpandMulti(groupsMaxOut, groupsIn->count)) {
-    cnFailTo(FAIL, "No groups out.");
+    cnErrTo(FAIL, "No groups out.");
   }
   // And init for safety.
   cnListEachBegin(groupsMaxOut, cnList(cnIndex), indices) {
@@ -1229,7 +1229,7 @@ cnBool cnTreeMaxLeafBags(
   if (!(
     indexedGroupsIn =
       malloc(groupsIn->count * sizeof(cnTreeMaxLeafBags_IndexedGroup))
-  )) cnFailTo(FAIL, "No indexed groups.");
+  )) cnErrTo(FAIL, "No indexed groups.");
   g = 0;
   cnListEachBegin(groupsIn, cnLeafBindingBagGroup, groupIn) {
     indexedGroupsIn[g].group = groupIn;
@@ -1247,7 +1247,7 @@ cnBool cnTreeMaxLeafBags(
   cnLeafBindingBagGroupListLimits(groupsIn, &bags, &bagsEnd);
   bagCount = bagsEnd - bags;
   bagsUsed = malloc(bagCount * sizeof(cnBool));
-  if (!bagsUsed) cnFailTo(FAIL, "No bags used array.");
+  if (!bagsUsed) cnErrTo(FAIL, "No bags used array.");
   for (b = 0; b < bagCount; b++) bagsUsed[b] = cnFalse;
 
   // Loop through leaves from max prob to min, count bags and marking them used
@@ -1266,7 +1266,7 @@ cnBool cnTreeMaxLeafBags(
       cnIndex bagIndex = bindingBag->bag - bags;
       if (!bagsUsed[bagIndex]) {
         if (!cnListPush(indices, &b)) {
-          cnFailTo(FAIL, "No binding bag ref.")
+          cnErrTo(FAIL, "No binding bag ref.")
         }
         bagsUsed[bagIndex] = cnTrue;
       }
@@ -1323,11 +1323,11 @@ cnBool cnTreePropagateBags(
   cnListEachBegin(bags, cnBag, bag) {
     // Propagate.
     if (!cnTreePropagateBag(tree, bag, &leafBindingBags)) {
-      cnFailTo(DONE, "No propagate.");
+      cnErrTo(DONE, "No propagate.");
     }
     // Group.
     if (!cnGroupLeafBindingBags(leafBindingBagGroups, &leafBindingBags)) {
-      cnFailTo(DONE, "No grouping.");
+      cnErrTo(DONE, "No grouping.");
     }
   } cnEnd;
 
@@ -1349,32 +1349,32 @@ cnBool cnTreeWrite_any(cnNode* node, FILE* file, cnString* indent) {
   cnBool result = cnFalse;
 
   fprintf(file, "{\n");
-  if (!cnIndent(indent)) cnFailTo(DONE, "No indent.");
+  if (!cnIndent(indent)) cnErrTo(DONE, "No indent.");
 
   // Handle each node type.
   switch (node->type) {
   case cnNodeTypeLeaf:
     if (!cnTreeWrite_leaf((cnLeafNode*)node, file, indent)) {
-      cnFailTo(DONE, "No leaf.");
+      cnErrTo(DONE, "No leaf.");
     }
     break;
   case cnNodeTypeRoot:
     if (!cnTreeWrite_root((cnRootNode*)node, file, indent)) {
-      cnFailTo(DONE, "No root.");
+      cnErrTo(DONE, "No root.");
     }
     break;
   case cnNodeTypeSplit:
     if (!cnTreeWrite_split((cnSplitNode*)node, file, indent)) {
-      cnFailTo(DONE, "No split.");
+      cnErrTo(DONE, "No split.");
     }
     break;
   case cnNodeTypeVar:
     if (!cnTreeWrite_var((cnVarNode*)node, file, indent)) {
-      cnFailTo(DONE, "No var.");
+      cnErrTo(DONE, "No var.");
     }
     break;
   default:
-    cnFailTo(DONE, "No such type: %u", node->type);
+    cnErrTo(DONE, "No such type: %u", node->type);
   }
 
   // Handle the kids, if any.
@@ -1387,7 +1387,7 @@ cnBool cnTreeWrite_any(cnNode* node, FILE* file, cnString* indent) {
     fprintf(file, "%s\"kids\": [", cnStr(indent));
     for (k = 0; k < kidCount; k++) {
       if (!cnTreeWrite_any(kids[k], file, indent)) {
-        cnFailTo(CLOSE, "No kid write.");
+        cnErrTo(CLOSE, "No kid write.");
       }
       if (k < kidCount - 1) {
         // Stupid no trailing JSON commas.
@@ -1450,7 +1450,7 @@ cnBool cnTreeWrite_split(cnSplitNode* split, FILE* file, cnString* indent) {
 
     fprintf(file, "%s\"predicate\": ", cnStr(indent));
     if (!cnPredicateWrite(split->predicate, file, indent)) {
-      cnFailTo(DONE, "No predicate write.");
+      cnErrTo(DONE, "No predicate write.");
     }
     fprintf(file, ",\n");
   }
@@ -1601,7 +1601,7 @@ cnBool cnVarNodePropagateBindingBag(
   }
 
   if (!cnNodePropagateBindingBag(var->kid, &bindingBagOut, leafBindingBags)) {
-    cnFailTo(DONE, "No propagate.");
+    cnErrTo(DONE, "No propagate.");
   }
 
   // Winned!

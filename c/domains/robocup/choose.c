@@ -36,7 +36,7 @@ cnBool cnrChooseHoldsAndPasses(
     cnListEachBegin(&state->players, struct cnrPlayer, player) {
       if (player->team == cnrTeamKeepers && !cnIsNaN(player->kickPower)) {
         if (kicker) {
-          cnFailTo(DONE, "Multiple kickers at %ld.", state->time);
+          cnErrTo(DONE, "Multiple kickers at %ld.", state->time);
         }
         kicker = player;
       }
@@ -85,7 +85,7 @@ cnBool cnrChooseHoldsAndPasses(
       // Now that all that label determination is over, let's build the scene.
       if (!cnrExtractHoldOrPass(
         game, state, kicker, holdBags, passBags, entityLists, label
-      )) cnFailTo(DONE, "No bag extracted.");
+      )) cnErrTo(DONE, "No bag extracted.");
     }
 
     // Also look to see if the kick was "successful" in the sense that the
@@ -127,20 +127,20 @@ cnBool cnrExtractHoldOrPass(
 
   // We'll need an entity list for the state, whether it's a hold or a pass.
   if (!(entities = cnListCreate(sizeof(cnEntity)))) {
-    cnFailTo(DONE, "No entities.");
+    cnErrTo(DONE, "No entities.");
   }
   // Push the ball.
-  if (!cnListPush(entities, &ball)) cnFailTo(DONE, "No ball for list.");
+  if (!cnListPush(entities, &ball)) cnErrTo(DONE, "No ball for list.");
   // And the players.
   cnListEachBegin(&state->players, struct cnrPlayer, player) {
     if (!cnListPush(entities, &player)) {
-      cnFailTo(DONE, "No player for entity list.");
+      cnErrTo(DONE, "No player for entity list.");
     }
   } cnEnd;
   if (!cnListPush(entityLists, &entities)) {
     // Clean up before fail.
     cnListDestroy(entities);
-    cnFailTo(DONE, "Can't push entities list.");
+    cnErrTo(DONE, "Can't push entities list.");
   }
 
   // Now see if we have a pass or a hold. First see if the same player kicks
@@ -183,7 +183,7 @@ cnBool cnrExtractHoldOrPass(
     } cnEnd;
     if (receiver) {
       if (!(bag = cnListExpand(passBags))) {
-        cnFailTo(DONE, "No pass bag pushed.");
+        cnErrTo(DONE, "No pass bag pushed.");
       }
       // With provided entities, bag init doesn't fail.
       cnBagInit(bag, entities);
@@ -198,7 +198,7 @@ cnBool cnrExtractHoldOrPass(
   if (!bag) {
     // Must be, since we didn't already define a bag for passing.
     if (!(bag = cnListExpand(holdBags))) {
-      cnFailTo(DONE, "No pass bag pushed.");
+      cnErrTo(DONE, "No pass bag pushed.");
     }
     // With provided entities, bag init doesn't fail.
     cnBagInit(bag, entities);
@@ -210,12 +210,12 @@ cnBool cnrExtractHoldOrPass(
 
   // We should have a bag by now. Pin the participants.
   if (!cnBagPushParticipant(bag, 0, kicker)) {
-    cnFailTo(DONE, "Failed to push kicker.");
+    cnErrTo(DONE, "Failed to push kicker.");
   }
   if (receiver) {
     // Pin the receiver, too.
     if (!cnBagPushParticipant(bag, 1, receiver)) {
-      cnFailTo(DONE, "Failed to push receiver.");
+      cnErrTo(DONE, "Failed to push receiver.");
     }
   }
 

@@ -34,7 +34,7 @@ cnBool cnBagInit(cnBag* bag, cnList(cnEntity)* entities) {
   cnListInit(&bag->participantOptions, sizeof(cnList(cnEntity)));
 
   // Check on and finish up entities.
-  if (!bag->entities) cnFailTo(DONE, "No bag entities.");
+  if (!bag->entities) cnErrTo(DONE, "No bag entities.");
   if (!entities) cnListInit(bag->entities, sizeof(cnEntity));
 
   // Winned!
@@ -72,7 +72,7 @@ cnBool cnBagPushParticipant(cnBag* bag, cnIndex depth, cnEntity participant) {
   // Grow more lists if needed.
   while (depth >= bag->participantOptions.count) {
     if (!(participantOptions = cnListExpand(&bag->participantOptions))) {
-      cnFailTo(DONE, "Failed to grow participant options.");
+      cnErrTo(DONE, "Failed to grow participant options.");
     }
     cnListInit(participantOptions, sizeof(cnEntity));
   }
@@ -80,7 +80,7 @@ cnBool cnBagPushParticipant(cnBag* bag, cnIndex depth, cnEntity participant) {
   // Expand the one for the right depth.
   participantOptions = cnListGet(&bag->participantOptions, depth);
   if (!cnListPush(participantOptions, &participant)) {
-    cnFailTo(DONE, "Failed to push participant.");
+    cnErrTo(DONE, "Failed to push participant.");
   }
 
   // Winned.
@@ -134,16 +134,16 @@ cnEntityFunction* cnEntityFunctionCreateDifference(cnEntityFunction* base) {
     // TODO Supply a difference function for generic handling?
     // If this dispose follows the nulled dispose pointer, we're okay.
     // Oh, and init'd name is also important.
-    cnFailTo(FAIL, "Only works for floats so far.");
+    cnErrTo(FAIL, "Only works for floats so far.");
   }
   function->outType = base->outType;
   function->get = cnEntityFunctionCreateDifference_get;
   // Deal with this last, to make sure everything else is sane first.
   if (!cnStringPushStr(&function->name, "Difference")) {
-    cnErrTo(FAIL);
+    cnFailTo(FAIL);
   }
   if (!cnStringPushStr(&function->name, cnStr((cnString*)&base->name))) {
-    cnErrTo(FAIL);
+    cnFailTo(FAIL);
   }
   return function;
 
@@ -196,16 +196,16 @@ cnEntityFunction* cnEntityFunctionCreateDistance(cnEntityFunction* base) {
     // TODO Supply a difference function for generic handling?
     // If this dispose follows the nulled dispose pointer, we're okay.
     // Oh, and init'd name is also important.
-    cnFailTo(FAIL, "Only works for floats so far.");
+    cnErrTo(FAIL, "Only works for floats so far.");
   }
   function->outType = base->outType;
   function->get = cnEntityFunctionCreateDistance_get; // Also different!
   // Deal with this last, to make sure everything else is sane first.
   if (!cnStringPushStr(&function->name, "Distance")) { // Also different!
-    cnErrTo(FAIL);
+    cnFailTo(FAIL);
   }
   if (!cnStringPushStr(&function->name, cnStr((cnString*)&base->name))) {
-    cnErrTo(FAIL);
+    cnFailTo(FAIL);
   }
   return function;
 
@@ -385,16 +385,16 @@ cnEntityFunction* cnEntityFunctionCreateReframe(cnEntityFunction* base) {
     // TODO knowledge?
     // If this dispose follows the nulled dispose pointer, we're okay.
     // Oh, and init'd name is also important.
-    cnFailTo(FAIL, "Only works for floats so far.");
+    cnErrTo(FAIL, "Only works for floats so far.");
   }
   function->outType = base->outType;
   function->get = cnEntityFunctionCreateReframe_get;
   // Deal with this last, to make sure everything else is sane first.
   if (!cnStringPushStr(&function->name, "Reframe")) {
-    cnErrTo(FAIL);
+    cnFailTo(FAIL);
   }
   if (!cnStringPushStr(&function->name, cnStr((cnString*)&base->name))) {
-    cnErrTo(FAIL);
+    cnFailTo(FAIL);
   }
   return function;
 
@@ -462,7 +462,7 @@ cnEntityFunction* cnEntityFunctionCreate(
   char* name, cnCount inCount, cnCount outCount
 ) {
   cnEntityFunction* function = malloc(sizeof(cnEntityFunction));
-  if (!function) cnFailTo(DONE, "No function.");
+  if (!function) cnErrTo(DONE, "No function.");
   function->data = NULL;
   function->dispose = NULL;
   function->inCount = inCount;
@@ -475,7 +475,7 @@ cnEntityFunction* cnEntityFunctionCreate(
   if (!cnStringPushStr(&function->name, name)) {
     cnEntityFunctionDrop(function);
     function = NULL;
-    cnFailTo(DONE, "No function name.");
+    cnErrTo(DONE, "No function name.");
   }
   DONE:
   return function;
@@ -765,11 +765,11 @@ cnBool cnSchemaInitDefault(cnSchema* schema) {
   cnSchemaInit(schema);
   // Create float type.
   if (!(type = cnTypeCreate("Float", sizeof(cnFloat)))) {
-    cnFailTo(FAIL, "No type.");
+    cnErrTo(FAIL, "No type.");
   }
   type->schema = schema;
   // Push it on, and keep a nice reference.
-  if (!cnListPush(&schema->types, &type)) cnFailTo(FAIL, "Can't push type.");
+  if (!cnListPush(&schema->types, &type)) cnErrTo(FAIL, "Can't push type.");
   schema->floatType = type;
   // We winned!
   return cnTrue;
@@ -783,7 +783,7 @@ cnBool cnSchemaInitDefault(cnSchema* schema) {
 
 cnType* cnTypeCreate(char* name, cnCount size) {
   cnType* type = malloc(sizeof(cnType));
-  if (!type) cnFailTo(FAIL, "No type.");
+  if (!type) cnErrTo(FAIL, "No type.");
   // Put safety values first.
   type->size = size;
   // Let schema be set later, if wanted.
@@ -791,7 +791,7 @@ cnType* cnTypeCreate(char* name, cnCount size) {
   cnStringInit(&type->name);
   cnListInit(&type->properties, sizeof(cnProperty));
   // Now try things that might fail.
-  if (!cnStringPushStr(&type->name, name)) cnFailTo(FAIL, "No type name.");
+  if (!cnStringPushStr(&type->name, name)) cnErrTo(FAIL, "No type name.");
   return type;
 
   FAIL:

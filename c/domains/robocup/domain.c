@@ -162,9 +162,9 @@ cnBool cnrPropertyInitTypedField(
   cnStringInit(&property->name);
   property->dispose = NULL;
   // Failing things.
-  if (!cnStringPushStr(&property->name, name)) cnErrTo(FAIL);
+  if (!cnStringPushStr(&property->name, name)) cnFailTo(FAIL);
   if (!(info = malloc(sizeof(struct cnrFieldInfo)))) {
-    cnFailTo(FAIL, "Failed to allocate field info.");
+    cnErrTo(FAIL, "Failed to allocate field info.");
   }
   info->fieldType = fieldType;
   info->itemType = itemType;
@@ -190,34 +190,34 @@ cnBool cnrSchemaInit(cnSchema* schema) {
   cnProperty* property;
   cnType* type;
 
-  if (!cnSchemaInitDefault(schema)) cnErrTo(FAIL);
+  if (!cnSchemaInitDefault(schema)) cnFailTo(FAIL);
 
   // Item type. Say it's the size of a player, since they are bigger than balls.
   // TODO Can I really support multiple types at present??? What's best?
-  if (!(type = cnTypeCreate("Item", sizeof(cnrPlayer)))) cnErrTo(FAIL);
+  if (!(type = cnTypeCreate("Item", sizeof(cnrPlayer)))) cnFailTo(FAIL);
   type->schema = schema;
-  if (!cnListPush(&schema->types, &type)) cnErrTo(FAIL);
+  if (!cnListPush(&schema->types, &type)) cnFailTo(FAIL);
 
   // Location property.
-  if (!(property = cnListExpand(&type->properties))) cnErrTo(FAIL);
+  if (!(property = cnListExpand(&type->properties))) cnFailTo(FAIL);
   if (!cnPropertyInitField(
     property, type, schema->floatType, "Location",
     offsetof(struct cnrItem, location), 2
-  )) cnErrTo(FAIL);
+  )) cnFailTo(FAIL);
 
   // Team property.
-  if (!(property = cnListExpand(&type->properties))) cnErrTo(FAIL);
+  if (!(property = cnListExpand(&type->properties))) cnFailTo(FAIL);
   if (!cnrPropertyInitTypedField(
     property, type, cnrTypePlayer, schema->floatType, cnrFieldTypeEnum, "Team",
     offsetof(struct cnrPlayer, team), 1
-  )) cnErrTo(FAIL);
+  )) cnFailTo(FAIL);
 
   // Type property.
-  if (!(property = cnListExpand(&type->properties))) cnErrTo(FAIL);
+  if (!(property = cnListExpand(&type->properties))) cnFailTo(FAIL);
   if (!cnrPropertyInitTypedField(
     property, type, cnrTypeAny, schema->floatType, cnrFieldTypeInt, "Type",
     offsetof(struct cnrItem, type), 1
-  )) cnErrTo(FAIL);
+  )) cnFailTo(FAIL);
 
   // Good to go.
   return cnTrue;

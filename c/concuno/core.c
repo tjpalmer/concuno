@@ -43,7 +43,7 @@ void cnHeapClear(cnHeapAny heap) {
 
 cnHeapAny cnHeapCreate(cnBool (*less)(cnRefAny info, cnRefAny a, cnRefAny b)) {
   cnHeapAny heap = malloc(sizeof(struct cnHeapAny));
-  if (!heap) cnFailTo(DONE, "No heap.");
+  if (!heap) cnErrTo(DONE, "No heap.");
   heap->destroyInfo = NULL;
   heap->destroyItem = NULL;
   heap->info = NULL;
@@ -169,7 +169,7 @@ cnRefAny cnHeapPull(cnHeapAny heap) {
 
 cnBool cnHeapPush(cnHeapAny heap, cnRefAny item) {
   cnBool result = cnFalse;
-  if (!cnListPush(&heap->items, &item)) cnFailTo(DONE, "No push.");
+  if (!cnListPush(&heap->items, &item)) cnErrTo(DONE, "No push.");
   cnHeapUp(heap, heap->items.count - 1);
   result = cnTrue;
   DONE:

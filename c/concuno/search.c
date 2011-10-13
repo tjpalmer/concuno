@@ -28,7 +28,7 @@ cnBool cnSearch(cnSearcher searcher) {
 
   // Push initial options on the heap.
   cnListEachBegin(&searcher->initialOptions, cnSearchOption, option) {
-    if (!cnHeapPush(self->options, *option)) cnFailTo(DONE, "No push.");
+    if (!cnHeapPush(self->options, *option)) cnErrTo(DONE, "No push.");
   } cnEnd;
 
   // Keep looping while we have any options, and they don't say we're done.
@@ -65,11 +65,11 @@ cnBool cnSearch(cnSearcher searcher) {
       searcher->destroyOption(searcher, contender);
     }
     // Defer failure check until after we've destroyed any failed contender.
-    if (failed) cnFailTo(DONE, "No step.");
+    if (failed) cnErrTo(DONE, "No step.");
 
     // Push the next options.
     cnListEachBegin(&nexts, cnSearchOption, option) {
-      if (!cnHeapPush(self->options, *option)) cnFailTo(DONE, "No push.");
+      if (!cnHeapPush(self->options, *option)) cnErrTo(DONE, "No push.");
     } cnEnd;
   }
   result = cnTrue;
@@ -96,7 +96,7 @@ cnBool cnSearcherCreate_less(void* info, void* a, void* b) {
 cnSearcher cnSearcherCreate(void) {
   cnSearcher searcher = NULL;
   cnSearcherSelf self = malloc(sizeof(struct cnSearcherSelf));
-  if (!self) cnFailTo(DONE, "No searcher.");
+  if (!self) cnErrTo(DONE, "No searcher.");
 
   // Safety first.
   searcher = &self->searcher;
@@ -111,7 +111,7 @@ cnSearcher cnSearcherCreate(void) {
 
   // Now possible failures.
   if (!(self->options = cnHeapCreate(cnSearcherCreate_less))) {
-    cnFailTo(FAIL, "No options heap.");
+    cnErrTo(FAIL, "No options heap.");
   }
   self->options->info = self;
   self->options->destroyItem = cnSearcherCreate_destroyItem;

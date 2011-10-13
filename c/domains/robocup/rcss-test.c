@@ -46,12 +46,12 @@ int main(int argc, char** argv) {
   cnrGameInit(&game);
 
   // Check args.
-  if (argc < 2) cnFailTo(DONE, "No file specified.");
+  if (argc < 2) cnErrTo(DONE, "No file specified.");
 
   // Load all the states in the game log.
   // TODO Check if rcl or rcg to work either way.
   name = argv[1];
-  if (!cnrLoadGameLog(&game, name)) cnFailTo(DONE, "Failed to load: %s", name);
+  if (!cnrLoadGameLog(&game, name)) cnErrTo(DONE, "Failed to load: %s", name);
 
   // Show all team names.
   cnListEachBegin(&game.teamNames, cnString, name) {
@@ -66,7 +66,7 @@ int main(int argc, char** argv) {
     name[lastIndex] = 'l';
     printf("Trying also to read %s\n", name);
     if (!cnrLoadCommandLog(&game, name)) {
-      cnFailTo(DONE, "Failed to load: %s", name);
+      cnErrTo(DONE, "Failed to load: %s", name);
     }
   }
 
@@ -74,7 +74,7 @@ int main(int argc, char** argv) {
   printf("Loaded %ld states.\n", game.states.count);
 
   // Extract actions of hold or kick to player, then process them.
-  if (!cnrProcess(&game, cnrProcessLearn)) cnFailTo(DONE, "Failed extract.");
+  if (!cnrProcess(&game, cnrProcessLearn)) cnErrTo(DONE, "Failed extract.");
 
   // Winned.
   result = EXIT_SUCCESS;
@@ -87,13 +87,13 @@ int main(int argc, char** argv) {
 
 cnBool cnrGenColumnVector(yajl_gen gen, cnCount count, cnFloat* x) {
   cnFloat* end = x + count;
-  if (yajl_gen_array_open(gen)) cnErrTo(FAIL);
+  if (yajl_gen_array_open(gen)) cnFailTo(FAIL);
   for (; x < end; x++) {
-    if (yajl_gen_array_open(gen)) cnErrTo(FAIL);
-    if (!cnrGenFloat(gen, *x)) cnErrTo(FAIL);
-    if (yajl_gen_array_close(gen)) cnErrTo(FAIL);
+    if (yajl_gen_array_open(gen)) cnFailTo(FAIL);
+    if (!cnrGenFloat(gen, *x)) cnFailTo(FAIL);
+    if (yajl_gen_array_close(gen)) cnFailTo(FAIL);
   }
-  if (yajl_gen_array_close(gen)) cnErrTo(FAIL);
+  if (yajl_gen_array_close(gen)) cnFailTo(FAIL);
 
   // Winned.
   return cnTrue;
@@ -118,19 +118,19 @@ cnBool cnrGenStr(yajl_gen gen, char* str) {
 cnBool cnrPickFunctions(cnList(cnEntityFunction*)* functions, cnType* type) {
   // For now, just put in valid and common functions for each property.
   if (!cnPushValidFunction(functions, type->schema, 1)) {
-    cnFailTo(FAIL, "No valid 1.");
+    cnErrTo(FAIL, "No valid 1.");
   }
   if (!cnPushValidFunction(functions, type->schema, 2)) {
-    cnFailTo(FAIL, "No valid 2.");
+    cnErrTo(FAIL, "No valid 2.");
   }
   cnListEachBegin(&type->properties, cnProperty, property) {
     cnEntityFunction* function;
     if (!(function = cnEntityFunctionCreateProperty(property))) {
-      cnFailTo(FAIL, "No function.");
+      cnErrTo(FAIL, "No function.");
     }
     if (!cnListPush(functions, &function)) {
       cnEntityFunctionDrop(function);
-      cnFailTo(FAIL, "Function not pushed.");
+      cnErrTo(FAIL, "Function not pushed.");
     }
     // TODO Distance (and difference?) angle, too?
     if (cnTrue || !strcmp("Location", cnStr(&function->name))) {
@@ -144,29 +144,29 @@ cnBool cnrPickFunctions(cnList(cnEntityFunction*)* functions, cnType* type) {
 
       // Distance.
       if (!(distance = cnEntityFunctionCreateDistance(function))) {
-        cnFailTo(FAIL, "No distance %s.", cnStr(&function->name));
+        cnErrTo(FAIL, "No distance %s.", cnStr(&function->name));
       }
       if (!cnListPush(functions, &distance)) {
         cnEntityFunctionDrop(distance);
-        cnFailTo(FAIL, "Function %s not pushed.", cnStr(&distance->name));
+        cnErrTo(FAIL, "Function %s not pushed.", cnStr(&distance->name));
       }
 
       // Difference.
       if (!(distance = cnEntityFunctionCreateDifference(function))) {
-        cnFailTo(FAIL, "No distance %s.", cnStr(&function->name));
+        cnErrTo(FAIL, "No distance %s.", cnStr(&function->name));
       }
       if (!cnListPush(functions, &distance)) {
         cnEntityFunctionDrop(distance);
-        cnFailTo(FAIL, "Function %s not pushed.", cnStr(&distance->name));
+        cnErrTo(FAIL, "Function %s not pushed.", cnStr(&distance->name));
       }
 
       // Reframe.
       if (!(distance = cnEntityFunctionCreateReframe(function))) {
-        cnFailTo(FAIL, "No reframe %s.", cnStr(&function->name));
+        cnErrTo(FAIL, "No reframe %s.", cnStr(&function->name));
       }
       if (!cnListPush(functions, &distance)) {
         cnEntityFunctionDrop(distance);
-        cnFailTo(FAIL, "Function %s not pushed.", cnStr(&distance->name));
+        cnErrTo(FAIL, "Function %s not pushed.", cnStr(&distance->name));
       }
     }
   } cnEnd;
@@ -195,11 +195,11 @@ cnBool cnrProcess(
   cnListInit(&entityLists, sizeof(cnList(cnEntity)*));
 
   if (!cnrChooseHoldsAndPasses(game, &holdBags, &passBags, &entityLists)) {
-    cnFailTo(DONE, "Choose failed.");
+    cnErrTo(DONE, "Choose failed.");
   }
 
   // Process the bags.
-  if (!process(&holdBags, &passBags)) cnErrTo(DONE);
+  if (!process(&holdBags, &passBags)) cnFailTo(DONE);
 
   // Winned.
   result = cnTrue;
@@ -218,8 +218,8 @@ cnBool cnrProcessExport(cnList(cnBag)* holdBags, cnList(cnBag)* passBags) {
   // Export stuff.
   // TODO Allow specifying file names? Choose automatically by date?
   // TODO Option for learning in concuno rather than saving?
-  if (!cnrSaveBags("keepaway-hold-bags.json", holdBags)) cnErrTo(FAIL);
-  if (!cnrSaveBags("keepaway-pass-bags.json", passBags)) cnErrTo(FAIL);
+  if (!cnrSaveBags("keepaway-hold-bags.json", holdBags)) cnFailTo(FAIL);
+  if (!cnrSaveBags("keepaway-pass-bags.json", passBags)) cnFailTo(FAIL);
   return cnTrue;
 
   FAIL:
@@ -239,7 +239,7 @@ cnBool cnrProcessLearn(cnList(cnBag)* holdBags, cnList(cnBag)* passBags) {
   cnListInit(&functions, sizeof(cnEntityFunction*));
   initOkay &= cnrSchemaInit(&schema);
   initOkay &= cnLearnerInit(&learner, NULL);
-  if (!initOkay) cnErrTo(DONE);
+  if (!initOkay) cnFailTo(DONE);
   cnrPickFunctions(&functions, *(cnType**)cnListGet(&schema.types, 1));
 
   // Learn something.
@@ -248,7 +248,7 @@ cnBool cnrProcessLearn(cnList(cnBag)* holdBags, cnList(cnBag)* passBags) {
   learner.bags = passBags;
   learner.entityFunctions = &functions;
   learnedTree = cnLearnTree(&learner);
-  if (!learnedTree) cnFailTo(DONE, "No learned tree.");
+  if (!learnedTree) cnErrTo(DONE, "No learned tree.");
 
   // Display the learned tree.
   printf("\n");
@@ -280,38 +280,38 @@ cnBool cnrSaveBags(char* name, cnList(cnBag)* bags) {
   cnBool result = cnFalse;
 
   printf("Writing %s\n", name);
-  if (!(gen = yajl_gen_alloc(NULL))) cnFailTo(DONE, "No json formatter.");
-  if (!(file = fopen(name, "w"))) cnFailTo(DONE, "Failed to open: %s", name);
+  if (!(gen = yajl_gen_alloc(NULL))) cnErrTo(DONE, "No json formatter.");
+  if (!(file = fopen(name, "w"))) cnErrTo(DONE, "Failed to open: %s", name);
 
   if (!(
     yajl_gen_config(gen, yajl_gen_beautify, cnTrue) &&
     yajl_gen_config(gen, yajl_gen_indent_string, "  ")
-  )) cnErrTo(DONE);
-  if (yajl_gen_array_open(gen) || yajl_gen_array_open(gen)) cnErrTo(DONE);
+  )) cnFailTo(DONE);
+  if (yajl_gen_array_open(gen) || yajl_gen_array_open(gen)) cnFailTo(DONE);
   cnListEachBegin(bags, cnBag, bag) {
-    if (yajl_gen_map_open(gen)) cnErrTo(DONE);
-    if (!cnrGenStr(gen, itemsKey)) cnErrTo(DONE);
-    if (yajl_gen_array_open(gen)) cnErrTo(DONE);
+    if (yajl_gen_map_open(gen)) cnFailTo(DONE);
+    if (!cnrGenStr(gen, itemsKey)) cnFailTo(DONE);
+    if (yajl_gen_array_open(gen)) cnFailTo(DONE);
     // Write each item (ball or player).
     cnListEachBegin(bag->entities, cnEntity, entity) {
       cnIndex depth = 0;
       cnrItem item = *entity;
-      if (yajl_gen_map_open(gen)) cnErrTo(DONE);
+      if (yajl_gen_map_open(gen)) cnFailTo(DONE);
       // Type as ball, left (team), or right (team).
-      if (!cnrGenStr(gen, "type")) cnErrTo(DONE);
+      if (!cnrGenStr(gen, "type")) cnFailTo(DONE);
       if (item->type == cnrTypeBall) {
-        if (!cnrGenStr(gen, "ball")) cnErrTo(DONE);
+        if (!cnrGenStr(gen, "ball")) cnFailTo(DONE);
       } else {
         cnrPlayer player = (cnrPlayer)item;
-        if (!cnrGenStr(gen, player->team ? "right" : "left")) cnErrTo(DONE);
+        if (!cnrGenStr(gen, player->team ? "right" : "left")) cnFailTo(DONE);
       }
       // Location.
-      if (!cnrGenStr(gen, locationKey)) cnErrTo(DONE);
-      if (!cnrGenColumnVector(gen, 2, item->location)) cnErrTo(DONE);
+      if (!cnrGenStr(gen, locationKey)) cnFailTo(DONE);
+      if (!cnrGenColumnVector(gen, 2, item->location)) cnFailTo(DONE);
       // Pinning.
       cnListEachBegin(&bag->participantOptions, cnList(cnEntity), options) {
         if (options->count > 1) {
-          cnFailTo(
+          cnErrTo(
             DONE, "%ld > 1 options at depth %ld.", options->count, depth
           );
         }
@@ -319,26 +319,26 @@ cnBool cnrSaveBags(char* name, cnList(cnBag)* bags) {
         if (item == *(cnrItem*)options->items) break;
         depth++;
       } cnEnd;
-      if (!cnrGenStr(gen, "__instantiable_depth__")) cnErrTo(DONE);
-      if (yajl_gen_integer(gen, depth)) cnErrTo(DONE);
+      if (!cnrGenStr(gen, "__instantiable_depth__")) cnFailTo(DONE);
+      if (yajl_gen_integer(gen, depth)) cnFailTo(DONE);
       // End item.
-      if (yajl_gen_map_close(gen)) cnErrTo(DONE);
+      if (yajl_gen_map_close(gen)) cnFailTo(DONE);
     } cnEnd;
-    if (yajl_gen_array_close(gen)) cnErrTo(DONE);
+    if (yajl_gen_array_close(gen)) cnFailTo(DONE);
     // Bag label.
-    if (!cnrGenStr(gen, "__label__")) cnErrTo(DONE);
-    if (yajl_gen_bool(gen, bag->label)) cnErrTo(DONE);
-    if (yajl_gen_map_close(gen)) cnErrTo(DONE);
+    if (!cnrGenStr(gen, "__label__")) cnFailTo(DONE);
+    if (yajl_gen_bool(gen, bag->label)) cnFailTo(DONE);
+    if (yajl_gen_map_close(gen)) cnFailTo(DONE);
   } cnEnd;
-  if (yajl_gen_array_close(gen) || yajl_gen_array_open(gen)) cnErrTo(DONE);
-  if (!cnrGenStr(gen, locationKey)) cnErrTo(DONE);
-  if (yajl_gen_array_close(gen) || yajl_gen_array_close(gen)) cnErrTo(DONE);
+  if (yajl_gen_array_close(gen) || yajl_gen_array_open(gen)) cnFailTo(DONE);
+  if (!cnrGenStr(gen, locationKey)) cnFailTo(DONE);
+  if (yajl_gen_array_close(gen) || yajl_gen_array_close(gen)) cnFailTo(DONE);
 
   // Output.
   // TODO Alternatively set the gen print function to print directly!
-  if (yajl_gen_get_buf(gen, &buffer, &bufferSize)) cnErrTo(DONE);
+  if (yajl_gen_get_buf(gen, &buffer, &bufferSize)) cnFailTo(DONE);
   if (fwrite(buffer, sizeof(char), bufferSize, file) < bufferSize) {
-    cnErrTo(DONE);
+    cnFailTo(DONE);
   }
 
   // Winned.

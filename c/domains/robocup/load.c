@@ -223,15 +223,15 @@ cnBool cnrLoadCommandLog(cnrGame game, char* name) {
   cnStringInit(&line);
 
   // Load file, and parse lines.
-  if (!(file = fopen(name, "r"))) cnFailTo(DONE, "Couldn't open file!");
+  if (!(file = fopen(name, "r"))) cnErrTo(DONE, "Couldn't open file!");
   // TODO Load the file, eh?
   while ((readCount = cnReadLine(file, &line)) > 0) {
     lineCount++;
     if (!cnrRclParseLine(&parser, cnStr(&line))) {
-      cnFailTo(DONE, "Failed parsing line %ld.", lineCount);
+      cnErrTo(DONE, "Failed parsing line %ld.", lineCount);
     }
   }
-  if (readCount < 0) cnFailTo(DONE, "Failed reading line.");
+  if (readCount < 0) cnErrTo(DONE, "Failed reading line.");
 
   // Winned.
   result = cnTrue;
@@ -254,10 +254,10 @@ cnBool cnrLoadGameLog(cnrGame game, char* name) {
   cnrRcgParserInit(&parser);
   parser.game = game;
   cnStringInit(&line);
-  if (!(file = fopen(name, "r"))) cnFailTo(DONE, "Couldn't open file!");
+  if (!(file = fopen(name, "r"))) cnErrTo(DONE, "Couldn't open file!");
 
   // Consume version indicator.
-  if (cnReadLine(file, &line) < 0) cnFailTo(DONE, "Failed first line.");
+  if (cnReadLine(file, &line) < 0) cnErrTo(DONE, "Failed first line.");
   // Trim any newline.
   // TODO Some "cnEndsWith" or something! Or just cnStringTrim!
   if (line.count > 4 && cnStr(&line)[4] == '\n') {
@@ -269,11 +269,11 @@ cnBool cnrLoadGameLog(cnrGame game, char* name) {
   // TODO not have trailing newline or white space, so we should just do fgetc
   // TODO reads instead.
   if (strcmp(cnStr(&line), "ULG5")) {
-    cnFailTo(DONE, "Unsupported file type or version: %s", cnStr(&line));
+    cnErrTo(DONE, "Unsupported file type or version: %s", cnStr(&line));
   }
 
   // Parse everything.
-  if (!cnrParseRcgLines(&parser, file)) cnFailTo(DONE, "Failed parsing.");
+  if (!cnrParseRcgLines(&parser, file)) cnErrTo(DONE, "Failed parsing.");
 
   // Winned!
   result = cnTrue;
@@ -291,7 +291,7 @@ cnBool cnrParseContents(cnrParser parser, char** line) {
   cnBool result = cnFalse;
 
   if (!cnrParserTriggerContentsBegin(parser)) {
-    cnFailTo(DONE, "Failed begin trigger.");
+    cnErrTo(DONE, "Failed begin trigger.");
   }
   while (*(*line = cnNextChar(*line)) && **line != ')') {
     char c = **line;
@@ -305,37 +305,37 @@ cnBool cnrParseContents(cnrParser parser, char** line) {
       // Nested parens.
       (*line)++;
       if (!cnrParseContents(parser, line)) {
-        cnFailTo(DONE, "Failed parsing contents.");
+        cnErrTo(DONE, "Failed parsing contents.");
       }
       break;
     case '"':
       // Double-quoted string.
       (*line)++;
       if (!cnrParseQuoted(parser, line)) {
-        cnFailTo(DONE, "Failed parsing string.");
+        cnErrTo(DONE, "Failed parsing string.");
       }
       break;
     default:
       // Something else.
       if (('0' <= c && c <= '9') || c == '.' || c == '-') {
         // Number.
-        if (!cnrParseNumber(parser, line)) cnFailTo(DONE, "Failed number.");
+        if (!cnrParseNumber(parser, line)) cnErrTo(DONE, "Failed number.");
       } else {
         // Treat anything else as an identifier.
-        if (!cnrParseId(parser, line)) cnFailTo(DONE, "Failed number.");
+        if (!cnrParseId(parser, line)) cnErrTo(DONE, "Failed number.");
       }
       break;
     }
   }
   if (**line != ')' && parser->mode != cnrParseModeCommand) {
     // Contents should end in ')' except for the top level of commands.
-    cnFailTo(DONE, "Premature end of line.");
+    cnErrTo(DONE, "Premature end of line.");
   }
 
   // Good to go. Move on.
   (*line)++;
   if (!cnrParserTriggerContentsEnd(parser)) {
-    cnFailTo(DONE, "Failed end trigger.");
+    cnErrTo(DONE, "Failed end trigger.");
   }
 
   // Winned.
@@ -362,7 +362,7 @@ cnBool cnrParseId(cnrParser parser, char** line) {
   triggerResult = cnrParserTriggerId(parser, id);
   **line = c;
   // Only check failure after revert.
-  if (!triggerResult) cnFailTo(DONE, "Failed id trigger.");
+  if (!triggerResult) cnErrTo(DONE, "Failed id trigger.");
 
   // Winned.
   result = cnTrue;
@@ -379,12 +379,12 @@ cnBool cnrParseNumber(cnrParser parser, char** line) {
 
   // Parse the number.
   number = strtod(*line, &end);
-  if (!end) cnFailTo(DONE, "No number.");
+  if (!end) cnErrTo(DONE, "No number.");
   *line = end;
 
   // Handle it.
   if (!cnrParserTriggerNumber(parser, number)) {
-    cnFailTo(DONE, "Failed number trigger.");
+    cnErrTo(DONE, "Failed number trigger.");
   }
 
   // Winned.
@@ -403,7 +403,7 @@ char* cnrParseQuoted(cnrParser parser, char** line) {
     if (!**line) {
       // Nope. Failed.
       result = NULL;
-      cnFailTo(DONE, "Unterminated string.");
+      cnErrTo(DONE, "Unterminated string.");
     }
   }
 
@@ -426,18 +426,18 @@ cnBool cnrParseRcgLine(cnrParser parser, char* line) {
     // Empty line. That's okay.
     goto SUCCESS;
   }
-  if (*line != '(') cnFailTo(DONE, "Expected '('.");
+  if (*line != '(') cnErrTo(DONE, "Expected '('.");
   line++;
 
   // Get our line type.
   type = cnParseStr(line, &line);
-  if (!*type) cnFailTo(DONE, "No line type.");
+  if (!*type) cnErrTo(DONE, "No line type.");
 
   // Dispatch by type. TODO Hash table? Anything other than show?
   if (!strcmp(type, "show")) {
-    if (!cnrParseShow(parser, line)) cnFailTo(DONE, "Failed to parse show.");
+    if (!cnrParseShow(parser, line)) cnErrTo(DONE, "Failed to parse show.");
   } else if (!strcmp(type, "team")) {
-    if (!cnrParseTeam(parser, line)) cnFailTo(DONE, "Failed to parse show.");
+    if (!cnrParseTeam(parser, line)) cnErrTo(DONE, "Failed to parse show.");
   }
   // TODO (team 1 WrightEagle HELIOS2011 0 0)
 
@@ -461,10 +461,10 @@ cnBool cnrParseRcgLines(cnrParser parser, FILE* file) {
   while ((readCount = cnReadLine(file, &line)) > 0) {
     lineCount++;
     if (!cnrParseRcgLine(parser, cnStr(&line))) {
-      cnFailTo(DONE, "Failed parsing line %ld.", lineCount);
+      cnErrTo(DONE, "Failed parsing line %ld.", lineCount);
     }
   }
-  if (readCount < 0) cnFailTo(DONE, "Failed reading line.");
+  if (readCount < 0) cnErrTo(DONE, "Failed reading line.");
 
   // Winned.
   result = cnTrue;
@@ -508,7 +508,7 @@ cnBool cnrParserTriggerContentsBegin(cnrParser parser) {
     parser->mode = cnrParseModeTeam;
     break;
   default:
-    cnFailTo(DONE, "Unknown parser mode: %d", parser->mode);
+    cnErrTo(DONE, "Unknown parser mode: %d", parser->mode);
   }
 
   // Winned.
@@ -551,7 +551,7 @@ cnBool cnrParserTriggerContentsEnd(cnrParser parser) {
     parser->mode = cnrParseModeShowItem;
     break;
   default:
-    cnFailTo(DONE, "Unknown parser mode: %d", parser->mode);
+    cnErrTo(DONE, "Unknown parser mode: %d", parser->mode);
   }
 
   // Winned.
@@ -589,7 +589,7 @@ cnBool cnrParserTriggerId(cnrParser parser, char* id) {
       } else if (!(strcmp(id, "l") && strcmp(id, "r"))) {
         // Player. We don't preallocate these, so make space now.
         cnrPlayer player = cnListExpand(&parser->state->players);
-        if (!player) cnFailTo(DONE, "No player.");
+        if (!player) cnErrTo(DONE, "No player.");
         cnrPlayerInit(player);
         // Be explicit here for clarity.
         player->team = *id == 'l' ? cnrTeamLeft : cnrTeamRight;
@@ -605,11 +605,11 @@ cnBool cnrParserTriggerId(cnrParser parser, char* id) {
         // Team index as expected.
         cnString name;
         cnStringInit(&name);
-        if (!cnStringPushStr(&name, id)) cnFailTo(DONE, "No team name %s.", id);
+        if (!cnStringPushStr(&name, id)) cnErrTo(DONE, "No team name %s.", id);
         if (!cnListPush(&parser->game->teamNames, &name)) {
           // Clean then fail.
           cnStringDispose(&name);
-          cnFailTo(DONE, "No push name.");
+          cnErrTo(DONE, "No push name.");
         }
       } else {
         // TODO Validate unchanged team names?
@@ -645,7 +645,7 @@ cnBool cnrParserTriggerNumber(cnrParser parser, cnFloat number) {
       player->kickAngle = number;
       break;
     default:
-      cnFailTo(DONE, "Kick number at index %ld?", parser->index);
+      cnErrTo(DONE, "Kick number at index %ld?", parser->index);
     }
     break;
   case cnrParseModeShow:
@@ -690,7 +690,7 @@ cnBool cnrParserTriggerNumber(cnrParser parser, cnFloat number) {
         }
         break;
       default:
-        cnFailTo(DONE, "Unknown item type %d.", parser->item->type);
+        cnErrTo(DONE, "Unknown item type %d.", parser->item->type);
       }
     }
     break;
@@ -698,7 +698,7 @@ cnBool cnrParserTriggerNumber(cnrParser parser, cnFloat number) {
     if (parser->index == 1) {
       player = (cnrPlayer)parser->item;
       if (player->item.type != cnrTypePlayer) {
-        cnFailTo(DONE, "Index %ld of non-player.", (cnIndex)number);
+        cnErrTo(DONE, "Index %ld of non-player.", (cnIndex)number);
       }
       // TODO Verify nonduplicate player?
       player->index = number;
@@ -723,14 +723,14 @@ cnBool cnrParseShow(cnrParser parser, char* line) {
 
   // Prepare a new state to work with.
   if (!(parser->state = cnListExpand(&parser->game->states))) {
-    cnFailTo(DONE, "No new state.");
+    cnErrTo(DONE, "No new state.");
   }
   cnrStateInit(parser->state);
 
   // Parse through the rest.
   parser->mode = cnrParseModeTopShow;
   if (!cnrParseContents(parser, &line)) {
-    cnFailTo(DONE, "Failed parsing line content.");
+    cnErrTo(DONE, "Failed parsing line content.");
   }
   //printf("\n");
 
@@ -749,7 +749,7 @@ cnBool cnrParseTeam(cnrParser parser, char* line) {
   // Parse through the rest.
   parser->mode = cnrParseModeTopTeam;
   if (!cnrParseContents(parser, &line)) {
-    cnFailTo(DONE, "Failed parsing line content.");
+    cnErrTo(DONE, "Failed parsing line content.");
   }
   //printf("\n");
 
@@ -797,8 +797,8 @@ cnBool cnrRclParseLine(cnrParser parser, char* line) {
   char* token;
 
   // Format: time,subtime\t(Recv|\(...\)) TeamName_N: (command (content))
-  if (!cnDelimitInt(&line, NULL, &time, ',')) cnFailTo(DONE, "No time.");
-  if (!cnDelimitInt(&line, NULL, &subtime, '\t')) cnFailTo(DONE, "No subtime.");
+  if (!cnDelimitInt(&line, NULL, &time, ',')) cnErrTo(DONE, "No time.");
+  if (!cnDelimitInt(&line, NULL, &subtime, '\t')) cnErrTo(DONE, "No subtime.");
 
   // Find out which state we're in. Major time.
   // TODO Unify time/subtime in some fashion? Array instead of separate vars?
@@ -834,17 +834,17 @@ cnBool cnrRclParseLine(cnrParser parser, char* line) {
     line++;
     parser->mode = cnrParseModeTopCommandNonPlayer;
     if (!cnrParseContents(parser, &line)) {
-      cnFailTo(DONE, "Failed parsing non-player line.");
+      cnErrTo(DONE, "Failed parsing non-player line.");
     }
     goto WIN;
   }
 
   // Check for some other line type. We only care about Recv.
-  if (!(token = cnParseStr(line, &line))) cnFailTo(DONE, "No line type.");
+  if (!(token = cnParseStr(line, &line))) cnErrTo(DONE, "No line type.");
   if (strcmp(token, "Recv")) goto WIN;
 
   // Team name and index.
-  if (!(token = cnDelimit(&line, '_'))) cnFailTo(DONE, "No team_player split.");
+  if (!(token = cnDelimit(&line, '_'))) cnErrTo(DONE, "No team_player split.");
   team = 0;
   cnListEachBegin(&parser->game->teamNames, cnString, name) {
     // Break if we have it, and inc if not.
@@ -852,14 +852,14 @@ cnBool cnrRclParseLine(cnrParser parser, char* line) {
     team++;
   } cnEnd;
   if (team >= parser->game->teamNames.count) {
-    cnFailTo(DONE, "Unrecognized team.");
+    cnErrTo(DONE, "Unrecognized team.");
   }
 
   // Player index.
   if (!cnDelimitInt(&line, &token, &playerIndex, ':')) {
     // Ignore coach, and fail otherwise.
     if (!strcmp(token, "Coach")) goto WIN;
-    cnFailTo(DONE, "No player.");
+    cnErrTo(DONE, "No player.");
   }
 
   // Find the player in the state.
@@ -869,12 +869,12 @@ cnBool cnrRclParseLine(cnrParser parser, char* line) {
       parser->item = &player->item;
     }
   } cnEnd;
-  if (!parser->item) cnFailTo(DONE, "No player %ld/%ld.", team, playerIndex);
+  if (!parser->item) cnErrTo(DONE, "No player %ld/%ld.", team, playerIndex);
 
   // Parse deeper for kicks (literally).
   parser->mode = cnrParseModeTopCommand;
   if (!cnrParseContents(parser, &line)) {
-    cnFailTo(DONE, "Failed command contents.");
+    cnErrTo(DONE, "Failed command contents.");
   }
 
   WIN:

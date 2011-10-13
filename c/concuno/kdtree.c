@@ -3,7 +3,7 @@
 
 cnRootNode* cnKdSplit(cnKdSplitter splitter) {
   if (splitter->pointMatrix->topology != cnTopologyEuclidean) {
-    cnFailTo(DONE, "Only Euclidean for now.");
+    cnErrTo(DONE, "Only Euclidean for now.");
   }
   DONE:
   return NULL;
@@ -12,7 +12,7 @@ cnRootNode* cnKdSplit(cnKdSplitter splitter) {
 
 cnKdSplitter cnKdSplitterCreate(cnRandom random) {
   cnKdSplitter splitter = malloc(sizeof(struct cnKdSplitter));
-  if (!splitter) cnFailTo(DONE, "No splitter.");
+  if (!splitter) cnErrTo(DONE, "No splitter.");
   // Init.
   splitter->pointMatrix = NULL;
   splitter->random = random;
@@ -23,7 +23,7 @@ cnKdSplitter cnKdSplitterCreate(cnRandom random) {
     if (!splitter->random) {
       free(splitter);
       splitter = NULL;
-      cnFailTo(DONE, "No random.");
+      cnErrTo(DONE, "No random.");
     }
     splitter->randomOwned = cnTrue;
   }

@@ -63,7 +63,7 @@ cnBinomial cnBinomialCreate(cnRandom random, cnCount count, cnFloat prob) {
 
   // Allocate space.
   if (!(binomial = malloc(sizeof(cnBinomialInfo)))) {
-    cnFailTo(DONE, "No binomial.");
+    cnErrTo(DONE, "No binomial.");
   }
 
   // Remember parameters.
@@ -231,7 +231,7 @@ cnMultinomial cnMultinomialCreate(
 
   // Allocate and init basics.
   if (!(info = malloc(sizeof(cnMultinomialInfo)))) {
-    cnFailTo(FAIL, "No multinomial.");
+    cnErrTo(FAIL, "No multinomial.");
   }
   info->binomials = NULL;
   info->classCount = classCount;
@@ -240,7 +240,7 @@ cnMultinomial cnMultinomialCreate(
 
   // Allocate binomial info.
   if (!(info->binomials = malloc(classCount * sizeof(cnMultiBinomial)))) {
-    cnFailTo(FAIL, "No multibinomials.");
+    cnErrTo(FAIL, "No multibinomials.");
   }
 
   // Init (to original probs), and sort them descending by prob.
@@ -252,7 +252,7 @@ cnMultinomial cnMultinomialCreate(
   }
   // TODO What's a good epsilon?
   if (fabs(probLeft - 1.0) > 1e-6) {
-    cnFailTo(FAIL, "Probs sum to %lg, not 1.", probLeft);
+    cnErrTo(FAIL, "Probs sum to %lg, not 1.", probLeft);
   }
   qsort(
     info->binomials, classCount, sizeof(cnMultiBinomial),
@@ -321,13 +321,13 @@ cnBool cnPermutations(
   cnIndex c, o;
   cnIndex* permutation = malloc(count * sizeof(cnIndex));
   cnBool* used = malloc(options * sizeof(cnBool));
-  if (!(permutation && used)) cnFailTo(DONE, "No permutation or used.");
+  if (!(permutation && used)) cnErrTo(DONE, "No permutation or used.");
 
   // Sanity checks.
-  if (count < 0) cnFailTo(DONE, "count %ld < 0", count);
-  if (options < 0) cnFailTo(DONE, "options %ld < 0", options);
+  if (count < 0) cnErrTo(DONE, "count %ld < 0", count);
+  if (options < 0) cnErrTo(DONE, "options %ld < 0", options);
   if (count > options) {
-    cnFailTo(DONE, "count %ld > options %ld", count, options);
+    cnErrTo(DONE, "count %ld > options %ld", count, options);
   }
 
   // Clear out the info.
@@ -361,7 +361,7 @@ cnBool cnPermutations(
       if (c >= count) {
         // Past the end. Report the permutation, and move back.
         if (!handler(data, count, permutation)) {
-          cnFailTo(DONE, "Handler failed.");
+          cnErrTo(DONE, "Handler failed.");
         }
         c--;
       }
@@ -380,7 +380,7 @@ cnBool cnPermutations(
 cnRandom cnRandomCreate(void) {
   rk_state* state;
 
-  if (!(state = malloc(sizeof(rk_state)))) cnFailTo(DONE, "No random.");
+  if (!(state = malloc(sizeof(rk_state)))) cnErrTo(DONE, "No random.");
   // TODO Is 0 a particularly bad seed?
   rk_seed(0, state);
 

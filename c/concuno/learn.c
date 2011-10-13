@@ -494,7 +494,7 @@ cnBool cnBestPointByScore(
         // TODO Check whether inside or outside is positive!!!
         cnFloat distance;
         if (!distanceFunction->evaluate(distanceFunction, point, &distance)) {
-          cnFailTo(DONE, "No distance for point.");
+          cnErrTo(DONE, "No distance for point.");
         }
         // TODO Don't duplicate <= from the threshold predicate!
         if (distance <= threshold) goto SKIP_POINT;
@@ -506,7 +506,7 @@ cnBool cnBestPointByScore(
       if (!cnChooseThreshold(
         pointBag->bag->label,
         distanceFunction, pointBags, &score, &threshold, &posPointsIn, NULL
-      )) cnFailTo(DONE, "Search failed.");
+      )) cnErrTo(DONE, "Search failed.");
 
       // Check if best. TODO Check if better than any of the list of best.
       if (score > bestScore) {
@@ -524,7 +524,7 @@ cnBool cnBestPointByScore(
           pointBag->bag->label,
           distanceFunction, pointBags, &fittedScore, &threshold,
           &posPointsIn, NULL
-        )) cnFailTo(DONE, "Search failed.");
+        )) cnErrTo(DONE, "Search failed.");
         if (fittedScore < score) {
           // TODO This happens frequently, even for better end results. Why?
           printf("Fit worse (%.2lf < %.2lf)! ", fittedScore, score);
@@ -538,7 +538,7 @@ cnBool cnBestPointByScore(
         // TODO Track multiple bests.
         cnFunctionDrop(*bestFunction);
         if (!(*bestFunction = cnFunctionCopy(distanceFunction))) {
-          cnFailTo(DONE, "No best copy.");
+          cnErrTo(DONE, "No best copy.");
         }
         *bestThreshold = threshold;
       }
@@ -579,7 +579,7 @@ cnBool cnChooseThreshold(
   cnBool result = cnFalse;
   cnFloat thresholdStorage;
 
-  if (!distances) cnFailTo(DONE, "No distances.");
+  if (!distances) cnErrTo(DONE, "No distances.");
 
   // For convenience, point threshold at least somewhere.
   if (!threshold) threshold = &thresholdStorage;
@@ -922,14 +922,14 @@ cnRootNode* cnExpandedTree(cnLearnerConfig* config, cnExpansion* expansion) {
   // Create a copied tree to work with.
   if (!(
     root = (cnRootNode*)cnTreeCopy(&cnNodeRoot(&expansion->leaf->node)->node)
-  )) cnFailTo(FAIL, "No tree copy for expansion.\n");
+  )) cnErrTo(FAIL, "No tree copy for expansion.\n");
   // Find the new version of the leaf.
   leaf = (cnLeafNode*)cnNodeFindById(&root->node, expansion->leaf->node.id);
 
   // Add requested vars.
   for (varsAdded = 0; varsAdded < expansion->newVarCount; varsAdded++) {
     cnVarNode* var = cnVarNodeCreate(cnTrue);
-    if (!var) cnFailTo(FAIL, "No var %ld for expansion.", varsAdded);
+    if (!var) cnErrTo(FAIL, "No var %ld for expansion.", varsAdded);
     cnNodeReplaceKid(&leaf->node, &var->node);
     leaf = *(cnLeafNode**)cnNodeKids(&var->node);
   }
@@ -939,7 +939,7 @@ cnRootNode* cnExpandedTree(cnLearnerConfig* config, cnExpansion* expansion) {
   // TODO Some way to specify that we only care about certain paths?
   if (!cnTreePropagateBags(
     root, &config->trainingBags, &leafBindingBagGroups
-  )) cnFailTo(FAIL, "Failed to propagate training bags.");
+  )) cnErrTo(FAIL, "Failed to propagate training bags.");
   // Find the bindings we need from the to-be-replaced leaf.
   cnListEachBegin(&leafBindingBagGroups, cnLeafBindingBagGroup, group) {
     if (group->leaf == leaf) {
@@ -952,7 +952,7 @@ cnRootNode* cnExpandedTree(cnLearnerConfig* config, cnExpansion* expansion) {
   // Add the split, and provide the bindings from the old parent.
   // TODO Just always propagate from the root?
   // TODO Don't bother even to store bindings??? How fast is it, usually?
-  if (!(split = cnSplitNodeCreate(cnTrue))) cnFailTo(FAIL, "No split.");
+  if (!(split = cnSplitNodeCreate(cnTrue))) cnErrTo(FAIL, "No split.");
   cnNodeReplaceKid(&leaf->node, &split->node);
 
   // Configure the split, and learn a model (distribution, threshold).
@@ -961,18 +961,18 @@ cnRootNode* cnExpandedTree(cnLearnerConfig* config, cnExpansion* expansion) {
   // TODO Array malloc/copy function?
   split->varIndices = malloc(split->function->inCount * sizeof(cnIndex));
   if (!split->varIndices) {
-    cnFailTo(FAIL, "No var indices for expansion.");
+    cnErrTo(FAIL, "No var indices for expansion.");
   }
   memcpy(
     split->varIndices, expansion->varIndices,
     split->function->inCount * sizeof(cnIndex)
   );
   if (!cnLearnSplitModel(config->learner, split, bindingBags)) {
-    cnFailTo(FAIL, "No split learned for expansion.");
+    cnErrTo(FAIL, "No split learned for expansion.");
   }
   // TODO Retain props from earlier?
   if (!cnUpdateLeafProbabilities(root, &config->trainingBags)) {
-    cnFailTo(FAIL, "Failed to update probabilities.");
+    cnErrTo(FAIL, "Failed to update probabilities.");
   }
 
   // Winned!
@@ -1039,7 +1039,7 @@ cnBool cnLearnerInit(cnLearner* learner, cnRandom random) {
   // Prepare a random, if requested (via NULL).
   if (!random) {
     if (!(learner->random = cnRandomCreate())) {
-      cnFailTo(DONE, "No default random.");
+      cnErrTo(DONE, "No default random.");
     }
     learner->randomOwned = cnTrue;
   }
@@ -1098,7 +1098,7 @@ cnBool cnLearnSplitModel(
   //   cnBestPointByDiverseDensity(split->function->outTopology, &pointBags);
   if (!cnBestPointByScore(
     distanceFunction, gaussian, &pointBags, &bestFunction, &threshold
-  )) cnFailTo(DONE, "Best point failure.");
+  )) cnErrTo(DONE, "Best point failure.");
   if (bestFunction) {
     // Replace the initial with the best found.
     cnFunctionDrop(distanceFunction);
@@ -1145,10 +1145,10 @@ cnRootNode* cnLearnTree(cnLearner* learner) {
   if (!initialTree) {
     // Allocate the root.
     initialTree = malloc(sizeof(cnRootNode));
-    if (!initialTree) cnFailTo(DONE, "Failed to allocate root.");
+    if (!initialTree) cnErrTo(DONE, "Failed to allocate root.");
     // Set up the tree.
     if (!cnRootNodeInit(initialTree, cnTrue)) {
-      cnFailTo(DONE, "Failed to init stub tree.");
+      cnErrTo(DONE, "Failed to init stub tree.");
     }
   }
 
@@ -1166,11 +1166,11 @@ cnRootNode* cnLearnTree(cnLearner* learner) {
   config.validationBags.count =
     learner->bags->count - config.trainingBags.count;
   // Failsafe on having data here.
-  if (!config.validationBags.count) cnFailTo(DONE, "No validation bags!");
+  if (!config.validationBags.count) cnErrTo(DONE, "No validation bags!");
 
   // Make sure leaf probs are up to date.
   if (!cnUpdateLeafProbabilities(initialTree, &config.trainingBags)) {
-    cnFailTo(DONE, "Failed to update leaf probabilities.");
+    cnErrTo(DONE, "Failed to update leaf probabilities.");
   }
 
   config.previous = initialTree;
@@ -1187,7 +1187,7 @@ cnRootNode* cnLearnTree(cnLearner* learner) {
     // TODO Push all possible expansions for all leaves onto a heap.
     // TODO Pull the leaf binding bags in advance?
     if (!(leaf = cnPickBestLeaf(config.previous, &config.trainingBags))) {
-      cnFailTo(DONE, "No leaf.");
+      cnErrTo(DONE, "No leaf.");
     }
 
     expanded = cnTryExpansionsAtLeaf(&config, leaf);
@@ -1287,17 +1287,17 @@ cnLeafNode* cnPickBestLeaf(cnRootNode* tree, cnList(cnBag)* bags) {
   // TODO We don't actually care about the bindings themselves, but we had to
   // TODO make them to get past splits. Hrmm.
   if (!cnTreePropagateBags(tree, bags, &groups)) {
-    cnFailTo(DONE, "No propagate.");
+    cnErrTo(DONE, "No propagate.");
   }
 
   // Now find the binding bags which are max for each leaf. We'll use those for
   // our split, to avoid making low prob branches compete with high prob
   // branches that already selected the bags they like.
-  if (!cnTreeMaxLeafBags(&groups, &maxGroups)) cnFailTo(DONE, "No max bags.");
+  if (!cnTreeMaxLeafBags(&groups, &maxGroups)) cnErrTo(DONE, "No max bags.");
 
   // Prepare for bogus "no" group. Error leaves with no bags are irrelevant.
   if (!(noGroup = cnListExpand(&groups))) {
-    cnFailTo(DONE, "No space for bogus groups.");
+    cnErrTo(DONE, "No space for bogus groups.");
   }
   // We shouldn't need a full real leaf to get by. Only the probability field
   // should end up used.
@@ -1307,9 +1307,9 @@ cnLeafNode* cnPickBestLeaf(cnRootNode* tree, cnList(cnBag)* bags) {
   // Also remember the real ones, so we can return the right leaf.
   if (!(
     realLeaves = malloc(groups.count * sizeof(cnLeafNode*))
-  )) cnFailTo(DONE, "No real leaf memory.");
+  )) cnErrTo(DONE, "No real leaf memory.");
   if (!cnListExpandMulti(&fakeLeaves, groups.count)) {
-    cnFailTo(DONE, "No space for bogus leaves.");
+    cnErrTo(DONE, "No space for bogus leaves.");
   }
   leaf = fakeLeaves.items;
   cnListEachBegin(&groups, cnLeafBindingBagGroup, group) {
@@ -1342,7 +1342,7 @@ cnLeafNode* cnPickBestLeaf(cnRootNode* tree, cnList(cnBag)* bags) {
     // Try to allocate maximal space in advance, so we don't have trouble later.
     // Just seems simpler (for cleanup) and not likely to be a memory issue.
     if (!cnListExpandMulti(&noGroup->bindingBags, group->bindingBags.count)) {
-      cnFailTo(DONE, "No space for false bags.");
+      cnErrTo(DONE, "No space for false bags.");
     }
     cnListClear(&noGroup->bindingBags);
 
@@ -1370,7 +1370,7 @@ cnLeafNode* cnPickBestLeaf(cnRootNode* tree, cnList(cnBag)* bags) {
     // Update leaf probabilities, and find the score.
     if (
       !cnUpdateLeafProbabilitiesWithBindingBags(&groups, &counts)
-    ) cnFailTo(DONE, "No fake leaf probs.");
+    ) cnErrTo(DONE, "No fake leaf probs.");
     score = cnCountsLogMetric(&counts);
     printf(
       "Score at %ld: %lg",
@@ -1592,7 +1592,7 @@ cnRootNode* cnTryExpansionsAtLeaf(cnLearnerConfig* config, cnLeafNode* leaf) {
     // TODO Disinguish bad errors from no good expansion?
     if (!(
       expanded = cnExpandedTree(config, expansion)
-    )) cnFailTo(FAIL, "Expanding failed.");
+    )) cnErrTo(FAIL, "Expanding failed.");
 
     // Check the metric on the validation set to see how we did.
     // TODO Evaluate LL to see if it's the best yet. If not ...
@@ -1600,7 +1600,7 @@ cnRootNode* cnTryExpansionsAtLeaf(cnLearnerConfig* config, cnLeafNode* leaf) {
     // TODO significance test.
     if (!cnVerifyImprovement(config, expanded, &pValue)) {
       cnNodeDrop(&expanded->node);
-      cnFailTo(FAIL, "Failed propagate or p-value.");
+      cnErrTo(FAIL, "Failed propagate or p-value.");
     }
     printf("Expanded tree has p-value: %lg\n", pValue);
     if (pValue < bestPValue) {
@@ -1650,12 +1650,12 @@ cnBool cnUpdateLeafProbabilities(cnRootNode* root, cnList(cnBag)* bags) {
   // Get all leaf binding bag groups.
   cnListInit(&groups, sizeof(cnLeafBindingBagGroup));
   if (!cnTreePropagateBags(root, bags, &groups)) {
-    cnFailTo(DONE, "No propagate.");
+    cnErrTo(DONE, "No propagate.");
   }
 
   // Update probs.
   if (!cnUpdateLeafProbabilitiesWithBindingBags(&groups, NULL)) {
-    cnFailTo(DONE, "No probs.");
+    cnErrTo(DONE, "No probs.");
   }
 
   // Winned.
@@ -1682,12 +1682,12 @@ cnBool cnUpdateLeafProbabilitiesWithBindingBags(
 
   // Copy this list, because we're going to be clearing leaf pointers.
   cnListInit(&groupsCopied, sizeof(cnLeafBindingBagGroup));
-  if (!cnListPushAll(&groupsCopied, groups)) cnFailTo(DONE, "No groups copy.");
+  if (!cnListPushAll(&groupsCopied, groups)) cnErrTo(DONE, "No groups copy.");
 
   // See if they want leaf counts, and get ready if they do.
   if (counts) {
     cnListClear(counts);
-    if (!cnListExpandMulti(counts, groups->count)) cnFailTo(DONE, "No counts.");
+    if (!cnListExpandMulti(counts, groups->count)) cnErrTo(DONE, "No counts.");
   }
 
   // Init which bags used. First, we need to find how many and where they start.
@@ -1835,7 +1835,7 @@ cnBool cnVerifyImprovement_StatsPrepare(
 
   // Gather up the original counts for each leaf.
   if (!cnTreeMaxLeafCounts(tree, &stats->leafCounts, bags)) {
-    cnFailTo(DONE, "No counts.");
+    cnErrTo(DONE, "No counts.");
   }
 
   // Prepare place for stats.
@@ -1843,7 +1843,7 @@ cnBool cnVerifyImprovement_StatsPrepare(
   probs = cnStackAlloc(classCount * sizeof(cnFloat));
   stats->bootCounts = malloc(classCount * sizeof(cnCount));
   if (!(probs && stats->bootCounts)) {
-    cnFailTo(DONE, "No stats allocated.");
+    cnErrTo(DONE, "No stats allocated.");
   }
 
   // Calculate probabilities.
@@ -1862,7 +1862,7 @@ cnBool cnVerifyImprovement_StatsPrepare(
   if (!(
     stats->multinomial =
       cnMultinomialCreate(random, bags->count, classCount, probs)
-  )) cnFailTo(DONE, "No multinomial.")
+  )) cnErrTo(DONE, "No multinomial.")
 
   // Winned.
   result = cnTrue;
@@ -1912,12 +1912,12 @@ cnBool cnVerifyImprovement(
   printf("Candidate:\n");
   if (!cnVerifyImprovement_StatsPrepare(
     &candidateStats, candidate, &config->validationBags, config->learner->random
-  )) cnFailTo(DONE, "No stats.");
+  )) cnErrTo(DONE, "No stats.");
   printf("Previous:\n");
   if (!cnVerifyImprovement_StatsPrepare(
     &previousStats, config->previous, &config->validationBags,
     config->learner->random
-  )) cnFailTo(DONE, "No stats.");
+  )) cnErrTo(DONE, "No stats.");
 
   // Run the bootstrap.
   for (i = 0; i < bootRepeatCount; i++) {

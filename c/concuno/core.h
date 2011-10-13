@@ -127,13 +127,16 @@ typedef struct cnGridAny {
  *
  * TODO Use __FILE__ but wrapped to show just the last file name, not full path.
  */
-#define cnErrTo(label) { \
-  printf("Failed in %s at line %d.\n", __FUNCTION__, __LINE__); \
+#define cnFailTo(label) { \
+  printf("Failed (in %s at line %d)\n", __FUNCTION__, __LINE__); \
   goto label; \
 }
 
 
-#define cnFailTo(label, message, ...) { \
+/**
+ * Use to fail with a particular message.
+ */
+#define cnErrTo(label, message, ...) { \
   printf( \
     message " (in %s at line %d)\n", ## __VA_ARGS__, __FUNCTION__, __LINE__); \
   goto label; \

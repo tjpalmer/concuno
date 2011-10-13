@@ -29,11 +29,11 @@ cnBool stAllBagsFalse(
   cnListEachBegin(states, stState, state) {
     // Every state gets a bag.
     cnBag* bag;
-    if (!(bag = cnListExpand(bags))) cnFailTo(DONE, "Failed to push bag.");
-    if (!cnBagInit(bag, NULL)) cnFailTo(DONE, "No bag init.");
+    if (!(bag = cnListExpand(bags))) cnErrTo(DONE, "Failed to push bag.");
+    if (!cnBagInit(bag, NULL)) cnErrTo(DONE, "No bag init.");
     // Each bag gets the live items.
     if (!stPlaceLiveItems(&state->items, bag->entities)) {
-      cnFailTo(DONE, "Failed to push entities.");
+      cnErrTo(DONE, "Failed to push entities.");
     }
   } cnEnd;
 
@@ -85,15 +85,15 @@ cnBool stChooseDropWhereLandOnOther(
         if (label == cnFalse || label == cnTrue) {
           cnBag* bag;
           if (!(bag = cnListExpand(bags))) {
-            cnFailTo(DONE, "Failed to push bag.");
+            cnErrTo(DONE, "Failed to push bag.");
           }
           // Now init the bag in the list.
-          if (!cnBagInit(bag, NULL)) cnFailTo(DONE, "No bag init.");
+          if (!cnBagInit(bag, NULL)) cnErrTo(DONE, "No bag init.");
           bag->label = label;
           // If we defer placing entity pointers until after we've stored the
           // bag itself, then cleanup from failure is easier.
           if (!stPlaceLiveItems(&ungraspState->items, bag->entities)) {
-            cnFailTo(DONE, "Failed to push entities.");
+            cnErrTo(DONE, "Failed to push entities.");
           }
         }
         ungraspState = NULL;
@@ -101,7 +101,7 @@ cnBool stChooseDropWhereLandOnOther(
     } else {
       cnBool hasGrasp;
       if (!stFindGraspedItems(state, &graspedItems)) {
-        cnFailTo(DONE, "Failed to push grasped items.");
+        cnErrTo(DONE, "Failed to push grasped items.");
       }
       hasGrasp = graspedItems.count;
       if (hasGrasp) {
@@ -159,7 +159,7 @@ cnBool stChooseWhereNotMoving(
     // We want it.
     // First make an entity list usable for multiple bags.
     if (!(entities = malloc(sizeof(cnList(cnEntity))))) {
-      cnFailTo(DONE, "No entity list.");
+      cnErrTo(DONE, "No entity list.");
     }
     cnListInit(entities, sizeof(cnEntity));
 
@@ -168,12 +168,12 @@ cnBool stChooseWhereNotMoving(
       // If it didn't get on the list, it won't be freed later. Free it now.
       cnListDispose(entities);
       free(entities);
-      cnFailTo(DONE, "Failed to push entities list.");
+      cnErrTo(DONE, "Failed to push entities list.");
     }
 
     // Each bag gets the live items.
     if (!stPlaceLiveItems(&state->items, entities)) {
-      cnFailTo(DONE, "Failed to push entities.");
+      cnErrTo(DONE, "Failed to push entities.");
     }
 
     // Create a bag for each item, where we constrain the first binding and
@@ -185,7 +185,7 @@ cnBool stChooseWhereNotMoving(
       cnFloat speed;
 
       // Bag.
-      if (!(bag = cnListExpand(bags))) cnFailTo(DONE, "Failed to push bag.");
+      if (!(bag = cnListExpand(bags))) cnErrTo(DONE, "Failed to push bag.");
       // With provided entities, bag init doesn't fail.
       cnBagInit(bag, entities);
 
@@ -193,11 +193,11 @@ cnBool stChooseWhereNotMoving(
       if (!(participant = cnListExpand(&bag->participantOptions))) {
         // Hide the bag and fail.
         bags->count--;
-        cnFailTo(DONE, "Failed to push participant list.");
+        cnErrTo(DONE, "Failed to push participant list.");
       }
       cnListInit(participant, sizeof(cnEntity));
       // Push the (pointer to the) item, after earlier safety init.
-      if (!cnListPush(participant, entity)) cnFailTo(DONE, "No participant.");
+      if (!cnListPush(participant, entity)) cnErrTo(DONE, "No participant.");
 
       // See if this item is moving or not.
       // TODO Check orientation velocity, too?

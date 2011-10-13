@@ -105,7 +105,7 @@ cnBool stClusterStuff(
   // Choose out the states we want to focus on.
   cnListInit(&bags, sizeof(cnBag));
   if (!stAllBagsFalse(states, &bags, NULL)) {
-    cnFailTo(DISPOSE_BAGS, "Failed to choose bags.");
+    cnErrTo(DISPOSE_BAGS, "Failed to choose bags.");
   }
 
   // The last function right now should be velocity. TODO Watch out for changes!
@@ -163,10 +163,10 @@ cnBool stInitSchemaAndEntityFunctions(
   // Valid.
   if (cnTrue) {
     if (!cnPushValidFunction(functions, schema, 1)) {
-      cnFailTo(FAIL, "Failed to push Valid1.");
+      cnErrTo(FAIL, "Failed to push Valid1.");
     }
     if (!cnPushValidFunction(functions, schema, 2)) {
-      cnFailTo(FAIL, "Failed to push Valid2.");
+      cnErrTo(FAIL, "Failed to push Valid2.");
     }
   }
 
@@ -246,11 +246,11 @@ cnBool stLearnConcept(
   cnListInit(&bags, sizeof(cnBag));
   cnListInit(&entityLists, sizeof(cnList(cnEntity)*));
   // Failable thing last.
-  if (!cnLearnerInit(&learner, NULL)) cnFailTo(DONE, "No learner.");
+  if (!cnLearnerInit(&learner, NULL)) cnErrTo(DONE, "No learner.");
 
   // Choose out the states we want to focus on.
   if (!choose(states, &bags, &entityLists)) {
-    cnFailTo(DONE, "Failed to choose bags.");
+    cnErrTo(DONE, "Failed to choose bags.");
   }
   trueCount = 0;
   cnListEachBegin(&bags, cnBag, bag) {
@@ -266,7 +266,7 @@ cnBool stLearnConcept(
   learner.bags = &bags;
   learner.entityFunctions = functions;
   learnedTree = cnLearnTree(&learner);
-  if (!learnedTree) cnFailTo(DONE, "No learned tree.");
+  if (!learnedTree) cnErrTo(DONE, "No learned tree.");
 
   // Display the learned tree.
   printf("\n");

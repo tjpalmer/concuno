@@ -76,9 +76,9 @@ void testBinomial(void) {
   cnRandom random = NULL;
 
   // Init.
-  if (!(random = cnRandomCreate())) cnFailTo(DONE, "No random.");
+  if (!(random = cnRandomCreate())) cnErrTo(DONE, "No random.");
   if (!(binomial = cnBinomialCreate(random, countPerSample, prob))) {
-    cnFailTo(DONE, "No random.");
+    cnErrTo(DONE, "No random.");
   }
 
   // Sample.
@@ -118,15 +118,15 @@ cnBool testHeap_greater(cnRefAny unused, cnRefAny a, cnRefAny b) {
 void testHeap(void) {
   cnHeap(cnIndex) heap = cnHeapCreate(testHeap_greater);
   cnIndex i;
-  if (!heap) cnFailTo(DONE, "No heap.");
+  if (!heap) cnErrTo(DONE, "No heap.");
 
   // Load the heap.
   heap->destroyItem = testHeap_destroyItem;
   for (i = 0; i < testHeap_COUNT; i++) {
     cnFloat* number = malloc(sizeof(cnFloat));
-    if (!number) cnFailTo(DONE, "No float %ld.", i);
+    if (!number) cnErrTo(DONE, "No float %ld.", i);
     *number = cnUnitRand();
-    if (!cnHeapPush(heap, number)) cnFailTo(DONE, "No push %ld.", i);
+    if (!cnHeapPush(heap, number)) cnErrTo(DONE, "No push %ld.", i);
   }
 
   // Drain the heap partially.
@@ -142,9 +142,9 @@ void testHeap(void) {
   heap->destroyItem = testHeap_destroyItem;
   for (i = 0; i < testHeap_COUNT / 2; i++) {
     cnFloat* number = malloc(sizeof(cnFloat));
-    if (!number) cnFailTo(DONE, "No 2nd float %ld.", i);
+    if (!number) cnErrTo(DONE, "No 2nd float %ld.", i);
     *number = cnUnitRand();
-    if (!cnHeapPush(heap, number)) cnFailTo(DONE, "No 2nd push %ld.", i);
+    if (!cnHeapPush(heap, number)) cnErrTo(DONE, "No 2nd push %ld.", i);
   }
 
   // Drain the heap completely.
@@ -175,12 +175,12 @@ void testMultinomial(void) {
   cnCount sum[testMultinomial_CLASS_COUNT];
 
   // Init.
-  if (!(random = cnRandomCreate())) cnFailTo(DONE, "No random.");
+  if (!(random = cnRandomCreate())) cnErrTo(DONE, "No random.");
   if (!(
     multinomial = cnMultinomialCreate(
       random, countPerSample, testMultinomial_CLASS_COUNT, p
     )
-  )) cnFailTo(DONE, "No multinomial.");
+  )) cnErrTo(DONE, "No multinomial.");
 
   printf(
     "testMultinomialSample (%ld*%lg):\n", countPerSample, (cnFloat)sampleTotal
@@ -257,7 +257,7 @@ cnBool testPropagate_write(
   fprintf(file, "{");
   if (predicate->evaluate == testPropagate_equalEvaluate) {
     fprintf(file, "\"evaluate\": \"Equal\"");
-  } else cnFailTo(DONE, "Unknown evaluate.");
+  } else cnErrTo(DONE, "Unknown evaluate.");
   fprintf(file, "}");
 
   // Winned!
@@ -284,36 +284,36 @@ void testPropagate(void) {
   cnListInit(&leafBindingBags, sizeof(cnLeafBindingBag));
   initOkay &= cnBagInit(&bag, NULL);
   initOkay &= cnRootNodeInit(&tree, cnFalse);
-  if (!initOkay) cnFailTo(DONE, "Init failed.");
+  if (!initOkay) cnErrTo(DONE, "Init failed.");
   // TODO Float required because of NaN convention. Fix this!
   if (!(type = cnTypeCreate("Float", sizeof(cnFloat)))) {
-    cnFailTo(DONE, "No type.");
+    cnErrTo(DONE, "No type.");
   }
   if (!(entityFunction = cnEntityFunctionCreate("CharsDiff", 2, 1))) {
-    cnFailTo(DONE, "No function.");
+    cnErrTo(DONE, "No function.");
   }
   entityFunction->get = testPropagate_charsDiffGet;
   entityFunction->outType = type;
 
   // Add var nodes.
   // Create and add nodes one at a time, so destruction will be automatic.
-  if (!(vars[0] = cnVarNodeCreate(cnFalse))) cnFailTo(DONE, "No var[0].");
+  if (!(vars[0] = cnVarNodeCreate(cnFalse))) cnErrTo(DONE, "No var[0].");
   cnNodePutKid(&tree.node, 0, &vars[0]->node);
-  if (!(vars[1] = cnVarNodeCreate(cnFalse))) cnFailTo(DONE, "No var[1].");
+  if (!(vars[1] = cnVarNodeCreate(cnFalse))) cnErrTo(DONE, "No var[1].");
   cnNodePutKid(&vars[0]->node, 0, &vars[1]->node);
 
   // Add split node.
-  if (!(split = cnSplitNodeCreate(cnTrue))) cnFailTo(DONE, "No split.");
+  if (!(split = cnSplitNodeCreate(cnTrue))) cnErrTo(DONE, "No split.");
   cnNodePutKid(&vars[1]->node, 0, &split->node);
   split->function = entityFunction;
   // Var indices.
   if (!(
     split->varIndices = malloc(entityFunction->inCount * sizeof(cnIndex))
-  )) cnFailTo(DONE, "No var indices.");
+  )) cnErrTo(DONE, "No var indices.");
   for (i = 0; i < entityFunction->inCount; i++) split->varIndices[i] = i;
   // Predicate.
   if (!(split->predicate = malloc(sizeof(cnPredicate)))) {
-    cnFailTo(DONE, "No predicate.");
+    cnErrTo(DONE, "No predicate.");
   }
   split->predicate->copy = NULL;
   split->predicate->dispose = NULL;
@@ -333,7 +333,7 @@ void testPropagate(void) {
 
   // Propagate.
   if (!cnTreePropagateBag(&tree, &bag, &leafBindingBags)) {
-    cnFailTo(DONE, "No propagate.");
+    cnErrTo(DONE, "No propagate.");
   }
 
   // And see what bindings we have.
