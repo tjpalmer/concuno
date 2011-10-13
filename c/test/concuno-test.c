@@ -26,6 +26,9 @@ void testPropagate(void);
 void testRadians(void);
 
 
+void testReframe(void);
+
+
 void testUnitRand(void);
 
 
@@ -33,9 +36,12 @@ void testVariance(void);
 
 
 int main(void) {
-  switch ('s') {
+  switch ('f') {
   case 'b':
     testBinomial();
+    break;
+  case 'f':
+    testReframe();
     break;
   case 'h':
     testHeap();
@@ -359,6 +365,45 @@ void testPropagate(void) {
   } cnEnd;
   cnListDispose(&leafBindingBags);
   cnBagDispose(&bag);
+}
+
+
+void testReframe_get(cnEntityFunction* function, cnEntity* ins, void* outs) {
+  cnFloat* in = *(cnFloat**)ins;
+  cnFloat* inEnd = in + function->outCount;
+  cnFloat* out = outs;
+  for (; in < inEnd; in++, out++) {
+    *out = *in;
+  }
+}
+
+void testReframe(void) {
+  double point[2];
+  double pointsData[][2] = {{0.0, 0.0}, {1.0, 1.0}, {0.0, 1.0}};
+  double* points[] = {&pointsData[0][0], &pointsData[0][1], &pointsData[0][2]};
+  cnEntityFunction* direct = NULL;
+  cnEntityFunction* reframe = NULL;
+  cnSchema schema;
+
+  // Init.
+  if (!cnSchemaInitDefault(&schema)) cnFailTo(DONE);
+  if (!(direct = cnEntityFunctionCreate("Direct", 1, 2))) cnFailTo(DONE);
+  direct->outType = schema.floatType;
+  direct->get = testReframe_get;
+  if (!(reframe = cnEntityFunctionCreateReframe(direct))) cnFailTo(DONE);
+
+  // Test.
+  direct->get(direct, (void**)&points[2], point);
+  printf("%lf %lf\n", point[0], point[1]);
+
+  // Test reframe.
+  reframe->get(reframe, (void**)points, point);
+  printf("%lf %lf\n", point[0], point[1]);
+
+  DONE:
+  cnSchemaDispose(&schema);
+  cnEntityFunctionDrop(reframe);
+  cnEntityFunctionDrop(direct);
 }
 
 
