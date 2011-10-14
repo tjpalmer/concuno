@@ -30,6 +30,16 @@ cnFloat cnEuclideanDistance(cnCount size, cnFloat* x, cnFloat* y);
 cnFloat cnNorm(cnCount size, cnFloat* x);
 
 
+/**
+ * Transforms target and result into a space where origin is the origin and
+ * target is one unit along the first axis. The origin vector is unaffected.
+ * The target is modified to avoid needing to allocate space.
+ *
+ * TODO Reconsider the modification of target.
+ */
+void cnReframe(cnCount size, cnFloat* origin, cnFloat* target, cnFloat* result);
+
+
 cnFloat cnSquaredEuclideanDistance(cnCount size, cnFloat* x, cnFloat* y);
 
 

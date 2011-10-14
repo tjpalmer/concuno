@@ -396,6 +396,27 @@ void testReframe_case(
   );
 }
 
+void testReframe_case3d(
+  cnFloat x0, cnFloat y0, cnFloat z0,
+  cnFloat x1, cnFloat y1, cnFloat z1,
+  cnFloat x2, cnFloat y2, cnFloat z2
+) {
+  // Set up data.
+  double oldPoints[][3] = {{x0, y0, z0}, {x1, y1, z1}, {x2, y2, z2}};
+  double pointsData[][3] = {{x0, y0, z0}, {x1, y1, z1}, {x2, y2, z2}};
+  double* points[] = {&pointsData[0][0], &pointsData[1][0], &pointsData[2][0]};
+  // Reframe and check result.
+  cnReframe(3, points[0], points[1], points[2]);
+  printf(
+    "From (%g, %g, %g) to (%g, %g, %g) "
+      "reframes (%g, %g, %g) as: (%g, %g, %g)\n",
+    oldPoints[0][0], oldPoints[0][1], oldPoints[0][2],
+    oldPoints[1][0], oldPoints[1][1], oldPoints[1][2],
+    oldPoints[2][0], oldPoints[2][1], oldPoints[2][2],
+    points[2][0], points[2][1], points[0][2]
+  );
+}
+
 void testReframe(void) {
   cnEntityFunction* direct = NULL;
   cnEntityFunction* reframe = NULL;
@@ -410,6 +431,18 @@ void testReframe(void) {
 
   // Test reframe.
   testReframe_case(reframe, 0.0, 0.0, 1.0, 1.0, 0.0, 1.0);
+  testReframe_case(reframe, 1.0, 1.0, 2.0, 2.0, 1.0, 2.0);
+  testReframe_case(reframe, 2.0, 2.0, 1.0, 1.0, 1.0, 2.0);
+  testReframe_case(reframe, 0.0, 0.0, 2.0, 1.0, 0.0, 1.0);
+  testReframe_case(reframe, 0.0, 0.0, 1.0, 2.0, 0.0, 1.0);
+  testReframe_case(reframe, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+  testReframe_case(reframe, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0);
+  testReframe_case(reframe, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0);
+  testReframe_case(reframe, 0.0, 0.0, 0.0, 0.9, 0.0, 1.0);
+  testReframe_case(reframe, 0.0, 0.0, 0.0, 1.0, -0.1, 0.9);
+  testReframe_case3d(0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0);
+  testReframe_case3d(0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0);
+  testReframe_case3d(0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0);
 
   DONE:
   cnSchemaDispose(&schema);
