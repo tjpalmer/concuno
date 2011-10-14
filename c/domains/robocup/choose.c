@@ -220,7 +220,7 @@ cnBool cnrExtractHoldOrPass(
   }
 
   // And provide the given bag label already determined before the call.
-  bag->label = label;
+  bag->label = !label;
 
   // Winned.
   result = cnTrue;
