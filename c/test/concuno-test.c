@@ -383,7 +383,7 @@ void testReframe_case(
 ) {
   // Set up data.
   double pointsData[][2] = {{x0, y0}, {x1, y1}, {x2, y2}};
-  double* points[] = {&pointsData[0][0], &pointsData[1][0], &pointsData[2][0]};
+  double* points[] = {pointsData[0], pointsData[1], pointsData[2]};
   double result[2];
   // Reframe and check result.
   reframe->get(reframe, (void**)points, result);
@@ -404,7 +404,7 @@ void testReframe_case3d(
   // Set up data.
   double oldPoints[][3] = {{x0, y0, z0}, {x1, y1, z1}, {x2, y2, z2}};
   double pointsData[][3] = {{x0, y0, z0}, {x1, y1, z1}, {x2, y2, z2}};
-  double* points[] = {&pointsData[0][0], &pointsData[1][0], &pointsData[2][0]};
+  double* points[] = {pointsData[0], pointsData[1], pointsData[2]};
   // Reframe and check result.
   cnReframe(3, points[0], points[1], points[2]);
   printf(
