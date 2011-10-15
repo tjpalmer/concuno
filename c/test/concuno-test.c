@@ -413,7 +413,7 @@ void testReframe_case3d(
     oldPoints[0][0], oldPoints[0][1], oldPoints[0][2],
     oldPoints[1][0], oldPoints[1][1], oldPoints[1][2],
     oldPoints[2][0], oldPoints[2][1], oldPoints[2][2],
-    points[2][0], points[2][1], points[0][2]
+    points[2][0], points[2][1], points[2][2]
   );
 }
 
@@ -437,12 +437,16 @@ void testReframe(void) {
   testReframe_case(reframe, 0.0, 0.0, 1.0, 2.0, 0.0, 1.0);
   testReframe_case(reframe, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0);
   testReframe_case(reframe, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0);
+  testReframe_case(reframe, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+  testReframe_case(reframe, 0.99, 0.01, 0.0, 0.0, 0.0, 1.0);
+  testReframe_case(reframe, 0.0, 0.0, 2.0, 0.0, 0.0, 1.0);
   testReframe_case(reframe, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0);
   testReframe_case(reframe, 0.0, 0.0, 0.0, 0.9, 0.0, 1.0);
   testReframe_case(reframe, 0.0, 0.0, 0.0, 1.0, -0.1, 0.9);
   testReframe_case3d(0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0);
   testReframe_case3d(0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0);
   testReframe_case3d(0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0);
+  testReframe_case3d(0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0);
 
   DONE:
   cnSchemaDispose(&schema);

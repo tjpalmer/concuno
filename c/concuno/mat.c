@@ -69,7 +69,7 @@ void cnReframe(
       radius = fabs(x);
     } else if (!x) {
       // Aligned on axis i, and not first at all.
-      sine = copysign(1, y);
+      sine = -copysign(1, y);
       cosine = 0.0;
       radius = fabs(y);
     } else if (fabs(x) >= fabs(y)) {
