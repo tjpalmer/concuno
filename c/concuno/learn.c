@@ -994,14 +994,14 @@ cnBool cnExpansionRedundant(
 ) {
   // Hack assuming all things are symmetric, and we only want increasing order.
   // TODO Formalize this. Delegate to the functions themselves!
-  /*
+
   cnIndex i;
   for (i = 1; i < function->inCount; i++) {
     if (indices[i] <= indices[i - 1]) {
       return cnTrue;
     }
   }
-  /**/
+  /*
   cnListEachBegin(expansions, cnExpansion, expansion) {
     if (function == expansion->function) {
       // TODO Mark which functions are symmetric. Assume all arity 2 for now.
