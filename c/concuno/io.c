@@ -133,7 +133,7 @@ cnCount cnReadLine(FILE* file, cnString* string) {
 }
 
 
-cnBool cnStrEndsWith(char* string, char* ending) {
+cnBool cnStrEndsWith(char* string, const char* ending) {
   cnCount endingLength = strlen(ending);
   cnCount stringLength = strlen(string);
   if (stringLength >= endingLength) {

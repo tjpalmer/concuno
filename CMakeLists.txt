@@ -32,6 +32,7 @@ include_directories(
 if(CMAKE_COMPILER_IS_GNUCC)
   set(CMAKE_C_FLAGS "-Wall -Wdeclaration-after-statement")
   #set(CMAKE_C_FLAGS_DEBUG "-pg")
+  set(CMAKE_CXX_FLAGS "-Wall")
 endif(CMAKE_COMPILER_IS_GNUCC)
 
 subdirs(

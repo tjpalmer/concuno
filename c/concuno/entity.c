@@ -583,7 +583,7 @@ cnPredicate* cnPredicateCreateDistanceThreshold(
   if (!predicate) {
     return NULL;
   }
-  info = malloc(sizeof(struct cnPredicateThresholdInfo));
+  info = malloc(sizeof(struct $cnPredicateThresholdInfo));
   if (!info) {
     free(predicate);
     return NULL;
@@ -645,7 +645,7 @@ void cnPropertyFieldPut(cnProperty* property, cnEntity entity, void* value) {
 
 
 cnBool cnPropertyInitField(
-  cnProperty* property, cnType* containerType, cnType* type, char* name,
+  cnProperty* property, cnType* containerType, cnType* type, const char* name,
   cnCount offset, cnCount count
 ) {
   // Safety items first.
@@ -704,7 +704,7 @@ cnBool cnSchemaInitDefault(cnSchema* schema) {
 }
 
 
-cnType* cnTypeCreate(char* name, cnCount size) {
+cnType* cnTypeCreate(const char* name, cnCount size) {
   cnType* type = malloc(sizeof(cnType));
   if (!type) cnErrTo(FAIL, "No type.");
   // Put safety values first.

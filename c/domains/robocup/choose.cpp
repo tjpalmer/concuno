@@ -5,7 +5,7 @@
  * Only call this function if there is a next state available, too.
  */
 cnBool cnrExtractHoldOrPass(
-  cnrGame game, cnrState state, cnrPlayer kicker,
+  cnrGame* game, cnrState* state, cnrPlayer* kicker,
   cnList(cnBag)* holdBags, cnList(cnBag)* passBags,
   cnList(cnList(cnEntity)*)* entityLists,
   cnBool label
@@ -13,7 +13,7 @@ cnBool cnrExtractHoldOrPass(
 
 
 cnBool cnrChooseHoldsAndPasses(
-  cnrGame game,
+  cnrGame* game,
   cnList(cnBag)* holdBags, cnList(cnBag)* passBags,
   cnList(cnList(cnEntity)*)* entityLists
 ) {
@@ -27,13 +27,13 @@ cnBool cnrChooseHoldsAndPasses(
   cnBool result = cnFalse;
 
   // Loop through states.
-  cnListEachBegin(&game->states, struct cnrState, state) {
+  cnListEachBegin(&game->states, cnrState, state) {
     // Look through players in each state to find kicks.
-    cnrPlayer kicker = NULL;
+    cnrPlayer* kicker = NULL;
     //    if (state->newSession) {
     //      printf("New session at %ld.\n", state->time);
     //    }
-    cnListEachBegin(&state->players, struct cnrPlayer, player) {
+    cnListEachBegin(&state->players, cnrPlayer, player) {
       if (player->team == cnrTeamKeepers && !cnIsNaN(player->kickPower)) {
         if (kicker) {
           cnErrTo(DONE, "Multiple kickers at %ld.", state->time);
@@ -55,11 +55,11 @@ cnBool cnrChooseHoldsAndPasses(
       // Ooh. We have a next state. Look even further to see if keepers keep.
       cnBool anyLaterKick = cnFalse;
       cnBool label = cnTrue;
-      cnrState next;
-      cnrState lookaheadEnd = state + failureLookahead;
+      cnrState* next;
+      cnrState* lookaheadEnd = state + failureLookahead;
       for (next = state + 1; next < end; next++) {
         if (!anyLaterKick) {
-          cnListEachBegin(&next->players, struct cnrPlayer, player) {
+          cnListEachBegin(&next->players, cnrPlayer, player) {
             if (player->team == cnrTeamKeepers && !cnIsNaN(player->kickPower)) {
               // Found another keeper kick. Still a positive label.
               anyLaterKick = cnTrue;
@@ -101,20 +101,20 @@ cnBool cnrChooseHoldsAndPasses(
 
 
 cnBool cnrExtractHoldOrPass(
-  cnrGame game, cnrState state, cnrPlayer kicker,
+  cnrGame* game, cnrState* state, cnrPlayer* kicker,
   cnList(cnBag)* holdBags, cnList(cnBag)* passBags,
   cnList(cnList(cnEntity)*)* entityLists,
   cnBool label
 ) {
   cnBool result = cnFalse;
   cnBag* bag = NULL;
-  cnrPlayer receiver = NULL;
-  cnrBall ball = &state->ball;
+  cnrPlayer* receiver = NULL;
+  cnrBall* ball = &state->ball;
   cnFloat* ballLocation = ball->item.location;
   cnList(cnEntity)* entities;
   cnBool kickedAgain = cnFalse;
   cnFloat* kickerLocation = kicker->item.location;
-  cnrState next = state + 1;
+  cnrState* next = state + 1;
   cnFloat* nextBallLocation = next->ball.item.location;
   cnFloat ballVelocity[] = {
     nextBallLocation[0] - ballLocation[0],
@@ -145,7 +145,7 @@ cnBool cnrExtractHoldOrPass(
 
   // Now see if we have a pass or a hold. First see if the same player kicks
   // again at the next time step.
-  cnListEachBegin(&next->players, struct cnrPlayer, player) {
+  cnListEachBegin(&next->players, cnrPlayer, player) {
     if (player->index == kicker->index && player->team == kicker->team) {
       // Same player. Do we kick?
       if (!cnIsNaN(player->kickPower)) {
@@ -182,7 +182,7 @@ cnBool cnrExtractHoldOrPass(
       }
     } cnEnd;
     if (receiver) {
-      if (!(bag = cnListExpand(passBags))) {
+      if (!(bag = reinterpret_cast<cnBag*>(cnListExpand(passBags)))) {
         cnErrTo(DONE, "No pass bag pushed.");
       }
       // With provided entities, bag init doesn't fail.
@@ -197,7 +197,7 @@ cnBool cnrExtractHoldOrPass(
   // See if it's a hold.
   if (!bag) {
     // Must be, since we didn't already define a bag for passing.
-    if (!(bag = cnListExpand(holdBags))) {
+    if (!(bag = reinterpret_cast<cnBag*>(cnListExpand(holdBags)))) {
       cnErrTo(DONE, "No pass bag pushed.");
     }
     // With provided entities, bag init doesn't fail.
@@ -220,7 +220,9 @@ cnBool cnrExtractHoldOrPass(
   }
 
   // And provide the given bag label already determined before the call.
-  bag->label = !label;
+  // Well, invert the label because "fail" can be determined existentially, but
+  // "succeed" can't.
+  bag->label = label ? cnFalse : cnTrue;
 
   // Winned.
   result = cnTrue;
