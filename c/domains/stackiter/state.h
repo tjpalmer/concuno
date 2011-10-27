@@ -23,7 +23,7 @@ typedef int stTypeId;
 
 typedef struct stItem {
 
-  cnBool alive;
+  bool alive;
 
   cnFloat color[3];
 

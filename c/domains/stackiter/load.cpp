@@ -126,7 +126,7 @@ cnBool stHandleColor(stParser* parser, char* args) {
 cnBool stHandleDestroy(stParser* parser, char* args) {
   stId id = strtol(args, &args, 10);
   cnIndex* index = (cnIndex*)cnListGet(&parser->indices, id);
-  cnIndex* indices = parser->indices.items;
+  cnIndex* indices = reinterpret_cast<cnIndex*>(parser->indices.items);
   cnList(stItem)* items;
   if (!index) {
     printf("Bad id: %ld\n", id);
@@ -141,9 +141,9 @@ cnBool stHandleDestroy(stParser* parser, char* args) {
   cnListRemove(items, *index);
   if (*index < items->count) {
     // It wasn't last, so reduce the index of successive items.
-    stItem* item;
-    stItem* endItem = cnListEnd(items);
-    for (item = cnListGet(items, *index); item < endItem; item++) {
+    stItem* endItem = reinterpret_cast<stItem*>(cnListEnd(items));
+    stItem* item = reinterpret_cast<stItem*>(cnListGet(items, *index));
+    for (; item < endItem; item++) {
       // All items ids in our list should be valid, so index directly.
       // TODO Could optimize further if we assume seeing items always in
       // TODO increasing order.
@@ -275,7 +275,7 @@ cnBool stParseLine(stParser* parser, cnString* line) {
   // TODO Extract command then scanf it?
   char *args, *command;
   cnBool (*parse)(stParser* parser, char* args) = NULL;
-  command = cnParseStr(line->items, &args);
+  command = cnParseStr(cnStr(line), &args);
   // TODO Hashtable? This is still quite fast.
   if (!strcmp(command, "alive")) {
     parse = stHandleAlive;
@@ -320,7 +320,7 @@ stItem* stParserItem(stParser* parser, char* begin, char** end) {
   // TODO Better validation?
   stId id = strtol(begin, end, 10);
   cnIndex* index = (cnIndex*)cnListGet(&parser->indices, id);
-  return cnListGet(&parser->state.items, *index);
+  return reinterpret_cast<stItem*>(cnListGet(&parser->state.items, *index));
 }
 
 

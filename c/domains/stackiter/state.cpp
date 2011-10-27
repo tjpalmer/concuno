@@ -11,7 +11,7 @@
 
 void stItemInit(stItem* item) {
   cnFloat *f, *end;
-  item->alive = cnFalse;
+  item->alive = false;
   stFill(item->color, 0.0, f, end);
   stFill(item->extent, 0.0, f, end);
   item->grasped = cnFalse;
@@ -39,21 +39,27 @@ cnBool stSchemaInit(cnSchema* schema) {
   if (!cnListPush(&schema->types, &type)) goto FAIL;
 
   // Color property.
-  if (!(property = cnListExpand(&type->properties))) goto FAIL;
+  if (!(property =
+    reinterpret_cast<cnProperty*>(cnListExpand(&type->properties))
+  )) goto FAIL;
   if (!cnPropertyInitField(
     property, type, schema->floatType, "Color",
     offsetof(stItem, color), 3
   )) goto FAIL;
 
   // Location property.
-  if (!(property = cnListExpand(&type->properties))) goto FAIL;
+  if (!(property =
+    reinterpret_cast<cnProperty*>(cnListExpand(&type->properties))
+  )) goto FAIL;
   if (!cnPropertyInitField(
     property, type, schema->floatType, "Location",
     offsetof(stItem, location), 2
   )) goto FAIL;
 
   // Velocity property.
-  if (!(property = cnListExpand(&type->properties))) goto FAIL;
+  if (!(property =
+    reinterpret_cast<cnProperty*>(cnListExpand(&type->properties))
+  )) goto FAIL;
   if (!cnPropertyInitField(
     property, type, schema->floatType, "Velocity",
     offsetof(stItem, velocity), 2
@@ -71,7 +77,7 @@ cnBool stSchemaInit(cnSchema* schema) {
 cnBool stStateCopy(stState* to, stState* from) {
   *to = *from;
   cnListInit(&to->items, to->items.itemSize);
-  return cnListPushAll(&to->items, &from->items) != NULL;
+  return cnBoolify(cnListPushAll(&to->items, &from->items));
 }
 
 

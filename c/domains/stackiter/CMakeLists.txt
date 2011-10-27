@@ -1,9 +1,9 @@
 add_executable(
   stackiter-learn
-  stackiter-learn.c
-  choose.c
-  load.c
-  state.c
+  stackiter-learn.cpp
+  choose.cpp
+  load.cpp
+  state.cpp
 )
 
 target_link_libraries(

@@ -29,7 +29,9 @@ cnBool stAllBagsFalse(
   cnListEachBegin(states, stState, state) {
     // Every state gets a bag.
     cnBag* bag;
-    if (!(bag = cnListExpand(bags))) cnErrTo(DONE, "Failed to push bag.");
+    if (!(bag = reinterpret_cast<cnBag*>(cnListExpand(bags)))) {
+      cnErrTo(DONE, "Failed to push bag.");
+    }
     if (!cnBagInit(bag, NULL)) cnErrTo(DONE, "No bag init.");
     // Each bag gets the live items.
     if (!stPlaceLiveItems(&state->items, bag->entities)) {
@@ -50,7 +52,7 @@ cnBool stChooseDropWhereLandOnOther(
   cnList(cnList(cnEntity)*)* entityLists
 ) {
   cnBool result = cnFalse;
-  cnBool formerHadGrasp = cnFalse;
+  bool formerHadGrasp = false;
   stId graspedId = -1;
   const stState* ungraspState = NULL;
   cnList(stItem*) graspedItems;
@@ -58,7 +60,7 @@ cnBool stChooseDropWhereLandOnOther(
   cnListEachBegin(states, stState, state) {
     if (ungraspState) {
       // Look for stable state.
-      cnBool label = -1;
+      int label = -1;
       cnBool settled = cnFalse;
       if (state->cleared) {
         // World cleared. Say it's settled, but don't assign a label.
@@ -78,18 +80,18 @@ cnBool stChooseDropWhereLandOnOther(
         } else {
           // It fell off the table, so it didn't land on another block.
           settled = cnTrue;
-          label = cnFalse;
+          label = true;
         }
       }
       if (settled) {
-        if (label == cnFalse || label == cnTrue) {
+        if (label == false || label == true) {
           cnBag* bag;
-          if (!(bag = cnListExpand(bags))) {
+          if (!(bag = reinterpret_cast<cnBag*>(cnListExpand(bags)))) {
             cnErrTo(DONE, "Failed to push bag.");
           }
           // Now init the bag in the list.
           if (!cnBagInit(bag, NULL)) cnErrTo(DONE, "No bag init.");
-          bag->label = label;
+          bag->label = cnBoolify(label);
           // If we defer placing entity pointers until after we've stored the
           // bag itself, then cleanup from failure is easier.
           if (!stPlaceLiveItems(&ungraspState->items, bag->entities)) {
@@ -99,11 +101,10 @@ cnBool stChooseDropWhereLandOnOther(
         ungraspState = NULL;
       }
     } else {
-      cnBool hasGrasp;
       if (!stFindGraspedItems(state, &graspedItems)) {
         cnErrTo(DONE, "Failed to push grasped items.");
       }
-      hasGrasp = graspedItems.count;
+      bool hasGrasp = graspedItems.count;
       if (hasGrasp) {
         // TODO Deal with sets of grasped items? This would easily fail if
         // TODO more than one.
@@ -158,7 +159,7 @@ cnBool stChooseWhereNotMoving(
 
     // We want it.
     // First make an entity list usable for multiple bags.
-    if (!(entities = malloc(sizeof(cnList(cnEntity))))) {
+    if (!(entities = cnAlloc(cnList(cnEntity), 1))) {
       cnErrTo(DONE, "No entity list.");
     }
     cnListInit(entities, sizeof(cnEntity));
@@ -185,12 +186,17 @@ cnBool stChooseWhereNotMoving(
       cnFloat speed;
 
       // Bag.
-      if (!(bag = cnListExpand(bags))) cnErrTo(DONE, "Failed to push bag.");
+      if (!(bag = reinterpret_cast<cnBag*>(cnListExpand(bags)))) {
+        cnErrTo(DONE, "Failed to push bag.");
+      }
       // With provided entities, bag init doesn't fail.
       cnBagInit(bag, entities);
 
       // Participant.
-      if (!(participant = cnListExpand(&bag->participantOptions))) {
+      if (!(
+        participant = reinterpret_cast<cnList(cnEntity)*>(
+          cnListExpand(&bag->participantOptions))
+      )) {
         // Hide the bag and fail.
         bags->count--;
         cnErrTo(DONE, "Failed to push participant list.");
@@ -206,7 +212,7 @@ cnBool stChooseWhereNotMoving(
         item->velocity[1] * item->velocity[1]
       );
       // True here is stationary.
-      bag->label = speed < epsilon;
+      bag->label = cnBoolify(speed < epsilon);
     } cnEnd;
   } cnEnd;
 
@@ -237,7 +243,7 @@ cnBool stOnGround(const stItem* item) {
   // Angles go from -1 to 1.
   // Here, dim 1 is upright, and 0 sideways.
   int dim = angle < -0.75 || (-0.25 < angle && angle < 0.25) || 0.75 < angle;
-  return fabs(item->extent[dim] - item->location[1]) < 0.01;
+  return cnBoolify(fabs(item->extent[dim] - item->location[1]) < 0.01);
 }
 
 

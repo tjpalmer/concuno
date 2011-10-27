@@ -48,7 +48,7 @@ int main(int argc, char** argv) {
     goto DISPOSE_STATES;
   }
   printf("At end:\n");
-  state = cnListGet(&states, states.count - 1);
+  state = reinterpret_cast<stState*>(cnListGet(&states, states.count - 1));
   printf("%ld items\n", state->items.count);
   printf("%ld states\n", states.count);
 
@@ -158,7 +158,7 @@ cnBool stInitSchemaAndEntityFunctions(
   // TODO Extract this setup, and make it easier to do.
   cnListInit(functions, sizeof(cnEntityFunction*));
   // TODO Look up the type by name.
-  itemType = cnListGetPointer(&schema->types, 1);
+  itemType = reinterpret_cast<cnType*>(cnListGetPointer(&schema->types, 1));
 
   // Valid.
   if (cnTrue) {
@@ -173,7 +173,8 @@ cnBool stInitSchemaAndEntityFunctions(
   // Color.
   if (cnTrue) {
     if (!(function = cnPushPropertyFunction(
-      functions, cnListGet(&itemType->properties, 0)
+      functions,
+      reinterpret_cast<cnProperty*>(cnListGet(&itemType->properties, 0))
     ))) {
       printf("Failed to push color function.\n");
       goto FAIL;
@@ -189,7 +190,8 @@ cnBool stInitSchemaAndEntityFunctions(
   if (cnTrue) {
     // TODO Look up the property by name.
     if (!(function = cnPushPropertyFunction(
-      functions, cnListGet(&itemType->properties, 1)
+      functions,
+      reinterpret_cast<cnProperty*>(cnListGet(&itemType->properties, 1))
     ))) {
       printf("Failed to push location function.\n");
       goto FAIL;
@@ -210,7 +212,8 @@ cnBool stInitSchemaAndEntityFunctions(
   if (cnFalse) {
     // TODO Look up the property by name.
     if (!(function = cnPushPropertyFunction(
-      functions, cnListGet(&itemType->properties, 2)
+      functions,
+      reinterpret_cast<cnProperty*>(cnListGet(&itemType->properties, 2))
     ))) {
       printf("Failed to push velocity function.\n");
       goto FAIL;
