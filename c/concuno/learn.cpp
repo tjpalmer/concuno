@@ -267,7 +267,7 @@ void cnBuildInitialKernel(cnTopology topology, cnList(cnPointBag)* pointBags) {
   }
 
   // Make a matrix of the positive, good points.
-  positivePoints = malloc(positivePointCount * valueCount * sizeof(cnFloat));
+  positivePoints = cnAlloc(cnFloat, positivePointCount * valueCount);
   if (!positivePoints) {
     goto DONE;
   }
@@ -301,7 +301,7 @@ void cnBuildInitialKernel(cnTopology topology, cnList(cnPointBag)* pointBags) {
   );
   {
     // TODO Actually create a Gaussian PDF.
-    cnFloat* stat = malloc(valueCount * sizeof(cnFloat));
+    cnFloat* stat = cnAlloc(cnFloat, valueCount);
     if (!stat) goto DONE;
     printf("Max, mean of positives: ");
     cnVectorPrint(stdout,
@@ -517,7 +517,8 @@ cnBool cnBestPointByScore(
         // TODO Weighted? Negative points to push away?
         // TODO Abstract this to arbitrary fits.
         cnVectorMean(
-          valueCount, distribution->mean, posPointsIn.count, posPointsIn.items
+          valueCount, distribution->mean, posPointsIn.count,
+          reinterpret_cast<cnFloat*>(posPointsIn.items)
         );
         cnListClear(&posPointsIn);
         if (!cnChooseThreshold(
@@ -574,7 +575,7 @@ cnBool cnChooseThreshold(
   cnCount valueCount = pointBags->count ?
     ((cnPointBag*)pointBags->items)->pointMatrix.valueCount : 0;
   cnBagDistance* distance;
-  cnBagDistance* distances = malloc(pointBags->count * sizeof(cnBagDistance));
+  cnBagDistance* distances = cnAlloc(cnBagDistance, pointBags->count);
   cnBagDistance* distancesEnd = distances + pointBags->count;
   cnBool result = cnFalse;
   cnFloat thresholdStorage;
@@ -664,8 +665,12 @@ cnFloat cnChooseThreshold_edgeDist(const cnChooseThreshold_Distance* dist) {
 }
 
 int cnChooseThreshold_compare(const void* a, const void* b) {
-  cnFloat distA = cnChooseThreshold_edgeDist(a);
-  cnFloat distB = cnChooseThreshold_edgeDist(b);
+  cnFloat distA = cnChooseThreshold_edgeDist(
+    reinterpret_cast<const cnChooseThreshold_Distance*>(a)
+  );
+  cnFloat distB = cnChooseThreshold_edgeDist(
+    reinterpret_cast<const cnChooseThreshold_Distance*>(b)
+  );
   return distA > distB ? 1 : distA == distB ? 0 : -1;
 }
 
@@ -679,7 +684,7 @@ cnFloat cnChooseThresholdWithDistances(
   cnCount bagCount = distancesEnd - distances;
   cnBagDistance* distance;
   cnChooseThreshold_Distance* dists =
-    malloc(2 * bagCount * sizeof(cnChooseThreshold_Distance));
+    cnAlloc(cnChooseThreshold_Distance, 2 * bagCount);
   cnChooseThreshold_Distance* dist;
   cnChooseThreshold_Distance* distsEnd = dists + 2 * bagCount;
   cnCount negBothCount = 0; // Negatives on both sides of the threshold.
@@ -959,7 +964,7 @@ cnRootNode* cnExpandedTree(cnLearnerConfig* config, cnExpansion* expansion) {
   split->function = expansion->function;
   // Could just borrow the indices, but that makes management more complicated.
   // TODO Array malloc/copy function?
-  split->varIndices = malloc(split->function->inCount * sizeof(cnIndex));
+  split->varIndices = cnAlloc(cnIndex, split->function->inCount);
   if (!split->varIndices) {
     cnErrTo(FAIL, "No var indices for expansion.");
   }
@@ -994,14 +999,14 @@ cnBool cnExpansionRedundant(
 ) {
   // Hack assuming all things are symmetric, and we only want increasing order.
   // TODO Formalize this. Delegate to the functions themselves!
-
   cnIndex i;
   for (i = 1; i < function->inCount; i++) {
     if (indices[i] <= indices[i - 1]) {
       return cnTrue;
     }
   }
-  /*
+
+  /*// Mode assuming only certain parameters are symmetric.
   cnListEachBegin(expansions, cnExpansion, expansion) {
     if (function == expansion->function) {
       // TODO Mark which functions are symmetric. Assume all arity 2 for now.
@@ -1021,7 +1026,8 @@ cnBool cnExpansionRedundant(
       }
     }
   } cnEnd;
-  /**/
+  */
+
   // No duplicate found.
   return cnFalse;
 }
@@ -1087,7 +1093,7 @@ cnBool cnLearnSplitModel(
   //
   // TODO Abstract this more for support of other topologies and constraints.
   // TODO The discrete categories case will be especially different! No center!
-  gaussian = malloc(sizeof(cnGaussian));
+  gaussian = cnAlloc(cnGaussian, 1);
   if (!gaussian) {
     goto DONE;
   }
@@ -1155,7 +1161,7 @@ cnRootNode* cnLearnTree(cnLearner* learner) {
   initialTree = learner->initialTree;
   if (!initialTree) {
     // Allocate the root.
-    initialTree = malloc(sizeof(cnRootNode));
+    initialTree = cnAlloc(cnRootNode, 1);
     if (!initialTree) cnErrTo(DONE, "Failed to allocate root.");
     // Set up the tree.
     if (!cnRootNodeInit(initialTree, cnTrue)) {
@@ -1307,7 +1313,9 @@ cnLeafNode* cnPickBestLeaf(cnRootNode* tree, cnList(cnBag)* bags) {
   if (!cnTreeMaxLeafBags(&groups, &maxGroups)) cnErrTo(DONE, "No max bags.");
 
   // Prepare for bogus "no" group. Error leaves with no bags are irrelevant.
-  if (!(noGroup = cnListExpand(&groups))) {
+  if (!(
+    noGroup = reinterpret_cast<cnLeafBindingBagGroup*>(cnListExpand(&groups))
+  )) {
     cnErrTo(DONE, "No space for bogus groups.");
   }
   // We shouldn't need a full real leaf to get by. Only the probability field
@@ -1316,13 +1324,13 @@ cnLeafNode* cnPickBestLeaf(cnRootNode* tree, cnList(cnBag)* bags) {
 
   // Prepare bogus leaves for storing fake probs.
   // Also remember the real ones, so we can return the right leaf.
-  if (!(
-    realLeaves = malloc(groups.count * sizeof(cnLeafNode*))
-  )) cnErrTo(DONE, "No real leaf memory.");
+  if (!(realLeaves = cnAlloc(cnLeafNode*, groups.count))) {
+    cnErrTo(DONE, "No real leaf memory.");
+  }
   if (!cnListExpandMulti(&fakeLeaves, groups.count)) {
     cnErrTo(DONE, "No space for bogus leaves.");
   }
-  leaf = fakeLeaves.items;
+  leaf = reinterpret_cast<cnLeafNode*>(fakeLeaves.items);
   cnListEachBegin(&groups, cnLeafBindingBagGroup, group) {
     // Remember the original leaf.
     realLeaves[leaf - (cnLeafNode*)fakeLeaves.items] =
@@ -1335,7 +1343,7 @@ cnLeafNode* cnPickBestLeaf(cnRootNode* tree, cnList(cnBag)* bags) {
   // Look at each leaf to find the best perfect split. Loop on the max groups,
   // because they don't include the fake, and we don't need the fake.
   bestLeaf = NULL;
-  group = groups.items;
+  group = reinterpret_cast<cnLeafBindingBagGroup*>(groups.items);
   cnListEachBegin(&maxGroups, cnList(cnIndex), maxIndices) {
     // Split the leaf perfectly by removing all negative bags from the group and
     // putting them in the no group instead.
@@ -1343,7 +1351,7 @@ cnLeafNode* cnPickBestLeaf(cnRootNode* tree, cnList(cnBag)* bags) {
     cnIndex bOriginal;
     cnBindingBag* bindingBag;
     cnIndex* maxIndex;
-    cnIndex* maxIndicesEnd = cnListEnd(maxIndices);
+    cnIndex* maxIndicesEnd = reinterpret_cast<cnIndex*>(cnListEnd(maxIndices));
     cnBindingBag* noEnd;
     cnFloat score;
 
@@ -1358,10 +1366,10 @@ cnLeafNode* cnPickBestLeaf(cnRootNode* tree, cnList(cnBag)* bags) {
     cnListClear(&noGroup->bindingBags);
 
     // Now do the split.
-    bindingBag = group->bindingBags.items;
-    maxIndex = maxIndices->items;
+    bindingBag = reinterpret_cast<cnBindingBag*>(group->bindingBags.items);
+    maxIndex = reinterpret_cast<cnIndex*>(maxIndices->items);
     for (b = 0, bOriginal = 0; b < group->bindingBags.count; bOriginal++) {
-      cnBool isMax = maxIndex < maxIndicesEnd && bOriginal == *maxIndex;
+      bool isMax = maxIndex < maxIndicesEnd && bOriginal == *maxIndex;
       if (isMax) maxIndex++;
       if (isMax && bindingBag->bag->label) {
         // Positive maxes are the ones kept in the original leaf.
@@ -1395,8 +1403,8 @@ cnLeafNode* cnPickBestLeaf(cnRootNode* tree, cnList(cnBag)* bags) {
     printf("\n");
 
     // Then put them all back. Space is guaranteed again.
-    bindingBag = noGroup->bindingBags.items;
-    noEnd = cnListEnd(&noGroup->bindingBags);
+    bindingBag = reinterpret_cast<cnBindingBag*>(noGroup->bindingBags.items);
+    noEnd = reinterpret_cast<cnBindingBag*>(cnListEnd(&noGroup->bindingBags));
     for (; bindingBag < noEnd; bindingBag++) {
       cnListPush(&group->bindingBags, bindingBag);
     }
@@ -1451,7 +1459,8 @@ typedef struct cnPushExpansionsByIndices_Data {
 cnBool cnPushExpansionsByIndices_Push(
   void* d, cnCount arity, cnIndex* indices
 ) {
-  cnPushExpansionsByIndices_Data* data = d;
+  cnPushExpansionsByIndices_Data* data =
+    reinterpret_cast<cnPushExpansionsByIndices_Data*>(d);
   cnIndex firstCommitted = data->varDepth - data->prototype->newVarCount;
   cnIndex v;
 
@@ -1484,7 +1493,7 @@ cnBool cnPushExpansionsByIndices_Push(
   }
 
   // It's good to go. Allocate space, and copy the indices.
-  if (!(data->prototype->varIndices = malloc(arity * sizeof(cnIndex)))) {
+  if (!(data->prototype->varIndices = cnAlloc(cnIndex, arity))) {
     return cnFalse;
   }
   memcpy(data->prototype->varIndices, indices, arity * sizeof(cnIndex));
@@ -1704,7 +1713,7 @@ cnBool cnUpdateLeafProbabilitiesWithBindingBags(
   // Init which bags used. First, we need to find how many and where they start.
   cnLeafBindingBagGroupListLimits(groups, &bags, &bagsEnd);
   bagCount = bagsEnd - bags;
-  bagsUsed = malloc(bagCount * sizeof(cnBool));
+  bagsUsed = cnAlloc(cnBool, bagCount);
   if (!bagsUsed) goto DONE;
   for (b = 0; b < bagCount; b++) bagsUsed[b] = cnFalse;
 
@@ -1774,7 +1783,8 @@ cnBool cnUpdateLeafProbabilitiesWithBindingBags(
 
     // Record the counts, if wanted.
     if (counts) {
-      cnLeafCount* count = cnListGet(counts, maxGroupIndex);
+      cnLeafCount* count =
+        reinterpret_cast<cnLeafCount*>(cnListGet(counts, maxGroupIndex));
       count->leaf = maxGroup->leaf;
       count->negCount = maxTotal - maxPosCount;
       count->posCount = maxPosCount;
@@ -1851,15 +1861,16 @@ cnBool cnVerifyImprovement_StatsPrepare(
 
   // Prepare place for stats.
   classCount = 2 * stats->leafCounts.count;
-  probs = cnStackAlloc(classCount * sizeof(cnFloat));
-  stats->bootCounts = malloc(classCount * sizeof(cnCount));
+  probs = cnStackAllocOf(cnFloat, classCount);
+  stats->bootCounts = cnAlloc(cnCount, classCount);
   if (!(probs && stats->bootCounts)) {
     cnErrTo(DONE, "No stats allocated.");
   }
 
   // Calculate probabilities.
   for (i = 0; i < stats->leafCounts.count; i++) {
-    cnLeafCount* count = cnListGet(&stats->leafCounts, i);
+    cnLeafCount* count =
+      reinterpret_cast<cnLeafCount*>(cnListGet(&stats->leafCounts, i));
     // Neg first, then pos.
     // TODO Apply the same beta prior as for updating probabilities? Otherwise,
     // TODO we might have inappropriate zeros (or even ones) in validation.
