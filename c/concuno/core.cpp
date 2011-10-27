@@ -1,6 +1,10 @@
+#include <limits>
 #include <math.h>
 #include <string.h>
 #include "core.h"
+
+
+using namespace std;
 
 
 /**
@@ -374,12 +378,7 @@ void cnListShuffle(cnListAny* list) {
 
 
 cnFloat cnNaN(void) {
-  // TODO Something more efficient but still portable?
-  static cnFloat nan = -1;
-  if (nan < 0) {
-    nan = strtod("NAN", NULL);
-  }
-  return nan;
+  return numeric_limits<cnFloat>::quiet_NaN();
 }
 
 

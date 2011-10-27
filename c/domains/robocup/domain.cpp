@@ -223,7 +223,7 @@ cnBool cnrSchemaInit(cnSchema* schema) {
     property = reinterpret_cast<cnProperty*>(cnListExpand(&type->properties))
   )) cnFailTo(FAIL);
   if (!cnrPropertyInitTypedField(
-    property, type, cnrTypeAny, schema->floatType, cnrFieldTypeInt, "Type",
+    property, type, cnrTypeAny, schema->floatType, cnrFieldTypeEnum, "Type",
     offsetof(struct cnrItem, type), 1
   )) cnFailTo(FAIL);
 
