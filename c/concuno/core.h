@@ -149,7 +149,7 @@ typedef struct cnGridAny {
  * I'm experimenting with providing this only in pointer form, as I've more than
  * once needed to change from expanded to pointer form,
  */
-typedef struct cnHeapAny {
+typedef struct $cnHeapAny {
 
   /**
    * Set this if you need extra information for comparing items.
@@ -281,9 +281,11 @@ void cnListDispose(cnListAny* list);
  */
 #define cnListEachBegin(list, Type, i) { \
   Type* i; \
-  Type* end = cnListEnd(list); \
+  Type* end = (Type*)cnListEnd(list); \
   for ( \
-    i = (list)->items; i < end; i = (Type*)(((char*)i) + (list)->itemSize) \
+    i = (Type*)(list)->items; \
+    i < end; \
+    i = (Type*)(((char*)i) + (list)->itemSize) \
   )
 
 
@@ -432,7 +434,7 @@ void cnStringInit(cnString* string);
 cnBool cnStringPushChar(cnString* string, char c);
 
 
-cnBool cnStringPushStr(cnString* string, char* str);
+cnBool cnStringPushStr(cnString* string, const char* str);
 
 
 cnCEnd;

@@ -23,7 +23,7 @@ cnBool cnrPickFunctions(cnList(cnEntityFunction*)* functions, cnType* type);
 
 
 cnBool cnrProcess(
-  cnrGame game,
+  cnrGame* game,
   cnBool (*process)(cnList(cnBag)* holdBags, cnList(cnBag)* passBags)
 );
 
@@ -34,11 +34,11 @@ cnBool cnrProcessExport(cnList(cnBag)* holdBags, cnList(cnBag)* passBags);
 cnBool cnrProcessLearn(cnList(cnBag)* holdBags, cnList(cnBag)* passBags);
 
 
-cnBool cnrSaveBags(char* name, cnList(cnBag)* bags);
+cnBool cnrSaveBags(const char* name, cnList(cnBag)* bags);
 
 
 int main(int argc, char** argv) {
-  struct cnrGame game;
+  cnrGame game;
   char* name;
   int result = EXIT_FAILURE;
 
@@ -109,7 +109,7 @@ cnBool cnrGenFloat(yajl_gen gen, cnFloat x) {
 }
 
 
-cnBool cnrGenStr(yajl_gen gen, char* str) {
+cnBool cnrGenStr(yajl_gen gen, const char* str) {
   return yajl_gen_string(gen, (unsigned char*)str, strlen(str)) ?
     cnFalse : cnTrue;
 }
@@ -181,7 +181,7 @@ cnBool cnrPickFunctions(cnList(cnEntityFunction*)* functions, cnType* type) {
 
 
 cnBool cnrProcess(
-  cnrGame game,
+  cnrGame* game,
   cnBool (*process)(cnList(cnBag)* holdBags, cnList(cnBag)* passBags)
 ) {
   cnList(cnBag) holdBags;
@@ -229,21 +229,22 @@ cnBool cnrProcessExport(cnList(cnBag)* holdBags, cnList(cnBag)* passBags) {
 
 cnBool cnrProcessLearn(cnList(cnBag)* holdBags, cnList(cnBag)* passBags) {
   cnList(cnEntityFunction*) functions;
-  cnBool initOkay = cnTrue;
   cnRootNode* learnedTree = NULL;
   cnLearner learner;
   cnBool result = cnFalse;
   cnSchema schema;
 
   // Inits.
+  bool initOkay = true;
   cnListInit(&functions, sizeof(cnEntityFunction*));
-  initOkay &= cnrSchemaInit(&schema);
-  initOkay &= cnLearnerInit(&learner, NULL);
+  if (!cnrSchemaInit(&schema)) initOkay = false;
+  if (!cnLearnerInit(&learner, NULL)) initOkay = false;
   if (!initOkay) cnFailTo(DONE);
   cnrPickFunctions(&functions, *(cnType**)cnListGet(&schema.types, 1));
 
   // Learn something.
   // TODO How to choose pass vs. hold?
+  cnListShuffle(holdBags);
   cnListShuffle(passBags);
   learner.bags = passBags;
   learner.entityFunctions = &functions;
@@ -270,13 +271,13 @@ cnBool cnrProcessLearn(cnList(cnBag)* holdBags, cnList(cnBag)* passBags) {
 }
 
 
-cnBool cnrSaveBags(char* name, cnList(cnBag)* bags) {
+cnBool cnrSaveBags(const char* name, cnList(cnBag)* bags) {
   const unsigned char* buffer;
   size_t bufferSize;
   FILE* file = NULL;
   yajl_gen gen = NULL;
-  char* itemsKey = "items";
-  char* locationKey = "location";
+  const char* itemsKey = "items";
+  const char* locationKey = "location";
   cnBool result = cnFalse;
 
   printf("Writing %s\n", name);
@@ -295,14 +296,14 @@ cnBool cnrSaveBags(char* name, cnList(cnBag)* bags) {
     // Write each item (ball or player).
     cnListEachBegin(bag->entities, cnEntity, entity) {
       cnIndex depth = 0;
-      cnrItem item = *entity;
+      cnrItem* item = reinterpret_cast<cnrItem*>(*entity);
       if (yajl_gen_map_open(gen)) cnFailTo(DONE);
       // Type as ball, left (team), or right (team).
       if (!cnrGenStr(gen, "type")) cnFailTo(DONE);
       if (item->type == cnrTypeBall) {
         if (!cnrGenStr(gen, "ball")) cnFailTo(DONE);
       } else {
-        cnrPlayer player = (cnrPlayer)item;
+        cnrPlayer* player = (cnrPlayer*)item;
         if (!cnrGenStr(gen, player->team ? "right" : "left")) cnFailTo(DONE);
       }
       // Location.
@@ -316,7 +317,7 @@ cnBool cnrSaveBags(char* name, cnList(cnBag)* bags) {
           );
         }
         // Skip out if we found the player pinned.
-        if (item == *(cnrItem*)options->items) break;
+        if (item == *reinterpret_cast<cnrItem**>(options->items)) break;
         depth++;
       } cnEnd;
       if (!cnrGenStr(gen, "__instantiable_depth__")) cnFailTo(DONE);

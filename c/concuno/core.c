@@ -42,7 +42,7 @@ void cnHeapClear(cnHeapAny heap) {
 
 
 cnHeapAny cnHeapCreate(cnBool (*less)(cnRefAny info, cnRefAny a, cnRefAny b)) {
-  cnHeapAny heap = malloc(sizeof(struct cnHeapAny));
+  cnHeapAny heap = malloc(sizeof(struct $cnHeapAny));
   if (!heap) cnErrTo(DONE, "No heap.");
   heap->destroyInfo = NULL;
   heap->destroyItem = NULL;
@@ -429,7 +429,7 @@ cnBool cnStringPushChar(cnString* string, char c) {
 }
 
 
-cnBool cnStringPushStr(cnString* string, char* str) {
+cnBool cnStringPushStr(cnString* string, const char* str) {
   char* formerEnd;
   cnBool wasEmpty = !string->reservedCount;
   cnCount extra = strlen(str);

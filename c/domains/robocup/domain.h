@@ -5,7 +5,7 @@
 #include <concuno.h>
 
 
-typedef enum {
+enum cnrType {
 
   /**
    * The matter in question works for any type of cnrItem.
@@ -16,7 +16,7 @@ typedef enum {
 
   cnrTypePlayer,
 
-} cnrType;
+};
 
 
 /**
@@ -37,7 +37,7 @@ typedef cnIndex cnrTeam;
 typedef cnIndex cnrTime;
 
 
-typedef struct cnrItem {
+struct cnrItem {
 
   cnrType type;
 
@@ -45,19 +45,19 @@ typedef struct cnrItem {
 
   // TODO Velocity.
 
-}* cnrItem;
+};
 
 
-typedef struct cnrBall {
+struct cnrBall {
 
-  struct cnrItem item;
+  cnrItem item;
 
   // Probably that's all we'll ever have in here.
 
-}* cnrBall;
+};
 
 
-typedef struct cnrPlayer {
+struct cnrPlayer {
 
   struct cnrItem item;
 
@@ -93,12 +93,12 @@ typedef struct cnrPlayer {
 
   cnrTeam team;
 
-}* cnrPlayer;
+};
 
 
-typedef struct cnrState {
+struct cnrState {
 
-  struct cnrBall ball;
+  cnrBall ball;
 
   /**
    * This state is the beginning of a new session. In keepaway, that means the
@@ -108,7 +108,7 @@ typedef struct cnrState {
    */
   cnBool newSession;
 
-  cnList(struct cnrPlayer) players;
+  cnList(cnrPlayer) players;
 
   /**
    * The secondary clock of the game that ticks during setup or after fouls.
@@ -120,28 +120,28 @@ typedef struct cnrState {
    */
   cnrTime time;
 
-}* cnrState;
+};
 
 
-typedef struct cnrGame {
+struct cnrGame {
 
-  cnList(struct cnrState) states;
+  cnList(cnrState) states;
 
   cnList(cnString) teamNames;
 
-}* cnrGame;
+};
 
 
-void cnrGameDispose(cnrGame game);
+void cnrGameDispose(cnrGame* game);
 
 
-void cnrGameInit(cnrGame game);
+void cnrGameInit(cnrGame* game);
 
 
-void cnrItemInit(cnrItem item, cnrType type);
+void cnrItemInit(cnrItem* item, cnrType type);
 
 
-void cnrPlayerInit(cnrPlayer player);
+void cnrPlayerInit(cnrPlayer* player);
 
 
 /**
@@ -157,10 +157,10 @@ cnBool cnrSchemaInit(cnSchema* schema);
  * Currently, after state disposal, it's actually reinit'd.
  * TODO Will this always hold?
  */
-void cnrStateDispose(cnrState state);
+void cnrStateDispose(cnrState* state);
 
 
-void cnrStateInit(cnrState state);
+void cnrStateInit(cnrState* state);
 
 
 #endif

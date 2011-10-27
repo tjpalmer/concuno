@@ -6,7 +6,7 @@
 
 
 cnBool cnrChooseHoldsAndPasses(
-  cnrGame game,
+  cnrGame* game,
   cnList(cnBag)* holdBags, cnList(cnBag)* passBags,
   cnList(cnList(cnEntity)*)* entityLists
 );

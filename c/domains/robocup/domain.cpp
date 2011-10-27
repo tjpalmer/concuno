@@ -3,7 +3,7 @@
 #include "domain.h"
 
 
-typedef enum {
+enum cnrFieldType {
 
   /**
    * These are of type 'int'.
@@ -20,10 +20,10 @@ typedef enum {
    */
   cnrFieldTypeFloat,
 
-} cnrFieldType;
+};
 
 
-typedef struct cnrFieldInfo {
+struct cnrFieldInfo {
 
   cnrFieldType fieldType;
 
@@ -31,12 +31,12 @@ typedef struct cnrFieldInfo {
 
   cnCount offset;
 
-}* cnrFieldInfo;
+};
 
 
-void cnrGameDispose(cnrGame game) {
+void cnrGameDispose(cnrGame* game) {
   // Dispose states.
-  cnListEachBegin(&game->states, struct cnrState, state) {
+  cnListEachBegin(&game->states, cnrState, state) {
     cnrStateDispose(state);
   } cnEnd;
   cnListDispose(&game->states);
@@ -49,20 +49,20 @@ void cnrGameDispose(cnrGame game) {
 }
 
 
-void cnrGameInit(cnrGame game) {
-  cnListInit(&game->states, sizeof(struct cnrState));
+void cnrGameInit(cnrGame* game) {
+  cnListInit(&game->states, sizeof(cnrState));
   cnListInit(&game->teamNames, sizeof(cnString));
 }
 
 
-void cnrItemInit(cnrItem item, cnrType type) {
+void cnrItemInit(cnrItem* item, cnrType type) {
   item->location[0] = 0.0;
   item->location[1] = 0.0;
   item->type = type;
 }
 
 
-void cnrPlayerInit(cnrPlayer player) {
+void cnrPlayerInit(cnrPlayer* player) {
   // Generic item stuff.
   cnrItemInit(&player->item, cnrTypePlayer);
   // No kick to start with.
@@ -76,12 +76,12 @@ void cnrPlayerInit(cnrPlayer player) {
 
 
 void cnrPropertyFieldGet(cnProperty* property, cnEntity entity, void* storage) {
-  cnrFieldInfo info = (cnrFieldInfo)property->data;
-  cnrItem item = entity;
+  cnrFieldInfo* info = (cnrFieldInfo*)property->data;
+  cnrItem* item = reinterpret_cast<cnrItem*>(entity);
   if (info->itemType != cnrTypeAny && item->type != info->itemType) {
     // Types don't match. Give NaNs.
     // TODO If we were more explicit, could we be more efficient in learning?
-    cnFloat* out = storage;
+    cnFloat* out = reinterpret_cast<cnFloat*>(storage);
     cnFloat* outEnd = out + property->count;
     for (; out < outEnd; out++) {
       *((cnFloat*)storage) = cnNaN();
@@ -89,7 +89,7 @@ void cnrPropertyFieldGet(cnProperty* property, cnEntity entity, void* storage) {
   } else if (info->fieldType == cnrFieldTypeEnum) {
     // Out must be float.
     unsigned int* in = (unsigned int*)(((char*)entity) + info->offset);
-    cnFloat* out = storage;
+    cnFloat* out = reinterpret_cast<cnFloat*>(storage);
     cnFloat* outEnd = out + property->count;
     for (; out < outEnd; in++, out++) {
       *out = *in;
@@ -97,7 +97,7 @@ void cnrPropertyFieldGet(cnProperty* property, cnEntity entity, void* storage) {
   } else if (info->fieldType == cnrFieldTypeInt) {
     // Out must be float.
     cnInt* in = (cnInt*)(((char*)entity) + info->offset);
-    cnFloat* out = storage;
+    cnFloat* out = reinterpret_cast<cnFloat*>(storage);
     cnFloat* outEnd = out + property->count;
     for (; out < outEnd; in++, out++) {
       *out = *in;
@@ -114,14 +114,14 @@ void cnrPropertyFieldGet(cnProperty* property, cnEntity entity, void* storage) {
 
 
 void cnrPropertyFieldPut(cnProperty* property, cnEntity entity, void* value) {
-  cnrFieldInfo info = (cnrFieldInfo)property->data;
-  cnrItem item = entity;
+  cnrFieldInfo* info = (cnrFieldInfo*)property->data;
+  cnrItem* item = reinterpret_cast<cnrItem*>(entity);
   if (info->itemType != cnrTypeAny && item->type != info->itemType) {
     // Types don't match. Nothing to do here.
     // TODO Any way to indicate error?
   } else if (info->fieldType == cnrFieldTypeEnum) {
     // In must be float.
-    cnFloat* in = value;
+    cnFloat* in = reinterpret_cast<cnFloat*>(value);
     unsigned int* out = (unsigned int*)(((char*)entity) + info->offset);
     unsigned int* outEnd = out + property->count;
     for (; out < outEnd; in++, out++) {
@@ -129,7 +129,7 @@ void cnrPropertyFieldPut(cnProperty* property, cnEntity entity, void* value) {
     }
   } else if (info->fieldType == cnrFieldTypeInt) {
     // In must be float.
-    cnFloat* in = value;
+    cnFloat* in = reinterpret_cast<cnFloat*>(value);
     cnInt* out = (cnInt*)(((char*)entity) + info->offset);
     cnInt* outEnd = out + property->count;
     for (; out < outEnd; in++, out++) {
@@ -155,15 +155,17 @@ void cnrPropertyFieldInfoDispose(cnProperty* property) {
 cnBool cnrPropertyInitTypedField(
   cnProperty* property, cnType* containerType, cnrType itemType,
   cnType* type, cnrFieldType fieldType,
-  char* name, cnCount offset, cnCount count
+  const char* name, cnCount offset, cnCount count
 ) {
-  cnrFieldInfo info;
+  cnrFieldInfo* info;
   // Safety items first.
   cnStringInit(&property->name);
   property->dispose = NULL;
   // Failing things.
   if (!cnStringPushStr(&property->name, name)) cnFailTo(FAIL);
-  if (!(info = malloc(sizeof(struct cnrFieldInfo)))) {
+  if (!(
+    info = reinterpret_cast<cnrFieldInfo*>(malloc(sizeof(struct cnrFieldInfo)))
+  )) {
     cnErrTo(FAIL, "Failed to allocate field info.");
   }
   info->fieldType = fieldType;
@@ -199,21 +201,27 @@ cnBool cnrSchemaInit(cnSchema* schema) {
   if (!cnListPush(&schema->types, &type)) cnFailTo(FAIL);
 
   // Location property.
-  if (!(property = cnListExpand(&type->properties))) cnFailTo(FAIL);
+  if (!(
+    property = reinterpret_cast<cnProperty*>(cnListExpand(&type->properties))
+  )) cnFailTo(FAIL);
   if (!cnPropertyInitField(
     property, type, schema->floatType, "Location",
     offsetof(struct cnrItem, location), 2
   )) cnFailTo(FAIL);
 
   // Team property.
-  if (!(property = cnListExpand(&type->properties))) cnFailTo(FAIL);
+  if (!(
+    property = reinterpret_cast<cnProperty*>(cnListExpand(&type->properties))
+  )) cnFailTo(FAIL);
   if (!cnrPropertyInitTypedField(
     property, type, cnrTypePlayer, schema->floatType, cnrFieldTypeEnum, "Team",
     offsetof(struct cnrPlayer, team), 1
   )) cnFailTo(FAIL);
 
   // Type property.
-  if (!(property = cnListExpand(&type->properties))) cnFailTo(FAIL);
+  if (!(
+    property = reinterpret_cast<cnProperty*>(cnListExpand(&type->properties))
+  )) cnFailTo(FAIL);
   if (!cnrPropertyInitTypedField(
     property, type, cnrTypeAny, schema->floatType, cnrFieldTypeInt, "Type",
     offsetof(struct cnrItem, type), 1
@@ -228,13 +236,13 @@ cnBool cnrSchemaInit(cnSchema* schema) {
 }
 
 
-void cnrStateDispose(cnrState state) {
+void cnrStateDispose(cnrState* state) {
   cnListDispose(&state->players);
   cnrStateInit(state);
 }
 
 
-void cnrStateInit(cnrState state) {
+void cnrStateInit(cnrState* state) {
   cnrItemInit(&state->ball.item, cnrTypeBall);
   state->newSession = cnFalse;
   cnListInit(&state->players, sizeof(struct cnrPlayer));

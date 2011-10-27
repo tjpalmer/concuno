@@ -177,7 +177,7 @@ struct cnPredicate {
 };
 
 
-typedef struct cnPredicateThresholdInfo {
+typedef struct $cnPredicateThresholdInfo {
 
   cnFunction* distanceFunction;
 
@@ -398,7 +398,7 @@ void cnPropertyDispose(cnProperty* property);
  * On failure, leaves the property in a stable (nulled out) state.
  */
 cnBool cnPropertyInitField(
-  cnProperty* property, cnType* containerType, cnType* type, char* name,
+  cnProperty* property, cnType* containerType, cnType* type, const char* name,
   cnCount offset, cnCount count
 );
 
@@ -456,7 +456,7 @@ cnBool cnSchemaDefineStandardTypes(cnSchema* schema);
 /**
  * On failure, returns null.
  */
-cnType* cnTypeCreate(char* name, cnCount size);
+cnType* cnTypeCreate(const char* name, cnCount size);
 
 
 /**

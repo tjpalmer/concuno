@@ -57,7 +57,7 @@ typedef struct cnBindingBagList {
  *
  * TODO Use this inside cnPointBag?
  */
-typedef struct cnPointMatrix {
+typedef struct $cnPointMatrix {
 
   /**
    * The total number of points in the bag.
@@ -121,7 +121,7 @@ typedef struct cnPointBag {
   /**
    * One point at a time.
    */
-  struct cnPointMatrix pointMatrix;
+  struct $cnPointMatrix pointMatrix;
 
 } cnPointBag;
 

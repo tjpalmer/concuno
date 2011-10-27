@@ -1,9 +1,9 @@
 add_executable(
   rcss-test
-  rcss-test.c
-  choose.c
-  domain.c
-  load.c
+  rcss-test.cpp
+  choose.cpp
+  domain.cpp
+  load.cpp
 )
 
 target_link_libraries(
