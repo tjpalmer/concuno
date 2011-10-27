@@ -126,7 +126,7 @@ void cnVectorPrint(FILE* file, cnCount size, cnFloat* values) {
 
 
 void cnVectorPrintDelimited(
-  FILE* file, cnCount size, cnFloat* values, char* delimiter
+  FILE* file, cnCount size, cnFloat* values, const char* delimiter
 ) {
   // TODO Awesomer printing a la Matlab or better?
   cnFloat *value = values, *end = values + size;

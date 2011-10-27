@@ -7,7 +7,7 @@ add_library(concuno-static STATIC
   entity.c
   kdtree.c
   learn.c
-  mat.c
+  mat.cpp
   io.c
   numpy-mtrand/distributions.c
   numpy-mtrand/initarray.c

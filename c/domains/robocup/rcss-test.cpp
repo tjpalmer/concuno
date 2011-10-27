@@ -80,7 +80,7 @@ int main(int argc, char** argv) {
     printf("Loaded %ld states.\n", game.states.count);
 
     // Extract actions of hold or kick to player, then process them.
-    if (!cnrProcess(&game, cnrProcessExport)) cnErrTo(DONE, "Failed extract.");
+    if (!cnrProcess(&game, cnrProcessLearn)) cnErrTo(DONE, "Failed extract.");
 
     // Winned.
     result = EXIT_SUCCESS;
