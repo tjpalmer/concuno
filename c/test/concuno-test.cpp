@@ -36,7 +36,7 @@ void testVariance(void);
 
 
 int main(void) {
-  switch ('f') {
+  switch ('h') {
   case 'b':
     testBinomial();
     break;
@@ -116,7 +116,7 @@ cnBool testHeap_greater(cnRefAny unused, cnRefAny a, cnRefAny b) {
   cnFloat indexA = *(cnRef(cnFloat))a;
   cnFloat indexB = *(cnRef(cnFloat))b;
   // Make it a max heap for kicks.
-  return indexA > indexB;
+  return cnBoolify(indexA > indexB);
 }
 
 #define testHeap_COUNT 10
@@ -129,7 +129,7 @@ void testHeap(void) {
   // Load the heap.
   heap->destroyItem = testHeap_destroyItem;
   for (i = 0; i < testHeap_COUNT; i++) {
-    cnFloat* number = malloc(sizeof(cnFloat));
+    cnFloat* number = cnAlloc(cnFloat, 1);
     if (!number) cnErrTo(DONE, "No float %ld.", i);
     *number = cnUnitRand();
     if (!cnHeapPush(heap, number)) cnErrTo(DONE, "No push %ld.", i);
@@ -138,7 +138,7 @@ void testHeap(void) {
   // Drain the heap partially.
   printf("Pulling half: ");
   while (heap->items.count > testHeap_COUNT / 2) {
-    cnFloat* number = cnHeapPull(heap);
+    cnFloat* number = reinterpret_cast<cnFloat*>(cnHeapPull(heap));
     printf(" %lf", *number);
     free(number);
   }
@@ -147,7 +147,7 @@ void testHeap(void) {
   // Load the heap again.
   heap->destroyItem = testHeap_destroyItem;
   for (i = 0; i < testHeap_COUNT / 2; i++) {
-    cnFloat* number = malloc(sizeof(cnFloat));
+    cnFloat* number = reinterpret_cast<cnFloat*>(malloc(sizeof(cnFloat)));
     if (!number) cnErrTo(DONE, "No 2nd float %ld.", i);
     *number = cnUnitRand();
     if (!cnHeapPush(heap, number)) cnErrTo(DONE, "No 2nd push %ld.", i);
@@ -156,7 +156,7 @@ void testHeap(void) {
   // Drain the heap completely.
   printf("Pulling all: ");
   while (heap->items.count) {
-    cnFloat* number = cnHeapPull(heap);
+    cnFloat* number = reinterpret_cast<cnFloat*>(cnHeapPull(heap));
     printf(" %lf", *number);
     free(number);
   }
@@ -251,7 +251,7 @@ void testPropagate_charsDiffGet(
 }
 
 cnBool testPropagate_equalEvaluate(cnPredicate* predicate, void* in) {
-  return !*(cnFloat*)in;
+  return cnBoolify(!*(cnFloat*)in);
 }
 
 cnBool testPropagate_write(
@@ -275,11 +275,10 @@ cnBool testPropagate_write(
 
 void testPropagate(void) {
   cnBag bag;
-  char* c;
-  char* data = "Hello!";
+  const char* data = "Hello!";
   cnEntityFunction* entityFunction = NULL;
   cnIndex i;
-  cnBool initOkay = cnTrue;
+  bool initOkay = true;
   cnList(cnLeafBindingBag) leafBindingBags;
   cnSplitNode* split;
   cnVarNode* vars[2];
@@ -288,8 +287,8 @@ void testPropagate(void) {
 
   // Init stuff.
   cnListInit(&leafBindingBags, sizeof(cnLeafBindingBag));
-  initOkay &= cnBagInit(&bag, NULL);
-  initOkay &= cnRootNodeInit(&tree, cnFalse);
+  initOkay &= cnBagInit(&bag, NULL) ? true : false;
+  initOkay &= cnRootNodeInit(&tree, cnFalse) ? true : false;
   if (!initOkay) cnErrTo(DONE, "Init failed.");
   // TODO Float required because of NaN convention. Fix this!
   if (!(type = cnTypeCreate("Float", sizeof(cnFloat)))) {
@@ -314,11 +313,11 @@ void testPropagate(void) {
   split->function = entityFunction;
   // Var indices.
   if (!(
-    split->varIndices = malloc(entityFunction->inCount * sizeof(cnIndex))
+    split->varIndices = cnAlloc(cnIndex, entityFunction->inCount)
   )) cnErrTo(DONE, "No var indices.");
   for (i = 0; i < entityFunction->inCount; i++) split->varIndices[i] = i;
   // Predicate.
-  if (!(split->predicate = malloc(sizeof(cnPredicate)))) {
+  if (!(split->predicate = cnAlloc(cnPredicate, 1))) {
     cnErrTo(DONE, "No predicate.");
   }
   split->predicate->copy = NULL;
@@ -332,8 +331,9 @@ void testPropagate(void) {
   printf("\n\n");
 
   // Prepare bogus data.
-  for (c = data; *c; c++) {
-    cnEntity entity = c;
+  for (const char* c = data; *c; c++) {
+    // A bit sloppy on const here, but we shouldn't be changing anything.
+    cnEntity entity = reinterpret_cast<cnEntity>(const_cast<char*>(c));
     cnListPush(bag.entities, &entity);
   }
 
@@ -349,7 +349,7 @@ void testPropagate(void) {
       cnIndex e;
       printf("  ");
       for (e = 0; e < leafBindingBag->bindingBag.entityCount; e++) {
-        char* c = entities[e];
+        const char* c = reinterpret_cast<const char *>(entities[e]);
         printf("%c", *c);
       }
       printf("\n");
@@ -371,7 +371,7 @@ void testPropagate(void) {
 void testReframe_get(cnEntityFunction* function, cnEntity* ins, void* outs) {
   cnFloat* in = *(cnFloat**)ins;
   cnFloat* inEnd = in + function->outCount;
-  cnFloat* out = outs;
+  cnFloat* out = reinterpret_cast<cnFloat*>(outs);
   for (; in < inEnd; in++, out++) {
     *out = *in;
   }

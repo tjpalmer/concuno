@@ -26,6 +26,12 @@ cnCBegin;
 typedef enum {cnFalse, cnTrue} cnBool;
 
 
+/**
+ * Macro to ease transition to cpp.
+ */
+#define cnBoolify(x) ((x) ? cnTrue : cnFalse)
+
+
 typedef unsigned char cnByte;
 
 
@@ -83,6 +89,13 @@ typedef struct cnList {
  * Null-terminated UTF-8 string.
  */
 typedef cnList(char) cnString;
+
+
+/**
+ * Macro to simplify malloc in move to cpp.
+ */
+#define cnAlloc(Type, count) \
+  reinterpret_cast<Type*>(malloc(count * sizeof(Type)))
 
 
 /**

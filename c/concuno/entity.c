@@ -382,7 +382,7 @@ void cnEntityFunctionDrop(cnEntityFunction* function) {
 
 
 cnEntityFunction* cnEntityFunctionCreate(
-  char* name, cnCount inCount, cnCount outCount
+  const char* name, cnCount inCount, cnCount outCount
 ) {
   cnEntityFunction* function = malloc(sizeof(cnEntityFunction));
   if (!function) cnErrTo(DONE, "No function.");

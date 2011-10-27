@@ -339,7 +339,7 @@ void cnEntityFunctionDrop(cnEntityFunction* function);
  * Just a basic create for if you want to fill in your own and start out clean.
  */
 cnEntityFunction* cnEntityFunctionCreate(
-  char* name, cnCount inCount, cnCount outCount
+  const char* name, cnCount inCount, cnCount outCount
 );
 
 

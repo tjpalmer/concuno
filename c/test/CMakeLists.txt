@@ -1,6 +1,6 @@
 add_executable(
   concuno-test
-  concuno-test.c
+  concuno-test.cpp
 )
 
 target_link_libraries(
