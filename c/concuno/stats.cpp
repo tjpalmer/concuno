@@ -62,7 +62,7 @@ cnBinomial cnBinomialCreate(cnRandom random, cnCount count, cnFloat prob) {
   cnBinomialInfo* binomial;
 
   // Allocate space.
-  if (!(binomial = malloc(sizeof(cnBinomialInfo)))) {
+  if (!(binomial = cnAlloc(cnBinomialInfo, 1))) {
     cnErrTo(DONE, "No binomial.");
   }
 
@@ -93,15 +93,18 @@ cnCount cnBinomialSample(cnBinomial binomial) {
 cnBool cnFunctionEvaluateMahalanobisDistance(
   cnFunction* function, void* in, void* out
 ) {
-  *((cnFloat*)out) = cnMahalanobisDistance(function->info, in);
+  *((cnFloat*)out) = cnMahalanobisDistance(
+    reinterpret_cast<cnGaussian*>(function->info),
+    reinterpret_cast<cnFloat*>(in)
+  );
   // Always good.
   return cnTrue;
 }
 
 
 cnFunction* cnFunctionCreateMahalanobisDistance_copy(cnFunction* function) {
-  cnGaussian* other = function->info;
-  cnGaussian* gaussian = malloc(sizeof(cnGaussian));
+  cnGaussian* other = reinterpret_cast<cnGaussian*>(function->info);
+  cnGaussian* gaussian = cnAlloc(cnGaussian, 1);
   cnFunction* copy;
   if (!gaussian) return NULL;
   if (!cnGaussianInit(gaussian, other->dims, other->mean)) {
@@ -117,14 +120,14 @@ cnFunction* cnFunctionCreateMahalanobisDistance_copy(cnFunction* function) {
 }
 
 void cnFunctionCreateMahalanobisDistance_dispose(cnFunction* function) {
-  cnGaussianDispose(function->info);
+  cnGaussianDispose(reinterpret_cast<cnGaussian*>(function->info));
   free(function->info);
 }
 
 cnBool cnFunctionCreateMahalanobisDistance_write(
   cnFunction* function, FILE* file, cnString* indent
 ) {
-  cnGaussian* gaussian = function->info;
+  cnGaussian* gaussian = reinterpret_cast<cnGaussian*>(function->info);
   cnBool result = cnFalse;
 
   // TODO Check error state?
@@ -146,7 +149,7 @@ cnBool cnFunctionCreateMahalanobisDistance_write(
 }
 
 cnFunction* cnFunctionCreateMahalanobisDistance(cnGaussian* gaussian) {
-  cnFunction* function = malloc(sizeof(cnFunction));
+  cnFunction* function = cnAlloc(cnFunction, 1);
   if (!function) return NULL;
   function->info = gaussian;
   function->copy = cnFunctionCreateMahalanobisDistance_copy;
@@ -168,8 +171,8 @@ void cnGaussianDispose(cnGaussian* gaussian) {
 
 cnBool cnGaussianInit(cnGaussian* gaussian, cnCount dims, cnFloat* mean) {
   // Make space.
-  gaussian->cov = malloc(dims * dims * sizeof(cnFloat));
-  gaussian->mean = malloc(dims * sizeof(cnFloat));
+  gaussian->cov = cnAlloc(cnFloat, dims * dims);
+  gaussian->mean = cnAlloc(cnFloat, dims);
   if (!(gaussian->cov && gaussian->mean)) goto FAIL;
   // Store values.
   gaussian->dims = dims;
@@ -230,7 +233,7 @@ cnMultinomial cnMultinomialCreate(
   cnFloat probLeft;
 
   // Allocate and init basics.
-  if (!(info = malloc(sizeof(cnMultinomialInfo)))) {
+  if (!(info = cnAlloc(cnMultinomialInfo, 1))) {
     cnErrTo(FAIL, "No multinomial.");
   }
   info->binomials = NULL;
@@ -239,7 +242,7 @@ cnMultinomial cnMultinomialCreate(
   info->random = random;
 
   // Allocate binomial info.
-  if (!(info->binomials = malloc(classCount * sizeof(cnMultiBinomial)))) {
+  if (!(info->binomials = cnAlloc(cnMultiBinomial, classCount))) {
     cnErrTo(FAIL, "No multibinomials.");
   }
 
@@ -319,8 +322,8 @@ cnBool cnPermutations(
 ) {
   cnBool result = cnFalse;
   cnIndex c, o;
-  cnIndex* permutation = malloc(count * sizeof(cnIndex));
-  cnBool* used = malloc(options * sizeof(cnBool));
+  cnIndex* permutation = cnAlloc(cnIndex, count);
+  cnBool* used = cnAlloc(cnBool, options);
   if (!(permutation && used)) cnErrTo(DONE, "No permutation or used.");
 
   // Sanity checks.
@@ -380,7 +383,7 @@ cnBool cnPermutations(
 cnRandom cnRandomCreate(void) {
   rk_state* state;
 
-  if (!(state = malloc(sizeof(rk_state)))) cnErrTo(DONE, "No random.");
+  if (!(state = cnAlloc(rk_state, 1))) cnErrTo(DONE, "No random.");
   // TODO Is 0 a particularly bad seed?
   rk_seed(0, state);
 

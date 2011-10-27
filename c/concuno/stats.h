@@ -8,7 +8,7 @@
 cnCBegin;
 
 
-typedef struct{}* cnBinomial;
+typedef void* cnBinomial;
 
 
 /**
@@ -31,7 +31,7 @@ typedef struct cnGaussian {
  *
  * TODO Maybe expose some things after all? Just not the inner workings.
  */
-typedef struct{}* cnMultinomial;
+typedef void* cnMultinomial;
 
 
 /**
@@ -39,7 +39,7 @@ typedef struct{}* cnMultinomial;
  *
  * TODO Are these threadsafe????
  */
-typedef struct{}* cnRandom;
+typedef void* cnRandom;
 
 
 /**

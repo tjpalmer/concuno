@@ -3,9 +3,9 @@
 
 add_library(concuno-static STATIC
   cluster.cpp
-  core.c
+  core.cpp
   entity.c
-  kdtree.c
+  kdtree.cpp
   learn.c
   mat.cpp
   io.cpp
@@ -13,6 +13,6 @@ add_library(concuno-static STATIC
   numpy-mtrand/initarray.c
   numpy-mtrand/randomkit.c
   search.cpp
-  stats.c
+  stats.cpp
   tree.c
 )

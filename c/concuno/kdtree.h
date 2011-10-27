@@ -9,7 +9,7 @@
 cnCBegin;
 
 
-typedef struct cnKdSplitter {
+struct cnKdSplitter {
 
   // TODO Modes such as random projection or PCA?
   // TODO Or use different top level split functions for that?
@@ -35,16 +35,16 @@ typedef struct cnKdSplitter {
    */
   cnBool randomOwned;
 
-}* cnKdSplitter;
+};
 
 
-cnRootNode* cnKdSplit(cnKdSplitter splitter);
+cnRootNode* cnKdSplit(cnKdSplitter* splitter);
 
 
-cnKdSplitter cnKdSplitterCreate(cnRandom random);
+cnKdSplitter* cnKdSplitterCreate(cnRandom random);
 
 
-void cnKdSplitterDestroy(cnKdSplitter splitter);
+void cnKdSplitterDestroy(cnKdSplitter* splitter);
 
 
 cnCEnd;

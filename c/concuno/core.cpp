@@ -6,14 +6,14 @@
 /**
  * Bubbles the item at the given index down the heap.
  */
-void cnHeapDown(cnHeapAny heap, cnIndex index);
+void cnHeapDown(cnHeapAny* heap, cnIndex index);
 
 
 /**
  * Provides the kids of the given parent index, using -1 to mean no such kid.
  */
 void cnHeapKids(
-  cnHeapAny heap, cnIndex parentIndex,
+  cnHeapAny* heap, cnIndex parentIndex,
   cnRef(cnIndex) kid1Index, cnRef(cnIndex) kid2Index
 );
 
@@ -28,10 +28,10 @@ cnIndex cnHeapParent(cnHeapAny heap, cnIndex kidIndex);
 /**
  * Bubbles the item at the given index up the heap.
  */
-void cnHeapUp(cnHeapAny heap, cnIndex index);
+void cnHeapUp(cnHeapAny* heap, cnIndex index);
 
 
-void cnHeapClear(cnHeapAny heap) {
+void cnHeapClear(cnHeapAny* heap) {
   if (heap->destroyItem) {
     cnListEachBegin(&heap->items, cnRefAny, item) {
       heap->destroyItem(heap->info, *item);
@@ -41,8 +41,8 @@ void cnHeapClear(cnHeapAny heap) {
 }
 
 
-cnHeapAny cnHeapCreate(cnBool (*less)(cnRefAny info, cnRefAny a, cnRefAny b)) {
-  cnHeapAny heap = malloc(sizeof(struct $cnHeapAny));
+cnHeapAny* cnHeapCreate(cnBool (*less)(cnRefAny info, cnRefAny a, cnRefAny b)) {
+  cnHeapAny* heap = cnAlloc(cnHeapAny, 1);
   if (!heap) cnErrTo(DONE, "No heap.");
   heap->destroyInfo = NULL;
   heap->destroyItem = NULL;
@@ -54,7 +54,7 @@ cnHeapAny cnHeapCreate(cnBool (*less)(cnRefAny info, cnRefAny a, cnRefAny b)) {
 }
 
 
-void cnHeapDestroy(cnHeapAny heap) {
+void cnHeapDestroy(cnHeapAny* heap) {
   // No op on null.
   if (!heap) return;
 
@@ -71,7 +71,7 @@ void cnHeapDestroy(cnHeapAny heap) {
 }
 
 
-void cnHeapDown(cnHeapAny heap, cnIndex index) {
+void cnHeapDown(cnHeapAny* heap, cnIndex index) {
   while (index >= 0) {
     cnRef(cnRefAny) item = ((cnArr(cnRefAny))heap->items.items) + index;
     cnIndex kidIndex;
@@ -117,7 +117,7 @@ void cnHeapDown(cnHeapAny heap, cnIndex index) {
 
 
 void cnHeapKids(
-  cnHeapAny heap, cnIndex parentIndex,
+  cnHeapAny* heap, cnIndex parentIndex,
   cnRef(cnIndex) kid1Index, cnRef(cnIndex) kid2Index
 ) {
   // TODO Use a "B-Heap" or Emde Boas layout or some such for more efficient
@@ -134,20 +134,20 @@ void cnHeapKids(
 }
 
 
-cnIndex cnHeapParent(cnHeapAny heap, cnIndex kidIndex) {
+cnIndex cnHeapParent(cnHeapAny* heap, cnIndex kidIndex) {
   // TODO Use a "B-Heap" or Emde Boas layout or some such for more efficient
   // TODO memory access.
   return kidIndex ? (kidIndex - 1) / 2 : -1;
 }
 
 
-cnRefAny cnHeapPeek(cnHeapAny heap) {
+cnRefAny cnHeapPeek(cnHeapAny* heap) {
   // Dereference to the stored pointer, if we have anything.
   return heap->items.items ? *(cnRef(cnRefAny))heap->items.items : NULL;
 }
 
 
-cnRefAny cnHeapPull(cnHeapAny heap) {
+cnRefAny cnHeapPull(cnHeapAny* heap) {
   cnRefAny pulled = cnHeapPeek(heap);
   if (heap->items.count) {
     // TODO With a different memory layout, is the last item still always legit?
@@ -167,7 +167,7 @@ cnRefAny cnHeapPull(cnHeapAny heap) {
 }
 
 
-cnBool cnHeapPush(cnHeapAny heap, cnRefAny item) {
+cnBool cnHeapPush(cnHeapAny* heap, cnRefAny item) {
   cnBool result = cnFalse;
   if (!cnListPush(&heap->items, &item)) cnErrTo(DONE, "No push.");
   cnHeapUp(heap, heap->items.count - 1);
@@ -177,7 +177,7 @@ cnBool cnHeapPush(cnHeapAny heap, cnRefAny item) {
 }
 
 
-void cnHeapUp(cnHeapAny heap, cnIndex index) {
+void cnHeapUp(cnHeapAny* heap, cnIndex index) {
   while (index) {
     cnRef(cnRefAny) item = ((cnArr(cnRefAny))heap->items.items) + index;
     cnIndex parentIndex = cnHeapParent(heap, index);
@@ -200,9 +200,14 @@ void cnHeapUp(cnHeapAny heap, cnIndex index) {
 
 
 cnBool cnIsNaN(cnFloat x) {
+  // TODO Technique from:
+  // http://stackoverflow.com/questions/570669/...
+  // checking-if-a-double-or-float-is-nan-in-c
   // TODO _isnan for Windows?
+  //  volatile double d = x;
+  //  return cnBoolify(d != d);
   #ifdef isnan
-    return isnan(x);
+    return cnBoolify(isnan(x));
   #else
     return x != x;
   #endif
@@ -210,7 +215,7 @@ cnBool cnIsNaN(cnFloat x) {
 
 
 cnListAny* cnListCreate(cnCount itemSize) {
-  cnListAny* list = malloc(sizeof(cnListAny));
+  cnListAny* list = cnAlloc(cnListAny, 1);
   if (list) cnListInit(list, itemSize);
   return list;
 }
@@ -328,7 +333,7 @@ void* cnListPushMulti(cnListAny* list, void* items, cnCount count) {
 
 
 void cnListRemove(cnListAny* list, cnIndex index) {
-  char *begin = cnListGet(list, index);
+  char *begin = reinterpret_cast<char*>(cnListGet(list, index));
   if (!begin) {
     printf("Bad index for remove: %ld\n", index);
     return;
@@ -422,7 +427,7 @@ cnBool cnStringPushChar(cnString* string, char c) {
     return cnFalse;
   }
   // Now swap the null char and the final.
-  str = string->items;
+  str = reinterpret_cast<char*>(string->items);
   str[string->count - 2] = c;
   str[string->count - 1] = '\0';
   return cnTrue;
@@ -431,14 +436,14 @@ cnBool cnStringPushChar(cnString* string, char c) {
 
 cnBool cnStringPushStr(cnString* string, const char* str) {
   char* formerEnd;
-  cnBool wasEmpty = !string->reservedCount;
+  bool wasEmpty = !string->reservedCount;
   cnCount extra = strlen(str);
   if (wasEmpty) {
     // For the null char.
     extra++;
   }
   // Make space.
-  formerEnd = cnListExpandMulti(string, extra);
+  formerEnd = reinterpret_cast<char*>(cnListExpandMulti(string, extra));
   if (!formerEnd) {
     return cnFalse;
   }

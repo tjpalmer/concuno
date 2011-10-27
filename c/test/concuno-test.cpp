@@ -122,7 +122,7 @@ cnBool testHeap_greater(cnRefAny unused, cnRefAny a, cnRefAny b) {
 #define testHeap_COUNT 10
 
 void testHeap(void) {
-  cnHeap(cnIndex) heap = cnHeapCreate(testHeap_greater);
+  cnHeap(cnIndex)* heap = cnHeapCreate(testHeap_greater);
   cnIndex i;
   if (!heap) cnErrTo(DONE, "No heap.");
 

@@ -3,7 +3,7 @@
 
 struct cnSearcherSelf: cnSearcher {
 
-  cnHeap(cnSearchOption) options;
+  cnHeap(cnSearchOption)* options;
 
 };
 
