@@ -38,7 +38,7 @@ cnBool cnvBuildBags(
  * Returns the created item type or null for failure.
  */
 cnType* cnvLoadTable(
-  char* fileName, char* typeName, cnSchema* schema, cnListAny* items
+  const char* fileName, const char* typeName, cnSchema* schema, cnListAny* items
 );
 
 
@@ -59,7 +59,7 @@ int main(int argc, char** argv) {
   cnListAny features;
   cnType* featureType;
   cnList(cnEntityFunction*) functions;
-  cnBool initOkay = cnTrue;
+  bool initOkay = cnTrue;
   cnListAny labels;
   cnType* labelType;
   cnRootNode* learnedTree = NULL;
@@ -72,8 +72,8 @@ int main(int argc, char** argv) {
   cnListInit(&features, 0);
   cnListInit(&functions, sizeof(cnEntityFunction*));
   cnListInit(&labels, 0);
-  initOkay &= cnSchemaInitDefault(&schema);
-  initOkay &= cnLearnerInit(&learner, NULL);
+  initOkay &= cnSchemaInitDefault(&schema) ? true : false;
+  initOkay &= cnLearnerInit(&learner, NULL) ? true : false;
   if (!initOkay) cnErrTo(DONE, "Init failed.");
 
   if (argc < 4) cnErrTo(
@@ -130,8 +130,8 @@ cnBool cnvBuildBags(
   char* labelId, cnType* labelType, cnListAny* labels,
   cnType* featureType, cnListAny* features
 ) {
-  char* feature = features->items;
-  char* featuresEnd = cnListEnd(features);
+  char* feature = reinterpret_cast<char*>(features->items);
+  char* featuresEnd = reinterpret_cast<char*>(cnListEnd(features));
   cnCount labelOffset = -1;
   cnBool result = cnFalse;
 
@@ -147,12 +147,12 @@ cnBool cnvBuildBags(
 
   // Assume for now that the labels and features go in the same order.
   cnListEachBegin(labels, char, labelItem) {
-    cnBag* bag = cnListExpand(bags);
+    cnBag* bag = reinterpret_cast<cnBag*>(cnListExpand(bags));
     cnIndex bagId = *(cnFloat*)labelItem;
     // Check the bag allocation, and init the thing.
     if (!bag) cnErrTo(DONE, "No bag.");
     if (!cnBagInit(bag, NULL)) cnErrTo(DONE, "No bag init.");
-    bag->label = *(cnFloat*)(labelItem + labelOffset);
+    bag->label = *(cnFloat*)(labelItem + labelOffset) ? cnTrue : cnFalse;
     // Add features.
     //printf("Reached bag %ld, labeled %u.\n", bagId, bag->label);
     for (; feature < featuresEnd; feature += features->itemSize) {
@@ -172,7 +172,7 @@ cnBool cnvBuildBags(
 
 
 cnType* cnvLoadTable(
-  char* fileName, char* typeName, cnSchema* schema, cnListAny* items
+  const char* fileName, const char* typeName, cnSchema* schema, cnListAny* items
 ) {
   cnCount countRead;
   FILE* file = NULL;
@@ -206,14 +206,16 @@ cnType* cnvLoadTable(
       // Strip % prefix, used there for Matlab convenience.
       next++;
     }
-    if (!(offset = cnListExpand(&offsets))) cnErrTo(FAIL, "No offset.");
+    if (!(offset = reinterpret_cast<cnvTypedOffset*>(cnListExpand(&offsets)))) {
+      cnErrTo(FAIL, "No offset.");
+    }
     if (!cnvPushOrExpandProperty(type, next, offset)) {
       cnErrTo(FAIL, "Property stuck.");
     }
   }
   // Now that we have the full type, it's stable.
   items->itemSize = type->size;
-  offsetsEnd = cnListEnd(&offsets);
+  offsetsEnd = reinterpret_cast<cnvTypedOffset*>(cnListEnd(&offsets));
   // Report it for now, too.
   cnvPrintType(type);
 
@@ -344,7 +346,7 @@ cnBool cnvPushOrExpandProperty(
 
   if (!property) {
     // Didn't find anything, so push a new property.
-    property = cnListExpand(&type->properties);
+    property = reinterpret_cast<cnProperty*>(cnListExpand(&type->properties));
     if (!property) cnErrTo(DONE, "Failed to alloc %s property.", propertyName);
     // TODO Assumed always float for now.
     if (!cnPropertyInitField(
