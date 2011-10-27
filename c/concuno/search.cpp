@@ -1,27 +1,17 @@
 #include "search.h"
 
 
-typedef struct cnSearcherSelf {
+struct cnSearcherSelf: cnSearcher {
 
-  /**
-   * The searcher is first.
-   */
-  struct cnSearcher searcher;
-
-  /**
-   * Prioritized options for search.
-   */
   cnHeap(cnSearchOption) options;
 
-  // TODO Threading and mutexes?
-
-}* cnSearcherSelf;
+};
 
 
-cnBool cnSearch(cnSearcher searcher) {
+cnBool cnSearch(cnSearcher* searcher) {
   cnList(cnSearchOption) nexts;
   cnBool result = cnFalse;
-  cnSearcherSelf self = (cnSearcherSelf)searcher;
+  cnSearcherSelf* self = (cnSearcherSelf*)searcher;
 
   // Init.
   cnListInit(&nexts, sizeof(cnSearchOption));
@@ -36,8 +26,6 @@ cnBool cnSearch(cnSearcher searcher) {
   // TODO need the ability to locate and prune them from the best-first heap,
   // TODO too.
   while (self->options->items.count && !searcher->finished(searcher)) {
-    cnBool failed;
-
     // TODO Multithread out N at a time.
 
     // Find our next search point.
@@ -56,7 +44,7 @@ cnBool cnSearch(cnSearcher searcher) {
     }
 
     // Search from the contender either way.
-    failed = !searcher->step(searcher, contender, &nexts);
+    bool failed = !searcher->step(searcher, contender, &nexts);
     // If the contender wasn't our best, destroy it now. It has served its
     // purpose in search.
     // TODO Actually, I'll need to hand all past some threshold to some second
@@ -83,23 +71,21 @@ cnBool cnSearch(cnSearcher searcher) {
 
 void cnSearcherCreate_destroyItem(void* info, void* item) {
   // Call destroy if we have one.
-  cnSearcher searcher = info;
+  cnSearcher* searcher = reinterpret_cast<cnSearcher*>(info);
   if (searcher->destroyOption) searcher->destroyOption(searcher, item);
 }
 
 cnBool cnSearcherCreate_less(void* info, void* a, void* b) {
-  cnSearcher searcher = info;
+  cnSearcher* searcher = reinterpret_cast<cnSearcher*>(info);
   // If it's better, it should bubble to the top. So better means less.
   return searcher->better(searcher, a, b);
 }
 
-cnSearcher cnSearcherCreate(void) {
-  cnSearcher searcher = NULL;
-  cnSearcherSelf self = malloc(sizeof(struct cnSearcherSelf));
-  if (!self) cnErrTo(DONE, "No searcher.");
+cnSearcher* cnSearcherCreate(void) {
+  cnSearcherSelf* searcher = new cnSearcherSelf;
+  if (!searcher) cnErrTo(DONE, "No searcher.");
 
   // Safety first.
-  searcher = &self->searcher;
   searcher->bestOption = NULL;
   searcher->better = NULL;
   searcher->destroyInfo = NULL;
@@ -110,11 +96,11 @@ cnSearcher cnSearcherCreate(void) {
   searcher->step = NULL;
 
   // Now possible failures.
-  if (!(self->options = cnHeapCreate(cnSearcherCreate_less))) {
+  if (!(searcher->options = cnHeapCreate(cnSearcherCreate_less))) {
     cnErrTo(FAIL, "No options heap.");
   }
-  self->options->info = self;
-  self->options->destroyItem = cnSearcherCreate_destroyItem;
+  searcher->options->info = searcher;
+  searcher->options->destroyItem = cnSearcherCreate_destroyItem;
 
   FAIL:
   cnSearcherDestroy(searcher);
@@ -125,8 +111,8 @@ cnSearcher cnSearcherCreate(void) {
 }
 
 
-void cnSearcherDestroy(cnSearcher searcher) {
-  cnSearcherSelf self = (cnSearcherSelf)searcher;
+void cnSearcherDestroy(cnSearcher* searcher) {
+  cnSearcherSelf* self = (cnSearcherSelf*)searcher;
   if (!searcher) return;
 
   // Options heap.
@@ -144,9 +130,9 @@ void cnSearcherDestroy(cnSearcher searcher) {
 
   // Info.
   if (searcher->destroyInfo) {
-    searcher->destroyInfo(searcher->info);
+    searcher->destroyInfo(searcher);
   }
 
   // And free.
-  free(self);
+  delete self;
 }

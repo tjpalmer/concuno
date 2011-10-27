@@ -24,8 +24,6 @@ typedef void* cnSearchOption;
  * TODO Consider that RRT-inspired Monte Carlo search technique I saw at AAAI
  * TODO 2011? Consider making algorithms pluggable at some point?
  */
-typedef struct cnSearcher* cnSearcher;
-
 struct cnSearcher {
 
   /**
@@ -49,28 +47,28 @@ struct cnSearcher {
    * TODO Support dynamic reordering? It would be expensive, and would need to
    * TODO be explicit, but some needs might warrant it.
    */
-  cnBool (*better)(cnSearcher searcher, cnSearchOption a, cnSearchOption b);
+  cnBool (*better)(cnSearcher* searcher, cnSearchOption a, cnSearchOption b);
 
   /**
    * Set to non-null for automatic destruction of info.
    *
    * Destroy must ignore nulls.
    */
-  void (*destroyInfo)(cnSearcher searcher);
+  void (*destroyInfo)(cnSearcher* searcher);
 
   /**
    * Set to non-null for automatic destruction of options.
    *
    * Destroy must ignore nulls.
    */
-  void (*destroyOption)(cnSearcher searcher, cnSearchOption option);
+  void (*destroyOption)(cnSearcher* searcher, cnSearchOption option);
 
   /**
    * Says when the search is finished.
    *
    * If null, the search only terminates when all the options run out.
    */
-  cnBool (*finished)(cnSearcher searcher);
+  cnBool (*finished)(cnSearcher* searcher);
 
   /**
    * Custom info for your own needs.
@@ -89,23 +87,23 @@ struct cnSearcher {
    * The step function must be thread safe when using threaded search.
    */
   cnBool (*step)(
-    cnSearcher searcher, cnSearchOption option, cnList(cnSearchOption)* nexts
+    cnSearcher* searcher, cnSearchOption option, cnList(cnSearchOption)* nexts
   );
 
 };
 
 
-cnSearcher cnSearcherCreate(void);
+cnSearcher* cnSearcherCreate(void);
 
 
-void cnSearcherDestroy(cnSearcher searcher);
+void cnSearcherDestroy(cnSearcher* searcher);
 
 
 /**
  * Searches until finished. Returns true for no error. The best option is
  * available inside the searcher.
  */
-cnBool cnSearch(cnSearcher searcher);
+cnBool cnSearch(cnSearcher* searcher);
 
 
 cnCEnd;

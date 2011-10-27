@@ -409,6 +409,13 @@ cnFloat cnNaN(void);
 
 
 /**
+ * Helper for cpp needs.
+ */
+#define cnStackAllocOf(Type, count) \
+  reinterpret_cast<Type*>(alloca(count * sizeof(Type)))
+
+
+/**
  * Frees the memory allocated by cnStackAlloc. Does nothing in most cases for
  * memory actually allocated on the stack.
  *

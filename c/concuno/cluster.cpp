@@ -52,7 +52,7 @@ cnBool cnClusterOnFunction(cnList(cnBag)* bags, cnEntityFunction* function) {
     pointCount += bag->entities->count;
   } cnEnd;
   printf("%ld points total\n", pointCount);
-  points = malloc(pointCount * function->outCount * sizeof(cnFloat));
+  points = cnAlloc(cnFloat, pointCount * function->outCount);
   if (!points) {
     return cnFalse;
   }
@@ -87,13 +87,13 @@ cnBool cnDensityEstimate(cnCount size, cnCount count, cnFloat* points) {
   cnCount stepCount = 31;
   cnFloat maxStepSize;
   // Hack these 4 together as a matrix, for convenience.
-  cnFloat* max = cnStackAlloc(4 * size * sizeof(cnFloat));
+  cnFloat* max = cnStackAllocOf(cnFloat, 4 * size);
   cnFloat* min = max + size;
   cnFloat* point = min + size;
   cnFloat* stepSize = point + size;
   // And another we need of a different type.
   // We could try to avoid this, but being discrete feels safer.
-  cnIndex* stepIndices = cnStackAlloc(size * sizeof(cnIndex));
+  cnIndex* stepIndices = cnStackAllocOf(cnIndex, size);
 
   FILE *file = fopen("cnDensityEstimate.log", "w");
 

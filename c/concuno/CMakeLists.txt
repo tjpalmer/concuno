@@ -2,17 +2,17 @@
 # TODO later linking easier, in my experience.
 
 add_library(concuno-static STATIC
-  cluster.c
+  cluster.cpp
   core.c
   entity.c
   kdtree.c
   learn.c
   mat.cpp
-  io.c
+  io.cpp
   numpy-mtrand/distributions.c
   numpy-mtrand/initarray.c
   numpy-mtrand/randomkit.c
-  search.c
+  search.cpp
   stats.c
   tree.c
 )
