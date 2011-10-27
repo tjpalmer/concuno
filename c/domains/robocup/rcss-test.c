@@ -321,13 +321,20 @@ cnBool cnrSaveBags(char* name, cnList(cnBag)* bags) {
       } cnEnd;
       if (!cnrGenStr(gen, "__instantiable_depth__")) cnFailTo(DONE);
       if (yajl_gen_integer(gen, depth)) cnFailTo(DONE);
+      // SMRF Python class.
+      if (!cnrGenStr(gen, "__json_class__")) cnFailTo(DONE);
+      if (!cnrGenStr(gen, "Item")) cnFailTo(DONE);
       // End item.
       if (yajl_gen_map_close(gen)) cnFailTo(DONE);
     } cnEnd;
     if (yajl_gen_array_close(gen)) cnFailTo(DONE);
     // Bag label.
-    if (!cnrGenStr(gen, "__label__")) cnFailTo(DONE);
+    if (!cnrGenStr(gen, "label")) cnFailTo(DONE);
     if (yajl_gen_bool(gen, bag->label)) cnFailTo(DONE);
+    // SMRF Python class.
+    if (!cnrGenStr(gen, "__json_class__")) cnFailTo(DONE);
+    if (!cnrGenStr(gen, "Graph")) cnFailTo(DONE);
+    // End bag.
     if (yajl_gen_map_close(gen)) cnFailTo(DONE);
   } cnEnd;
   if (yajl_gen_array_close(gen) || yajl_gen_array_open(gen)) cnFailTo(DONE);
