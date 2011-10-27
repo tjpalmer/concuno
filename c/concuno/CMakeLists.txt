@@ -4,7 +4,7 @@
 add_library(concuno-static STATIC
   cluster.cpp
   core.cpp
-  entity.c
+  entity.cpp
   kdtree.cpp
   learn.c
   mat.cpp

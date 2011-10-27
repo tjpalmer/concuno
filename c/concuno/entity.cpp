@@ -31,7 +31,7 @@ cnBool cnBagInit(cnBag* bag, cnList(cnEntity)* entities) {
 
   // Safety first.
   bag->label = cnFalse;
-  bag->entities = entities ? entities : malloc(sizeof(cnList(cnEntity)));
+  bag->entities = entities ? entities : cnAlloc(cnList(cnEntity), 1);
   cnListInit(&bag->participantOptions, sizeof(cnList(cnEntity)));
 
   // Check on and finish up entities.
@@ -72,14 +72,18 @@ cnBool cnBagPushParticipant(cnBag* bag, cnIndex depth, cnEntity participant) {
 
   // Grow more lists if needed.
   while (depth >= bag->participantOptions.count) {
-    if (!(participantOptions = cnListExpand(&bag->participantOptions))) {
+    if (!(participantOptions = reinterpret_cast<cnList(cnEntity)*>(
+      cnListExpand(&bag->participantOptions)
+    ))) {
       cnErrTo(DONE, "Failed to grow participant options.");
     }
     cnListInit(participantOptions, sizeof(cnEntity));
   }
 
   // Expand the one for the right depth.
-  participantOptions = cnListGet(&bag->participantOptions, depth);
+  participantOptions = reinterpret_cast<cnList(cnEntity)*>(
+    cnListGet(&bag->participantOptions, depth)
+  );
   if (!cnListPush(participantOptions, &participant)) {
     cnErrTo(DONE, "Failed to push participant.");
   }
@@ -97,13 +101,13 @@ void cnEntityFunctionCreateDifference_get(
 ) {
   // TODO Remove float assumption here.
   cnIndex i;
-  cnEntityFunction* base = function->data;
+  cnEntityFunction* base = reinterpret_cast<cnEntityFunction*>(function->data);
   // Vectors are assumed small, so use stack memory.
   // Our assumption that base->outCount == function->outCount allows the use
   // of base here. And the use of base here allows this difference function to
   // be used directly by distance as well.
-  cnFloat* x = cnStackAlloc(base->outCount * sizeof(cnFloat));
-  cnFloat* result = outs;
+  cnFloat* x = cnStackAllocOf(cnFloat, base->outCount);
+  cnFloat* result = reinterpret_cast<cnFloat*>(outs);
   if (!x) {
     // TODO Some way to report errors. Just NaN out for now.
     cnFloat nan = cnNaN();
@@ -121,7 +125,7 @@ void cnEntityFunctionCreateDifference_get(
 }
 
 cnEntityFunction* cnEntityFunctionCreateDifference(cnEntityFunction* base) {
-  cnEntityFunction* function = malloc(sizeof(cnEntityFunction));
+  cnEntityFunction* function = cnAlloc(cnEntityFunction, 1);
   if (!function) return NULL;
   function->data = base;
   function->dispose = NULL;
@@ -159,10 +163,10 @@ void cnEntityFunctionCreateDistance_get(
 ) {
   // TODO Remove float assumption here.
   cnIndex i;
-  cnEntityFunction* base = function->data;
+  cnEntityFunction* base = reinterpret_cast<cnEntityFunction*>(function->data);
   // Vectors are assumed small, so use stack memory.
-  cnFloat* diff = cnStackAlloc(base->outCount * sizeof(cnFloat));
-  cnFloat* result = outs;
+  cnFloat* diff = cnStackAllocOf(cnFloat, base->outCount);
+  cnFloat* result = reinterpret_cast<cnFloat*>(outs);
   if (!diff) {
     // TODO Some way to report errors. Just NaN out for now.
     *result = cnNaN();
@@ -183,7 +187,7 @@ void cnEntityFunctionCreateDistance_get(
 
 cnEntityFunction* cnEntityFunctionCreateDistance(cnEntityFunction* base) {
   // TODO Combine setup with difference? Differences indicated below.
-  cnEntityFunction* function = malloc(sizeof(cnEntityFunction));
+  cnEntityFunction* function = cnAlloc(cnEntityFunction, 1);
   if (!function) return NULL;
   function->data = base;
   function->dispose = NULL;
@@ -219,7 +223,7 @@ cnEntityFunction* cnEntityFunctionCreateDistance(cnEntityFunction* base) {
 void cnEntityFunctionCreateProperty_get(
   cnEntityFunction* function, cnEntity* ins, void* outs
 ) {
-  cnProperty* property = function->data;
+  cnProperty* property = reinterpret_cast<cnProperty*>(function->data);
   if (!*ins) {
     // Provide NaNs for floats when no input given.
     // TODO Anything for other types? Error result?
@@ -236,7 +240,7 @@ void cnEntityFunctionCreateProperty_get(
 }
 
 cnEntityFunction* cnEntityFunctionCreateProperty(cnProperty* property) {
-  cnEntityFunction* function = malloc(sizeof(cnEntityFunction));
+  cnEntityFunction* function = cnAlloc(cnEntityFunction, 1);
   if (!function) return NULL;
   function->data = property;
   function->dispose = NULL;
@@ -261,13 +265,13 @@ void cnEntityFunctionCreateReframe_get(
   // Some work here based on the stable computation technique for Givens
   // rotations at Wikipedia: http://en.wikipedia.org/wiki/Givens_rotation
   cnIndex i;
-  cnEntityFunction* base = function->data;
+  cnEntityFunction* base = reinterpret_cast<cnEntityFunction*>(function->data);
   // Vectors are assumed small, so use stack memory.
   // Our assumption that base->outCount == function->outCount allows the use
   // of base here.
-  cnFloat* origin = cnStackAlloc(2 * base->outCount * sizeof(cnFloat));
+  cnFloat* origin = cnStackAllocOf(cnFloat, 2 * base->outCount);
   cnFloat* target = origin + base->outCount;
-  cnFloat* result = outs;
+  cnFloat* result = reinterpret_cast<cnFloat*>(outs);
   if (!(origin && target)) {
     // TODO Some way to report errors. Just NaN out for now.
     cnFloat nan = cnNaN();
@@ -292,7 +296,7 @@ void cnEntityFunctionCreateReframe_get(
 }
 
 cnEntityFunction* cnEntityFunctionCreateReframe(cnEntityFunction* base) {
-  cnEntityFunction* function = malloc(sizeof(cnEntityFunction));
+  cnEntityFunction* function = cnAlloc(cnEntityFunction, 1);
   if (!function) return NULL;
   function->data = base;
   function->dispose = NULL;
@@ -331,7 +335,7 @@ void cnEntityFunctionCreateValid_get(
   cnEntityFunction* function, cnEntity* ins, void* outs
 ) {
   cnIndex i;
-  cnFloat* out = outs;
+  cnFloat* out = reinterpret_cast<cnFloat*>(outs);
   for (i = 0; i < function->inCount; i++) {
     if (!ins[i]) {
       // No good, so false.
@@ -346,7 +350,7 @@ void cnEntityFunctionCreateValid_get(
 }
 
 cnEntityFunction* cnEntityFunctionCreateValid(cnSchema* schema, cnCount arity) {
-  cnEntityFunction* function = malloc(sizeof(cnEntityFunction));
+  cnEntityFunction* function = cnAlloc(cnEntityFunction, 1);
   if (!function) return NULL;
   function->data = NULL;
   function->dispose = NULL;
@@ -384,7 +388,7 @@ void cnEntityFunctionDrop(cnEntityFunction* function) {
 cnEntityFunction* cnEntityFunctionCreate(
   const char* name, cnCount inCount, cnCount outCount
 ) {
-  cnEntityFunction* function = malloc(sizeof(cnEntityFunction));
+  cnEntityFunction* function = cnAlloc(cnEntityFunction, 1);
   if (!function) cnErrTo(DONE, "No function.");
   function->data = NULL;
   function->dispose = NULL;
@@ -510,7 +514,8 @@ void cnPredicateDrop(cnPredicate* predicate) {
 
 
 cnPredicate* cnPredicateCreateDistanceThreshold_Copy(cnPredicate* predicate) {
-  cnPredicateThresholdInfo info = predicate->info;
+  cnPredicateThresholdInfo info =
+    reinterpret_cast<cnPredicateThresholdInfo>(predicate->info);
   cnFunction* function = cnFunctionCopy(info->distanceFunction);
   cnPredicate* copy;
   // Copy even the function because there could be mutable data inside.
@@ -521,7 +526,8 @@ cnPredicate* cnPredicateCreateDistanceThreshold_Copy(cnPredicate* predicate) {
 }
 
 void cnPredicateCreateDistanceThreshold_Dispose(cnPredicate* predicate) {
-  cnPredicateThresholdInfo info = predicate->info;
+  cnPredicateThresholdInfo info =
+    reinterpret_cast<cnPredicateThresholdInfo>(predicate->info);
   cnFunctionDrop(info->distanceFunction);
   free(info);
   predicate->info = NULL;
@@ -532,23 +538,24 @@ void cnPredicateCreateDistanceThreshold_Dispose(cnPredicate* predicate) {
 cnBool cnPredicateCreateDistanceThreshold_Evaluate(
   cnPredicate* predicate, void* in
 ) {
-  cnPredicateThresholdInfo info = predicate->info;
+  cnPredicateThresholdInfo info =
+    reinterpret_cast<cnPredicateThresholdInfo>(predicate->info);
   cnFloat distance;
   if (
     !info->distanceFunction->evaluate(info->distanceFunction, in, &distance)
   ) {
-    // TODO Something better than this abuse.
-    return -1;
+    throw "Failed to evaluate distance function.";
   }
   // TODO I'd prefer <, but need better a handling of bulks of equal distances
   // TODO in threshold choosing. I've hit the problem before.
-  return distance <= info->threshold;
+  return cnBoolify(distance <= info->threshold);
 }
 
 cnBool cnPredicateCreateDistanceThreshold_write(
   cnPredicate* predicate, FILE* file, cnString* indent
 ) {
-  cnPredicateThresholdInfo info = predicate->info;
+  cnPredicateThresholdInfo info =
+    reinterpret_cast<cnPredicateThresholdInfo>(predicate->info);
   cnBool result = cnFalse;
 
   // TODO Check error state?
@@ -578,12 +585,12 @@ cnBool cnPredicateCreateDistanceThreshold_write(
 cnPredicate* cnPredicateCreateDistanceThreshold(
   cnFunction* distanceFunction, cnFloat threshold
 ) {
-  cnPredicate* predicate = malloc(sizeof(cnPredicate));
+  cnPredicate* predicate = cnAlloc(cnPredicate, 1);
   cnPredicateThresholdInfo info;
   if (!predicate) {
     return NULL;
   }
-  info = malloc(sizeof(struct $cnPredicateThresholdInfo));
+  info = cnAlloc(struct $cnPredicateThresholdInfo, 1);
   if (!info) {
     free(predicate);
     return NULL;
@@ -705,7 +712,7 @@ cnBool cnSchemaInitDefault(cnSchema* schema) {
 
 
 cnType* cnTypeCreate(const char* name, cnCount size) {
-  cnType* type = malloc(sizeof(cnType));
+  cnType* type = cnAlloc(cnType, 1);
   if (!type) cnErrTo(FAIL, "No type.");
   // Put safety values first.
   type->size = size;
