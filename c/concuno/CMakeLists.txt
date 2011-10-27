@@ -14,5 +14,5 @@ add_library(concuno-static STATIC
   numpy-mtrand/randomkit.c
   search.cpp
   stats.cpp
-  tree.c
+  tree.cpp
 )
