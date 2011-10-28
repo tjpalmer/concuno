@@ -61,7 +61,6 @@ int main(int argc, char** argv) {
   cnListAny features;
   cnType* featureType;
   cnList(cnEntityFunction*) functions;
-  bool initOkay = true;
   cnListAny labels;
   cnType* labelType;
   cnRootNode* learnedTree = NULL;
@@ -74,9 +73,7 @@ int main(int argc, char** argv) {
   cnListInit(&features, 0);
   cnListInit(&functions, sizeof(cnEntityFunction*));
   cnListInit(&labels, 0);
-  initOkay &= cnSchemaInitDefault(&schema) ? true : false;
-  initOkay &= cnLearnerInit(&learner, NULL) ? true : false;
-  if (!initOkay) cnErrTo(DONE, "Init failed.");
+  if (!cnSchemaInitDefault(&schema)) cnErrTo(DONE, "Init failed.");
 
   if (argc < 4) cnErrTo(
     DONE, "Usage: %s <features-file> <labels-file> <label-id>", argv[0]
@@ -102,7 +99,7 @@ int main(int argc, char** argv) {
   cnListShuffle(&bags);
   learner.bags = &bags;
   learner.entityFunctions = &functions;
-  learnedTree = cnLearnTree(&learner);
+  learnedTree = learner.learnTree();
   if (!learnedTree) cnErrTo(DONE, "No learned tree.");
 
   // Display the learned tree.
@@ -114,7 +111,6 @@ int main(int argc, char** argv) {
 
   DONE:
   cnNodeDrop(&learnedTree->node);
-  cnLearnerDispose(&learner);
   cnSchemaDispose(&schema);
   cnListDispose(&labels);
   cnListEachBegin(&functions, cnEntityFunction*, function) {

@@ -244,11 +244,8 @@ bool cnrProcessLearn(cnList(Bag)* holdBags, cnList(Bag)* passBags) {
   cnSchema schema;
 
   // Inits.
-  bool initOkay = true;
   cnListInit(&functions, sizeof(cnEntityFunction*));
-  if (!cnrSchemaInit(&schema)) initOkay = false;
-  if (!cnLearnerInit(&learner, NULL)) initOkay = false;
-  if (!initOkay) cnFailTo(DONE);
+  if (!cnrSchemaInit(&schema)) cnFailTo(DONE);
   cnrPickFunctions(&functions, *(cnType**)cnListGet(&schema.types, 1));
 
   // Learn something.
@@ -257,7 +254,7 @@ bool cnrProcessLearn(cnList(Bag)* holdBags, cnList(Bag)* passBags) {
   cnListShuffle(passBags);
   learner.bags = passBags;
   learner.entityFunctions = &functions;
-  learnedTree = cnLearnTree(&learner);
+  learnedTree = learner.learnTree();
   if (!learnedTree) cnErrTo(DONE, "No learned tree.");
 
   // Display the learned tree.
@@ -270,7 +267,6 @@ bool cnrProcessLearn(cnList(Bag)* holdBags, cnList(Bag)* passBags) {
 
   DONE:
   cnNodeDrop(&learnedTree->node);
-  cnLearnerDispose(&learner);
   cnSchemaDispose(&schema);
   cnListEachBegin(&functions, cnEntityFunction*, function) {
     cnEntityFunctionDrop(*function);

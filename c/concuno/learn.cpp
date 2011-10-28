@@ -1036,39 +1036,23 @@ bool cnExpansionRedundant(
 }
 
 
-void cnLearnerDispose(Learner* learner) {
-  // TODO This will leak memory if someone nulls out the random beforehand!
-  if (learner->randomOwned) cnRandomDestroy(learner->random);
-  // Abusively pass down a potentially broken random.
-  cnLearnerInit(learner, learner->random);
-  // Clear out the random when done, either way.
-  learner->random = NULL;
+Learner::Learner(cnRandom $random):
+  bags(0), entityFunctions(0), initialTree(0),
+  random($random), randomOwned(false)
+{
+  // Prepare a random, if requested (via NULL).
+  if (!random) {
+    if (!(random = cnRandomCreate())) {
+      throw "No default random.";
+    }
+    randomOwned = true;
+  }
 }
 
 
-bool cnLearnerInit(Learner* learner, cnRandom random) {
-  bool result = false;
-
-  // Init for safety.
-  learner->bags = NULL;
-  learner->entityFunctions = NULL;
-  learner->initialTree = NULL;
-  learner->random = random;
-  learner->randomOwned = false;
-
-  // Prepare a random, if requested (via NULL).
-  if (!random) {
-    if (!(learner->random = cnRandomCreate())) {
-      cnErrTo(DONE, "No default random.");
-    }
-    learner->randomOwned = true;
-  }
-
-  // Winned.
-  result = true;
-
-  DONE:
-  return result;
+Learner::~Learner() {
+  // TODO This will leak memory if someone nulls out the random beforehand!
+  if (randomOwned) cnRandomDestroy(random);
 }
 
 
@@ -1151,17 +1135,17 @@ bool cnLearnSplitModel(
 }
 
 
-cnRootNode* cnLearnTree(Learner* learner) {
+cnRootNode* Learner::learnTree() {
   cnLearnerConfig config;
   cnRootNode* initialTree;
   cnLeafNode* leaf;
   cnRootNode* result = NULL;
 
   // Start preparing the learning configuration.
-  config.learner = learner;
+  config.learner = this;
 
   // Create a stub tree, if needed.
-  initialTree = learner->initialTree;
+  initialTree = this->initialTree;
   if (!initialTree) {
     // Allocate the root.
     initialTree = cnAlloc(cnRootNode, 1);
@@ -1176,15 +1160,13 @@ cnRootNode* cnLearnTree(Learner* learner) {
   // TODO Uses 2/3 for training. Parameterize this?
   // Abuse lists to point into the middle of the original list.
   // Training set.
-  cnListInit(&config.trainingBags, learner->bags->itemSize);
-  config.trainingBags.items = learner->bags->items;
-  config.trainingBags.count = learner->bags->count * (2 / 3.0);
+  cnListInit(&config.trainingBags, bags->itemSize);
+  config.trainingBags.items = bags->items;
+  config.trainingBags.count = bags->count * (2 / 3.0);
   // Validation set.
-  cnListInit(&config.validationBags, learner->bags->itemSize);
-  config.validationBags.items =
-    cnListGet(learner->bags, config.trainingBags.count);
-  config.validationBags.count =
-    learner->bags->count - config.trainingBags.count;
+  cnListInit(&config.validationBags, bags->itemSize);
+  config.validationBags.items = cnListGet(bags, config.trainingBags.count);
+  config.validationBags.count = bags->count - config.trainingBags.count;
   // Failsafe on having data here.
   if (!config.validationBags.count) cnErrTo(DONE, "No validation bags!");
 
@@ -1235,7 +1217,7 @@ cnRootNode* cnLearnTree(Learner* learner) {
   printf("All done!!\n");
 
   DONE:
-  if (!learner->initialTree) cnNodeDrop(&initialTree->node);
+  if (!this->initialTree) cnNodeDrop(&initialTree->node);
   // Don't actually dispose of training and validation lists, since they are
   // bogus anyway.
   return result;

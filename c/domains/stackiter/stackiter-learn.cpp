@@ -250,8 +250,6 @@ bool stLearnConcept(
   // Init for safety.
   cnListInit(&bags, sizeof(Bag));
   cnListInit(&entityLists, sizeof(cnList(cnEntity)*));
-  // Failable thing last.
-  if (!cnLearnerInit(&learner, NULL)) cnErrTo(DONE, "No learner.");
 
   // Choose out the states we want to focus on.
   if (!choose(states, &bags, &entityLists)) {
@@ -270,7 +268,7 @@ bool stLearnConcept(
   // Learn a tree.
   learner.bags = &bags;
   learner.entityFunctions = functions;
-  learnedTree = cnLearnTree(&learner);
+  learnedTree = learner.learnTree();
   if (!learnedTree) cnErrTo(DONE, "No learned tree.");
 
   // Display the learned tree.
@@ -286,8 +284,6 @@ bool stLearnConcept(
   cnNodeDrop(&learnedTree->node);
 
   DONE:
-  // Learner.
-  cnLearnerDispose(&learner);
   // Bags and entities.
   cnBagListDispose(&bags, entityLists.count ? &entityLists : NULL);
   // Result.

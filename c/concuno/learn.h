@@ -14,6 +14,35 @@ namespace concuno {
  * configuration options at some point.
  */
 struct Learner {
+
+  /**
+   * Inits default options.
+   *
+   * Provide a NULL random to have one automatically generated.
+   *
+   * Even on failure, the learner is safe to dispose.
+   */
+  Learner(cnRandom random = NULL);
+
+  /**
+   * Cleans up whatever might be needed.
+   *
+   * For now, it just sets bags to null, so the caller needs to have separate
+   * access to them if they haven't yet done the cleanup.
+   */
+  ~Learner();
+
+  /**
+   * Returns a new tree, expanded as much as possible, although possibly just a
+   * clone of the initial tree, if such a tree is provided.
+   *
+   * TODO What's the easiest way to know if it learned something? Check the
+   * TODO number leaves or information in the nodes?
+   *
+   * TODO Fill a list of trees for beam search purposes?
+   */
+  cnRootNode* learnTree();
+
   // TODO Learning options go here.
 
   /**
@@ -62,37 +91,6 @@ struct Learner {
   bool randomOwned;
 
 };
-
-
-/**
- * Cleans up whatever might be needed.
- *
- * For now, it just sets bags to null, so the caller needs to have separate
- * access to them if they haven't yet done the cleanup.
- */
-void cnLearnerDispose(Learner* learner);
-
-
-/**
- * Inits default options.
- *
- * Provide a NULL random to have one automatically generated.
- *
- * Even on failure, the learner is safe to dispose.
- */
-bool cnLearnerInit(Learner* learner, cnRandom random);
-
-
-/**
- * Returns a new tree, expanded as much as possible, although possibly just a
- * clone of the initial tree, if such a tree is provided.
- *
- * TODO What's the easiest way to know if it learned something? Check the
- * TODO number leaves or information in the nodes?
- *
- * TODO Fill a list of trees for beam search purposes?
- */
-cnRootNode* cnLearnTree(Learner* learner);
 
 
 }
