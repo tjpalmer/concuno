@@ -5,7 +5,7 @@
 #include "core.h"
 
 
-cnCBegin;
+namespace concuno {
 
 
 /**
@@ -106,7 +106,7 @@ void cnSearcherDestroy(cnSearcher* searcher);
 bool cnSearch(cnSearcher* searcher);
 
 
-cnCEnd;
+}
 
 
 #endif

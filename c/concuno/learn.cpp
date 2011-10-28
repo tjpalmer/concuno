@@ -6,6 +6,9 @@
 #include "stats.h"
 
 
+namespace concuno {
+
+
 /**
  * Tracks the distance to a bag from some point.
  */
@@ -1961,4 +1964,7 @@ bool cnVerifyImprovement(
   cnVerifyImprovement_StatsDispose(&previousStats);
 
   return okay;
+}
+
+
 }

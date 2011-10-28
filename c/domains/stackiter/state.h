@@ -15,7 +15,7 @@ typedef enum {
 } stType;
 
 
-typedef cnIndex stId;
+typedef concuno::cnIndex stId;
 
 
 typedef int stTypeId;
@@ -25,9 +25,9 @@ typedef struct stItem {
 
   bool alive;
 
-  cnFloat color[3];
+  concuno::cnFloat color[3];
 
-  cnFloat extent[2];
+  concuno::cnFloat extent[2];
 
   /**
    * Only ever true for blocks.
@@ -43,15 +43,15 @@ typedef struct stItem {
 
   stId id;
 
-  cnFloat location[2];
+  concuno::cnFloat location[2];
 
-  cnFloat orientation;
+  concuno::cnFloat orientation;
 
-  cnFloat orientationVelocity;
+  concuno::cnFloat orientationVelocity;
 
   stType type;
 
-  cnFloat velocity[2];
+  concuno::cnFloat velocity[2];
 
 } stItem;
 
@@ -60,7 +60,7 @@ typedef struct stState {
 
   bool cleared;
 
-  cnList(stItem) items;
+  concuno::cnList(stItem) items;
 
   double time;
 
@@ -75,7 +75,7 @@ void stItemInit(stItem* item);
  *
  * Dispose with cnSchemaDispose (since nothing special needed here).
  */
-bool stSchemaInit(cnSchema* schema);
+bool stSchemaInit(concuno::cnSchema* schema);
 
 
 void stStateDispose(stState* state);

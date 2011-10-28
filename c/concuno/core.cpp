@@ -3,8 +3,10 @@
 #include <string.h>
 #include "core.h"
 
-
 using namespace std;
+
+
+namespace concuno {
 
 
 /**
@@ -453,4 +455,7 @@ bool cnStringPushStr(cnString* string, const char* str) {
   // Copy including the null char, and we're done.
   strcpy(formerEnd, str);
   return true;
+}
+
+
 }

@@ -3,6 +3,9 @@
 #include "mat.h"
 
 
+namespace concuno {
+
+
 cnFloat cnEuclideanDistance(cnCount size, cnFloat* x, cnFloat* y) {
   return sqrt(cnSquaredEuclideanDistance(size, x, y));
 }
@@ -147,4 +150,7 @@ cnRadian cnWrapRadians(cnRadian angle) {
     angle -= 2 * cnPi;
   }
   return angle;
+}
+
+
 }

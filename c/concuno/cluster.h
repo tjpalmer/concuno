@@ -5,13 +5,13 @@
 #include "entity.h"
 
 
-cnCBegin;
+namespace concuno {
 
 
 bool cnClusterOnFunction(cnList(cnBag)* bags, cnEntityFunction* function);
 
 
-cnCEnd;
+}
 
 
 #endif

@@ -2,6 +2,8 @@
 
 #include "choose.h"
 
+using namespace concuno;
+
 
 /**
  * Finds items grasped in the state, and returns whether any were found.

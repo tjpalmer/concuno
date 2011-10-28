@@ -24,7 +24,7 @@ enum cnrType {
  * although perhaps not in RoboCup, there also could technically be more than
  * two teams.
  */
-typedef cnIndex cnrTeam;
+typedef concuno::cnIndex cnrTeam;
 
 #define cnrTeamLeft 0
 #define cnrTeamRight 1
@@ -34,14 +34,14 @@ typedef cnIndex cnrTeam;
 #define cnrTeamTakers 1
 
 
-typedef cnIndex cnrTime;
+typedef concuno::cnIndex cnrTime;
 
 
 struct cnrItem {
 
   cnrType type;
 
-  cnFloat location[2];
+  concuno::cnFloat location[2];
 
   // TODO Velocity.
 
@@ -68,28 +68,28 @@ struct cnrPlayer {
    *
    * TODO Units?
    */
-  cnFloat kickAngle;
+  concuno::cnFloat kickAngle;
 
   /**
    * Use NaN for no kick.
    *
    * TODO Units?
    */
-  cnFloat kickPower;
+  concuno::cnFloat kickPower;
 
   // TODO Explicit ball posession indicator?
 
   /**
    * Unique only by team.
    */
-  cnIndex index;
+  concuno::cnIndex index;
 
   /**
    * Body angle.
    *
    * TODO What units?
    */
-  cnFloat orientation;
+  concuno::cnFloat orientation;
 
   cnrTeam team;
 
@@ -108,7 +108,7 @@ struct cnrState {
    */
   bool newSession;
 
-  cnList(cnrPlayer) players;
+  concuno::cnList(cnrPlayer) players;
 
   /**
    * The secondary clock of the game that ticks during setup or after fouls.
@@ -125,9 +125,9 @@ struct cnrState {
 
 struct cnrGame {
 
-  cnList(cnrState) states;
+  concuno::cnList(cnrState) states;
 
-  cnList(cnString) teamNames;
+  concuno::cnList(cnString) teamNames;
 
 };
 
@@ -150,7 +150,7 @@ void cnrPlayerInit(cnrPlayer* player);
  *
  * Dispose with cnSchemaDispose (since nothing special needed here).
  */
-bool cnrSchemaInit(cnSchema* schema);
+bool cnrSchemaInit(concuno::cnSchema* schema);
 
 
 /**

@@ -4,6 +4,8 @@
 
 #include "run.h"
 
+using namespace concuno;
+
 
 /**
  * For ultra simple pointers into structs, saying where to put data and what

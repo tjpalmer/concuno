@@ -2,6 +2,8 @@
 
 #include "stackiter-learn.h"
 
+using namespace concuno;
+
 
 bool stClusterStuff(
   cnList(stState)* states, cnList(cnEntityFunction*)* functions

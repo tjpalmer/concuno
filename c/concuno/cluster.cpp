@@ -5,6 +5,9 @@
 #include "stats.h"
 
 
+namespace concuno {
+
+
 /**
  * TODO A dissimilarity metric, too.
  */
@@ -202,4 +205,7 @@ void cnLogPoints(cnEntityFunction* function, cnCount count, cnFloat* points) {
 
   // All done.
   fclose(file);
+}
+
+
 }

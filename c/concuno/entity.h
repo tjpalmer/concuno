@@ -5,7 +5,7 @@
 #include "core.h"
 
 
-cnCBegin;
+namespace concuno {
 
 
 /**
@@ -14,7 +14,7 @@ cnCBegin;
 typedef void* cnEntity;
 
 
-typedef struct cnBag {
+struct cnBag {
 
   // TODO id? Or are pointer addresses good enough (if stable)?
 
@@ -48,7 +48,7 @@ typedef struct cnBag {
    */
   cnList(cnList(cnEntity)) participantOptions;
 
-} cnBag;
+};
 
 
 typedef enum {
@@ -467,7 +467,7 @@ cnType* cnTypeCreate(const char* name, cnCount size);
 void cnTypeDrop(cnType* type);
 
 
-cnCEnd;
+}
 
 
 #endif

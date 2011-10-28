@@ -6,6 +6,9 @@
 #include "mat.h"
 
 
+namespace concuno {
+
+
 void cnBagDispose(cnBag* bag) {
   // If managed elsewhere, the list might be nulled, so check it.
   if (bag->entities) {
@@ -740,4 +743,7 @@ void cnTypeDrop(cnType* type) {
   type->size = 0;
   type->schema = NULL;
   free(type);
+}
+
+
 }

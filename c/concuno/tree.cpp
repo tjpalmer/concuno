@@ -6,6 +6,9 @@
 #include "tree.h"
 
 
+namespace concuno {
+
+
 void cnLeafNodeInit(cnLeafNode* leaf);
 
 
@@ -1635,4 +1638,7 @@ bool cnVarNodePropagateBindingBag(
   DONE:
   cnBindingBagDispose(&bindingBagOut);
   return result;
+}
+
+
 }

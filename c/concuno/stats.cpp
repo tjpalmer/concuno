@@ -10,6 +10,9 @@
 #include "stats.h"
 
 
+namespace concuno {
+
+
 typedef struct cnBinomialInfo {
 
   cnCount count;
@@ -514,4 +517,7 @@ cnFloat* cnVectorMin(cnCount size, cnFloat* out, cnCount count, cnFloat* in) {
     }
   }
   return out - size;
+}
+
+
 }

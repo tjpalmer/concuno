@@ -9,7 +9,7 @@
 // TODO Move a lot of this to a separate concuno/string.h of my own?
 
 
-cnCBegin;
+namespace concuno {
 
 
 /**
@@ -98,7 +98,7 @@ cnCount cnReadLine(FILE* file, cnString* string);
 bool cnStrEndsWith(char* string, const char* ending);
 
 
-cnCEnd;
+}
 
 
 #endif

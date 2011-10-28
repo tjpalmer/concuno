@@ -5,6 +5,8 @@
 
 #include "load.h"
 
+using namespace concuno;
+
 
 typedef struct stParser {
   cnList(cnIndex) indices;

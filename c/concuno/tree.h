@@ -5,7 +5,7 @@
 #include "entity.h"
 
 
-cnCBegin;
+namespace concuno {
 
 
 /**
@@ -579,7 +579,7 @@ bool cnTreePropagateBags(
 cnVarNode* cnVarNodeCreate(bool addLeaf);
 
 
-cnCEnd;
+}
 
 
 #endif

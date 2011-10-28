@@ -1,7 +1,6 @@
 #ifndef concuno_core_h
 #define concuno_core_h
 
-
 // TODO Abstract out standard libraries?
 #include <stdio.h>
 #include <stdlib.h>
@@ -16,7 +15,7 @@
 #endif
 
 
-cnCBegin;
+namespace concuno {
 
 
 // Prettier in some contexts than the braces.
@@ -448,7 +447,7 @@ bool cnStringPushChar(cnString* string, char c);
 bool cnStringPushStr(cnString* string, const char* str);
 
 
-cnCEnd;
+}
 
 
 #endif

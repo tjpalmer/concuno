@@ -6,7 +6,7 @@
 #include "tree.h"
 
 
-cnCBegin;
+namespace concuno {
 
 
 /**
@@ -95,7 +95,7 @@ bool cnLearnerInit(cnLearner* learner, cnRandom random);
 cnRootNode* cnLearnTree(cnLearner* learner);
 
 
-cnCEnd;
+}
 
 
 #endif

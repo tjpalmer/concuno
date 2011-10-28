@@ -1,6 +1,8 @@
 #include <stddef.h>
 #include "state.h"
 
+using namespace concuno;
+
 
 #define stFill(items, val, i, end) \
   end = items + sizeof(items)/sizeof(*items); \

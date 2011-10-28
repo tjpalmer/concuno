@@ -11,7 +11,7 @@
 #include "core.h"
 
 
-cnCBegin;
+namespace concuno {
 
 
 /**
@@ -57,7 +57,7 @@ void cnVectorPrintDelimited(
 cnRadian cnWrapRadians(cnRadian angle);
 
 
-cnCEnd;
+}
 
 
 #endif

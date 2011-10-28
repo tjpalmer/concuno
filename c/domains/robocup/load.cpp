@@ -2,6 +2,8 @@
 #include <string.h>
 #include "load.h"
 
+using namespace concuno;
+
 
 enum cnrParseMode {
 

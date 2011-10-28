@@ -1,5 +1,7 @@
 #include "choose.h"
 
+using namespace concuno;
+
 
 /**
  * Only call this function if there is a next state available, too.

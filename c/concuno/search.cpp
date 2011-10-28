@@ -1,6 +1,9 @@
 #include "search.h"
 
 
+namespace concuno {
+
+
 struct cnSearcherSelf: cnSearcher {
 
   cnHeap(cnSearchOption)* options;
@@ -135,4 +138,7 @@ void cnSearcherDestroy(cnSearcher* searcher) {
 
   // And free.
   delete self;
+}
+
+
 }

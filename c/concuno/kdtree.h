@@ -6,7 +6,7 @@
 #include "tree.h"
 
 
-cnCBegin;
+namespace concuno {
 
 
 struct cnKdSplitter {
@@ -47,7 +47,7 @@ cnKdSplitter* cnKdSplitterCreate(cnRandom random);
 void cnKdSplitterDestroy(cnKdSplitter* splitter);
 
 
-cnCEnd;
+}
 
 
 #endif

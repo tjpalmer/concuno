@@ -2,6 +2,9 @@
 #include "io.h"
 
 
+namespace concuno {
+
+
 void cnDedent(cnString* indent) {
   // TODO Some cnStringCountPut to considate this kind of thing?
   indent->count -= 2;
@@ -143,4 +146,7 @@ bool cnStrEndsWith(char* string, const char* ending) {
       false : true;
   }
   return false;
+}
+
+
 }

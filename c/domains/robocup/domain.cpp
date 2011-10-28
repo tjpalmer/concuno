@@ -2,6 +2,8 @@
 #include <string.h>
 #include "domain.h"
 
+using namespace concuno;
+
 
 enum cnrFieldType {
 

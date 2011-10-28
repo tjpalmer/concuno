@@ -5,7 +5,7 @@
 #include "entity.h"
 
 
-cnCBegin;
+namespace concuno {
 
 
 typedef void* cnBinomial;
@@ -220,7 +220,7 @@ cnFloat* cnVectorMean(cnCount size, cnFloat* out, cnCount count, cnFloat* in);
 cnFloat* cnVectorMin(cnCount size, cnFloat* out, cnCount count, cnFloat* in);
 
 
-cnCEnd;
+}
 
 
 #endif

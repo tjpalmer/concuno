@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+using namespace concuno;
+
 
 // TODO Split stuff out.
 
