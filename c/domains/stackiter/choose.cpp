@@ -23,18 +23,18 @@ bool stPlaceLiveItems(
 
 
 bool stAllBagsFalse(
-  cnList(stState)* states, cnList(cnBag)* bags,
+  cnList(stState)* states, cnList(Bag)* bags,
   cnList(cnList(cnEntity)*)* entityLists
 ) {
   bool result = false;
 
   cnListEachBegin(states, stState, state) {
     // Every state gets a bag.
-    cnBag* bag;
-    if (!(bag = reinterpret_cast<cnBag*>(cnListExpand(bags)))) {
+    Bag* bag;
+    if (!(bag = reinterpret_cast<Bag*>(cnListExpand(bags)))) {
       cnErrTo(DONE, "Failed to push bag.");
     }
-    if (!cnBagInit(bag, NULL)) cnErrTo(DONE, "No bag init.");
+    bag->init();
     // Each bag gets the live items.
     if (!stPlaceLiveItems(&state->items, bag->entities)) {
       cnErrTo(DONE, "Failed to push entities.");
@@ -50,7 +50,7 @@ bool stAllBagsFalse(
 
 
 bool stChooseDropWhereLandOnOther(
-  cnList(stState)* states, cnList(cnBag)* bags,
+  cnList(stState)* states, cnList(Bag)* bags,
   cnList(cnList(cnEntity)*)* entityLists
 ) {
   bool result = false;
@@ -87,12 +87,12 @@ bool stChooseDropWhereLandOnOther(
       }
       if (settled) {
         if (label == false || label == true) {
-          cnBag* bag;
-          if (!(bag = reinterpret_cast<cnBag*>(cnListExpand(bags)))) {
+          Bag* bag;
+          if (!(bag = reinterpret_cast<Bag*>(cnListExpand(bags)))) {
             cnErrTo(DONE, "Failed to push bag.");
           }
           // Now init the bag in the list.
-          if (!cnBagInit(bag, NULL)) cnErrTo(DONE, "No bag init.");
+          bag->init();
           bag->label = label;
           // If we defer placing entity pointers until after we've stored the
           // bag itself, then cleanup from failure is easier.
@@ -131,7 +131,7 @@ bool stChooseDropWhereLandOnOther(
 
 
 bool stChooseWhereNotMoving(
-  cnList(stState)* states, cnList(cnBag)* bags,
+  cnList(stState)* states, cnList(Bag)* bags,
   cnList(cnList(cnEntity)*)* entityLists
 ) {
   cnFloat epsilon = 1e-2;
@@ -182,17 +182,17 @@ bool stChooseWhereNotMoving(
     // Create a bag for each item, where we constrain the first binding and
     // label based on whether the item is moving.
     cnListEachBegin(entities, cnEntity, entity) {
-      cnBag* bag;
+      Bag* bag;
       cnList(cnEntity)* participant;
       stItem* item = *(stItem**)entity;
       cnFloat speed;
 
       // Bag.
-      if (!(bag = reinterpret_cast<cnBag*>(cnListExpand(bags)))) {
+      if (!(bag = reinterpret_cast<Bag*>(cnListExpand(bags)))) {
         cnErrTo(DONE, "Failed to push bag.");
       }
       // With provided entities, bag init doesn't fail.
-      cnBagInit(bag, entities);
+      bag->init(entities);
 
       // Participant.
       if (!(

@@ -16,7 +16,7 @@ typedef cnEntity* cnBinding;
 
 typedef struct cnBindingBag {
 
-  cnBag* bag;
+  Bag* bag;
 
   /**
    * Actually, this is stored in compact form of equal numbers of entities per
@@ -104,7 +104,7 @@ typedef struct $cnPointMatrix {
  */
 typedef struct cnPointBag {
 
-  cnBag* bag;
+  Bag* bag;
 
   /**
    * A mapping from bindings to points, in the same order as the bindings in the
@@ -305,7 +305,7 @@ void cnBindingBagDispose(cnBindingBag* bindingBag);
  * Creates binding bags where each binding references entityCount entities.
  */
 void cnBindingBagInit(
-  cnBindingBag* bindingBag, cnBag* bag, cnCount entityCount
+  cnBindingBag* bindingBag, Bag* bag, cnCount entityCount
 );
 
 
@@ -332,7 +332,7 @@ void cnBindingBagListDrop(cnBindingBagList** list);
  * Push on the bags as new empty bindings on the given list.
  */
 bool cnBindingBagListPushBags(
-  cnBindingBagList* bindingBags, const cnList(cnBag)* bags
+  cnBindingBagList* bindingBags, const cnList(Bag)* bags
 );
 
 
@@ -361,7 +361,7 @@ void cnLeafBindingBagDispose(cnLeafBindingBag* leafBindingBag);
  * Utility assumes the bags are all in continguous memory order.
  */
 void cnLeafBindingBagGroupListLimits(
-  cnList(cnLeafBindingBagGroup)* groups, cnBag** begin, cnBag** end
+  cnList(cnLeafBindingBagGroup)* groups, Bag** begin, Bag** end
 );
 
 
@@ -523,7 +523,7 @@ bool cnSplitNodePointBags(
 cnNode* cnTreeCopy(cnNode* node);
 
 
-cnFloat cnTreeLogMetric(cnRootNode* root, cnList(cnBag)* bags);
+cnFloat cnTreeLogMetric(cnRootNode* root, cnList(Bag)* bags);
 
 
 /**
@@ -534,7 +534,7 @@ cnFloat cnTreeLogMetric(cnRootNode* root, cnList(cnBag)* bags);
  * No guarantee is made on the order of the counts coming out.
  */
 bool cnTreeMaxLeafCounts(
-  cnRootNode* root, cnList(cnLeafCount)* counts, cnList(cnBag)* bags
+  cnRootNode* root, cnList(cnLeafCount)* counts, cnList(Bag)* bags
 );
 
 
@@ -560,7 +560,7 @@ bool cnTreeWrite(cnRootNode* tree, FILE* file);
  * Propagates a bags to the leaves, storing a leaf binding bag for each leaf.
  */
 bool cnTreePropagateBag(
-  cnRootNode* tree, cnBag* bag, cnList(cnLeafBindingBag)* leafBindingBags
+  cnRootNode* tree, Bag* bag, cnList(cnLeafBindingBag)* leafBindingBags
 );
 
 
@@ -571,7 +571,7 @@ bool cnTreePropagateBag(
  * TODO Expose generic grouper function?
  */
 bool cnTreePropagateBags(
-  cnRootNode* tree, cnList(cnBag)* bags,
+  cnRootNode* tree, cnList(Bag)* bags,
   cnList(cnLeafBindingBagGroup)* leafBindingBagGroups
 );
 

@@ -79,9 +79,9 @@ typedef struct cnLearnerConfig {
 
   cnRootNode* previous;
 
-  cnList(cnBag) trainingBags;
+  cnList(Bag) trainingBags;
 
-  cnList(cnBag) validationBags;
+  cnList(Bag) validationBags;
 
 } cnLearnerConfig;
 
@@ -186,7 +186,7 @@ bool cnLearnSplitModel(
 void cnLogPointBags(cnSplitNode* split, cnList(cnPointBag)* pointBags);
 
 
-cnLeafNode* cnPickBestLeaf(cnRootNode* tree, cnList(cnBag)* bags);
+cnLeafNode* cnPickBestLeaf(cnRootNode* tree, cnList(Bag)* bags);
 
 
 void cnPrintExpansion(cnExpansion* expansion);
@@ -203,7 +203,7 @@ cnRootNode* cnTryExpansionsAtLeaf(cnLearnerConfig* config, cnLeafNode* leaf);
 /**
  * Updates all the leaf probabilities in the tree.
  */
-bool cnUpdateLeafProbabilities(cnRootNode* root, cnList(cnBag)* bags);
+bool cnUpdateLeafProbabilities(cnRootNode* root, cnList(Bag)* bags);
 
 
 /**
@@ -1284,7 +1284,7 @@ void cnLogPointBags(cnSplitNode* split, cnList(cnPointBag)* pointBags) {
 }
 
 
-cnLeafNode* cnPickBestLeaf(cnRootNode* tree, cnList(cnBag)* bags) {
+cnLeafNode* cnPickBestLeaf(cnRootNode* tree, cnList(Bag)* bags) {
   cnLeafNode* bestLeaf = NULL;
   cnLeafBindingBagGroup* bestGroup = NULL;
   cnFloat bestScore = -HUGE_VAL;
@@ -1666,7 +1666,7 @@ cnRootNode* cnTryExpansionsAtLeaf(cnLearnerConfig* config, cnLeafNode* leaf) {
 }
 
 
-bool cnUpdateLeafProbabilities(cnRootNode* root, cnList(cnBag)* bags) {
+bool cnUpdateLeafProbabilities(cnRootNode* root, cnList(Bag)* bags) {
   cnList(cnLeafBindingBagGroup) groups;
   bool result = false;
 
@@ -1695,8 +1695,8 @@ bool cnUpdateLeafProbabilitiesWithBindingBags(
 ) {
   cnIndex b;
   cnCount bagCount;
-  cnBag* bags = NULL;
-  cnBag* bagsEnd = NULL;
+  Bag* bags = NULL;
+  Bag* bagsEnd = NULL;
   bool* bagsUsed = NULL;
   cnFloat bonus = 1.0;
   cnList(cnLeafBindingBagGroup) groupsCopied;
@@ -1849,7 +1849,7 @@ void cnVerifyImprovement_StatsDispose(cnVerifyImprovement_Stats* stats) {
 }
 
 bool cnVerifyImprovement_StatsPrepare(
-  cnVerifyImprovement_Stats* stats, cnRootNode* tree, cnList(cnBag)* bags,
+  cnVerifyImprovement_Stats* stats, cnRootNode* tree, cnList(Bag)* bags,
   cnRandom random
 ) {
   cnCount classCount;

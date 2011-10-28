@@ -8,7 +8,7 @@ using namespace concuno;
  */
 bool cnrExtractHoldOrPass(
   cnrGame* game, cnrState* state, cnrPlayer* kicker,
-  cnList(cnBag)* holdBags, cnList(cnBag)* passBags,
+  cnList(Bag)* holdBags, cnList(Bag)* passBags,
   cnList(cnList(cnEntity)*)* entityLists,
   bool label
 );
@@ -16,7 +16,7 @@ bool cnrExtractHoldOrPass(
 
 bool cnrChooseHoldsAndPasses(
   cnrGame* game,
-  cnList(cnBag)* holdBags, cnList(cnBag)* passBags,
+  cnList(Bag)* holdBags, cnList(Bag)* passBags,
   cnList(cnList(cnEntity)*)* entityLists
 ) {
   // Assume that failure withing a certain number of timesteps means the action
@@ -104,12 +104,12 @@ bool cnrChooseHoldsAndPasses(
 
 bool cnrExtractHoldOrPass(
   cnrGame* game, cnrState* state, cnrPlayer* kicker,
-  cnList(cnBag)* holdBags, cnList(cnBag)* passBags,
+  cnList(Bag)* holdBags, cnList(Bag)* passBags,
   cnList(cnList(cnEntity)*)* entityLists,
   bool label
 ) {
   bool result = false;
-  cnBag* bag = NULL;
+  Bag* bag = NULL;
   cnrPlayer* receiver = NULL;
   cnrBall* ball = &state->ball;
   cnFloat* ballLocation = ball->item.location;
@@ -184,11 +184,11 @@ bool cnrExtractHoldOrPass(
       }
     } cnEnd;
     if (receiver) {
-      if (!(bag = reinterpret_cast<cnBag*>(cnListExpand(passBags)))) {
+      if (!(bag = reinterpret_cast<Bag*>(cnListExpand(passBags)))) {
         cnErrTo(DONE, "No pass bag pushed.");
       }
       // With provided entities, bag init doesn't fail.
-      cnBagInit(bag, entities);
+      bag->init(entities);
       //      printf(
       //        "Pass at %ld by %ld to %ld.%s\n",
       //        state->time, kicker->index, receiver->index, label ? "" : " :("
@@ -199,11 +199,11 @@ bool cnrExtractHoldOrPass(
   // See if it's a hold.
   if (!bag) {
     // Must be, since we didn't already define a bag for passing.
-    if (!(bag = reinterpret_cast<cnBag*>(cnListExpand(holdBags)))) {
+    if (!(bag = reinterpret_cast<Bag*>(cnListExpand(holdBags)))) {
       cnErrTo(DONE, "No pass bag pushed.");
     }
     // With provided entities, bag init doesn't fail.
-    cnBagInit(bag, entities);
+    bag->init(entities);
     //    printf(
     //      "Hold at %ld by %ld.%s\n",
     //      state->time, kicker->index, label ? "" : " :("

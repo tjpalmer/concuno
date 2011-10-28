@@ -9,54 +9,61 @@
 namespace concuno {
 
 
-void cnBagDispose(cnBag* bag) {
-  // If managed elsewhere, the list might be nulled, so check it.
-  if (bag->entities) {
-    cnListDispose(bag->entities);
-    free(bag->entities);
-  }
-
-  // Participants are always owned by the bag, however.
-  // TODO Really? By allowing outside control, but it be made more efficient?
-  cnListEachBegin(&bag->participantOptions, cnList(cnEntity), list) {
-    cnListDispose(list);
-  } cnEnd;
-  cnListDispose(&bag->participantOptions);
-
-  // Other stuff.
-  bag->label = false;
-  bag->entities = NULL;
+Bag::Bag() {
+  init();
 }
 
 
-bool cnBagInit(cnBag* bag, cnList(cnEntity)* entities) {
-  bool result = false;
+Bag::Bag(cnList(cnEntity)* $entities) {
+  init($entities);
+}
 
+
+Bag::~Bag() {
+  dispose();
+}
+
+
+void Bag::dispose() {
+  // If managed elsewhere, the list might be nulled, so check it.
+  if (entities) {
+    cnListDispose(entities);
+    free(entities);
+  }
+
+  // Participants are always owned by the bag, however.
+  // TODO Really? By allowing outside control, can it be made more efficient?
+  cnListEachBegin(&participantOptions, cnList(cnEntity), list) {
+    cnListDispose(list);
+  } cnEnd;
+  cnListDispose(&participantOptions);
+
+  // Other stuff.
+  label = false;
+  entities = NULL;
+}
+
+
+void Bag::init(cnList(cnEntity)* $entities) {
   // Safety first.
-  bag->label = false;
-  bag->entities = entities ? entities : cnAlloc(cnList(cnEntity), 1);
-  cnListInit(&bag->participantOptions, sizeof(cnList(cnEntity)));
+  label = false;
+  entities = $entities ? $entities : cnAlloc(cnList(cnEntity), 1);
+  cnListInit(&participantOptions, sizeof(cnList(cnEntity)));
 
   // Check on and finish up entities.
-  if (!bag->entities) cnErrTo(DONE, "No bag entities.");
-  if (!entities) cnListInit(bag->entities, sizeof(cnEntity));
-
-  // Winned!
-  result = true;
-
-  DONE:
-  return result;
+  if (!entities) throw "No bag entities.";
+  if (!$entities) cnListInit(entities, sizeof(cnEntity));
 }
 
 
 void cnBagListDispose(
-  cnList(cnBag)* bags, cnList(cnList(cnEntity)*)* entityLists
+  cnList(Bag)* bags, cnList(cnList(cnEntity)*)* entityLists
 ) {
   // Bags.
-  cnListEachBegin(bags, cnBag, bag) {
+  cnListEachBegin(bags, Bag, bag) {
     // Dispose the bag, but first hide entities if we manage them separately.
     if (entityLists) bag->entities = NULL;
-    cnBagDispose(bag);
+    bag->dispose();
   } cnEnd;
   cnListDispose(bags);
   // Lists in the bags.
@@ -69,7 +76,7 @@ void cnBagListDispose(
 }
 
 
-bool cnBagPushParticipant(cnBag* bag, cnIndex depth, cnEntity participant) {
+bool cnBagPushParticipant(Bag* bag, cnIndex depth, cnEntity participant) {
   cnList(cnEntity)* participantOptions;
   bool result = false;
 

@@ -14,7 +14,17 @@ namespace concuno {
 typedef void* cnEntity;
 
 
-struct cnBag {
+struct Bag {
+
+  Bag();
+
+  Bag(cnList(cnEntity)* entities);
+
+  ~Bag();
+
+  void dispose();
+
+  void init(cnList(cnEntity)* entities = 0);
 
   // TODO id? Or are pointer addresses good enough (if stable)?
 
@@ -271,19 +281,13 @@ struct cnType {
 };
 
 
-void cnBagDispose(cnBag* bag);
-
-
-bool cnBagInit(cnBag* bag, cnList(cnEntity)* entities);
-
-
 /**
  * Disposes of all bags and entities in the given lists, as well as all the
  * lists themselves. If entityLists is non-null, entities in each bag will be
  * ignored. Otherwise, entities in bags will be disposed with the bags.
  */
 void cnBagListDispose(
-  cnList(cnBag)* bags, cnList(cnList(cnEntity)*)* entityLists
+  cnList(Bag)* bags, cnList(cnList(cnEntity)*)* entityLists
 );
 
 
@@ -291,7 +295,7 @@ void cnBagListDispose(
  * Pushes on the given participant to the options for the given depth (or
  * parameter index, so to speak).
  */
-bool cnBagPushParticipant(cnBag* bag, cnIndex depth, cnEntity participant);
+bool cnBagPushParticipant(Bag* bag, cnIndex depth, cnEntity participant);
 
 
 cnEntityFunction* cnEntityFunctionCreateDifference(cnEntityFunction* base);

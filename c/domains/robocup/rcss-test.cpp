@@ -29,17 +29,17 @@ bool cnrPickFunctions(cnList(cnEntityFunction*)* functions, cnType* type);
 
 bool cnrProcess(
   cnrGame* game,
-  bool (*process)(cnList(cnBag)* holdBags, cnList(cnBag)* passBags)
+  bool (*process)(cnList(Bag)* holdBags, cnList(Bag)* passBags)
 );
 
 
-bool cnrProcessExport(cnList(cnBag)* holdBags, cnList(cnBag)* passBags);
+bool cnrProcessExport(cnList(Bag)* holdBags, cnList(Bag)* passBags);
 
 
-bool cnrProcessLearn(cnList(cnBag)* holdBags, cnList(cnBag)* passBags);
+bool cnrProcessLearn(cnList(Bag)* holdBags, cnList(Bag)* passBags);
 
 
-bool cnrSaveBags(const char* name, cnList(cnBag)* bags);
+bool cnrSaveBags(const char* name, cnList(Bag)* bags);
 
 
 int main(int argc, char** argv) {
@@ -191,16 +191,16 @@ bool cnrPickFunctions(cnList(cnEntityFunction*)* functions, cnType* type) {
 
 bool cnrProcess(
   cnrGame* game,
-  bool (*process)(cnList(cnBag)* holdBags, cnList(cnBag)* passBags)
+  bool (*process)(cnList(Bag)* holdBags, cnList(Bag)* passBags)
 ) {
-  cnList(cnBag) holdBags;
+  cnList(Bag) holdBags;
   cnList(cnList(cnEntity)*) entityLists;
-  cnList(cnBag) passBags;
+  cnList(Bag) passBags;
   bool result = false;
 
   // Init for safety.
-  cnListInit(&holdBags, sizeof(cnBag));
-  cnListInit(&passBags, sizeof(cnBag));
+  cnListInit(&holdBags, sizeof(Bag));
+  cnListInit(&passBags, sizeof(Bag));
   cnListInit(&entityLists, sizeof(cnList(cnEntity)*));
 
   if (!cnrChooseHoldsAndPasses(game, &holdBags, &passBags, &entityLists)) {
@@ -223,7 +223,7 @@ bool cnrProcess(
 }
 
 
-bool cnrProcessExport(cnList(cnBag)* holdBags, cnList(cnBag)* passBags) {
+bool cnrProcessExport(cnList(Bag)* holdBags, cnList(Bag)* passBags) {
   // Export stuff.
   // TODO Allow specifying file names? Choose automatically by date?
   // TODO Option for learning in concuno rather than saving?
@@ -236,7 +236,7 @@ bool cnrProcessExport(cnList(cnBag)* holdBags, cnList(cnBag)* passBags) {
 }
 
 
-bool cnrProcessLearn(cnList(cnBag)* holdBags, cnList(cnBag)* passBags) {
+bool cnrProcessLearn(cnList(Bag)* holdBags, cnList(Bag)* passBags) {
   cnList(cnEntityFunction*) functions;
   cnRootNode* learnedTree = NULL;
   cnLearner learner;
@@ -280,7 +280,7 @@ bool cnrProcessLearn(cnList(cnBag)* holdBags, cnList(cnBag)* passBags) {
 }
 
 
-bool cnrSaveBags(const char* name, cnList(cnBag)* bags) {
+bool cnrSaveBags(const char* name, cnList(Bag)* bags) {
   const unsigned char* buffer;
   size_t bufferSize;
   ofstream file;
@@ -299,7 +299,7 @@ bool cnrSaveBags(const char* name, cnList(cnBag)* bags) {
     yajl_gen_config(gen, yajl_gen_indent_string, "  ")
   )) cnFailTo(DONE);
   if (yajl_gen_array_open(gen) || yajl_gen_array_open(gen)) cnFailTo(DONE);
-  cnListEachBegin(bags, cnBag, bag) {
+  cnListEachBegin(bags, Bag, bag) {
     if (yajl_gen_map_open(gen)) cnFailTo(DONE);
     if (!cnrGenStr(gen, itemsKey)) cnFailTo(DONE);
     if (yajl_gen_array_open(gen)) cnFailTo(DONE);

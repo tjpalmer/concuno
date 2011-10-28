@@ -38,7 +38,7 @@ void testVariance(void);
 
 
 int main(void) {
-  switch ('h') {
+  switch ('r') {
   case 'b':
     testBinomial();
     break;
@@ -276,11 +276,10 @@ bool testPropagate_write(
 }
 
 void testPropagate(void) {
-  cnBag bag;
+  Bag bag;
   const char* data = "Hello!";
   cnEntityFunction* entityFunction = NULL;
   cnIndex i;
-  bool initOkay = true;
   cnList(cnLeafBindingBag) leafBindingBags;
   cnSplitNode* split;
   cnVarNode* vars[2];
@@ -289,9 +288,7 @@ void testPropagate(void) {
 
   // Init stuff.
   cnListInit(&leafBindingBags, sizeof(cnLeafBindingBag));
-  initOkay &= cnBagInit(&bag, NULL) ? true : false;
-  initOkay &= cnRootNodeInit(&tree, false) ? true : false;
-  if (!initOkay) cnErrTo(DONE, "Init failed.");
+  if (!cnRootNodeInit(&tree, false)) cnErrTo(DONE, "Init failed.");
   // TODO Float required because of NaN convention. Fix this!
   if (!(type = cnTypeCreate("Float", sizeof(cnFloat)))) {
     cnErrTo(DONE, "No type.");
@@ -366,7 +363,6 @@ void testPropagate(void) {
     cnLeafBindingBagDispose(leafBindingBag);
   } cnEnd;
   cnListDispose(&leafBindingBags);
-  cnBagDispose(&bag);
 }
 
 

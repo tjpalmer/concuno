@@ -24,7 +24,7 @@ bool stLearnConcept(
   cnList(stState)* states,
   cnList(cnEntityFunction*)* functions,
   bool (*choose)(
-    cnList(stState)* states, cnList(cnBag)* bags,
+    cnList(stState)* states, cnList(Bag)* bags,
     cnList(cnList(cnEntity)*)* entityLists
   )
 );
@@ -100,12 +100,12 @@ int main(int argc, char** argv) {
 bool stClusterStuff(
   cnList(stState)* states, cnList(cnEntityFunction*)* functions
 ) {
-  cnList(cnBag) bags;
+  cnList(Bag) bags;
   cnEntityFunction* function;
   bool result = false;
 
   // Choose out the states we want to focus on.
-  cnListInit(&bags, sizeof(cnBag));
+  cnListInit(&bags, sizeof(Bag));
   if (!stAllBagsFalse(states, &bags, NULL)) {
     cnErrTo(DISPOSE_BAGS, "Failed to choose bags.");
   }
@@ -121,8 +121,8 @@ bool stClusterStuff(
   result = true;
 
   DISPOSE_BAGS:
-  cnListEachBegin(&bags, cnBag, bag) {
-    cnBagDispose(bag);
+  cnListEachBegin(&bags, Bag, bag) {
+    bag->dispose();
   } cnEnd;
   cnListDispose(&bags);
 
@@ -236,11 +236,11 @@ bool stLearnConcept(
   cnList(stState)* states,
   cnList(cnEntityFunction*)* functions,
   bool (*choose)(
-    cnList(stState)* states, cnList(cnBag)* bags,
+    cnList(stState)* states, cnList(Bag)* bags,
     cnList(cnList(cnEntity)*)* entityLists
   )
 ) {
-  cnList(cnBag) bags;
+  cnList(Bag) bags;
   cnList(cnList(cnEntity)*) entityLists;
   cnRootNode* learnedTree = NULL;
   cnLearner learner;
@@ -248,7 +248,7 @@ bool stLearnConcept(
   cnCount trueCount;
 
   // Init for safety.
-  cnListInit(&bags, sizeof(cnBag));
+  cnListInit(&bags, sizeof(Bag));
   cnListInit(&entityLists, sizeof(cnList(cnEntity)*));
   // Failable thing last.
   if (!cnLearnerInit(&learner, NULL)) cnErrTo(DONE, "No learner.");
@@ -258,7 +258,7 @@ bool stLearnConcept(
     cnErrTo(DONE, "Failed to choose bags.");
   }
   trueCount = 0;
-  cnListEachBegin(&bags, cnBag, bag) {
+  cnListEachBegin(&bags, Bag, bag) {
     trueCount += bag->label;
   } cnEnd;
   // TODO Also print mean number of items in chosen states?

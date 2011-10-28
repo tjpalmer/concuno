@@ -30,7 +30,7 @@ typedef struct cnvTypedOffset {
  * Fills in the bags with the given label information and data.
  */
 bool cnvBuildBags(
-  cnList(cnBag)* bags,
+  cnList(Bag)* bags,
   char* labelId, cnType* labelType, cnListAny* labels,
   cnType* featureType, cnListAny* features
 );
@@ -57,7 +57,7 @@ bool cnvPushOrExpandProperty(
 
 int main(int argc, char** argv) {
   int result = EXIT_FAILURE;
-  cnList(cnBag) bags;
+  cnList(Bag) bags;
   cnListAny features;
   cnType* featureType;
   cnList(cnEntityFunction*) functions;
@@ -69,7 +69,7 @@ int main(int argc, char** argv) {
   cnSchema schema;
 
   // Init lists first for safety.
-  cnListInit(&bags, sizeof(cnBag));
+  cnListInit(&bags, sizeof(Bag));
   // We don't yet know how big the items are.
   cnListInit(&features, 0);
   cnListInit(&functions, sizeof(cnEntityFunction*));
@@ -128,7 +128,7 @@ int main(int argc, char** argv) {
 
 
 bool cnvBuildBags(
-  cnList(cnBag)* bags,
+  cnList(Bag)* bags,
   char* labelId, cnType* labelType, cnListAny* labels,
   cnType* featureType, cnListAny* features
 ) {
@@ -149,12 +149,12 @@ bool cnvBuildBags(
 
   // Assume for now that the labels and features go in the same order.
   cnListEachBegin(labels, char, labelItem) {
-    cnBag* bag = reinterpret_cast<cnBag*>(cnListExpand(bags));
+    Bag* bag = reinterpret_cast<Bag*>(cnListExpand(bags));
     cnIndex bagId = *(cnFloat*)labelItem;
     // Check the bag allocation, and init the thing.
     if (!bag) cnErrTo(DONE, "No bag.");
-    if (!cnBagInit(bag, NULL)) cnErrTo(DONE, "No bag init.");
-    bag->label = *(cnFloat*)(labelItem + labelOffset) ? true : false;
+    bag->init();
+    bag->label = *(cnFloat*)(labelItem + labelOffset);
     // Add features.
     //printf("Reached bag %ld, labeled %u.\n", bagId, bag->label);
     for (; feature < featuresEnd; feature += features->itemSize) {

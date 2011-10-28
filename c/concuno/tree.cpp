@@ -58,7 +58,7 @@ void cnBindingBagDispose(cnBindingBag* bindingBag) {
 
 
 void cnBindingBagInit(
-  cnBindingBag* bindingBag, cnBag* bag, cnCount entityCount
+  cnBindingBag* bindingBag, Bag* bag, cnCount entityCount
 ) {
   bindingBag->bag = bag;
   bindingBag->entityCount = entityCount;
@@ -97,7 +97,7 @@ void cnBindingBagListDrop(cnBindingBagList** list) {
 
 
 bool cnBindingBagListPushBags(
-  cnBindingBagList* bindingBags, const cnList(cnBag)* bags
+  cnBindingBagList* bindingBags, const cnList(Bag)* bags
 ) {
   // Preallocate all the space we need.
   cnBindingBag* bindingBag = reinterpret_cast<cnBindingBag*>(
@@ -105,7 +105,7 @@ bool cnBindingBagListPushBags(
   );
   if (!bindingBag) return false;
   // Now init each one.
-  cnListEachBegin(bags, cnBag, bag) {
+  cnListEachBegin(bags, Bag, bag) {
     cnBindingBagInit(bindingBag, bag, 0);
     // Have a fake empty binding. Note that this is abusive. Alternatives?
     bindingBag->bindings.count++;
@@ -213,10 +213,10 @@ void cnLeafBindingBagDispose(cnLeafBindingBag* leafBindingBag) {
 
 
 void cnLeafBindingBagGroupListLimits(
-  cnList(cnLeafBindingBagGroup)* groups, cnBag** begin, cnBag** end
+  cnList(cnLeafBindingBagGroup)* groups, Bag** begin, Bag** end
 ) {
-  cnBag* bags = NULL;
-  cnBag* bagsEnd = NULL;
+  Bag* bags = NULL;
+  Bag* bagsEnd = NULL;
 
   // Search the list.
   cnListEachBegin(groups, cnLeafBindingBagGroup, group) {
@@ -1101,7 +1101,7 @@ cnNode* cnTreeCopy(cnNode* node) {
 }
 
 
-cnFloat cnTreeLogMetric(cnRootNode* root, cnList(cnBag)* bags) {
+cnFloat cnTreeLogMetric(cnRootNode* root, cnList(Bag)* bags) {
   cnList(cnLeafCount) counts;
   cnFloat score = cnNaN();
   cnListInit(&counts, sizeof(cnLeafCount));
@@ -1128,7 +1128,7 @@ int cnTreeMaxLeafCounts_compareLeafProbsDown(const void* a, const void* b) {
 }
 
 bool cnTreeMaxLeafCounts(
-  cnRootNode* root, cnList(cnLeafCount)* counts, cnList(cnBag)* bags
+  cnRootNode* root, cnList(cnLeafCount)* counts, cnList(Bag)* bags
 ) {
   cnIndex b;
   bool* bagsUsed = NULL;
@@ -1177,7 +1177,7 @@ bool cnTreeMaxLeafCounts(
       // TODO This subtraction only works if bags is an array of cnBag and not
       // TODO cnBag*, because we'd otherwise have no reference point. Should I
       // TODO consider explicit ids/indices at some point?
-      cnIndex bagIndex = bindingBag->bag - (cnBag*)bags->items;
+      cnIndex bagIndex = bindingBag->bag - (Bag*)bags->items;
       if (bagsUsed[bagIndex]) continue;
       // Add to the proper count.
       if (bindingBag->bag->label) {
@@ -1222,8 +1222,8 @@ bool cnTreeMaxLeafBags(
 ) {
   cnIndex b;
   cnCount bagCount;
-  cnBag* bags = NULL;
-  cnBag* bagsEnd = NULL;
+  Bag* bags = NULL;
+  Bag* bagsEnd = NULL;
   bool* bagsUsed = NULL;
   cnIndex g;
   cnTreeMaxLeafBags_IndexedGroup* indexedGroupsIn = NULL;
@@ -1318,7 +1318,7 @@ bool cnTreeMaxLeafBags(
 
 
 bool cnTreePropagateBag(
-  cnRootNode* tree, cnBag* bag, cnList(cnLeafBindingBag)* leafBindingBags
+  cnRootNode* tree, Bag* bag, cnList(cnLeafBindingBag)* leafBindingBags
 ) {
   cnBindingBag bindingBag;
   bool result;
@@ -1335,7 +1335,7 @@ bool cnTreePropagateBag(
 
 
 bool cnTreePropagateBags(
-  cnRootNode* tree, cnList(cnBag)* bags,
+  cnRootNode* tree, cnList(Bag)* bags,
   cnList(cnLeafBindingBagGroup)* leafBindingBagGroups
 ) {
   cnList(cnLeafBindingBag) leafBindingBags;
@@ -1345,7 +1345,7 @@ bool cnTreePropagateBags(
   cnListInit(&leafBindingBags, sizeof(cnLeafBindingBag));
 
   // Propagate for each bag.
-  cnListEachBegin(bags, cnBag, bag) {
+  cnListEachBegin(bags, Bag, bag) {
     // Propagate.
     if (!cnTreePropagateBag(tree, bag, &leafBindingBags)) {
       cnErrTo(DONE, "No propagate.");
