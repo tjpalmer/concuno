@@ -6,23 +6,23 @@ using namespace concuno;
 
 
 bool stClusterStuff(
-  cnList(stState)* states, cnList(cnEntityFunction*)* functions
+  cnList(stState)* states, cnList(EntityFunction*)* functions
 );
 
 
 void stDisposeSchemaAndEntityFunctions(
-  cnSchema* schema, cnList(cnEntityFunction*)* functions
+  Schema* schema, cnList(EntityFunction*)* functions
 );
 
 
 bool stInitSchemaAndEntityFunctions(
-  cnSchema* schema, cnList(cnEntityFunction*)* functions
+  Schema* schema, cnList(EntityFunction*)* functions
 );
 
 
 bool stLearnConcept(
   cnList(stState)* states,
-  cnList(cnEntityFunction*)* functions,
+  cnList(EntityFunction*)* functions,
   bool (*choose)(
     cnList(stState)* states, cnList(Bag)* bags,
     cnList(cnList(cnEntity)*)* entityLists
@@ -31,8 +31,8 @@ bool stLearnConcept(
 
 
 int main(int argc, char** argv) {
-  cnList(cnEntityFunction*) entityFunctions;
-  cnSchema schema;
+  cnList(EntityFunction*) entityFunctions;
+  Schema schema;
   stState* state;
   cnList(stState) states;
   int status = EXIT_FAILURE;
@@ -98,10 +98,10 @@ int main(int argc, char** argv) {
 
 
 bool stClusterStuff(
-  cnList(stState)* states, cnList(cnEntityFunction*)* functions
+  cnList(stState)* states, cnList(EntityFunction*)* functions
 ) {
   cnList(Bag) bags;
-  cnEntityFunction* function;
+  EntityFunction* function;
   bool result = false;
 
   // Choose out the states we want to focus on.
@@ -112,7 +112,7 @@ bool stClusterStuff(
 
   // The last function right now should be velocity. TODO Watch out for changes!
   // TODO Be more thorough about clustering. Try it all as for tree learning.
-  function = *(cnEntityFunction**)cnListGet(functions, functions->count - 1);
+  function = *(EntityFunction**)cnListGet(functions, functions->count - 1);
   if (!cnClusterOnFunction(&bags, function)) {
     goto DISPOSE_BAGS;
   }
@@ -131,10 +131,10 @@ bool stClusterStuff(
 
 
 void stDisposeSchemaAndEntityFunctions(
-  cnSchema* schema, cnList(cnEntityFunction*)* functions
+  Schema* schema, cnList(EntityFunction*)* functions
 ) {
   // Drop the functions.
-  cnListEachBegin(functions, cnEntityFunction*, function) {
+  cnListEachBegin(functions, EntityFunction*, function) {
     cnEntityFunctionDrop(*function);
   } cnEnd;
   // Dispose of the list and schema.
@@ -144,10 +144,10 @@ void stDisposeSchemaAndEntityFunctions(
 
 
 bool stInitSchemaAndEntityFunctions(
-  cnSchema* schema, cnList(cnEntityFunction*)* functions
+  Schema* schema, cnList(EntityFunction*)* functions
 ) {
-  cnEntityFunction* function;
-  cnType* itemType;
+  EntityFunction* function;
+  Type* itemType;
 
   // Set up schema.
   if (!stSchemaInit(schema)) {
@@ -158,9 +158,9 @@ bool stInitSchemaAndEntityFunctions(
 
   // Set up entity functions.
   // TODO Extract this setup, and make it easier to do.
-  cnListInit(functions, sizeof(cnEntityFunction*));
+  cnListInit(functions, sizeof(EntityFunction*));
   // TODO Look up the type by name.
-  itemType = reinterpret_cast<cnType*>(cnListGetPointer(&schema->types, 1));
+  itemType = reinterpret_cast<Type*>(cnListGetPointer(&schema->types, 1));
 
   // Valid.
   if (true) {
@@ -176,7 +176,7 @@ bool stInitSchemaAndEntityFunctions(
   if (true) {
     if (!(function = cnPushPropertyFunction(
       functions,
-      reinterpret_cast<cnProperty*>(cnListGet(&itemType->properties, 0))
+      reinterpret_cast<Property*>(cnListGet(&itemType->properties, 0))
     ))) {
       printf("Failed to push color function.\n");
       goto FAIL;
@@ -193,7 +193,7 @@ bool stInitSchemaAndEntityFunctions(
     // TODO Look up the property by name.
     if (!(function = cnPushPropertyFunction(
       functions,
-      reinterpret_cast<cnProperty*>(cnListGet(&itemType->properties, 1))
+      reinterpret_cast<Property*>(cnListGet(&itemType->properties, 1))
     ))) {
       printf("Failed to push location function.\n");
       goto FAIL;
@@ -215,7 +215,7 @@ bool stInitSchemaAndEntityFunctions(
     // TODO Look up the property by name.
     if (!(function = cnPushPropertyFunction(
       functions,
-      reinterpret_cast<cnProperty*>(cnListGet(&itemType->properties, 2))
+      reinterpret_cast<Property*>(cnListGet(&itemType->properties, 2))
     ))) {
       printf("Failed to push velocity function.\n");
       goto FAIL;
@@ -234,7 +234,7 @@ bool stInitSchemaAndEntityFunctions(
 
 bool stLearnConcept(
   cnList(stState)* states,
-  cnList(cnEntityFunction*)* functions,
+  cnList(EntityFunction*)* functions,
   bool (*choose)(
     cnList(stState)* states, cnList(Bag)* bags,
     cnList(cnList(cnEntity)*)* entityLists
@@ -242,7 +242,7 @@ bool stLearnConcept(
 ) {
   cnList(Bag) bags;
   cnList(cnList(cnEntity)*) entityLists;
-  cnRootNode* learnedTree = NULL;
+  RootNode* learnedTree = NULL;
   Learner learner;
   bool result = false;
   Count trueCount;

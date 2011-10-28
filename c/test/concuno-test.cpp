@@ -75,13 +75,13 @@ int main(void) {
 
 
 void testBinomial(void) {
-  cnBinomial binomial = NULL;
+  Binomial binomial = NULL;
   Count countPerSample = 1000;
   Index i;
   Float prob = 0.3;
   Count successTotal = 0;
   Count sampleTotal = 1000000;
-  cnRandom random = NULL;
+  Random random = NULL;
 
   // Init.
   if (!(random = cnRandomCreate())) cnErrTo(DONE, "No random.");
@@ -175,10 +175,10 @@ void testMultinomial(void) {
   Count countPerSample = 1000;
   Index i;
   Index j;
-  cnMultinomial multinomial = NULL;
+  Multinomial multinomial = NULL;
   Count out[testMultinomial_CLASS_COUNT];
   Float p[] = {0.2, 0.1, 0.4, 0.3};
-  cnRandom random = NULL;
+  Random random = NULL;
   Count sampleTotal = 100000;
   Count sum[testMultinomial_CLASS_COUNT];
 
@@ -239,7 +239,7 @@ void testPermutations(void) {
 
 
 void testPropagate_charsDiffGet(
-  cnEntityFunction* function, cnEntity* ins, void* outs
+  EntityFunction* function, Entity* ins, void* outs
 ) {
   char a = *(char*)(ins[0]);
   char b = *(char*)(ins[1]);
@@ -252,12 +252,12 @@ void testPropagate_charsDiffGet(
   }
 }
 
-bool testPropagate_equalEvaluate(cnPredicate* predicate, void* in) {
+bool testPropagate_equalEvaluate(Predicate* predicate, void* in) {
   return !*(Float*)in;
 }
 
 bool testPropagate_write(
-  cnPredicate* predicate, FILE* file, cnString* indent
+  Predicate* predicate, FILE* file, String* indent
 ) {
   bool result = false;
 
@@ -278,16 +278,16 @@ bool testPropagate_write(
 void testPropagate(void) {
   Bag bag;
   const char* data = "Hello!";
-  cnEntityFunction* entityFunction = NULL;
+  EntityFunction* entityFunction = NULL;
   Index i;
-  cnList(cnLeafBindingBag) leafBindingBags;
-  cnSplitNode* split;
-  cnVarNode* vars[2];
-  cnRootNode tree;
-  cnType* type = NULL;
+  cnList(LeafBindingBag) leafBindingBags;
+  SplitNode* split;
+  VarNode* vars[2];
+  RootNode tree;
+  Type* type = NULL;
 
   // Init stuff.
-  cnListInit(&leafBindingBags, sizeof(cnLeafBindingBag));
+  cnListInit(&leafBindingBags, sizeof(LeafBindingBag));
   if (!cnRootNodeInit(&tree, false)) cnErrTo(DONE, "Init failed.");
   // TODO Float required because of NaN convention. Fix this!
   if (!(type = cnTypeCreate("Float", sizeof(Float)))) {
@@ -316,7 +316,7 @@ void testPropagate(void) {
   )) cnErrTo(DONE, "No var indices.");
   for (i = 0; i < entityFunction->inCount; i++) split->varIndices[i] = i;
   // Predicate.
-  if (!(split->predicate = cnAlloc(cnPredicate, 1))) {
+  if (!(split->predicate = cnAlloc(Predicate, 1))) {
     cnErrTo(DONE, "No predicate.");
   }
   split->predicate->copy = NULL;
@@ -332,7 +332,7 @@ void testPropagate(void) {
   // Prepare bogus data.
   for (const char* c = data; *c; c++) {
     // A bit sloppy on const here, but we shouldn't be changing anything.
-    cnEntity entity = reinterpret_cast<cnEntity>(const_cast<char*>(c));
+    Entity entity = reinterpret_cast<Entity>(const_cast<char*>(c));
     cnListPush(bag.entities, &entity);
   }
 
@@ -342,9 +342,9 @@ void testPropagate(void) {
   }
 
   // And see what bindings we have.
-  cnListEachBegin(&leafBindingBags, cnLeafBindingBag, leafBindingBag) {
+  cnListEachBegin(&leafBindingBags, LeafBindingBag, leafBindingBag) {
     printf("Bindings at leaf with id %ld:\n", leafBindingBag->leaf->node.id);
-    cnListEachBegin(&leafBindingBag->bindingBag.bindings, cnEntity, entities) {
+    cnListEachBegin(&leafBindingBag->bindingBag.bindings, Entity, entities) {
       Index e;
       printf("  ");
       for (e = 0; e < leafBindingBag->bindingBag.entityCount; e++) {
@@ -359,14 +359,14 @@ void testPropagate(void) {
   cnEntityFunctionDrop(entityFunction);
   cnTypeDrop(type);
   cnNodeDispose(&tree.node);
-  cnListEachBegin(&leafBindingBags, cnLeafBindingBag, leafBindingBag) {
+  cnListEachBegin(&leafBindingBags, LeafBindingBag, leafBindingBag) {
     cnLeafBindingBagDispose(leafBindingBag);
   } cnEnd;
   cnListDispose(&leafBindingBags);
 }
 
 
-void testReframe_get(cnEntityFunction* function, cnEntity* ins, void* outs) {
+void testReframe_get(EntityFunction* function, Entity* ins, void* outs) {
   Float* in = *(Float**)ins;
   Float* inEnd = in + function->outCount;
   Float* out = reinterpret_cast<Float*>(outs);
@@ -376,7 +376,7 @@ void testReframe_get(cnEntityFunction* function, cnEntity* ins, void* outs) {
 }
 
 void testReframe_case(
-  cnEntityFunction* reframe,
+  EntityFunction* reframe,
   Float x0, Float y0, Float x1, Float y1, Float x2, Float y2
 ) {
   // Set up data.
@@ -404,7 +404,7 @@ void testReframe_case3d(
   double pointsData[][3] = {{x0, y0, z0}, {x1, y1, z1}, {x2, y2, z2}};
   double* points[] = {pointsData[0], pointsData[1], pointsData[2]};
   // Reframe and check result.
-  cnReframe(3, points[0], points[1], points[2]);
+  reframe(3, points[0], points[1], points[2]);
   printf(
     "From (%g, %g, %g) to (%g, %g, %g) "
       "reframes (%g, %g, %g) as: (%g, %g, %g)\n",
@@ -416,9 +416,9 @@ void testReframe_case3d(
 }
 
 void testReframe(void) {
-  cnEntityFunction* direct = NULL;
-  cnEntityFunction* reframe = NULL;
-  cnSchema schema;
+  EntityFunction* direct = NULL;
+  EntityFunction* reframe = NULL;
+  Schema schema;
 
   // Init.
   if (!cnSchemaInitDefault(&schema)) cnFailTo(DONE);

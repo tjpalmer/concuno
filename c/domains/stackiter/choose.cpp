@@ -24,7 +24,7 @@ bool stPlaceLiveItems(
 
 bool stAllBagsFalse(
   cnList(stState)* states, cnList(Bag)* bags,
-  cnList(cnList(cnEntity)*)* entityLists
+  cnList(cnList(Entity)*)* entityLists
 ) {
   bool result = false;
 
@@ -51,7 +51,7 @@ bool stAllBagsFalse(
 
 bool stChooseDropWhereLandOnOther(
   cnList(stState)* states, cnList(Bag)* bags,
-  cnList(cnList(cnEntity)*)* entityLists
+  cnList(cnList(Entity)*)* entityLists
 ) {
   bool result = false;
   bool formerHadGrasp = false;
@@ -132,7 +132,7 @@ bool stChooseDropWhereLandOnOther(
 
 bool stChooseWhereNotMoving(
   cnList(stState)* states, cnList(Bag)* bags,
-  cnList(cnList(cnEntity)*)* entityLists
+  cnList(cnList(Entity)*)* entityLists
 ) {
   Float epsilon = 1e-2;
   bool result = false;
@@ -140,7 +140,7 @@ bool stChooseWhereNotMoving(
   // Find bags.
   cnListEachBegin(states, stState, state) {
     // Every state gets a bag.
-    cnList(cnEntity)* entities = NULL;
+    cnList(Entity)* entities = NULL;
     bool keep = true;
     // Assume bags have none moving by default.
 
@@ -161,10 +161,10 @@ bool stChooseWhereNotMoving(
 
     // We want it.
     // First make an entity list usable for multiple bags.
-    if (!(entities = cnAlloc(cnList(cnEntity), 1))) {
+    if (!(entities = cnAlloc(cnList(Entity), 1))) {
       cnErrTo(DONE, "No entity list.");
     }
-    cnListInit(entities, sizeof(cnEntity));
+    cnListInit(entities, sizeof(Entity));
 
     // Push it on the list.
     if (!cnListPush(entityLists, &entities)) {
@@ -181,9 +181,9 @@ bool stChooseWhereNotMoving(
 
     // Create a bag for each item, where we constrain the first binding and
     // label based on whether the item is moving.
-    cnListEachBegin(entities, cnEntity, entity) {
+    cnListEachBegin(entities, Entity, entity) {
       Bag* bag;
-      cnList(cnEntity)* participant;
+      cnList(Entity)* participant;
       stItem* item = *(stItem**)entity;
       Float speed;
 
@@ -196,14 +196,14 @@ bool stChooseWhereNotMoving(
 
       // Participant.
       if (!(
-        participant = reinterpret_cast<cnList(cnEntity)*>(
+        participant = reinterpret_cast<cnList(Entity)*>(
           cnListExpand(&bag->participantOptions))
       )) {
         // Hide the bag and fail.
         bags->count--;
         cnErrTo(DONE, "Failed to push participant list.");
       }
-      cnListInit(participant, sizeof(cnEntity));
+      cnListInit(participant, sizeof(Entity));
       // Push the (pointer to the) item, after earlier safety init.
       if (!cnListPush(participant, entity)) cnErrTo(DONE, "No participant.");
 

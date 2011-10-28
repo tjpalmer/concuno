@@ -5,7 +5,7 @@
 namespace concuno {
 
 
-void cnDedent(cnString* indent) {
+void cnDedent(String* indent) {
   // TODO Some cnStringCountPut to considate this kind of thing?
   indent->count -= 2;
   ((char*)indent->items)[indent->count - 1] = '\0';
@@ -51,7 +51,7 @@ bool cnDelimitInt(char** string, char** token, Int* i, char delimiter) {
 }
 
 
-bool cnIndent(cnString* indent) {
+bool cnIndent(String* indent) {
   return cnStringPushStr(indent, "  ");
 }
 
@@ -106,7 +106,7 @@ char* cnParseStr(char* begin, char** end) {
  */
 #define cnReadLine_BufferSize 64
 
-Count cnReadLine(FILE* file, cnString* string) {
+Count cnReadLine(FILE* file, String* string) {
   char buffer[cnReadLine_BufferSize];
   Index bufferIndex = 0;
   Count count = 0;

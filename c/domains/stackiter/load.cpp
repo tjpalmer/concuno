@@ -37,7 +37,7 @@ bool stHandleType(stParser* parser, char* args);
 /**
  * Parses a single line, returning true for no error.
  */
-bool stParseLine(stParser* parser, cnString* line);
+bool stParseLine(stParser* parser, String* line);
 
 
 stItem* stParserItem(stParser* parser, char* begin, char** end);
@@ -50,7 +50,7 @@ bool stLoad(char* name, cnList(stState)* states) {
   bool result = true;
   int closeError;
   FILE* file;
-  cnString line;
+  String line;
   Count lineCount, readCount;
   stParser parser;
   parser.states = states;
@@ -273,7 +273,7 @@ bool stHandleType(stParser* parser, char* args) {
 }
 
 
-bool stParseLine(stParser* parser, cnString* line) {
+bool stParseLine(stParser* parser, String* line) {
   // TODO Extract command then scanf it?
   char *args, *command;
   bool (*parse)(stParser* parser, char* args) = NULL;

@@ -18,7 +18,7 @@ namespace concuno {
  * TODO Abstract this better into stream facility and for easier auto dedent on
  * TODO error cases.
  */
-void cnDedent(cnString* indent);
+void cnDedent(String* indent);
 
 
 /**
@@ -51,7 +51,7 @@ bool cnDelimitInt(char** string, char** token, Int* i, char delimiter);
  *
  * TODO Abstract this better into stream facility.
  */
-bool cnIndent(cnString* indent);
+bool cnIndent(String* indent);
 
 
 /**
@@ -89,7 +89,7 @@ char* cnParseStr(char* begin, char** end);
  * is read, returns 0. Returns the positive count of chars read if no error. If
  * error, returns the negative count of chars read.
  */
-Count cnReadLine(FILE* file, cnString* string);
+Count cnReadLine(FILE* file, String* string);
 
 
 /**

@@ -17,7 +17,7 @@ bool cnCluster(Count size, Count count, Float* points);
 bool cnDensityEstimate(Count size, Count count, Float* points);
 
 
-void cnLogPoints(cnEntityFunction* function, Count count, Float* points);
+void cnLogPoints(EntityFunction* function, Count count, Float* points);
 
 
 bool cnCluster(Count size, Count count, Float* points) {
@@ -35,7 +35,7 @@ bool cnCluster(Count size, Count count, Float* points) {
 }
 
 
-bool cnClusterOnFunction(cnList(Bag)* bags, cnEntityFunction* function) {
+bool cnClusterOnFunction(cnList(Bag)* bags, EntityFunction* function) {
   bool result = false;
   Float* point;
   Float* points;
@@ -102,15 +102,15 @@ bool cnDensityEstimate(Count size, Count count, Float* points) {
 
   // Check okay, find bounds, and determine step size.
   if (!(max && stepIndices)) return false;
-  cnVectorMax(size, max, count, points);
-  cnVectorMin(size, min, count, points);
+  vectorMax(size, max, count, points);
+  vectorMin(size, min, count, points);
   for (dim = 0; dim < size; dim++) {
     stepSize[dim] = (max[dim] - min[dim]) / stepCount;
     stepIndices[dim] = 0;
     point[dim] = min[dim];
   }
   // TODO Multivariate Gaussian in stats! Isotropic okay for now, though.
-  cnVectorMin(1, &maxStepSize, size, stepSize);
+  vectorMin(1, &maxStepSize, size, stepSize);
   kernelFactor = 1 / pow(2 * cnPi * maxStepSize, 0.5 * size);
   //printf("Min: "); cnVectorPrint(stdout, size, min); printf("\n");
   //printf("Max: "); cnVectorPrint(stdout, size, max); printf("\n");
@@ -173,9 +173,9 @@ bool cnDensityEstimate(Count size, Count count, Float* points) {
 }
 
 
-void cnLogPoints(cnEntityFunction* function, Count count, Float* points) {
+void cnLogPoints(EntityFunction* function, Count count, Float* points) {
   FILE *file;
-  cnString name;
+  String name;
   Float* point;
   Count size = function->outCount;
   Float* pointsEnd = points + size * count;

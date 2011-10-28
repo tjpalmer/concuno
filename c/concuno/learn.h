@@ -22,7 +22,7 @@ struct Learner {
    *
    * Even on failure, the learner is safe to dispose.
    */
-  Learner(cnRandom random = NULL);
+  Learner(Random random = NULL);
 
   /**
    * Cleans up whatever might be needed.
@@ -41,7 +41,7 @@ struct Learner {
    *
    * TODO Fill a list of trees for beam search purposes?
    */
-  cnRootNode* learnTree();
+  RootNode* learnTree();
 
   // TODO Learning options go here.
 
@@ -77,12 +77,12 @@ struct Learner {
    *
    * Any tree provided here will _not_ be disposed with the learner.
    */
-  cnRootNode* initialTree;
+  RootNode* initialTree;
 
   /**
    * For maintaining random state.
    */
-  cnRandom random;
+  Random random;
 
   /**
    * Whether the random is owned by the learner. Defaults to true when the

@@ -44,7 +44,7 @@ void cnrGameDispose(cnrGame* game) {
   cnListDispose(&game->states);
 
   // Dispose team names.
-  cnListEachBegin(&game->teamNames, cnString, name) {
+  cnListEachBegin(&game->teamNames, String, name) {
     cnStringDispose(name);
   } cnEnd;
   cnListDispose(&game->teamNames);
@@ -53,7 +53,7 @@ void cnrGameDispose(cnrGame* game) {
 
 void cnrGameInit(cnrGame* game) {
   cnListInit(&game->states, sizeof(cnrState));
-  cnListInit(&game->teamNames, sizeof(cnString));
+  cnListInit(&game->teamNames, sizeof(String));
 }
 
 
@@ -77,7 +77,7 @@ void cnrPlayerInit(cnrPlayer* player) {
 }
 
 
-void cnrPropertyFieldGet(cnProperty* property, cnEntity entity, void* storage) {
+void cnrPropertyFieldGet(Property* property, Entity entity, void* storage) {
   cnrFieldInfo* info = (cnrFieldInfo*)property->data;
   cnrItem* item = reinterpret_cast<cnrItem*>(entity);
   if (info->itemType != cnrTypeAny && item->type != info->itemType) {
@@ -115,7 +115,7 @@ void cnrPropertyFieldGet(cnProperty* property, cnEntity entity, void* storage) {
 }
 
 
-void cnrPropertyFieldPut(cnProperty* property, cnEntity entity, void* value) {
+void cnrPropertyFieldPut(Property* property, Entity entity, void* value) {
   cnrFieldInfo* info = (cnrFieldInfo*)property->data;
   cnrItem* item = reinterpret_cast<cnrItem*>(entity);
   if (info->itemType != cnrTypeAny && item->type != info->itemType) {
@@ -148,15 +148,15 @@ void cnrPropertyFieldPut(cnProperty* property, cnEntity entity, void* value) {
 }
 
 
-void cnrPropertyFieldInfoDispose(cnProperty* property) {
+void cnrPropertyFieldInfoDispose(Property* property) {
   // TODO Should this be in entity.c? It seems somewhat generally useful.
   free(property->data);
 }
 
 
 bool cnrPropertyInitTypedField(
-  cnProperty* property, cnType* containerType, cnrType itemType,
-  cnType* type, cnrFieldType fieldType,
+  Property* property, Type* containerType, cnrType itemType,
+  Type* type, cnrFieldType fieldType,
   const char* name, Count offset, Count count
 ) {
   cnrFieldInfo* info;
@@ -180,7 +180,7 @@ bool cnrPropertyInitTypedField(
   property->dispose = cnrPropertyFieldInfoDispose;
   property->get = cnrPropertyFieldGet;
   property->put = cnrPropertyFieldPut;
-  property->topology = cnTopologyEuclidean;
+  property->topology = TopologyEuclidean;
   property->type = type;
   return true;
 
@@ -190,9 +190,9 @@ bool cnrPropertyInitTypedField(
 }
 
 
-bool cnrSchemaInit(cnSchema* schema) {
-  cnProperty* property;
-  cnType* type;
+bool cnrSchemaInit(Schema* schema) {
+  Property* property;
+  Type* type;
 
   if (!cnSchemaInitDefault(schema)) cnFailTo(FAIL);
 
@@ -204,7 +204,7 @@ bool cnrSchemaInit(cnSchema* schema) {
 
   // Location property.
   if (!(
-    property = reinterpret_cast<cnProperty*>(cnListExpand(&type->properties))
+    property = reinterpret_cast<Property*>(cnListExpand(&type->properties))
   )) cnFailTo(FAIL);
   if (!cnPropertyInitField(
     property, type, schema->floatType, "Location",
@@ -213,7 +213,7 @@ bool cnrSchemaInit(cnSchema* schema) {
 
   // Team property.
   if (!(
-    property = reinterpret_cast<cnProperty*>(cnListExpand(&type->properties))
+    property = reinterpret_cast<Property*>(cnListExpand(&type->properties))
   )) cnFailTo(FAIL);
   if (!cnrPropertyInitTypedField(
     property, type, cnrTypePlayer, schema->floatType, cnrFieldTypeEnum, "Team",
@@ -222,7 +222,7 @@ bool cnrSchemaInit(cnSchema* schema) {
 
   // Type property.
   if (!(
-    property = reinterpret_cast<cnProperty*>(cnListExpand(&type->properties))
+    property = reinterpret_cast<Property*>(cnListExpand(&type->properties))
   )) cnFailTo(FAIL);
   if (!cnrPropertyInitTypedField(
     property, type, cnrTypeAny, schema->floatType, cnrFieldTypeEnum, "Type",

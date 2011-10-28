@@ -27,9 +27,9 @@ void stItemInit(stItem* item) {
 }
 
 
-bool stSchemaInit(cnSchema* schema) {
-  cnProperty* property;
-  cnType* type;
+bool stSchemaInit(Schema* schema) {
+  Property* property;
+  Type* type;
 
   if (!cnSchemaInitDefault(schema)) {
     return false;
@@ -42,7 +42,7 @@ bool stSchemaInit(cnSchema* schema) {
 
   // Color property.
   if (!(property =
-    reinterpret_cast<cnProperty*>(cnListExpand(&type->properties))
+    reinterpret_cast<Property*>(cnListExpand(&type->properties))
   )) goto FAIL;
   if (!cnPropertyInitField(
     property, type, schema->floatType, "Color",
@@ -51,7 +51,7 @@ bool stSchemaInit(cnSchema* schema) {
 
   // Location property.
   if (!(property =
-    reinterpret_cast<cnProperty*>(cnListExpand(&type->properties))
+    reinterpret_cast<Property*>(cnListExpand(&type->properties))
   )) goto FAIL;
   if (!cnPropertyInitField(
     property, type, schema->floatType, "Location",
@@ -60,7 +60,7 @@ bool stSchemaInit(cnSchema* schema) {
 
   // Velocity property.
   if (!(property =
-    reinterpret_cast<cnProperty*>(cnListExpand(&type->properties))
+    reinterpret_cast<Property*>(cnListExpand(&type->properties))
   )) goto FAIL;
   if (!cnPropertyInitField(
     property, type, schema->floatType, "Velocity",

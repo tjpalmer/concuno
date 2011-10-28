@@ -17,7 +17,7 @@ typedef struct cnBagDistance {
   /**
    * The bag in question, in case you want details (like the label).
    */
-  cnPointBag* bag;
+  PointBag* bag;
 
   /**
    * The farthest distance in this bag.
@@ -46,12 +46,12 @@ typedef struct cnExpansion {
   /**
    * The function to use at the split node.
    */
-  cnEntityFunction* function;
+  EntityFunction* function;
 
   /**
    * The leaf to expand.
    */
-  cnLeafNode* leaf;
+  LeafNode* leaf;
 
   /**
    * The number of new var nodes to add before the split.
@@ -77,7 +77,7 @@ typedef struct cnLearnerConfig {
    */
   Learner* learner;
 
-  cnRootNode* previous;
+  RootNode* previous;
 
   cnList(Bag) trainingBags;
 
@@ -93,7 +93,7 @@ typedef struct cnLearnerConfig {
  * TODO for deciding what's too close or not?
  */
 Float* cnBestPointByDiverseDensity(
-  cnTopology topology, cnList(cnPointBag)* pointBags
+  Topology topology, cnList(PointBag)* pointBags
 );
 
 
@@ -116,9 +116,9 @@ Float* cnBestPointByDiverseDensity(
  * TODO different indicator for whether any point found?
  */
 bool cnBestPointByScore(
-  cnFunction* distanceFunction, Gaussian* distribution,
-  cnList(cnPointBag)* pointBags,
-  cnFunction** bestFunction, Float* bestThreshold
+  Function* distanceFunction, Gaussian* distribution,
+  cnList(PointBag)* pointBags,
+  Function** bestFunction, Float* bestThreshold
 );
 
 
@@ -137,7 +137,7 @@ bool cnBestPointByScore(
  */
 bool cnChooseThreshold(
   bool yesLabel,
-  cnFunction* distanceFunction, cnList(cnPointBag)* pointBags,
+  Function* distanceFunction, cnList(PointBag)* pointBags,
   Float* score, Float* threshold,
   cnList(Float)* nearPosPoints, cnList(Float)* nearNegPoints
 );
@@ -170,23 +170,23 @@ Float cnChooseThresholdWithDistances(
  *
  * TODO This might represent the best of multiple attempts at optimization.
  */
-cnRootNode* cnExpandedTree(cnLearnerConfig* config, cnExpansion* expansion);
+RootNode* cnExpandedTree(cnLearnerConfig* config, cnExpansion* expansion);
 
 
 bool cnExpansionRedundant(
-  cnList(cnExpansion)* expansions, cnEntityFunction* function, Index* indices
+  cnList(cnExpansion)* expansions, EntityFunction* function, Index* indices
 );
 
 
 bool cnLearnSplitModel(
-  Learner* learner, cnSplitNode* split, cnList(cnBindingBag)* bindingBags
+  Learner* learner, SplitNode* split, cnList(BindingBag)* bindingBags
 );
 
 
-void cnLogPointBags(cnSplitNode* split, cnList(cnPointBag)* pointBags);
+void cnLogPointBags(SplitNode* split, cnList(PointBag)* pointBags);
 
 
-cnLeafNode* cnPickBestLeaf(cnRootNode* tree, cnList(Bag)* bags);
+LeafNode* cnPickBestLeaf(RootNode* tree, cnList(Bag)* bags);
 
 
 void cnPrintExpansion(cnExpansion* expansion);
@@ -197,20 +197,20 @@ bool cnPushExpansionsByIndices(
 );
 
 
-cnRootNode* cnTryExpansionsAtLeaf(cnLearnerConfig* config, cnLeafNode* leaf);
+RootNode* cnTryExpansionsAtLeaf(cnLearnerConfig* config, LeafNode* leaf);
 
 
 /**
  * Updates all the leaf probabilities in the tree.
  */
-bool cnUpdateLeafProbabilities(cnRootNode* root, cnList(Bag)* bags);
+bool cnUpdateLeafProbabilities(RootNode* root, cnList(Bag)* bags);
 
 
 /**
  * Updates leaf probabilities working directly from counts.
  */
 bool cnUpdateLeafProbabilitiesWithBindingBags(
-  cnList(cnLeafBindingBagGroup)* groups, cnList(cnLeafCount)* counts
+  cnList(LeafBindingBagGroup)* groups, cnList(LeafCount)* counts
 );
 
 
@@ -221,11 +221,11 @@ bool cnUpdateLeafProbabilitiesWithBindingBags(
  * Returns true for non-error. The test result comes through the result param.
  */
 bool cnVerifyImprovement(
-  cnLearnerConfig* config, cnRootNode* candidate, Float* pValue
+  cnLearnerConfig* config, RootNode* candidate, Float* pValue
 );
 
 
-void cnBuildInitialKernel(cnTopology topology, cnList(cnPointBag)* pointBags) {
+void cnBuildInitialKernel(Topology topology, cnList(PointBag)* pointBags) {
   Float* positivePoint;
   Float* positivePoints = NULL;
   Count positivePointCount;
@@ -233,7 +233,7 @@ void cnBuildInitialKernel(cnTopology topology, cnList(cnPointBag)* pointBags) {
   Count valueCount = 0; // per point.
   Float* point;
 
-  if (topology != cnTopologyEuclidean) {
+  if (topology != TopologyEuclidean) {
     printf("I handle only Euclidean right now, not %u.\n", topology);
     return;
   }
@@ -242,10 +242,10 @@ void cnBuildInitialKernel(cnTopology topology, cnList(cnPointBag)* pointBags) {
   positivePointCount = 0;
   printf("pointBags->count: %ld\n", pointBags->count);
   if (pointBags->count > 0) {
-    valueCount = ((cnPointBag*)pointBags->items)->pointMatrix.valueCount;
+    valueCount = ((PointBag*)pointBags->items)->pointMatrix.valueCount;
   }
   printf("valueCount: %ld\n", valueCount);
-  cnListEachBegin(pointBags, cnPointBag, pointBag) {
+  cnListEachBegin(pointBags, PointBag, pointBag) {
     // Just use the positives for the initial kernel.
     if (!pointBag->bag->label) continue;
     point = pointBag->pointMatrix.points;
@@ -275,7 +275,7 @@ void cnBuildInitialKernel(cnTopology topology, cnList(cnPointBag)* pointBags) {
     goto DONE;
   }
   positivePoint = positivePoints;
-  cnListEachBegin(pointBags, cnPointBag, pointBag) {
+  cnListEachBegin(pointBags, PointBag, pointBag) {
     // Just use the positives for the initial kernel.
     if (!pointBag->bag->label) continue;
     point = pointBag->pointMatrix.points;
@@ -309,12 +309,12 @@ void cnBuildInitialKernel(cnTopology topology, cnList(cnPointBag)* pointBags) {
     printf("Max, mean of positives: ");
     cnVectorPrint(stdout,
       valueCount,
-      cnVectorMax(valueCount, stat, positivePointCount, positivePoints)
+      vectorMax(valueCount, stat, positivePointCount, positivePoints)
     );
     printf(", ");
     cnVectorPrint(stdout,
       valueCount,
-      cnVectorMean(valueCount, stat, positivePointCount, positivePoints)
+      vectorMean(valueCount, stat, positivePointCount, positivePoints)
     );
     printf("\n");
     free(stat);
@@ -326,15 +326,15 @@ void cnBuildInitialKernel(cnTopology topology, cnList(cnPointBag)* pointBags) {
 
 
 Float* cnBestPointByDiverseDensity(
-  cnTopology topology, cnList(cnPointBag)* pointBags
+  Topology topology, cnList(PointBag)* pointBags
 ) {
   Float* bestPoint = NULL;
   Float bestSumYet = HUGE_VAL;
   Count posBagCount = 0, maxPosBags = 4;
   Count valueCount = pointBags->count ?
-    ((cnPointBag*)pointBags->items)->pointMatrix.valueCount : 0;
+    ((PointBag*)pointBags->items)->pointMatrix.valueCount : 0;
   printf("DD-ish: ");
-  cnListEachBegin(pointBags, cnPointBag, pointBag) {
+  cnListEachBegin(pointBags, PointBag, pointBag) {
     Float* point = pointBag->pointMatrix.points;
     Float* matrixEnd = point + pointBag->pointMatrix.pointCount * valueCount;
     if (!pointBag->bag->label) continue;
@@ -352,7 +352,7 @@ Float* cnBestPointByDiverseDensity(
         }
       }
       if (!allGood) continue;
-      cnListEachBegin(pointBags, cnPointBag, pointBag2) {
+      cnListEachBegin(pointBags, PointBag, pointBag2) {
         Float minDistance = HUGE_VAL;
         Float* point2 = pointBag2->pointMatrix.points;
         Float* matrixEnd2 =
@@ -401,9 +401,9 @@ Float* cnBestPointByDiverseDensity(
 
 
 bool cnBestPointByScore(
-  cnFunction* distanceFunction, Gaussian* distribution,
-  cnList(cnPointBag)* pointBags,
-  cnFunction** bestFunction, Float* bestThreshold
+  Function* distanceFunction, Gaussian* distribution,
+  cnList(PointBag)* pointBags,
+  Function** bestFunction, Float* bestThreshold
 ) {
   Float bestScore = -HUGE_VAL, score = bestScore;
   Count negBagsLeft = 8, posBagsLeft = 8;
@@ -411,7 +411,7 @@ bool cnBestPointByScore(
   bool result = false;
   Float threshold;
   Count valueCount = pointBags->count ?
-    ((cnPointBag*)pointBags->items)->pointMatrix.valueCount : 0;
+    ((PointBag*)pointBags->items)->pointMatrix.valueCount : 0;
 
   // TODO Build a kd-tree (or set thereof) for approximate nearest neighbor
   // TODO sampling, and then use bounds to cut off searches once better scores
@@ -444,7 +444,7 @@ bool cnBestPointByScore(
   *bestThreshold = cnNaN();
 
   printf("Score-ish: ");
-  cnListEachBegin(pointBags, cnPointBag, pointBag) {
+  cnListEachBegin(pointBags, PointBag, pointBag) {
     Float* point = pointBag->pointMatrix.points;
     Float* matrixEnd = point + pointBag->pointMatrix.pointCount * valueCount;
 
@@ -519,7 +519,7 @@ bool cnBestPointByScore(
         // TODO Loop this fit, and check for convergence.
         // TODO Weighted? Negative points to push away?
         // TODO Abstract this to arbitrary fits.
-        cnVectorMean(
+        vectorMean(
           valueCount, distribution->mean, posPointsIn.count,
           reinterpret_cast<Float*>(posPointsIn.items)
         );
@@ -571,12 +571,12 @@ bool cnBestPointByScore(
 
 bool cnChooseThreshold(
   bool yesLabel,
-  cnFunction* distanceFunction, cnList(cnPointBag)* pointBags,
+  Function* distanceFunction, cnList(PointBag)* pointBags,
   Float* score, Float* threshold,
   cnList(Float)* nearPosPoints, cnList(Float)* nearNegPoints
 ) {
   Count valueCount = pointBags->count ?
-    ((cnPointBag*)pointBags->items)->pointMatrix.valueCount : 0;
+    ((PointBag*)pointBags->items)->pointMatrix.valueCount : 0;
   cnBagDistance* distance;
   cnBagDistance* distances = cnAlloc(cnBagDistance, pointBags->count);
   cnBagDistance* distancesEnd = distances + pointBags->count;
@@ -589,7 +589,7 @@ bool cnChooseThreshold(
   if (!threshold) threshold = &thresholdStorage;
   // Init distances to infinity.
   distance = distances;
-  cnListEachBegin(pointBags, cnPointBag, pointBag) {
+  cnListEachBegin(pointBags, PointBag, pointBag) {
     distance->bag = pointBag;
     // Min is really 0, but -1 lets us see unchanged values.
     distance->far = -1;
@@ -603,7 +603,7 @@ bool cnChooseThreshold(
   //  printf("\n");
   // Narrow the distance to each bag.
   for (distance = distances; distance < distancesEnd; distance++) {
-    cnPointBag* pointBag = distance->bag;
+    PointBag* pointBag = distance->bag;
     Float* point = pointBag->pointMatrix.points;
     Float* pointsEnd = point + pointBag->pointMatrix.pointCount * valueCount;
     if (!distance->near) continue; // Done with this one.
@@ -914,32 +914,32 @@ Float cnChooseThresholdWithDistances(
 }
 
 
-cnRootNode* cnExpandedTree(cnLearnerConfig* config, cnExpansion* expansion) {
+RootNode* cnExpandedTree(cnLearnerConfig* config, cnExpansion* expansion) {
   // TODO Loop across multiple inits/attempts?
-  cnList(cnBindingBag)* bindingBags = NULL;
-  cnLeafNode* leaf;
-  cnList(cnLeafBindingBagGroup) leafBindingBagGroups;
-  cnSplitNode* split;
-  cnRootNode* root = NULL;
+  cnList(BindingBag)* bindingBags = NULL;
+  LeafNode* leaf;
+  cnList(LeafBindingBagGroup) leafBindingBagGroups;
+  SplitNode* split;
+  RootNode* root = NULL;
   Count varsAdded;
   printf("Expanding on "); cnPrintExpansion(expansion);
 
   // Init for safety.
-  cnListInit(&leafBindingBagGroups, sizeof(cnLeafBindingBagGroup));
+  cnListInit(&leafBindingBagGroups, sizeof(LeafBindingBagGroup));
 
   // Create a copied tree to work with.
   if (!(
-    root = (cnRootNode*)cnTreeCopy(&cnNodeRoot(&expansion->leaf->node)->node)
+    root = (RootNode*)cnTreeCopy(&cnNodeRoot(&expansion->leaf->node)->node)
   )) cnErrTo(FAIL, "No tree copy for expansion.\n");
   // Find the new version of the leaf.
-  leaf = (cnLeafNode*)cnNodeFindById(&root->node, expansion->leaf->node.id);
+  leaf = (LeafNode*)cnNodeFindById(&root->node, expansion->leaf->node.id);
 
   // Add requested vars.
   for (varsAdded = 0; varsAdded < expansion->newVarCount; varsAdded++) {
-    cnVarNode* var = cnVarNodeCreate(true);
+    VarNode* var = cnVarNodeCreate(true);
     if (!var) cnErrTo(FAIL, "No var %ld for expansion.", varsAdded);
     cnNodeReplaceKid(&leaf->node, &var->node);
-    leaf = *(cnLeafNode**)cnNodeKids(&var->node);
+    leaf = *(LeafNode**)cnNodeKids(&var->node);
   }
 
   // Propagate training bags to get the bindings headed to our new leaf. We have
@@ -949,7 +949,7 @@ cnRootNode* cnExpandedTree(cnLearnerConfig* config, cnExpansion* expansion) {
     root, &config->trainingBags, &leafBindingBagGroups
   )) cnErrTo(FAIL, "Failed to propagate training bags.");
   // Find the bindings we need from the to-be-replaced leaf.
-  cnListEachBegin(&leafBindingBagGroups, cnLeafBindingBagGroup, group) {
+  cnListEachBegin(&leafBindingBagGroups, LeafBindingBagGroup, group) {
     if (group->leaf == leaf) {
       bindingBags = &group->bindingBags;
       // TODO Could dispose of other groups, but we'd have to be tricky.
@@ -998,7 +998,7 @@ cnRootNode* cnExpandedTree(cnLearnerConfig* config, cnExpansion* expansion) {
 
 
 bool cnExpansionRedundant(
-  cnList(cnExpansion)* expansions, cnEntityFunction* function, Index* indices
+  cnList(cnExpansion)* expansions, EntityFunction* function, Index* indices
 ) {
   // Hack assuming all things are symmetric, and we only want increasing order.
   // TODO Formalize this. Delegate to the functions themselves!
@@ -1036,7 +1036,7 @@ bool cnExpansionRedundant(
 }
 
 
-Learner::Learner(cnRandom $random):
+Learner::Learner(Random $random):
   bags(0), entityFunctions(0), initialTree(0),
   random($random), randomOwned(false)
 {
@@ -1057,19 +1057,19 @@ Learner::~Learner() {
 
 
 bool cnLearnSplitModel(
-  Learner* learner, cnSplitNode* split, cnList(cnBindingBag)* bindingBags
+  Learner* learner, SplitNode* split, cnList(BindingBag)* bindingBags
 ) {
   // TODO Other topologies, etc.
-  cnFunction* bestFunction = NULL;
-  cnFunction* distanceFunction;
+  Function* bestFunction = NULL;
+  Function* distanceFunction;
   Gaussian* gaussian;
   Count outCount = split->function->outCount;
   Float threshold = 0.0;
   bool result = false;
-  cnList(cnPointBag) pointBags;
+  cnList(PointBag) pointBags;
 
   // Get point bags.
-  cnListInit(&pointBags, sizeof(cnPointBag));
+  cnListInit(&pointBags, sizeof(PointBag));
   if (!cnSplitNodePointBags(split, bindingBags, &pointBags)) {
     goto DONE;
   }
@@ -1126,7 +1126,7 @@ bool cnLearnSplitModel(
   result = true;
 
   DONE:
-  cnListEachBegin(&pointBags, cnPointBag, pointBag) {
+  cnListEachBegin(&pointBags, PointBag, pointBag) {
     cnPointBagDispose(pointBag);
   } cnEnd;
   cnListDispose(&pointBags);
@@ -1135,11 +1135,11 @@ bool cnLearnSplitModel(
 }
 
 
-cnRootNode* Learner::learnTree() {
+RootNode* Learner::learnTree() {
   cnLearnerConfig config;
-  cnRootNode* initialTree;
-  cnLeafNode* leaf;
-  cnRootNode* result = NULL;
+  RootNode* initialTree;
+  LeafNode* leaf;
+  RootNode* result = NULL;
 
   // Start preparing the learning configuration.
   config.learner = this;
@@ -1148,7 +1148,7 @@ cnRootNode* Learner::learnTree() {
   initialTree = this->initialTree;
   if (!initialTree) {
     // Allocate the root.
-    initialTree = cnAlloc(cnRootNode, 1);
+    initialTree = cnAlloc(RootNode, 1);
     if (!initialTree) cnErrTo(DONE, "Failed to allocate root.");
     // Set up the tree.
     if (!cnRootNodeInit(initialTree, true)) {
@@ -1177,7 +1177,7 @@ cnRootNode* Learner::learnTree() {
 
   config.previous = initialTree;
   while (true) {
-    cnRootNode* expanded;
+    RootNode* expanded;
     // Print training score to observe conveniently the training progress.
     // TODO Could retain counts from the previous propagation to save the repeat
     // TODO here.
@@ -1224,10 +1224,10 @@ cnRootNode* Learner::learnTree() {
 }
 
 
-void cnLogPointBags(cnSplitNode* split, cnList(cnPointBag)* pointBags) {
+void cnLogPointBags(SplitNode* split, cnList(PointBag)* pointBags) {
   // TODO More filled out name. Easiest way to allocate as building?
   FILE *file;
-  cnString name;
+  String name;
 
   // Prepare file name, and open/create output file.
   cnStringInit(&name);
@@ -1249,7 +1249,7 @@ void cnLogPointBags(cnSplitNode* split, cnList(cnPointBag)* pointBags) {
   }
 
   // Print out the data.
-  cnListEachBegin(pointBags, cnPointBag, pointBag) {
+  cnListEachBegin(pointBags, PointBag, pointBag) {
     Float* point = pointBag->pointMatrix.points;
     Float* pointsEnd =
       point +
@@ -1266,23 +1266,23 @@ void cnLogPointBags(cnSplitNode* split, cnList(cnPointBag)* pointBags) {
 }
 
 
-cnLeafNode* cnPickBestLeaf(cnRootNode* tree, cnList(Bag)* bags) {
-  cnLeafNode* bestLeaf = NULL;
-  cnLeafBindingBagGroup* bestGroup = NULL;
+LeafNode* cnPickBestLeaf(RootNode* tree, cnList(Bag)* bags) {
+  LeafNode* bestLeaf = NULL;
+  LeafBindingBagGroup* bestGroup = NULL;
   Float bestScore = -HUGE_VAL;
-  cnList(cnLeafCount) counts;
-  cnList(cnLeafNode) fakeLeaves;
-  cnLeafNode* leaf;
-  cnLeafBindingBagGroup* group;
-  cnList(cnLeafBindingBagGroup) groups;
+  cnList(LeafCount) counts;
+  cnList(LeafNode) fakeLeaves;
+  LeafNode* leaf;
+  LeafBindingBagGroup* group;
+  cnList(LeafBindingBagGroup) groups;
   cnList(cnList(Index)) maxGroups;
-  cnLeafBindingBagGroup* noGroup;
-  cnLeafNode** realLeaves = NULL;
+  LeafBindingBagGroup* noGroup;
+  LeafNode** realLeaves = NULL;
 
   // Init.
-  cnListInit(&counts, sizeof(cnLeafCount));
-  cnListInit(&fakeLeaves, sizeof(cnLeafNode));
-  cnListInit(&groups, sizeof(cnLeafBindingBagGroup));
+  cnListInit(&counts, sizeof(LeafCount));
+  cnListInit(&fakeLeaves, sizeof(LeafNode));
+  cnListInit(&groups, sizeof(LeafBindingBagGroup));
   cnListInit(&maxGroups, sizeof(cnList(Index)));
 
   // Get all bindings, leaves.
@@ -1299,26 +1299,26 @@ cnLeafNode* cnPickBestLeaf(cnRootNode* tree, cnList(Bag)* bags) {
 
   // Prepare for bogus "no" group. Error leaves with no bags are irrelevant.
   if (!(
-    noGroup = reinterpret_cast<cnLeafBindingBagGroup*>(cnListExpand(&groups))
+    noGroup = reinterpret_cast<LeafBindingBagGroup*>(cnListExpand(&groups))
   )) {
     cnErrTo(DONE, "No space for bogus groups.");
   }
   // We shouldn't need a full real leaf to get by. Only the probability field
   // should end up used.
-  cnListInit(&noGroup->bindingBags, sizeof(cnBindingBag));
+  cnListInit(&noGroup->bindingBags, sizeof(BindingBag));
 
   // Prepare bogus leaves for storing fake probs.
   // Also remember the real ones, so we can return the right leaf.
-  if (!(realLeaves = cnAlloc(cnLeafNode*, groups.count))) {
+  if (!(realLeaves = cnAlloc(LeafNode*, groups.count))) {
     cnErrTo(DONE, "No real leaf memory.");
   }
   if (!cnListExpandMulti(&fakeLeaves, groups.count)) {
     cnErrTo(DONE, "No space for bogus leaves.");
   }
-  leaf = reinterpret_cast<cnLeafNode*>(fakeLeaves.items);
-  cnListEachBegin(&groups, cnLeafBindingBagGroup, group) {
+  leaf = reinterpret_cast<LeafNode*>(fakeLeaves.items);
+  cnListEachBegin(&groups, LeafBindingBagGroup, group) {
     // Remember the original leaf.
-    realLeaves[leaf - (cnLeafNode*)fakeLeaves.items] =
+    realLeaves[leaf - (LeafNode*)fakeLeaves.items] =
       group == noGroup ? NULL : group->leaf;
     // Overwrite the real leaf.
     group->leaf = leaf;
@@ -1328,16 +1328,16 @@ cnLeafNode* cnPickBestLeaf(cnRootNode* tree, cnList(Bag)* bags) {
   // Look at each leaf to find the best perfect split. Loop on the max groups,
   // because they don't include the fake, and we don't need the fake.
   bestLeaf = NULL;
-  group = reinterpret_cast<cnLeafBindingBagGroup*>(groups.items);
+  group = reinterpret_cast<LeafBindingBagGroup*>(groups.items);
   cnListEachBegin(&maxGroups, cnList(Index), maxIndices) {
     // Split the leaf perfectly by removing all negative bags from the group and
     // putting them in the no group instead.
     Index b;
     Index bOriginal;
-    cnBindingBag* bindingBag;
+    BindingBag* bindingBag;
     Index* maxIndex;
     Index* maxIndicesEnd = reinterpret_cast<Index*>(cnListEnd(maxIndices));
-    cnBindingBag* noEnd;
+    BindingBag* noEnd;
     Float score;
 
     // If this group is empty, just skip it.
@@ -1351,7 +1351,7 @@ cnLeafNode* cnPickBestLeaf(cnRootNode* tree, cnList(Bag)* bags) {
     cnListClear(&noGroup->bindingBags);
 
     // Now do the split.
-    bindingBag = reinterpret_cast<cnBindingBag*>(group->bindingBags.items);
+    bindingBag = reinterpret_cast<BindingBag*>(group->bindingBags.items);
     maxIndex = reinterpret_cast<Index*>(maxIndices->items);
     for (b = 0, bOriginal = 0; b < group->bindingBags.count; bOriginal++) {
       bool isMax = maxIndex < maxIndicesEnd && bOriginal == *maxIndex;
@@ -1378,7 +1378,7 @@ cnLeafNode* cnPickBestLeaf(cnRootNode* tree, cnList(Bag)* bags) {
     score = cnCountsLogMetric(&counts);
     printf(
       "Score at %ld: %lg",
-      (Index)(group - (cnLeafBindingBagGroup*)groups.items), score
+      (Index)(group - (LeafBindingBagGroup*)groups.items), score
     );
     if (score > bestScore) {
       bestGroup = group;
@@ -1388,8 +1388,8 @@ cnLeafNode* cnPickBestLeaf(cnRootNode* tree, cnList(Bag)* bags) {
     printf("\n");
 
     // Then put them all back. Space is guaranteed again.
-    bindingBag = reinterpret_cast<cnBindingBag*>(noGroup->bindingBags.items);
-    noEnd = reinterpret_cast<cnBindingBag*>(cnListEnd(&noGroup->bindingBags));
+    bindingBag = reinterpret_cast<BindingBag*>(noGroup->bindingBags.items);
+    noEnd = reinterpret_cast<BindingBag*>(cnListEnd(&noGroup->bindingBags));
     for (; bindingBag < noEnd; bindingBag++) {
       cnListPush(&group->bindingBags, bindingBag);
     }
@@ -1402,7 +1402,7 @@ cnLeafNode* cnPickBestLeaf(cnRootNode* tree, cnList(Bag)* bags) {
 
   // Get the best leaf.
   if (bestGroup) {
-    Index bestIndex = bestGroup - (cnLeafBindingBagGroup*)groups.items;
+    Index bestIndex = bestGroup - (LeafBindingBagGroup*)groups.items;
     bestLeaf = realLeaves[bestIndex];
   }
 
@@ -1509,10 +1509,10 @@ bool cnPushExpansionsByIndices(
 }
 
 
-cnRootNode* cnTryExpansionsAtLeaf(cnLearnerConfig* config, cnLeafNode* leaf) {
+RootNode* cnTryExpansionsAtLeaf(cnLearnerConfig* config, LeafNode* leaf) {
   Float bestPValue = 1;
-  cnRootNode* bestTree = NULL;
-  cnList(cnEntityFunction)* entityFunctions = config->learner->entityFunctions;
+  RootNode* bestTree = NULL;
+  cnList(EntityFunction)* entityFunctions = config->learner->entityFunctions;
   cnList(cnExpansion) expansions;
   Count maxArity = 0;
   Count minArity = LONG_MAX;
@@ -1524,7 +1524,7 @@ cnRootNode* cnTryExpansionsAtLeaf(cnLearnerConfig* config, cnLeafNode* leaf) {
   cnListInit(&expansions, sizeof(cnExpansion));
 
   // Find the min and max arity.
-  cnListEachBegin(entityFunctions, cnEntityFunction*, function) {
+  cnListEachBegin(entityFunctions, EntityFunction*, function) {
     if ((*function)->inCount < minArity) {
       minArity = (*function)->inCount;
     }
@@ -1554,7 +1554,7 @@ cnRootNode* cnTryExpansionsAtLeaf(cnLearnerConfig* config, cnLeafNode* leaf) {
   ) {
     cnExpansion expansion;
 
-    cnListEachBegin(entityFunctions, cnEntityFunction*, function) {
+    cnListEachBegin(entityFunctions, EntityFunction*, function) {
       if ((*function)->inCount > varDepth) {
         //printf(
         //  "Need %ld more vars for %s.\n",
@@ -1591,7 +1591,7 @@ cnRootNode* cnTryExpansionsAtLeaf(cnLearnerConfig* config, cnLeafNode* leaf) {
   printf("Need to try %ld expansions.\n\n", expansions.count);
   cnListEachBegin(&expansions, cnExpansion, expansion) {
     Float pValue;
-    cnRootNode* expanded;
+    RootNode* expanded;
 
     // Learn a tree.
     // TODO Disinguish bad errors from no good expansion?
@@ -1648,12 +1648,12 @@ cnRootNode* cnTryExpansionsAtLeaf(cnLearnerConfig* config, cnLeafNode* leaf) {
 }
 
 
-bool cnUpdateLeafProbabilities(cnRootNode* root, cnList(Bag)* bags) {
-  cnList(cnLeafBindingBagGroup) groups;
+bool cnUpdateLeafProbabilities(RootNode* root, cnList(Bag)* bags) {
+  cnList(LeafBindingBagGroup) groups;
   bool result = false;
 
   // Get all leaf binding bag groups.
-  cnListInit(&groups, sizeof(cnLeafBindingBagGroup));
+  cnListInit(&groups, sizeof(LeafBindingBagGroup));
   if (!cnTreePropagateBags(root, bags, &groups)) {
     cnErrTo(DONE, "No propagate.");
   }
@@ -1673,7 +1673,7 @@ bool cnUpdateLeafProbabilities(cnRootNode* root, cnList(Bag)* bags) {
 
 
 bool cnUpdateLeafProbabilitiesWithBindingBags(
-  cnList(cnLeafBindingBagGroup)* groups, cnList(cnLeafCount)* counts
+  cnList(LeafBindingBagGroup)* groups, cnList(LeafCount)* counts
 ) {
   Index b;
   Count bagCount;
@@ -1681,12 +1681,12 @@ bool cnUpdateLeafProbabilitiesWithBindingBags(
   Bag* bagsEnd = NULL;
   bool* bagsUsed = NULL;
   Float bonus = 1.0;
-  cnList(cnLeafBindingBagGroup) groupsCopied;
+  cnList(LeafBindingBagGroup) groupsCopied;
   Float previousProb = 1.0;
   bool result = false;
 
   // Copy this list, because we're going to be clearing leaf pointers.
-  cnListInit(&groupsCopied, sizeof(cnLeafBindingBagGroup));
+  cnListInit(&groupsCopied, sizeof(LeafBindingBagGroup));
   if (!cnListPushAll(&groupsCopied, groups)) cnErrTo(DONE, "No groups copy.");
 
   // See if they want leaf counts, and get ready if they do.
@@ -1703,15 +1703,15 @@ bool cnUpdateLeafProbabilitiesWithBindingBags(
   for (b = 0; b < bagCount; b++) bagsUsed[b] = false;
 
   // Loop through the groups.
-  cnListEachBegin(&groupsCopied, cnLeafBindingBagGroup, group) {
-    cnLeafBindingBagGroup* maxGroup = NULL;
+  cnListEachBegin(&groupsCopied, LeafBindingBagGroup, group) {
+    LeafBindingBagGroup* maxGroup = NULL;
     Index maxGroupIndex = -1;
     Count maxPosCount = 0;
     Float maxProb = -1;
     Count maxTotal = 0;
 
     // Count all remaining bags for each leaf.
-    cnListEachBegin(&groupsCopied, cnLeafBindingBagGroup, group) {
+    cnListEachBegin(&groupsCopied, LeafBindingBagGroup, group) {
       Count posCount = 0;
       Count total = 0;
 
@@ -1719,7 +1719,7 @@ bool cnUpdateLeafProbabilitiesWithBindingBags(
       if (!group->leaf) continue;
 
       // Nope, so count bags.
-      cnListEachBegin(&group->bindingBags, cnBindingBag, bindingBag) {
+      cnListEachBegin(&group->bindingBags, BindingBag, bindingBag) {
         if (!bagsUsed[bindingBag->bag - bags]) {
           total++;
           posCount += bindingBag->bag->label;
@@ -1753,7 +1753,7 @@ bool cnUpdateLeafProbabilitiesWithBindingBags(
         // Let the highest probability win.
         // TODO Let the highest individual score win? Compare the math on this.
         maxGroup = group;
-        maxGroupIndex = maxGroup - (cnLeafBindingBagGroup*)groupsCopied.items;
+        maxGroupIndex = maxGroup - (LeafBindingBagGroup*)groupsCopied.items;
         maxPosCount = posCount;
         maxProb = maxGroup->leaf->probability;
         maxTotal = total;
@@ -1768,8 +1768,8 @@ bool cnUpdateLeafProbabilitiesWithBindingBags(
 
     // Record the counts, if wanted.
     if (counts) {
-      cnLeafCount* count =
-        reinterpret_cast<cnLeafCount*>(cnListGet(counts, maxGroupIndex));
+      LeafCount* count =
+        reinterpret_cast<LeafCount*>(cnListGet(counts, maxGroupIndex));
       count->leaf = maxGroup->leaf;
       count->negCount = maxTotal - maxPosCount;
       count->posCount = maxPosCount;
@@ -1777,7 +1777,7 @@ bool cnUpdateLeafProbabilitiesWithBindingBags(
 
     // Mark the leaf and its bags as used.
     maxGroup->leaf = NULL;
-    cnListEachBegin(&maxGroup->bindingBags, cnBindingBag, bindingBag) {
+    cnListEachBegin(&maxGroup->bindingBags, BindingBag, bindingBag) {
       bagsUsed[bindingBag->bag - bags] = true;
     } cnEnd;
   } cnEnd;
@@ -1794,8 +1794,8 @@ bool cnUpdateLeafProbabilitiesWithBindingBags(
 
 typedef struct cnVerifyImprovement_Stats {
   Count* bootCounts;
-  cnList(cnLeafCount) leafCounts;
-  cnMultinomial multinomial;
+  cnList(LeafCount) leafCounts;
+  Multinomial multinomial;
 } cnVerifyImprovement_Stats;
 
 Float cnVerifyImprovement_BootScore(
@@ -1805,8 +1805,8 @@ Float cnVerifyImprovement_BootScore(
   cnMultinomialSample(stats->multinomial, stats->bootCounts);
 
   // Overwrite the original leaf counts.
-  cnListEachBegin(&stats->leafCounts, cnLeafCount, count) {
-    Index i = count - (cnLeafCount*)stats->leafCounts.items;
+  cnListEachBegin(&stats->leafCounts, LeafCount, count) {
+    Index i = count - (LeafCount*)stats->leafCounts.items;
     // Neg first, then pos.
     count->negCount = stats->bootCounts[2 * i];
     count->posCount = stats->bootCounts[2 * i + 1];
@@ -1818,7 +1818,7 @@ Float cnVerifyImprovement_BootScore(
 
 void cnVerifyImprovement_StatsInit(cnVerifyImprovement_Stats* stats) {
   stats->bootCounts = NULL;
-  cnListInit(&stats->leafCounts, sizeof(cnLeafCount));
+  cnListInit(&stats->leafCounts, sizeof(LeafCount));
   stats->multinomial = NULL;
 }
 
@@ -1831,8 +1831,8 @@ void cnVerifyImprovement_StatsDispose(cnVerifyImprovement_Stats* stats) {
 }
 
 bool cnVerifyImprovement_StatsPrepare(
-  cnVerifyImprovement_Stats* stats, cnRootNode* tree, cnList(Bag)* bags,
-  cnRandom random
+  cnVerifyImprovement_Stats* stats, RootNode* tree, cnList(Bag)* bags,
+  Random random
 ) {
   Count classCount;
   Index i;
@@ -1854,8 +1854,8 @@ bool cnVerifyImprovement_StatsPrepare(
 
   // Calculate probabilities.
   for (i = 0; i < stats->leafCounts.count; i++) {
-    cnLeafCount* count =
-      reinterpret_cast<cnLeafCount*>(cnListGet(&stats->leafCounts, i));
+    LeafCount* count =
+      reinterpret_cast<LeafCount*>(cnListGet(&stats->leafCounts, i));
     // Neg first, then pos.
     // TODO Apply the same beta prior as for updating probabilities? Otherwise,
     // TODO we might have inappropriate zeros (or even ones) in validation.
@@ -1880,7 +1880,7 @@ bool cnVerifyImprovement_StatsPrepare(
 }
 
 bool cnVerifyImprovement(
-  cnLearnerConfig* config, cnRootNode* candidate, Float* pValue
+  cnLearnerConfig* config, RootNode* candidate, Float* pValue
 ) {
   // I don't know how to randomize across results from different trees.
   // Different probability assignments are possible.

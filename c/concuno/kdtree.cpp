@@ -4,8 +4,8 @@
 namespace concuno {
 
 
-cnRootNode* cnKdSplit(cnKdSplitter* splitter) {
-  if (splitter->pointMatrix->topology != cnTopologyEuclidean) {
+RootNode* cnKdSplit(cnKdSplitter* splitter) {
+  if (splitter->pointMatrix->topology != TopologyEuclidean) {
     cnErrTo(DONE, "Only Euclidean for now.");
   }
   DONE:
@@ -13,7 +13,7 @@ cnRootNode* cnKdSplit(cnKdSplitter* splitter) {
 }
 
 
-cnKdSplitter* cnKdSplitterCreate(cnRandom random) {
+cnKdSplitter* cnKdSplitterCreate(Random random) {
   cnKdSplitter* splitter = new cnKdSplitter;
   if (!splitter) cnErrTo(DONE, "No splitter.");
   // Init.

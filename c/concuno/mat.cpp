@@ -21,7 +21,7 @@ Float cnNorm(Count size, Float* x) {
 }
 
 
-void cnReframe(
+void reframe(
   Count size, Float* origin, Float* target, Float* result
 ) {
   Index i;

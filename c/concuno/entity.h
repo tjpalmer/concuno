@@ -11,26 +11,26 @@ namespace concuno {
 /**
  * Entities are defined entirely by properties and entity functions.
  */
-typedef void* cnEntity;
+typedef void* Entity;
 
 
 struct Bag {
 
   Bag();
 
-  Bag(cnList(cnEntity)* entities);
+  Bag(cnList(Entity)* entities);
 
   ~Bag();
 
   void dispose();
 
-  void init(cnList(cnEntity)* entities = 0);
+  void init(cnList(Entity)* entities = 0);
 
   /**
    * Pushes on the given participant to the options for the given depth (or
    * parameter index, so to speak).
    */
-  void pushParticipant(Index depth, cnEntity participant);
+  void pushParticipant(Index depth, Entity participant);
 
   // TODO id? Or are pointer addresses good enough (if stable)?
 
@@ -38,7 +38,7 @@ struct Bag {
    * Entities in the pool. The same entity list might be shared by multiple
    * bag samples. Therefore, it is _not_ disposed of with the bag.
    */
-  cnList(cnEntity)* entities;
+  cnList(Entity)* entities;
 
   /**
    * Positive or negative bag.
@@ -62,7 +62,7 @@ struct Bag {
    * TODO options? If so, we need to allow null to distinguish from empty,
    * TODO which means storing pointers or maybe a struct with a separate bool.
    */
-  cnList(cnList(cnEntity)) participantOptions;
+  cnList(cnList(Entity)) participantOptions;
 
 };
 
@@ -73,25 +73,21 @@ typedef enum {
    * Also called standard or real product topology or such like. Just presumed
    * open (to machine limits) R^N space here.
    */
-  cnTopologyEuclidean,
+  TopologyEuclidean,
 
   // TODO Use general SpecialOrthogonal and SpecialEuclidean across different
   // TODO dimensionalities?
-  //cnTopologyCircle,
+  //TopologyCircle,
 
   // TODO The following is the power set, actually, but for discrete space
   // TODO allows what we want for discrete properties, I think.
-  //cnTopologyDiscrete,
+  //TopologyDiscrete,
 
-} cnTopology;
+} Topology;
 
 
-struct cnEntityFunction; typedef struct cnEntityFunction cnEntityFunction;
-struct cnFunction; typedef struct cnFunction cnFunction;
-struct cnPredicate; typedef struct cnPredicate cnPredicate;
-struct cnProperty; typedef struct cnProperty cnProperty;
-struct cnSchema; typedef struct cnSchema cnSchema;
-struct cnType; typedef struct cnType cnType;
+// Necessary forward declaration.
+struct Type;
 
 
 /**
@@ -99,30 +95,30 @@ struct cnType; typedef struct cnType cnType;
  * always be organized in a context where the entity type is understood or
  * otherwise discernable by the function pointers here.
  */
-struct cnEntityFunction {
+struct EntityFunction {
 
   void* data;
 
   Count inCount;
 
-  cnString name;
+  String name;
 
   Count outCount;
 
-  cnTopology outTopology;
+  Topology outTopology;
 
-  cnType* outType;
+  Type* outType;
 
   /**
    * If not null, call this before finishing generic disposal.
    */
-  void (*dispose)(const cnEntityFunction* function);
+  void (*dispose)(const EntityFunction* function);
 
   /**
    * Receives an array of pointers to entities, and provides an array of values
    * whose individual sizes are given by outType.
    */
-  void (*get)(cnEntityFunction* function, cnEntity* ins, void* outs);
+  void (*get)(EntityFunction* function, Entity* ins, void* outs);
 
 };
 
@@ -132,20 +128,20 @@ struct cnEntityFunction {
  *
  * TODO Unify function and predicate! (Maybe even fold in entity function?)
  */
-struct cnFunction {
+struct Function {
 
   void* info;
 
   // TODO Name or types or anything?
 
-  cnFunction* (*copy)(cnFunction* predicate);
+  Function* (*copy)(Function* predicate);
 
-  void (*dispose)(cnFunction* function);
+  void (*dispose)(Function* function);
 
   /**
    * Return value indicates status.
    */
-  bool (*evaluate)(cnFunction* function, void* in, void* out);
+  bool (*evaluate)(Function* function, void* in, void* out);
 
   /**
    * Writes the predicate in JSON format without surrounding whitespace.
@@ -153,7 +149,7 @@ struct cnFunction {
    * TODO Instead provide structured, reflective access (such as via property
    * TODO metadata or hashtables), and have various IO elsewhere?
    */
-  bool (*write)(cnFunction* function, FILE* file, cnString* indent);
+  bool (*write)(Function* function, FILE* file, String* indent);
 
 };
 
@@ -161,26 +157,26 @@ struct cnFunction {
 /**
  * A binary classifier. TODO Better name? More concrete?
  */
-struct cnPredicate {
+struct Predicate {
 
   void* info;
 
-  //  cnCount inCount;
+  //  Count inCount;
   //
-  //  cnTopology inTopology;
+  //  Topology inTopology;
   //
-  //  cnType* inType;
+  //  Type* inType;
 
-  cnPredicate* (*copy)(cnPredicate* predicate);
+  Predicate* (*copy)(Predicate* predicate);
 
-  void (*dispose)(cnPredicate* predicate);
+  void (*dispose)(Predicate* predicate);
 
   /**
    * Classify the given value (point, bag, ...) as true or false.
    *
    * TODO Error indicated by result other than true or false? Maybe too sneaky.
    */
-  bool (*evaluate)(cnPredicate* predicate, void* in);
+  bool (*evaluate)(Predicate* predicate, void* in);
 
   /**
    * Writes the predicate in JSON format without surrounding whitespace.
@@ -188,29 +184,29 @@ struct cnPredicate {
    * TODO Instead provide structured, reflective access (such as via property
    * TODO metadata or hashtables), and have various IO elsewhere?
    */
-  bool (*write)(cnPredicate* predicate, FILE* file, cnString* indent);
+  bool (*write)(Predicate* predicate, FILE* file, String* indent);
 
 };
 
 
-typedef struct $cnPredicateThresholdInfo {
+struct PredicateThresholdInfo {
 
-  cnFunction* distanceFunction;
+  Function* distanceFunction;
 
   Float threshold;
 
-}* cnPredicateThresholdInfo;
+};
 
 
-struct cnProperty {
+struct Property {
 
-  cnType* containerType;
+  Type* containerType;
 
-  cnType* type;
+  Type* type;
 
-  cnString name;
+  String name;
 
-  cnTopology topology;
+  Topology topology;
 
   /**
    * If this is an array/list property, says how many there are.
@@ -238,11 +234,11 @@ struct cnProperty {
   /**
    * If not null, call this before finishing generic disposal.
    */
-  void (*dispose)(cnProperty* property);
+  void (*dispose)(Property* property);
 
-  void (*get)(cnProperty* property, cnEntity entity, void* storage);
+  void (*get)(Property* property, Entity entity, void* storage);
 
-  void (*put)(cnProperty* property, cnEntity entity, void* value);
+  void (*put)(Property* property, Entity entity, void* value);
 
 };
 
@@ -250,14 +246,14 @@ struct cnProperty {
 /**
  * Provides functions for accessing entity attributes.
  */
-struct cnSchema {
+struct Schema {
 
   /**
    * Corresponds to Float (double).
    *
    * Could be NULL if undefined for this schema.
    */
-  cnType* floatType;
+  Type* floatType;
 
   /**
    * TODO Should make this a list of pointers to types so that they are stable
@@ -265,22 +261,22 @@ struct cnSchema {
    * TODO
    * TODO Make more things typedef'd to pointers all around? More opaque, too?
    */
-  cnList(cnType*) types;
+  cnList(Type*) types;
 
 };
 
 
-struct cnType {
+struct Type {
 
-  cnString name;
+  String name;
 
   /**
    * TODO Store pointers instead of expanded, to keep later pointers here
    * TODO stable?
    */
-  cnList(cnProperty) properties;
+  cnList(Property) properties;
 
-  cnSchema* schema;
+  Schema* schema;
 
   Count size;
 
@@ -293,20 +289,20 @@ struct cnType {
  * ignored. Otherwise, entities in bags will be disposed with the bags.
  */
 void cnBagListDispose(
-  cnList(Bag)* bags, cnList(cnList(cnEntity)*)* entityLists
+  cnList(Bag)* bags, cnList(cnList(Entity)*)* entityLists
 );
 
 
-cnEntityFunction* cnEntityFunctionCreateDifference(cnEntityFunction* base);
+EntityFunction* cnEntityFunctionCreateDifference(EntityFunction* base);
 
 
-cnEntityFunction* cnEntityFunctionCreateDistance(cnEntityFunction* base);
+EntityFunction* cnEntityFunctionCreateDistance(EntityFunction* base);
 
 
 /**
  * Creates an entity function that just performs a property get.
  */
-cnEntityFunction* cnEntityFunctionCreateProperty(cnProperty* property);
+EntityFunction* cnEntityFunctionCreateProperty(Property* property);
 
 
 /**
@@ -320,7 +316,7 @@ cnEntityFunction* cnEntityFunctionCreateProperty(cnProperty* property);
  * TODO Allow greater arity for extra constraints in higher dimensions? High
  * TODO arity is trouble.
  */
-cnEntityFunction* cnEntityFunctionCreateReframe(cnEntityFunction* base);
+EntityFunction* cnEntityFunctionCreateReframe(EntityFunction* base);
 
 
 /**
@@ -332,16 +328,16 @@ cnEntityFunction* cnEntityFunctionCreateReframe(cnEntityFunction* base);
  *
  * TODO Consider error branches off var nodes?
  */
-cnEntityFunction* cnEntityFunctionCreateValid(cnSchema* schema, Count arity);
+EntityFunction* cnEntityFunctionCreateValid(Schema* schema, Count arity);
 
 
-void cnEntityFunctionDrop(cnEntityFunction* function);
+void cnEntityFunctionDrop(EntityFunction* function);
 
 
 /**
  * Just a basic create for if you want to fill in your own and start out clean.
  */
-cnEntityFunction* cnEntityFunctionCreate(
+EntityFunction* cnEntityFunctionCreate(
   const char* name, Count inCount, Count outCount
 );
 
@@ -349,32 +345,32 @@ cnEntityFunction* cnEntityFunctionCreate(
 /**
  * Disposes of and frees the function if not null.
  */
-cnFunction* cnFunctionCopy(cnFunction* function);
+Function* cnFunctionCopy(Function* function);
 
 
 /**
  * Disposes of and frees the function if not null.
  */
-void cnFunctionDrop(cnFunction* function);
+void cnFunctionDrop(Function* function);
 
 
 /**
  * Copies the predicate.
  */
-cnPredicate* cnPredicateCopy(cnPredicate* predicate);
+Predicate* cnPredicateCopy(Predicate* predicate);
 
 
 /**
  * Disposes of and frees the predicate if not null.
  */
-void cnPredicateDrop(cnPredicate* predicate);
+void cnPredicateDrop(Predicate* predicate);
 
 
 /**
  * The distanceFunction will be dropped with this predicate.
  */
-cnPredicate* cnPredicateCreateDistanceThreshold(
-  cnFunction* distanceFunction, Float threshold
+Predicate* cnPredicateCreateDistanceThreshold(
+  Function* distanceFunction, Float threshold
 );
 
 
@@ -382,7 +378,7 @@ cnPredicate* cnPredicateCreateDistanceThreshold(
  * Uses the predicate's write function to write itself to the file as a JSON
  * object.
  */
-bool cnPredicateWrite(cnPredicate* predicate, FILE* file, cnString* indent);
+bool cnPredicateWrite(Predicate* predicate, FILE* file, String* indent);
 
 
 /**
@@ -391,7 +387,7 @@ bool cnPredicateWrite(cnPredicate* predicate, FILE* file, cnString* indent);
  * Doesn't dispose of nor free the type. Types manage properties, not vice
  * versa.
  */
-void cnPropertyDispose(cnProperty* property);
+void cnPropertyDispose(Property* property);
 
 
 /**
@@ -401,41 +397,41 @@ void cnPropertyDispose(cnProperty* property);
  * On failure, leaves the property in a stable (nulled out) state.
  */
 bool cnPropertyInitField(
-  cnProperty* property, cnType* containerType, cnType* type, const char* name,
+  Property* property, Type* containerType, Type* type, const char* name,
   Count offset, Count count
 );
 
 
-cnEntityFunction* cnPushDifferenceFunction(
-  cnList(cnEntityFunction*)* functions, cnEntityFunction* base
+EntityFunction* cnPushDifferenceFunction(
+  cnList(EntityFunction*)* functions, EntityFunction* base
 );
 
 
-cnEntityFunction* cnPushDistanceFunction(
-  cnList(cnEntityFunction*)* functions, cnEntityFunction* base
+EntityFunction* cnPushDistanceFunction(
+  cnList(EntityFunction*)* functions, EntityFunction* base
 );
 
 
-cnEntityFunction* cnPushPropertyFunction(
-  cnList(cnEntityFunction*)* functions, cnProperty* property
+EntityFunction* cnPushPropertyFunction(
+  cnList(EntityFunction*)* functions, Property* property
 );
 
 
-cnEntityFunction* cnPushValidFunction(
-  cnList(cnEntityFunction*)* functions, cnSchema* schema, Count arity
+EntityFunction* cnPushValidFunction(
+  cnList(EntityFunction*)* functions, Schema* schema, Count arity
 );
 
 
 /**
  * Disposes all contained types and properties, too.
  */
-void cnSchemaDispose(cnSchema* schema);
+void cnSchemaDispose(Schema* schema);
 
 
 /**
  * Inits just an empty schema.
  */
-void cnSchemaInit(cnSchema* schema);
+void cnSchemaInit(Schema* schema);
 
 
 /**
@@ -443,7 +439,7 @@ void cnSchemaInit(cnSchema* schema);
  *
  * On failure, leaves the schema in a stable (nulled out) state.
  */
-bool cnSchemaInitDefault(cnSchema* schema);
+bool cnSchemaInitDefault(Schema* schema);
 
 
 /**
@@ -453,13 +449,13 @@ bool cnSchemaInitDefault(cnSchema* schema);
  *
  * TODO Actually keep this here, or just stick to init default above?
  */
-bool cnSchemaDefineStandardTypes(cnSchema* schema);
+bool cnSchemaDefineStandardTypes(Schema* schema);
 
 
 /**
  * On failure, returns null.
  */
-cnType* cnTypeCreate(const char* name, Count size);
+Type* cnTypeCreate(const char* name, Count size);
 
 
 /**
@@ -467,7 +463,7 @@ cnType* cnTypeCreate(const char* name, Count size);
  *
  * Doesn't dispose of the schema. Schemas manage types, not vice versa.
  */
-void cnTypeDrop(cnType* type);
+void cnTypeDrop(Type* type);
 
 
 }

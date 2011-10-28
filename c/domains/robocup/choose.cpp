@@ -9,7 +9,7 @@ using namespace concuno;
 bool cnrExtractHoldOrPass(
   cnrGame* game, cnrState* state, cnrPlayer* kicker,
   cnList(Bag)* holdBags, cnList(Bag)* passBags,
-  cnList(cnList(cnEntity)*)* entityLists,
+  cnList(cnList(Entity)*)* entityLists,
   bool label
 );
 
@@ -17,7 +17,7 @@ bool cnrExtractHoldOrPass(
 bool cnrChooseHoldsAndPasses(
   cnrGame* game,
   cnList(Bag)* holdBags, cnList(Bag)* passBags,
-  cnList(cnList(cnEntity)*)* entityLists
+  cnList(cnList(Entity)*)* entityLists
 ) {
   // Assume that failure withing a certain number of timesteps means the action
   // was a bad choice. This isn't always true. Holding might be good but the
@@ -105,7 +105,7 @@ bool cnrChooseHoldsAndPasses(
 bool cnrExtractHoldOrPass(
   cnrGame* game, cnrState* state, cnrPlayer* kicker,
   cnList(Bag)* holdBags, cnList(Bag)* passBags,
-  cnList(cnList(cnEntity)*)* entityLists,
+  cnList(cnList(Entity)*)* entityLists,
   bool label
 ) {
   bool result = false;
@@ -113,7 +113,7 @@ bool cnrExtractHoldOrPass(
   cnrPlayer* receiver = NULL;
   cnrBall* ball = &state->ball;
   Float* ballLocation = ball->item.location;
-  cnList(cnEntity)* entities;
+  cnList(Entity)* entities;
   bool kickedAgain = false;
   Float* kickerLocation = kicker->item.location;
   cnrState* next = state + 1;
@@ -128,7 +128,7 @@ bool cnrExtractHoldOrPass(
   );
 
   // We'll need an entity list for the state, whether it's a hold or a pass.
-  if (!(entities = cnListCreate(sizeof(cnEntity)))) {
+  if (!(entities = cnListCreate(sizeof(Entity)))) {
     cnErrTo(DONE, "No entities.");
   }
   // Push the ball.

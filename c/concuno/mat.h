@@ -37,7 +37,7 @@ Float cnNorm(Count size, Float* x);
  *
  * TODO Reconsider the modification of target.
  */
-void cnReframe(Count size, Float* origin, Float* target, Float* result);
+void reframe(Count size, Float* origin, Float* target, Float* result);
 
 
 Float cnSquaredEuclideanDistance(Count size, Float* x, Float* y);

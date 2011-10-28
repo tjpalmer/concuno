@@ -78,7 +78,7 @@ typedef struct cnList {
 /**
  * Null-terminated UTF-8 string.
  */
-typedef cnList(char) cnString;
+typedef cnList(char) String;
 
 
 /**
@@ -419,32 +419,32 @@ Float cnNaN(void);
  * buffer. In this case, provides a static empty string. Therefore if the count
  * is 0, do not modify the returned string.
  */
-char* cnStr(cnString* string);
+char* cnStr(String* string);
 
 
 /**
  * Changes content to an empty string and count to 1, if items are already
  * allocated. If not, just leaves it alone.
  */
-void cnStringClear(cnString* string);
+void cnStringClear(String* string);
 
 
-void cnStringDispose(cnString* string);
+void cnStringDispose(String* string);
 
 
-char cnStringGetChar(cnString* string, Index index);
+char cnStringGetChar(String* string, Index index);
 
 
 /**
  * Provides a pointer to an empty string, but not dynamically allocated.
  */
-void cnStringInit(cnString* string);
+void cnStringInit(String* string);
 
 
-bool cnStringPushChar(cnString* string, char c);
+bool cnStringPushChar(String* string, char c);
 
 
-bool cnStringPushStr(cnString* string, const char* str);
+bool cnStringPushStr(String* string, const char* str);
 
 
 }

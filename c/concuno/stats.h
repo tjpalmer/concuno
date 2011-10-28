@@ -8,7 +8,7 @@
 namespace concuno {
 
 
-typedef void* cnBinomial;
+typedef void* Binomial;
 
 
 /**
@@ -31,7 +31,7 @@ struct Gaussian {
  *
  * TODO Maybe expose some things after all? Just not the inner workings.
  */
-typedef void* cnMultinomial;
+typedef void* Multinomial;
 
 
 /**
@@ -39,7 +39,7 @@ typedef void* cnMultinomial;
  *
  * TODO Are these threadsafe????
  */
-typedef void* cnRandom;
+typedef void* Random;
 
 
 /**
@@ -55,7 +55,7 @@ typedef void* cnRandom;
  *
  * TODO Citation to the folks with the algorithm I use.
  */
-cnBinomial cnBinomialCreate(cnRandom random, Count count, Float prob);
+Binomial cnBinomialCreate(Random random, Count count, Float prob);
 
 
 /**
@@ -65,20 +65,20 @@ cnBinomial cnBinomialCreate(cnRandom random, Count count, Float prob);
  * TODO counting. If I didn't use dispose for non-free disposal, I could use it
  * TODO here. Maybe "close" is okay. I'm not sure.
  */
-void cnBinomialDestroy(cnBinomial binomial);
+void cnBinomialDestroy(Binomial binomial);
 
 
 /**
  * Returns the number of successes for a draw of count samples, ranging between
  * 0 and count.
  */
-Count cnBinomialSample(cnBinomial binomial);
+Count cnBinomialSample(Binomial binomial);
 
 
 /**
  * Provides a Mahalanobis distance metric based on a Gaussian distribution.
  */
-cnFunction* cnFunctionCreateMahalanobisDistance(Gaussian* gaussian);
+Function* cnFunctionCreateMahalanobisDistance(Gaussian* gaussian);
 
 
 /**
@@ -114,12 +114,12 @@ Float cnMahalanobisDistance(Gaussian* gaussian, Float* point);
  * You must provide classCount probs, even though the final can be inferred.
  * TODO Remove this requirement?
  */
-cnMultinomial cnMultinomialCreate(
-  cnRandom random, Count sampleCount, Count classCount, Float* probs
+Multinomial cnMultinomialCreate(
+  Random random, Count sampleCount, Count classCount, Float* probs
 );
 
 
-void cnMultinomialDestroy(cnMultinomial multinomial);
+void cnMultinomialDestroy(Multinomial multinomial);
 
 
 /**
@@ -128,7 +128,7 @@ void cnMultinomialDestroy(cnMultinomial multinomial);
  * We could provide one less, since the value is implied, but this seems more
  * convenient for users.
  */
-void cnMultinomialSample(cnMultinomial multinomial, Count* out);
+void cnMultinomialSample(Multinomial multinomial, Count* out);
 
 
 /**
@@ -148,20 +148,20 @@ bool cnPermutations(
  *
  * TODO Expose seed option here?
  */
-cnRandom cnRandomCreate(void);
+Random cnRandomCreate(void);
 
 
 /**
  * Often count and prob are called n and p, respectively. There are count
  * samples drawn at a time, and prob is the probability of "success" for each.
  */
-Count cnRandomBinomial(cnRandom random, Count count, Float prob);
+Count cnRandomBinomial(Random random, Count count, Float prob);
 
 
 /**
  * Destroys the random stream.
  */
-void cnRandomDestroy(cnRandom random);
+void cnRandomDestroy(Random random);
 
 
 /**
@@ -193,7 +193,7 @@ Float cnScalarVariance(Count count, Count skip, Float* in);
 Float cnUnitRand();
 
 
-void cnVectorCov(void);
+void vectorCov(void);
 
 
 /**
@@ -201,7 +201,7 @@ void cnVectorCov(void);
  *
  * Returns out.
  */
-Float* cnVectorMax(Count size, Float* out, Count count, Float* in);
+Float* vectorMax(Count size, Float* out, Count count, Float* in);
 
 
 /**
@@ -209,7 +209,7 @@ Float* cnVectorMax(Count size, Float* out, Count count, Float* in);
  *
  * Returns out.
  */
-Float* cnVectorMean(Count size, Float* out, Count count, Float* in);
+Float* vectorMean(Count size, Float* out, Count count, Float* in);
 
 
 /**
@@ -217,7 +217,7 @@ Float* cnVectorMean(Count size, Float* out, Count count, Float* in);
  *
  * Returns out.
  */
-Float* cnVectorMin(Count size, Float* out, Count count, Float* in);
+Float* vectorMin(Count size, Float* out, Count count, Float* in);
 
 
 }

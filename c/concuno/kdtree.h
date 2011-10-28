@@ -19,12 +19,12 @@ struct cnKdSplitter {
    *
    * TODO Arbitrary entities with functions (splittable on any)?
    */
-  cnPointMatrix pointMatrix;
+  PointMatrix* pointMatrix;
 
   /**
    * For maintaining random state.
    */
-  cnRandom random;
+  Random random;
 
   /**
    * Whether the random is owned by the learner. Defaults to true when the
@@ -38,10 +38,10 @@ struct cnKdSplitter {
 };
 
 
-cnRootNode* cnKdSplit(cnKdSplitter* splitter);
+RootNode* cnKdSplit(cnKdSplitter* splitter);
 
 
-cnKdSplitter* cnKdSplitterCreate(cnRandom random);
+cnKdSplitter* cnKdSplitterCreate(Random random);
 
 
 void cnKdSplitterDestroy(cnKdSplitter* splitter);

@@ -11,10 +11,10 @@ namespace concuno {
 /**
  * An arbitrary length array of entity pointers.
  */
-typedef cnEntity* cnBinding;
+typedef Entity* Binding;
 
 
-typedef struct cnBindingBag {
+struct BindingBag {
 
   Bag* bag;
 
@@ -22,11 +22,11 @@ typedef struct cnBindingBag {
    * Actually, this is stored in compact form of equal numbers of entities per
    * binding.
    */
-  cnList(cnEntity) bindings;
+  cnList(Entity) bindings;
 
   Count entityCount;
 
-} cnBindingBag;
+};
 
 
 /**
@@ -36,9 +36,9 @@ typedef struct cnBindingBag {
  * TODO Change to reprop every time and stop storing? Then would point to which
  * TODO leaf and called cnLeafBindingBags?
  */
-typedef struct cnBindingBagList {
+struct BindingBagList {
 
-  cnList(cnBindingBag) bindingBags;
+  cnList(BindingBag) bindingBags;
 
   /**
    * Reference counting because we'd like to share binding lists across lots of
@@ -47,7 +47,7 @@ typedef struct cnBindingBagList {
    */
   Count refCount;
 
-} cnBindingBagList;
+};
 
 
 /**
@@ -57,7 +57,7 @@ typedef struct cnBindingBagList {
  *
  * TODO Use this inside cnPointBag?
  */
-typedef struct $cnPointMatrix {
+struct PointMatrix {
 
   /**
    * The total number of points in the bag.
@@ -77,7 +77,7 @@ typedef struct $cnPointMatrix {
    *
    * TODO Support other than Euclidean.
    */
-  cnTopology topology;
+  Topology topology;
 
   /**
    * Number of homogeneous values per point.
@@ -89,7 +89,7 @@ typedef struct $cnPointMatrix {
    */
   Count valueSize;
 
-}* cnPointMatrix;
+};
 
 
 /**
@@ -102,7 +102,7 @@ typedef struct $cnPointMatrix {
  * point is a point in n-dimensional Euclidean space, but each could also be a
  * rotation angle, a quaternion, a category ID, or something else.
  */
-typedef struct cnPointBag {
+struct PointBag {
 
   Bag* bag;
 
@@ -121,34 +121,30 @@ typedef struct cnPointBag {
   /**
    * One point at a time.
    */
-  struct $cnPointMatrix pointMatrix;
+  PointMatrix pointMatrix;
 
-} cnPointBag;
+};
 
 
 typedef enum {
   cnNodeTypeNone, cnNodeTypeRoot, cnNodeTypeLeaf, cnNodeTypeSplit,
   cnNodeTypeVar
-} cnNodeType;
-
-
-struct cnNode;
-typedef struct cnNode cnNode;
+} NodeType;
 
 
 /**
  * Abstract node base type.
  */
-struct cnNode {
+struct Node {
 
-  cnNodeType type;
+  NodeType type;
 
   /**
    * We need to find these guys easily across clones, hence the ids to go with.
    */
   Index id;
 
-  cnNode* parent;
+  Node* parent;
 
 };
 
@@ -156,9 +152,9 @@ struct cnNode {
 /**
  * A leaf node (with no kids).
  */
-typedef struct cnLeafNode {
+struct LeafNode {
 
-  cnNode node;
+  Node node;
 
   /**
    * The probability of a binding at this node belonging to the target concept.
@@ -177,21 +173,21 @@ typedef struct cnLeafNode {
    */
   Float strength;
 
-} cnLeafNode;
+};
 
 
 /**
  * The node at the top of the tree.
  */
-typedef struct cnRootNode {
+struct RootNode {
 
-  cnNode node;
+  Node node;
 
-  cnNode* kid;
+  Node* kid;
 
   Index nextId;
 
-} cnRootNode;
+};
 
 
 typedef enum {
@@ -204,22 +200,22 @@ typedef enum {
 
   cnSplitCount,
 
-} cnSplitIndex;
+} SplitIndex;
 
 
 /**
  * A node for making decisions about where to propagate bindings.
  */
-typedef struct cnSplitNode {
+struct SplitNode {
 
-  cnNode node;
+  Node node;
 
-  cnNode* kids[cnSplitCount];
+  Node* kids[cnSplitCount];
 
   /**
    * Not owned by this node.
    */
-  cnEntityFunction* function;
+  EntityFunction* function;
 
   /**
    * Owned by this node and dropped with this node.
@@ -229,49 +225,49 @@ typedef struct cnSplitNode {
   /**
    * Owned by this node and dropped with this node if not null.
    */
-  cnPredicate* predicate;
+  Predicate* predicate;
 
-} cnSplitNode;
+};
 
 
 /**
  * A variable node for binding to entities.
  */
-typedef struct cnVarNode {
+struct VarNode {
 
-  cnNode node;
+  Node node;
 
-  cnNode* kid;
+  Node* kid;
 
-} cnVarNode;
+};
 
 
 /**
  * A way to track the bindings arriving at leaves.
  */
-typedef struct cnLeafBindingBag {
+struct LeafBindingBag {
 
-  cnBindingBag bindingBag;
+  BindingBag bindingBag;
 
-  cnLeafNode* leaf;
+  LeafNode* leaf;
 
   // TODO Float probability; // For cases when leaves aren't needed?
 
-} cnLeafBindingBag;
+};
 
 
 /**
  * For binding bags grouped by leaf.
  */
-typedef struct cnLeafBindingBagGroup {
+struct LeafBindingBagGroup {
 
-  cnList(cnBindingBag) bindingBags;
+  cnList(BindingBag) bindingBags;
 
-  cnLeafNode* leaf;
+  LeafNode* leaf;
 
   // TODO Float probability; // For cases when leaves aren't needed?
 
-} cnLeafBindingBagGroup;
+};
 
 
 /**
@@ -282,9 +278,9 @@ typedef struct cnLeafBindingBagGroup {
  * TODO Better even just to state the probability at the leaf instead of a link
  * TODO to the leaf itself? The link is a double-edged sword.
  */
-typedef struct cnLeafCount {
+struct LeafCount {
 
-  cnLeafNode* leaf;
+  LeafNode* leaf;
 
   Count negCount;
 
@@ -292,20 +288,20 @@ typedef struct cnLeafCount {
 
   // TODO Float probability; // For cases when leaves aren't needed?
 
-} cnLeafCount;
+};
 
 
 /**
  * Disposes of the bindings but not the entities nor the bag.
  */
-void cnBindingBagDispose(cnBindingBag* bindingBag);
+void cnBindingBagDispose(BindingBag* bindingBag);
 
 
 /**
  * Creates binding bags where each binding references entityCount entities.
  */
 void cnBindingBagInit(
-  cnBindingBag* bindingBag, Bag* bag, Count entityCount
+  BindingBag* bindingBag, Bag* bag, Count entityCount
 );
 
 
@@ -314,7 +310,7 @@ void cnBindingBagInit(
  *
  * TODO Generalize ref-counted types?
  */
-cnBindingBagList* cnBindingBagListCreate(void);
+BindingBagList* cnBindingBagListCreate(void);
 
 
 /**
@@ -325,14 +321,14 @@ cnBindingBagList* cnBindingBagListCreate(void);
  *
  * TODO Generalize ref-counted types?
  */
-void cnBindingBagListDrop(cnBindingBagList** list);
+void cnBindingBagListDrop(BindingBagList** list);
 
 
 /**
  * Push on the bags as new empty bindings on the given list.
  */
 bool cnBindingBagListPushBags(
-  cnBindingBagList* bindingBags, const cnList(Bag)* bags
+  BindingBagList* bindingBags, const cnList(Bag)* bags
 );
 
 
@@ -342,16 +338,16 @@ bool cnBindingBagListPushBags(
  *
  * TODO If entities were a sized 2D grid, we could avoid the count here.
  */
-bool cnBindingValid(Count entityCount, cnEntity* entities);
+bool cnBindingValid(Count entityCount, Entity* entities);
 
 
 /**
  * Calculate the score directly from a list of counts of max bags at leaves.
  */
-Float cnCountsLogMetric(cnList(cnLeafCount)* counts);
+Float cnCountsLogMetric(cnList(LeafCount)* counts);
 
 
-void cnLeafBindingBagDispose(cnLeafBindingBag* leafBindingBag);
+void cnLeafBindingBagDispose(LeafBindingBag* leafBindingBag);
 
 
 /**
@@ -361,14 +357,14 @@ void cnLeafBindingBagDispose(cnLeafBindingBag* leafBindingBag);
  * Utility assumes the bags are all in continguous memory order.
  */
 void cnLeafBindingBagGroupListLimits(
-  cnList(cnLeafBindingBagGroup)* groups, Bag** begin, Bag** end
+  cnList(LeafBindingBagGroup)* groups, Bag** begin, Bag** end
 );
 
 
-void cnLeafBindingBagGroupListDispose(cnList(cnLeafBindingBagGroup)* groupList);
+void cnLeafBindingBagGroupListDispose(cnList(LeafBindingBagGroup)* groupList);
 
 
-cnLeafNode* cnLeafNodeCreate(void);
+LeafNode* cnLeafNodeCreate(void);
 
 
 /**
@@ -379,7 +375,7 @@ cnLeafNode* cnLeafNodeCreate(void);
  *
  * TODO Rename to cnTreeDispose to clarify deep nature of disposal?
  */
-void cnNodeDispose(cnNode* node);
+void cnNodeDispose(Node* node);
 
 
 /**
@@ -389,35 +385,35 @@ void cnNodeDispose(cnNode* node);
  *
  * TODO Rename to cnTreeDrop to clarify deep nature of the drop?
  */
-void cnNodeDrop(cnNode* node);
+void cnNodeDrop(Node* node);
 
 
 /**
  * Searches depth first under the given node to find the node with the given
  * id, returning a pointer to that node if found or else null.
  */
-cnNode* cnNodeFindById(cnNode* node, Index id);
+Node* cnNodeFindById(Node* node, Index id);
 
 
 /**
  * Returns an array of pointers to kids.
  */
-cnNode** cnNodeKids(cnNode* node);
+Node** cnNodeKids(Node* node);
 
 
-Count cnNodeKidCount(cnNode* node);
+Count cnNodeKidCount(Node* node);
 
 
 /**
  * You don't usually need to call this directly.
  */
-void cnNodeInit(cnNode* node, cnNodeType type);
+void cnNodeInit(Node* node, NodeType type);
 
 
 /**
  * Stores all leaves under this node in the given list.
  */
-bool cnNodeLeaves(cnNode* node, cnList(cnLeafNode*)* leaves);
+bool cnNodeLeaves(Node* node, cnList(LeafNode*)* leaves);
 
 
 /**
@@ -427,8 +423,8 @@ bool cnNodeLeaves(cnNode* node, cnList(cnLeafNode*)* leaves);
  * The leaf binding bags are not cleared out.
  */
 bool cnNodePropagateBindingBag(
-  cnNode* node, cnBindingBag* bindingBag,
-  cnList(cnLeafBindingBag)* leafBindingBags
+  Node* node, BindingBag* bindingBag,
+  cnList(LeafBindingBag)* leafBindingBags
 );
 
 
@@ -437,8 +433,8 @@ bool cnNodePropagateBindingBag(
  * for each leaf.
  */
 bool cnNodePropagateBindingBags(
-  cnNode* node, cnList(cnBindingBag)* bindingBags,
-  cnList(cnLeafBindingBagGroup)* leafBindingBagGroups
+  Node* node, cnList(BindingBag)* bindingBags,
+  cnList(LeafBindingBagGroup)* leafBindingBagGroups
 );
 
 
@@ -446,31 +442,31 @@ bool cnNodePropagateBindingBags(
  * Replaces the kid at the index, if any, with the new kid, disposing of and
  * freeing the old one if any.
  */
-void cnNodePutKid(cnNode* parent, Index k, cnNode* kid);
+void cnNodePutKid(Node* parent, Index k, Node* kid);
 
 
 /**
  * Replaces the given old kid with the new kid, disposing of the old.
  */
-void cnNodeReplaceKid(cnNode* oldKid, cnNode* newKid);
+void cnNodeReplaceKid(Node* oldKid, Node* newKid);
 
 
 /**
  * Returns the node at the top of this tree if a root node and null otherwise.
  */
-cnRootNode* cnNodeRoot(cnNode* node);
+RootNode* cnNodeRoot(Node* node);
 
 
 /**
  * Returns the number of var nodes in the tree above the given node.
  */
-Count cnNodeVarDepth(cnNode* node);
+Count cnNodeVarDepth(Node* node);
 
 
-void cnPointBagDispose(cnPointBag* pointBag);
+void cnPointBagDispose(PointBag* pointBag);
 
 
-void cnPointBagInit(cnPointBag* pointBag);
+void cnPointBagInit(PointBag* pointBag);
 
 
 /**
@@ -480,10 +476,10 @@ void cnPointBagInit(cnPointBag* pointBag);
  * Even if it fails, it is safe to call dispose of the root after calling this
  * function.
  */
-bool cnRootNodeInit(cnRootNode* root, bool addLeaf);
+bool cnRootNodeInit(RootNode* root, bool addLeaf);
 
 
-cnSplitNode* cnSplitNodeCreate(bool addLeaves);
+SplitNode* cnSplitNodeCreate(bool addLeaves);
 
 
 /**
@@ -497,8 +493,8 @@ cnSplitNode* cnSplitNodeCreate(bool addLeaves);
  * TODO Guaranteed to be in the same order as the bindings, except for the
  * TODO duplicates issue.
  */
-cnPointBag* cnSplitNodePointBag(
-  cnSplitNode* split, cnBindingBag* bindingBag, cnPointBag* pointBag
+PointBag* cnSplitNodePointBag(
+  SplitNode* split, BindingBag* bindingBag, PointBag* pointBag
 );
 
 
@@ -510,9 +506,9 @@ cnPointBag* cnSplitNodePointBag(
  * TODO except for the duplicates issue.
  */
 bool cnSplitNodePointBags(
-  cnSplitNode* split,
-  cnList(cnBindingBag)* bindingBags,
-  cnList(cnPointBag)* pointBags
+  SplitNode* split,
+  cnList(BindingBag)* bindingBags,
+  cnList(PointBag)* pointBags
 );
 
 
@@ -520,10 +516,10 @@ bool cnSplitNodePointBags(
  * Copies this node and all under, except the bindings. (TODO Keep the models?)
  * Original references to bindings are kept to avoid excessive data copying.
  */
-cnNode* cnTreeCopy(cnNode* node);
+Node* cnTreeCopy(Node* node);
 
 
-Float cnTreeLogMetric(cnRootNode* root, cnList(Bag)* bags);
+Float cnTreeLogMetric(RootNode* root, cnList(Bag)* bags);
 
 
 /**
@@ -534,7 +530,7 @@ Float cnTreeLogMetric(cnRootNode* root, cnList(Bag)* bags);
  * No guarantee is made on the order of the counts coming out.
  */
 bool cnTreeMaxLeafCounts(
-  cnRootNode* root, cnList(cnLeafCount)* counts, cnList(Bag)* bags
+  RootNode* root, cnList(LeafCount)* counts, cnList(Bag)* bags
 );
 
 
@@ -544,7 +540,7 @@ bool cnTreeMaxLeafCounts(
  * which are max for each leaf.
  */
 bool cnTreeMaxLeafBags(
-  cnList(cnLeafBindingBagGroup)* groupsIn,
+  cnList(LeafBindingBagGroup)* groupsIn,
   cnList(cnList(Index))* groupsMaxOut
 );
 
@@ -553,14 +549,14 @@ bool cnTreeMaxLeafBags(
  * Writes the tree to the given file, in a format readable by machines and
  * people.
  */
-bool cnTreeWrite(cnRootNode* tree, FILE* file);
+bool cnTreeWrite(RootNode* tree, FILE* file);
 
 
 /**
  * Propagates a bags to the leaves, storing a leaf binding bag for each leaf.
  */
 bool cnTreePropagateBag(
-  cnRootNode* tree, Bag* bag, cnList(cnLeafBindingBag)* leafBindingBags
+  RootNode* tree, Bag* bag, cnList(LeafBindingBag)* leafBindingBags
 );
 
 
@@ -571,12 +567,12 @@ bool cnTreePropagateBag(
  * TODO Expose generic grouper function?
  */
 bool cnTreePropagateBags(
-  cnRootNode* tree, cnList(Bag)* bags,
-  cnList(cnLeafBindingBagGroup)* leafBindingBagGroups
+  RootNode* tree, cnList(Bag)* bags,
+  cnList(LeafBindingBagGroup)* leafBindingBagGroups
 );
 
 
-cnVarNode* cnVarNodeCreate(bool addLeaf);
+VarNode* cnVarNodeCreate(bool addLeaf);
 
 
 }

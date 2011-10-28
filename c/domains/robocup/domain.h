@@ -150,7 +150,7 @@ void cnrPlayerInit(cnrPlayer* player);
  *
  * Dispose with cnSchemaDispose (since nothing special needed here).
  */
-bool cnrSchemaInit(concuno::cnSchema* schema);
+bool cnrSchemaInit(concuno::Schema* schema);
 
 
 /**

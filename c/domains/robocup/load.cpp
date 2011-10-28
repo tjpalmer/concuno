@@ -212,7 +212,7 @@ bool cnrRclParseLine(cnrParser* parser, char* line);
 
 bool cnrLoadCommandLog(cnrGame* game, char* name) {
   FILE* file = NULL;
-  cnString line;
+  String line;
   Count lineCount = 0;
   cnrParser parser;
   Count readCount;
@@ -248,7 +248,7 @@ bool cnrLoadCommandLog(cnrGame* game, char* name) {
 
 bool cnrLoadGameLog(cnrGame* game, char* name) {
   FILE* file = NULL;
-  cnString line;
+  String line;
   struct cnrParser parser;
   bool result = false;
 
@@ -453,7 +453,7 @@ bool cnrParseRcgLine(cnrParser* parser, char* line) {
 
 
 bool cnrParseRcgLines(cnrParser* parser, FILE* file) {
-  cnString line;
+  String line;
   Count lineCount = 0;
   Count readCount;
   bool result = false;
@@ -606,7 +606,7 @@ bool cnrParserTriggerId(cnrParser* parser, char* id) {
       cnrTeam team = parser->index - 1;
       if (parser->game->teamNames.count == team) {
         // Team index as expected.
-        cnString name;
+        String name;
         cnStringInit(&name);
         if (!cnStringPushStr(&name, id)) cnErrTo(DONE, "No team name %s.", id);
         if (!cnListPush(&parser->game->teamNames, &name)) {
@@ -854,7 +854,7 @@ bool cnrRclParseLine(cnrParser* parser, char* line) {
   // Team name and index.
   if (!(token = cnDelimit(&line, '_'))) cnErrTo(DONE, "No team_player split.");
   team = 0;
-  cnListEachBegin(&parser->game->teamNames, cnString, name) {
+  cnListEachBegin(&parser->game->teamNames, String, name) {
     // Break if we have it, and inc if not.
     if (!strcmp(token, cnStr(name))) break;
     team++;

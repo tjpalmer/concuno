@@ -14,7 +14,7 @@ Bag::Bag() {
 }
 
 
-Bag::Bag(cnList(cnEntity)* $entities) {
+Bag::Bag(cnList(Entity)* $entities) {
   init($entities);
 }
 
@@ -33,7 +33,7 @@ void Bag::dispose() {
 
   // Participants are always owned by the bag, however.
   // TODO Really? By allowing outside control, can it be made more efficient?
-  cnListEachBegin(&participantOptions, cnList(cnEntity), list) {
+  cnListEachBegin(&participantOptions, cnList(Entity), list) {
     cnListDispose(list);
   } cnEnd;
   cnListDispose(&participantOptions);
@@ -44,33 +44,33 @@ void Bag::dispose() {
 }
 
 
-void Bag::init(cnList(cnEntity)* $entities) {
+void Bag::init(cnList(Entity)* $entities) {
   // Safety first.
   label = false;
-  entities = $entities ? $entities : cnAlloc(cnList(cnEntity), 1);
-  cnListInit(&participantOptions, sizeof(cnList(cnEntity)));
+  entities = $entities ? $entities : cnAlloc(cnList(Entity), 1);
+  cnListInit(&participantOptions, sizeof(cnList(Entity)));
 
   // Check on and finish up entities.
   if (!entities) throw "No bag entities.";
-  if (!$entities) cnListInit(entities, sizeof(cnEntity));
+  if (!$entities) cnListInit(entities, sizeof(Entity));
 }
 
 
-void Bag::pushParticipant(Index depth, cnEntity participant) {
-  cnList(cnEntity)* participantOptions;
+void Bag::pushParticipant(Index depth, Entity participant) {
+  cnList(Entity)* participantOptions;
 
   // Grow more lists if needed.
   while (depth >= this->participantOptions.count) {
-    if (!(participantOptions = reinterpret_cast<cnList(cnEntity)*>(
+    if (!(participantOptions = reinterpret_cast<cnList(Entity)*>(
       cnListExpand(&this->participantOptions)
     ))) {
       throw "Failed to grow participant options.";
     }
-    cnListInit(participantOptions, sizeof(cnEntity));
+    cnListInit(participantOptions, sizeof(Entity));
   }
 
   // Expand the one for the right depth.
-  participantOptions = reinterpret_cast<cnList(cnEntity)*>(
+  participantOptions = reinterpret_cast<cnList(Entity)*>(
     cnListGet(&this->participantOptions, depth)
   );
   if (!cnListPush(participantOptions, &participant)) {
@@ -80,7 +80,7 @@ void Bag::pushParticipant(Index depth, cnEntity participant) {
 
 
 void cnBagListDispose(
-  cnList(Bag)* bags, cnList(cnList(cnEntity)*)* entityLists
+  cnList(Bag)* bags, cnList(cnList(Entity)*)* entityLists
 ) {
   // Bags.
   cnListEachBegin(bags, Bag, bag) {
@@ -91,7 +91,7 @@ void cnBagListDispose(
   cnListDispose(bags);
   // Lists in the bags.
   if (entityLists) {
-    cnListEachBegin(entityLists, cnList(cnEntity)*, list) {
+    cnListEachBegin(entityLists, cnList(Entity)*, list) {
       cnListDestroy(*list);
     } cnEnd;
     cnListDispose(entityLists);
@@ -100,11 +100,11 @@ void cnBagListDispose(
 
 
 void cnEntityFunctionCreateDifference_get(
-  cnEntityFunction* function, cnEntity* ins, void* outs
+  EntityFunction* function, Entity* ins, void* outs
 ) {
   // TODO Remove float assumption here.
   Index i;
-  cnEntityFunction* base = reinterpret_cast<cnEntityFunction*>(function->data);
+  EntityFunction* base = reinterpret_cast<EntityFunction*>(function->data);
   // Vectors are assumed small, so use stack memory.
   // Our assumption that base->outCount == function->outCount allows the use
   // of base here. And the use of base here allows this difference function to
@@ -127,8 +127,8 @@ void cnEntityFunctionCreateDifference_get(
   cnStackFree(x);
 }
 
-cnEntityFunction* cnEntityFunctionCreateDifference(cnEntityFunction* base) {
-  cnEntityFunction* function = cnAlloc(cnEntityFunction, 1);
+EntityFunction* cnEntityFunctionCreateDifference(EntityFunction* base) {
+  EntityFunction* function = cnAlloc(EntityFunction, 1);
   if (!function) return NULL;
   function->data = base;
   function->dispose = NULL;
@@ -150,7 +150,7 @@ cnEntityFunction* cnEntityFunctionCreateDifference(cnEntityFunction* base) {
   if (!cnStringPushStr(&function->name, "Difference")) {
     cnFailTo(FAIL);
   }
-  if (!cnStringPushStr(&function->name, cnStr((cnString*)&base->name))) {
+  if (!cnStringPushStr(&function->name, cnStr((String*)&base->name))) {
     cnFailTo(FAIL);
   }
   return function;
@@ -162,11 +162,11 @@ cnEntityFunction* cnEntityFunctionCreateDifference(cnEntityFunction* base) {
 
 
 void cnEntityFunctionCreateDistance_get(
-  cnEntityFunction* function, cnEntity* ins, void* outs
+  EntityFunction* function, Entity* ins, void* outs
 ) {
   // TODO Remove float assumption here.
   Index i;
-  cnEntityFunction* base = reinterpret_cast<cnEntityFunction*>(function->data);
+  EntityFunction* base = reinterpret_cast<EntityFunction*>(function->data);
   // Vectors are assumed small, so use stack memory.
   Float* diff = cnStackAllocOf(Float, base->outCount);
   Float* result = reinterpret_cast<Float*>(outs);
@@ -188,9 +188,9 @@ void cnEntityFunctionCreateDistance_get(
   cnStackFree(diff);
 }
 
-cnEntityFunction* cnEntityFunctionCreateDistance(cnEntityFunction* base) {
+EntityFunction* cnEntityFunctionCreateDistance(EntityFunction* base) {
   // TODO Combine setup with difference? Differences indicated below.
-  cnEntityFunction* function = cnAlloc(cnEntityFunction, 1);
+  EntityFunction* function = cnAlloc(EntityFunction, 1);
   if (!function) return NULL;
   function->data = base;
   function->dispose = NULL;
@@ -212,7 +212,7 @@ cnEntityFunction* cnEntityFunctionCreateDistance(cnEntityFunction* base) {
   if (!cnStringPushStr(&function->name, "Distance")) { // Also different!
     cnFailTo(FAIL);
   }
-  if (!cnStringPushStr(&function->name, cnStr((cnString*)&base->name))) {
+  if (!cnStringPushStr(&function->name, cnStr((String*)&base->name))) {
     cnFailTo(FAIL);
   }
   return function;
@@ -224,9 +224,9 @@ cnEntityFunction* cnEntityFunctionCreateDistance(cnEntityFunction* base) {
 
 
 void cnEntityFunctionCreateProperty_get(
-  cnEntityFunction* function, cnEntity* ins, void* outs
+  EntityFunction* function, Entity* ins, void* outs
 ) {
-  cnProperty* property = reinterpret_cast<cnProperty*>(function->data);
+  Property* property = reinterpret_cast<Property*>(function->data);
   if (!*ins) {
     // Provide NaNs for floats when no input given.
     // TODO Anything for other types? Error result?
@@ -242,8 +242,8 @@ void cnEntityFunctionCreateProperty_get(
   }
 }
 
-cnEntityFunction* cnEntityFunctionCreateProperty(cnProperty* property) {
-  cnEntityFunction* function = cnAlloc(cnEntityFunction, 1);
+EntityFunction* cnEntityFunctionCreateProperty(Property* property) {
+  EntityFunction* function = cnAlloc(EntityFunction, 1);
   if (!function) return NULL;
   function->data = property;
   function->dispose = NULL;
@@ -254,7 +254,7 @@ cnEntityFunction* cnEntityFunctionCreateProperty(cnProperty* property) {
   function->get = cnEntityFunctionCreateProperty_get;
   cnStringInit(&function->name);
   // The one thing that can fail directly here.
-  if (!cnStringPushStr(&function->name, cnStr((cnString*)&property->name))) {
+  if (!cnStringPushStr(&function->name, cnStr((String*)&property->name))) {
     cnEntityFunctionDrop(function);
     return NULL;
   }
@@ -263,12 +263,12 @@ cnEntityFunction* cnEntityFunctionCreateProperty(cnProperty* property) {
 
 
 void cnEntityFunctionCreateReframe_get(
-  cnEntityFunction* function, cnEntity* ins, void* outs
+  EntityFunction* function, Entity* ins, void* outs
 ) {
   // Some work here based on the stable computation technique for Givens
   // rotations at Wikipedia: http://en.wikipedia.org/wiki/Givens_rotation
   Index i;
-  cnEntityFunction* base = reinterpret_cast<cnEntityFunction*>(function->data);
+  EntityFunction* base = reinterpret_cast<EntityFunction*>(function->data);
   // Vectors are assumed small, so use stack memory.
   // Our assumption that base->outCount == function->outCount allows the use
   // of base here.
@@ -292,14 +292,14 @@ void cnEntityFunctionCreateReframe_get(
   base->get(base, ins + 2, result);
 
   // Now transform.
-  cnReframe(base->outCount, origin, target, result);
+  reframe(base->outCount, origin, target, result);
 
   // Free origin, and target goes bundled along.
   cnStackFree(origin);
 }
 
-cnEntityFunction* cnEntityFunctionCreateReframe(cnEntityFunction* base) {
-  cnEntityFunction* function = cnAlloc(cnEntityFunction, 1);
+EntityFunction* cnEntityFunctionCreateReframe(EntityFunction* base) {
+  EntityFunction* function = cnAlloc(EntityFunction, 1);
   if (!function) return NULL;
   function->data = base;
   function->dispose = NULL;
@@ -323,7 +323,7 @@ cnEntityFunction* cnEntityFunctionCreateReframe(cnEntityFunction* base) {
   if (!cnStringPushStr(&function->name, "Reframe")) {
     cnFailTo(FAIL);
   }
-  if (!cnStringPushStr(&function->name, cnStr((cnString*)&base->name))) {
+  if (!cnStringPushStr(&function->name, cnStr((String*)&base->name))) {
     cnFailTo(FAIL);
   }
   return function;
@@ -335,7 +335,7 @@ cnEntityFunction* cnEntityFunctionCreateReframe(cnEntityFunction* base) {
 
 
 void cnEntityFunctionCreateValid_get(
-  cnEntityFunction* function, cnEntity* ins, void* outs
+  EntityFunction* function, Entity* ins, void* outs
 ) {
   Index i;
   Float* out = reinterpret_cast<Float*>(outs);
@@ -352,14 +352,14 @@ void cnEntityFunctionCreateValid_get(
   *out = 1.0;
 }
 
-cnEntityFunction* cnEntityFunctionCreateValid(cnSchema* schema, Count arity) {
-  cnEntityFunction* function = cnAlloc(cnEntityFunction, 1);
+EntityFunction* cnEntityFunctionCreateValid(Schema* schema, Count arity) {
+  EntityFunction* function = cnAlloc(EntityFunction, 1);
   if (!function) return NULL;
   function->data = NULL;
   function->dispose = NULL;
   function->inCount = arity;
   function->outCount = 1;
-  function->outTopology = cnTopologyEuclidean; // TODO Discrete or ordinal?
+  function->outTopology = TopologyEuclidean; // TODO Discrete or ordinal?
   function->outType = schema->floatType; // TODO Integer or some such?
   function->get = cnEntityFunctionCreateValid_get;
   cnStringInit(&function->name);
@@ -373,7 +373,7 @@ cnEntityFunction* cnEntityFunctionCreateValid(cnSchema* schema, Count arity) {
 }
 
 
-void cnEntityFunctionDrop(cnEntityFunction* function) {
+void cnEntityFunctionDrop(EntityFunction* function) {
   if (function->dispose) {
     function->dispose(function);
     function->dispose = NULL;
@@ -381,23 +381,23 @@ void cnEntityFunctionDrop(cnEntityFunction* function) {
   cnStringDispose(&function->name);
   function->data = NULL;
   function->get = NULL;
-  function->outTopology = cnTopologyEuclidean;
+  function->outTopology = TopologyEuclidean;
   function->outCount = 0;
   function->outType = NULL;
   free(function);
 }
 
 
-cnEntityFunction* cnEntityFunctionCreate(
+EntityFunction* cnEntityFunctionCreate(
   const char* name, Count inCount, Count outCount
 ) {
-  cnEntityFunction* function = cnAlloc(cnEntityFunction, 1);
+  EntityFunction* function = cnAlloc(EntityFunction, 1);
   if (!function) cnErrTo(DONE, "No function.");
   function->data = NULL;
   function->dispose = NULL;
   function->inCount = inCount;
   function->outCount = outCount;
-  function->outTopology = cnTopologyEuclidean;
+  function->outTopology = TopologyEuclidean;
   function->outType = NULL;
   function->get = NULL;
   cnStringInit(&function->name);
@@ -412,12 +412,12 @@ cnEntityFunction* cnEntityFunctionCreate(
 }
 
 
-cnFunction* cnFunctionCopy(cnFunction* function) {
+Function* cnFunctionCopy(Function* function) {
   return function ? function->copy(function) : NULL;
 }
 
 
-void cnFunctionDrop(cnFunction* function) {
+void cnFunctionDrop(Function* function) {
   if (function) {
     if (function->dispose) {
       function->dispose(function);
@@ -427,7 +427,7 @@ void cnFunctionDrop(cnFunction* function) {
 }
 
 
-bool cnFunctionWrite(cnFunction* function, FILE* file, cnString* indent) {
+bool cnFunctionWrite(Function* function, FILE* file, String* indent) {
   return function->write ? function->write(function, file, indent) : false;
 }
 
@@ -435,12 +435,12 @@ bool cnFunctionWrite(cnFunction* function, FILE* file, cnString* indent) {
 /**
  * A helper for various composite entity functions.
  */
-cnEntityFunction* cnPushCompositeFunction(
-  cnList(cnEntityFunction*)* functions,
-  cnEntityFunction* (*wrapper)(cnEntityFunction* base),
-  cnEntityFunction* base
+EntityFunction* cnPushCompositeFunction(
+  cnList(EntityFunction*)* functions,
+  EntityFunction* (*wrapper)(EntityFunction* base),
+  EntityFunction* base
 ) {
-  cnEntityFunction* function;
+  EntityFunction* function;
   if ((function = wrapper(base))) {
     // So far, so good.
     if (!cnListPush(functions, &function)) {
@@ -453,26 +453,26 @@ cnEntityFunction* cnPushCompositeFunction(
 }
 
 
-cnEntityFunction* cnPushDifferenceFunction(
-  cnList(cnEntityFunction*)* functions, cnEntityFunction* base
+EntityFunction* cnPushDifferenceFunction(
+  cnList(EntityFunction*)* functions, EntityFunction* base
 ) {
   return
     cnPushCompositeFunction(functions, cnEntityFunctionCreateDifference, base);
 }
 
 
-cnEntityFunction* cnPushDistanceFunction(
-  cnList(cnEntityFunction*)* functions, cnEntityFunction* base
+EntityFunction* cnPushDistanceFunction(
+  cnList(EntityFunction*)* functions, EntityFunction* base
 ) {
   return
     cnPushCompositeFunction(functions, cnEntityFunctionCreateDistance, base);
 }
 
 
-cnEntityFunction* cnPushPropertyFunction(
-  cnList(cnEntityFunction*)* functions, cnProperty* property
+EntityFunction* cnPushPropertyFunction(
+  cnList(EntityFunction*)* functions, Property* property
 ) {
-  cnEntityFunction* function;
+  EntityFunction* function;
   if ((function = cnEntityFunctionCreateProperty(property))) {
     // So far, so good.
     if (!cnListPush(functions, &function)) {
@@ -485,10 +485,10 @@ cnEntityFunction* cnPushPropertyFunction(
 }
 
 
-cnEntityFunction* cnPushValidFunction(
-  cnList(cnEntityFunction*)* functions, cnSchema* schema, Count arity
+EntityFunction* cnPushValidFunction(
+  cnList(EntityFunction*)* functions, Schema* schema, Count arity
 ) {
-  cnEntityFunction* function;
+  EntityFunction* function;
   if ((function = cnEntityFunctionCreateValid(schema, arity))) {
     // So far, so good.
     if (!cnListPush(functions, &function)) {
@@ -501,12 +501,12 @@ cnEntityFunction* cnPushValidFunction(
 }
 
 
-cnPredicate* cnPredicateCopy(cnPredicate* predicate) {
+Predicate* cnPredicateCopy(Predicate* predicate) {
   return predicate ? predicate->copy(predicate) : NULL;
 }
 
 
-void cnPredicateDrop(cnPredicate* predicate) {
+void cnPredicateDrop(Predicate* predicate) {
   if (predicate) {
     if (predicate->dispose) {
       predicate->dispose(predicate);
@@ -516,11 +516,11 @@ void cnPredicateDrop(cnPredicate* predicate) {
 }
 
 
-cnPredicate* cnPredicateCreateDistanceThreshold_Copy(cnPredicate* predicate) {
-  cnPredicateThresholdInfo info =
-    reinterpret_cast<cnPredicateThresholdInfo>(predicate->info);
-  cnFunction* function = cnFunctionCopy(info->distanceFunction);
-  cnPredicate* copy;
+Predicate* cnPredicateCreateDistanceThreshold_Copy(Predicate* predicate) {
+  PredicateThresholdInfo* info =
+    reinterpret_cast<PredicateThresholdInfo*>(predicate->info);
+  Function* function = cnFunctionCopy(info->distanceFunction);
+  Predicate* copy;
   // Copy even the function because there could be mutable data inside.
   if (!function) return NULL;
   copy = cnPredicateCreateDistanceThreshold(function, info->threshold);
@@ -528,9 +528,9 @@ cnPredicate* cnPredicateCreateDistanceThreshold_Copy(cnPredicate* predicate) {
   return copy;
 }
 
-void cnPredicateCreateDistanceThreshold_Dispose(cnPredicate* predicate) {
-  cnPredicateThresholdInfo info =
-    reinterpret_cast<cnPredicateThresholdInfo>(predicate->info);
+void cnPredicateCreateDistanceThreshold_Dispose(Predicate* predicate) {
+  PredicateThresholdInfo* info =
+    reinterpret_cast<PredicateThresholdInfo*>(predicate->info);
   cnFunctionDrop(info->distanceFunction);
   free(info);
   predicate->info = NULL;
@@ -539,10 +539,10 @@ void cnPredicateCreateDistanceThreshold_Dispose(cnPredicate* predicate) {
 }
 
 bool cnPredicateCreateDistanceThreshold_Evaluate(
-  cnPredicate* predicate, void* in
+  Predicate* predicate, void* in
 ) {
-  cnPredicateThresholdInfo info =
-    reinterpret_cast<cnPredicateThresholdInfo>(predicate->info);
+  PredicateThresholdInfo* info =
+    reinterpret_cast<PredicateThresholdInfo*>(predicate->info);
   Float distance;
   if (
     !info->distanceFunction->evaluate(info->distanceFunction, in, &distance)
@@ -555,10 +555,10 @@ bool cnPredicateCreateDistanceThreshold_Evaluate(
 }
 
 bool cnPredicateCreateDistanceThreshold_write(
-  cnPredicate* predicate, FILE* file, cnString* indent
+  Predicate* predicate, FILE* file, String* indent
 ) {
-  cnPredicateThresholdInfo info =
-    reinterpret_cast<cnPredicateThresholdInfo>(predicate->info);
+  PredicateThresholdInfo* info =
+    reinterpret_cast<PredicateThresholdInfo*>(predicate->info);
   bool result = false;
 
   // TODO Check error state?
@@ -585,15 +585,15 @@ bool cnPredicateCreateDistanceThreshold_write(
   return result;
 }
 
-cnPredicate* cnPredicateCreateDistanceThreshold(
-  cnFunction* distanceFunction, Float threshold
+Predicate* cnPredicateCreateDistanceThreshold(
+  Function* distanceFunction, Float threshold
 ) {
-  cnPredicate* predicate = cnAlloc(cnPredicate, 1);
-  cnPredicateThresholdInfo info;
+  Predicate* predicate = cnAlloc(Predicate, 1);
+  PredicateThresholdInfo* info;
   if (!predicate) {
     return NULL;
   }
-  info = cnAlloc(struct $cnPredicateThresholdInfo, 1);
+  info = cnAlloc(PredicateThresholdInfo, 1);
   if (!info) {
     free(predicate);
     return NULL;
@@ -610,12 +610,12 @@ cnPredicate* cnPredicateCreateDistanceThreshold(
 }
 
 
-bool cnPredicateWrite(cnPredicate* predicate, FILE* file, cnString* indent) {
+bool cnPredicateWrite(Predicate* predicate, FILE* file, String* indent) {
   return predicate->write ? predicate->write(predicate, file, indent) : false;
 }
 
 
-void cnPropertyDispose(cnProperty* property) {
+void cnPropertyDispose(Property* property) {
   // Dispose of extra data, as needed.
   if (property->dispose) {
     property->dispose(property);
@@ -631,12 +631,12 @@ void cnPropertyDispose(cnProperty* property) {
   property->count = 0;
   property->get = NULL;
   property->put = NULL;
-  property->topology = cnTopologyEuclidean;
+  property->topology = TopologyEuclidean;
   property->type = NULL;
 }
 
 
-void cnPropertyFieldGet(cnProperty* property, cnEntity entity, void* storage) {
+void cnPropertyFieldGet(Property* property, Entity entity, void* storage) {
   memcpy(
     storage,
     ((char*)entity) + property->offset,
@@ -645,7 +645,7 @@ void cnPropertyFieldGet(cnProperty* property, cnEntity entity, void* storage) {
 }
 
 
-void cnPropertyFieldPut(cnProperty* property, cnEntity entity, void* value) {
+void cnPropertyFieldPut(Property* property, Entity entity, void* value) {
   memcpy(
     ((char*)entity) + property->offset,
     value,
@@ -655,7 +655,7 @@ void cnPropertyFieldPut(cnProperty* property, cnEntity entity, void* value) {
 
 
 bool cnPropertyInitField(
-  cnProperty* property, cnType* containerType, cnType* type, const char* name,
+  Property* property, Type* containerType, Type* type, const char* name,
   Count offset, Count count
 ) {
   // Safety items first.
@@ -671,14 +671,14 @@ bool cnPropertyInitField(
   property->get = cnPropertyFieldGet;
   property->offset = offset;
   property->put = cnPropertyFieldPut;
-  property->topology = cnTopologyEuclidean;
+  property->topology = TopologyEuclidean;
   property->type = type;
   return true;
 }
 
 
-void cnSchemaDispose(cnSchema* schema) {
-  cnListEachBegin(&schema->types, cnType*, type) {
+void cnSchemaDispose(Schema* schema) {
+  cnListEachBegin(&schema->types, Type*, type) {
     cnTypeDrop(*type);
   } cnEnd;
   cnListDispose(&schema->types);
@@ -686,14 +686,14 @@ void cnSchemaDispose(cnSchema* schema) {
 }
 
 
-void cnSchemaInit(cnSchema* schema) {
+void cnSchemaInit(Schema* schema) {
   schema->floatType = NULL;
-  cnListInit(&schema->types, sizeof(cnType*));
+  cnListInit(&schema->types, sizeof(Type*));
 }
 
 
-bool cnSchemaInitDefault(cnSchema* schema) {
-  cnType *type;
+bool cnSchemaInitDefault(Schema* schema) {
+  Type *type;
   // Init schema.
   cnSchemaInit(schema);
   // Create float type.
@@ -714,15 +714,15 @@ bool cnSchemaInitDefault(cnSchema* schema) {
 }
 
 
-cnType* cnTypeCreate(const char* name, Count size) {
-  cnType* type = cnAlloc(cnType, 1);
+Type* cnTypeCreate(const char* name, Count size) {
+  Type* type = cnAlloc(Type, 1);
   if (!type) cnErrTo(FAIL, "No type.");
   // Put safety values first.
   type->size = size;
   // Let schema be set later, if wanted.
   type->schema = NULL;
   cnStringInit(&type->name);
-  cnListInit(&type->properties, sizeof(cnProperty));
+  cnListInit(&type->properties, sizeof(Property));
   // Now try things that might fail.
   if (!cnStringPushStr(&type->name, name)) cnErrTo(FAIL, "No type name.");
   return type;
@@ -733,10 +733,10 @@ cnType* cnTypeCreate(const char* name, Count size) {
 }
 
 
-void cnTypeDrop(cnType* type) {
+void cnTypeDrop(Type* type) {
   if (!type) return;
   cnStringDispose(&type->name);
-  cnListEachBegin(&type->properties, cnProperty, property) {
+  cnListEachBegin(&type->properties, Property, property) {
     cnPropertyDispose(property);
   } cnEnd;
   cnListDispose(&type->properties);

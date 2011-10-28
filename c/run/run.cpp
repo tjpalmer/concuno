@@ -21,7 +21,7 @@ typedef struct cnvTypedOffset {
   /**
    * Type at this offset.
    */
-  cnType* type;
+  Type* type;
 
 } cnvTypedOffset;
 
@@ -31,27 +31,27 @@ typedef struct cnvTypedOffset {
  */
 bool cnvBuildBags(
   cnList(Bag)* bags,
-  char* labelId, cnType* labelType, cnListAny* labels,
-  cnType* featureType, cnListAny* features
+  char* labelId, Type* labelType, cnListAny* labels,
+  Type* featureType, cnListAny* features
 );
 
 
 /**
  * Returns the created item type or null for failure.
  */
-cnType* cnvLoadTable(
-  const char* fileName, const char* typeName, cnSchema* schema, cnListAny* items
+Type* cnvLoadTable(
+  const char* fileName, const char* typeName, Schema* schema, cnListAny* items
 );
 
 
-bool cnvPickFunctions(cnList(cnEntityFunction*)* functions, cnType* type);
+bool cnvPickFunctions(cnList(EntityFunction*)* functions, Type* type);
 
 
-void cnvPrintType(cnType* type);
+void cnvPrintType(Type* type);
 
 
 bool cnvPushOrExpandProperty(
-  cnType* type, char* propertyName, cnvTypedOffset* offset
+  Type* type, char* propertyName, cnvTypedOffset* offset
 );
 
 
@@ -59,19 +59,19 @@ int main(int argc, char** argv) {
   int result = EXIT_FAILURE;
   cnList(Bag) bags;
   cnListAny features;
-  cnType* featureType;
-  cnList(cnEntityFunction*) functions;
+  Type* featureType;
+  cnList(EntityFunction*) functions;
   cnListAny labels;
-  cnType* labelType;
-  cnRootNode* learnedTree = NULL;
+  Type* labelType;
+  RootNode* learnedTree = NULL;
   Learner learner;
-  cnSchema schema;
+  Schema schema;
 
   // Init lists first for safety.
   cnListInit(&bags, sizeof(Bag));
   // We don't yet know how big the items are.
   cnListInit(&features, 0);
-  cnListInit(&functions, sizeof(cnEntityFunction*));
+  cnListInit(&functions, sizeof(EntityFunction*));
   cnListInit(&labels, 0);
   if (!cnSchemaInitDefault(&schema)) cnErrTo(DONE, "Init failed.");
 
@@ -113,7 +113,7 @@ int main(int argc, char** argv) {
   cnNodeDrop(&learnedTree->node);
   cnSchemaDispose(&schema);
   cnListDispose(&labels);
-  cnListEachBegin(&functions, cnEntityFunction*, function) {
+  cnListEachBegin(&functions, EntityFunction*, function) {
     cnEntityFunctionDrop(*function);
   } cnEnd;
   cnListDispose(&functions);
@@ -125,8 +125,8 @@ int main(int argc, char** argv) {
 
 bool cnvBuildBags(
   cnList(Bag)* bags,
-  char* labelId, cnType* labelType, cnListAny* labels,
-  cnType* featureType, cnListAny* features
+  char* labelId, Type* labelType, cnListAny* labels,
+  Type* featureType, cnListAny* features
 ) {
   char* feature = reinterpret_cast<char*>(features->items);
   char* featuresEnd = reinterpret_cast<char*>(cnListEnd(features));
@@ -134,7 +134,7 @@ bool cnvBuildBags(
   bool result = false;
 
   // Find the offset matching the label id.
-  cnListEachBegin(&labelType->properties, cnProperty, property) {
+  cnListEachBegin(&labelType->properties, Property, property) {
     if (!strcmp(labelId, cnStr(&property->name))) {
       labelOffset = property->offset;
       printf("Label %s at offset %ld.\n", labelId, labelOffset);
@@ -169,16 +169,16 @@ bool cnvBuildBags(
 }
 
 
-cnType* cnvLoadTable(
-  const char* fileName, const char* typeName, cnSchema* schema, cnListAny* items
+Type* cnvLoadTable(
+  const char* fileName, const char* typeName, Schema* schema, cnListAny* items
 ) {
   Count countRead;
   FILE* file = NULL;
-  cnString line;
+  String line;
   char* remaining;
   cnList(cnvTypedOffset) offsets;
   cnvTypedOffset* offsetsEnd;
-  cnType* type = NULL;
+  Type* type = NULL;
 
   // Init lists for safety.
   cnStringInit(&line);
@@ -219,7 +219,7 @@ cnType* cnvLoadTable(
 
   // Read the lines. Each is a separate item.
   while ((countRead = cnReadLine(file, &line)) > 0) {
-    cnEntity item;
+    Entity item;
     // Allocate then read the fields on this line.
     if (!(item = cnListExpand(items))) cnErrTo(FAIL, "No item.");
     remaining = cnStr(&line);
@@ -252,7 +252,7 @@ cnType* cnvLoadTable(
 }
 
 
-bool cnvPickFunctions(cnList(cnEntityFunction*)* functions, cnType* type) {
+bool cnvPickFunctions(cnList(EntityFunction*)* functions, Type* type) {
   // For now, just put in valid and common functions for each property.
   if (!cnPushValidFunction(functions, type->schema, 1)) {
     cnErrTo(FAIL, "No valid 1.");
@@ -260,8 +260,8 @@ bool cnvPickFunctions(cnList(cnEntityFunction*)* functions, cnType* type) {
   if (!cnPushValidFunction(functions, type->schema, 2)) {
     cnErrTo(FAIL, "No valid 2.");
   }
-  cnListEachBegin(&type->properties, cnProperty, property) {
-    cnEntityFunction* function;
+  cnListEachBegin(&type->properties, Property, property) {
+    EntityFunction* function;
     if (property == type->properties.items) {
       // Skip the first (the bag id).
       continue;
@@ -275,7 +275,7 @@ bool cnvPickFunctions(cnList(cnEntityFunction*)* functions, cnType* type) {
     }
     // TODO Distance (and difference?) angle, too?
     if (true || !strcmp("Location", cnStr(&function->name))) {
-      cnEntityFunction* distance;
+      EntityFunction* distance;
       if (true) {
         // Actually, skip this N^2 thing for now. For many items per bag and few
         // bags, this is both extremely slow and allows overfit, since there are
@@ -312,9 +312,9 @@ bool cnvPickFunctions(cnList(cnEntityFunction*)* functions, cnType* type) {
 }
 
 
-void cnvPrintType(cnType* type) {
+void cnvPrintType(Type* type) {
   printf("type %s\n", cnStr(&type->name));
-  cnListEachBegin(&type->properties, cnProperty, property) {
+  cnListEachBegin(&type->properties, Property, property) {
     printf(
       "  var %s: %s[%ld]\n",
       cnStr(&property->name), cnStr(&property->type->name), property->count
@@ -325,13 +325,13 @@ void cnvPrintType(cnType* type) {
 
 
 bool cnvPushOrExpandProperty(
-  cnType* type, char* propertyName, cnvTypedOffset* offset
+  Type* type, char* propertyName, cnvTypedOffset* offset
 ) {
-  cnProperty* property = NULL;
+  Property* property = NULL;
   bool result = false;
 
   // Find the property with this name.
-  cnListEachBegin(&type->properties, cnProperty, propertyToCheck) {
+  cnListEachBegin(&type->properties, Property, propertyToCheck) {
     if (property) {
       // Found a previous property, so offset this following one.
       propertyToCheck->offset += property->type->size;
@@ -344,7 +344,7 @@ bool cnvPushOrExpandProperty(
 
   if (!property) {
     // Didn't find anything, so push a new property.
-    property = reinterpret_cast<cnProperty*>(cnListExpand(&type->properties));
+    property = reinterpret_cast<Property*>(cnListExpand(&type->properties));
     if (!property) cnErrTo(DONE, "Failed to alloc %s property.", propertyName);
     // TODO Assumed always float for now.
     if (!cnPropertyInitField(

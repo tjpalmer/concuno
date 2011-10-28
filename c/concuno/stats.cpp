@@ -19,7 +19,7 @@ typedef struct cnBinomialInfo {
 
   Float prob;
 
-  cnRandom random;
+  Random random;
 
 } cnBinomialInfo;
 
@@ -56,12 +56,12 @@ typedef struct cnMultinomialInfo {
 
   Count sampleCount;
 
-  cnRandom random;
+  Random random;
 
 } cnMultinomialInfo;
 
 
-cnBinomial cnBinomialCreate(cnRandom random, Count count, Float prob) {
+Binomial cnBinomialCreate(Random random, Count count, Float prob) {
   cnBinomialInfo* binomial;
 
   // Allocate space.
@@ -75,16 +75,16 @@ cnBinomial cnBinomialCreate(cnRandom random, Count count, Float prob) {
   binomial->random = random;
 
   DONE:
-  return (cnBinomial)binomial;
+  return (Binomial)binomial;
 }
 
 
-void cnBinomialDestroy(cnBinomial binomial) {
+void cnBinomialDestroy(Binomial binomial) {
   free(binomial);
 }
 
 
-Count cnBinomialSample(cnBinomial binomial) {
+Count cnBinomialSample(Binomial binomial) {
   cnBinomialInfo* info = (cnBinomialInfo*)binomial;
   // TODO They only remember state for one binomial at a time in rk_state.
   // TODO Consider adding support on our end for retaining that state in our own
@@ -94,7 +94,7 @@ Count cnBinomialSample(cnBinomial binomial) {
 
 
 bool cnFunctionEvaluateMahalanobisDistance(
-  cnFunction* function, void* in, void* out
+  Function* function, void* in, void* out
 ) {
   *((Float*)out) = cnMahalanobisDistance(
     reinterpret_cast<Gaussian*>(function->info),
@@ -105,10 +105,10 @@ bool cnFunctionEvaluateMahalanobisDistance(
 }
 
 
-cnFunction* cnFunctionCreateMahalanobisDistance_copy(cnFunction* function) {
+Function* cnFunctionCreateMahalanobisDistance_copy(Function* function) {
   Gaussian* other = reinterpret_cast<Gaussian*>(function->info);
   Gaussian* gaussian = cnAlloc(Gaussian, 1);
-  cnFunction* copy;
+  Function* copy;
   if (!gaussian) return NULL;
   if (!cnGaussianInit(gaussian, other->dims, other->mean)) {
     free(gaussian);
@@ -122,13 +122,13 @@ cnFunction* cnFunctionCreateMahalanobisDistance_copy(cnFunction* function) {
   return copy;
 }
 
-void cnFunctionCreateMahalanobisDistance_dispose(cnFunction* function) {
+void cnFunctionCreateMahalanobisDistance_dispose(Function* function) {
   cnGaussianDispose(reinterpret_cast<Gaussian*>(function->info));
   free(function->info);
 }
 
 bool cnFunctionCreateMahalanobisDistance_write(
-  cnFunction* function, FILE* file, cnString* indent
+  Function* function, FILE* file, String* indent
 ) {
   Gaussian* gaussian = reinterpret_cast<Gaussian*>(function->info);
   bool result = false;
@@ -151,8 +151,8 @@ bool cnFunctionCreateMahalanobisDistance_write(
   return result;
 }
 
-cnFunction* cnFunctionCreateMahalanobisDistance(Gaussian* gaussian) {
-  cnFunction* function = cnAlloc(cnFunction, 1);
+Function* cnFunctionCreateMahalanobisDistance(Gaussian* gaussian) {
+  Function* function = cnAlloc(Function, 1);
   if (!function) return NULL;
   function->info = gaussian;
   function->copy = cnFunctionCreateMahalanobisDistance_copy;
@@ -228,8 +228,8 @@ int cnMultinomialCreate_compareBinomials(const void *a, const void *b) {
   return binA->prob > binB->prob ? -1 : binA->prob != binB->prob;
 }
 
-cnMultinomial cnMultinomialCreate(
-  cnRandom random, Count sampleCount, Count classCount, Float* probs
+Multinomial cnMultinomialCreate(
+  Random random, Count sampleCount, Count classCount, Float* probs
 ) {
   Index i;
   cnMultinomialInfo* info;
@@ -282,15 +282,15 @@ cnMultinomial cnMultinomialCreate(
   goto DONE;
 
   FAIL:
-  cnMultinomialDestroy((cnMultinomial)info);
+  cnMultinomialDestroy((Multinomial)info);
   info = NULL;
 
   DONE:
-  return (cnMultinomial)info;
+  return (Multinomial)info;
 }
 
 
-void cnMultinomialDestroy(cnMultinomial multinomial) {
+void cnMultinomialDestroy(Multinomial multinomial) {
   cnMultinomialInfo* info = (cnMultinomialInfo*)multinomial;
   if (info) {
     free(info->binomials);
@@ -299,7 +299,7 @@ void cnMultinomialDestroy(cnMultinomial multinomial) {
 }
 
 
-void cnMultinomialSample(cnMultinomial multinomial, Count* out) {
+void cnMultinomialSample(Multinomial multinomial, Count* out) {
   Count samplesLeft;
   Index i;
   cnMultinomialInfo* info = (cnMultinomialInfo*)multinomial;
@@ -383,7 +383,7 @@ bool cnPermutations(
 }
 
 
-cnRandom cnRandomCreate(void) {
+Random cnRandomCreate(void) {
   rk_state* state;
 
   if (!(state = cnAlloc(rk_state, 1))) cnErrTo(DONE, "No random.");
@@ -391,17 +391,17 @@ cnRandom cnRandomCreate(void) {
   rk_seed(0, state);
 
   DONE:
-  return (cnRandom)state;
+  return (Random)state;
 }
 
 
-Count cnRandomBinomial(cnRandom random, Count count, Float prob) {
+Count cnRandomBinomial(Random random, Count count, Float prob) {
   rk_state* state = (rk_state*)random;
   return rk_binomial(state, count, prob);
 }
 
 
-void cnRandomDestroy(cnRandom random) {
+void cnRandomDestroy(Random random) {
   free(random);
 }
 
@@ -444,7 +444,7 @@ Float cnUnitRand() {
 }
 
 
-void cnVectorCov(void) {
+void vectorCov(void) {
   // TODO
   //cblas_dgemm(
   //  CblasColMajor, CblasNoTrans, CblasTrans, size, count, size,
@@ -453,7 +453,7 @@ void cnVectorCov(void) {
 }
 
 
-Float* cnVectorMax(Count size, Float* out, Count count, Float* in) {
+Float* vectorMax(Count size, Float* out, Count count, Float* in) {
   Float *inBegin = in, *inEnd = in + size * count;
   Float* outEnd = out + size;
   if (!count) {
@@ -478,7 +478,7 @@ Float* cnVectorMax(Count size, Float* out, Count count, Float* in) {
 }
 
 
-Float* cnVectorMean(Count size, Float* out, Count count, Float* in) {
+Float* vectorMean(Count size, Float* out, Count count, Float* in) {
   Float *inBegin = in, *inEnd = in + size * count;
   Float* outEnd = out + size;
   // TODO Go one vector at a time for nicer memory access?
@@ -495,7 +495,7 @@ Float* cnVectorMean(Count size, Float* out, Count count, Float* in) {
 }
 
 
-Float* cnVectorMin(Count size, Float* out, Count count, Float* in) {
+Float* vectorMin(Count size, Float* out, Count count, Float* in) {
   Float *inBegin = in, *inEnd = in + size * count;
   Float* outEnd = out + size;
   if (!count) {

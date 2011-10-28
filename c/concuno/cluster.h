@@ -8,7 +8,7 @@
 namespace concuno {
 
 
-bool cnClusterOnFunction(cnList(Bag)* bags, cnEntityFunction* function);
+bool cnClusterOnFunction(cnList(Bag)* bags, EntityFunction* function);
 
 
 }

@@ -24,7 +24,7 @@ bool cnrGenStr(yajl_gen gen, const char* str);
 /**
  * TODO This is duped from run's cnvPickFunctions. Perhaps centralize.
  */
-bool cnrPickFunctions(cnList(cnEntityFunction*)* functions, cnType* type);
+bool cnrPickFunctions(cnList(EntityFunction*)* functions, Type* type);
 
 
 bool cnrProcess(
@@ -60,7 +60,7 @@ int main(int argc, char** argv) {
     if (!cnrLoadGameLog(&game, name)) cnErrTo(DONE, "Failed to load: %s", name);
 
     // Show all team names.
-    cnListEachBegin(&game.teamNames, cnString, name) {
+    cnListEachBegin(&game.teamNames, String, name) {
       printf("Team: %s\n", cnStr(name));
     } cnEnd;
 
@@ -124,7 +124,7 @@ bool cnrGenStr(yajl_gen gen, const char* str) {
 }
 
 
-bool cnrPickFunctions(cnList(cnEntityFunction*)* functions, cnType* type) {
+bool cnrPickFunctions(cnList(EntityFunction*)* functions, Type* type) {
   // For now, just put in valid and common functions for each property.
   if (!cnPushValidFunction(functions, type->schema, 1)) {
     cnErrTo(FAIL, "No valid 1.");
@@ -132,8 +132,8 @@ bool cnrPickFunctions(cnList(cnEntityFunction*)* functions, cnType* type) {
   if (!cnPushValidFunction(functions, type->schema, 2)) {
     cnErrTo(FAIL, "No valid 2.");
   }
-  cnListEachBegin(&type->properties, cnProperty, property) {
-    cnEntityFunction* function;
+  cnListEachBegin(&type->properties, Property, property) {
+    EntityFunction* function;
     if (!(function = cnEntityFunctionCreateProperty(property))) {
       cnErrTo(FAIL, "No function.");
     }
@@ -143,7 +143,7 @@ bool cnrPickFunctions(cnList(cnEntityFunction*)* functions, cnType* type) {
     }
     // TODO Distance (and difference?) angle, too?
     if (true || !strcmp("Location", cnStr(&function->name))) {
-      cnEntityFunction* distance;
+      EntityFunction* distance;
       if (true) {
         // Actually, skip this N^2 thing for now. For many items per bag and few
         // bags, this is both extremely slow and allows overfit, since there are
@@ -194,14 +194,14 @@ bool cnrProcess(
   bool (*process)(cnList(Bag)* holdBags, cnList(Bag)* passBags)
 ) {
   cnList(Bag) holdBags;
-  cnList(cnList(cnEntity)*) entityLists;
+  cnList(cnList(Entity)*) entityLists;
   cnList(Bag) passBags;
   bool result = false;
 
   // Init for safety.
   cnListInit(&holdBags, sizeof(Bag));
   cnListInit(&passBags, sizeof(Bag));
-  cnListInit(&entityLists, sizeof(cnList(cnEntity)*));
+  cnListInit(&entityLists, sizeof(cnList(Entity)*));
 
   if (!cnrChooseHoldsAndPasses(game, &holdBags, &passBags, &entityLists)) {
     cnErrTo(DONE, "Choose failed.");
@@ -237,16 +237,16 @@ bool cnrProcessExport(cnList(Bag)* holdBags, cnList(Bag)* passBags) {
 
 
 bool cnrProcessLearn(cnList(Bag)* holdBags, cnList(Bag)* passBags) {
-  cnList(cnEntityFunction*) functions;
-  cnRootNode* learnedTree = NULL;
+  cnList(EntityFunction*) functions;
+  RootNode* learnedTree = NULL;
   Learner learner;
   bool result = false;
-  cnSchema schema;
+  Schema schema;
 
   // Inits.
-  cnListInit(&functions, sizeof(cnEntityFunction*));
+  cnListInit(&functions, sizeof(EntityFunction*));
   if (!cnrSchemaInit(&schema)) cnFailTo(DONE);
-  cnrPickFunctions(&functions, *(cnType**)cnListGet(&schema.types, 1));
+  cnrPickFunctions(&functions, *(Type**)cnListGet(&schema.types, 1));
 
   // Learn something.
   // TODO How to choose pass vs. hold?
@@ -268,7 +268,7 @@ bool cnrProcessLearn(cnList(Bag)* holdBags, cnList(Bag)* passBags) {
   DONE:
   cnNodeDrop(&learnedTree->node);
   cnSchemaDispose(&schema);
-  cnListEachBegin(&functions, cnEntityFunction*, function) {
+  cnListEachBegin(&functions, EntityFunction*, function) {
     cnEntityFunctionDrop(*function);
   } cnEnd;
   cnListDispose(&functions);
@@ -300,7 +300,7 @@ bool cnrSaveBags(const char* name, cnList(Bag)* bags) {
     if (!cnrGenStr(gen, itemsKey)) cnFailTo(DONE);
     if (yajl_gen_array_open(gen)) cnFailTo(DONE);
     // Write each item (ball or player).
-    cnListEachBegin(bag->entities, cnEntity, entity) {
+    cnListEachBegin(bag->entities, Entity, entity) {
       Index depth = 0;
       cnrItem* item = reinterpret_cast<cnrItem*>(*entity);
       if (yajl_gen_map_open(gen)) cnFailTo(DONE);
@@ -316,7 +316,7 @@ bool cnrSaveBags(const char* name, cnList(Bag)* bags) {
       if (!cnrGenStr(gen, locationKey)) cnFailTo(DONE);
       if (!cnrGenColumnVector(gen, 2, item->location)) cnFailTo(DONE);
       // Pinning.
-      cnListEachBegin(&bag->participantOptions, cnList(cnEntity), options) {
+      cnListEachBegin(&bag->participantOptions, cnList(Entity), options) {
         if (options->count > 1) {
           cnErrTo(
             DONE, "%ld > 1 options at depth %ld.", options->count, depth

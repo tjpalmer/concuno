@@ -384,12 +384,12 @@ Float cnNaN(void) {
 }
 
 
-char* cnStr(cnString* string) {
+char* cnStr(String* string) {
   return string->items ? (char*)string->items : (char*)"";
 }
 
 
-void cnStringClear(cnString* string) {
+void cnStringClear(String* string) {
   if (string->items) {
     string->count = 1;
     *cnStr(string) = '\0';
@@ -397,22 +397,22 @@ void cnStringClear(cnString* string) {
 }
 
 
-void cnStringDispose(cnString* string) {
+void cnStringDispose(String* string) {
   cnListDispose(string);
 }
 
 
-char cnStringGetChar(cnString* string, Index index) {
+char cnStringGetChar(String* string, Index index) {
   return *(char*)cnListGet(string, index);
 }
 
 
-void cnStringInit(cnString* string) {
+void cnStringInit(String* string) {
   cnListInit(string, sizeof(char));
 }
 
 
-bool cnStringPushChar(cnString* string, char c) {
+bool cnStringPushChar(String* string, char c) {
   char* str;
   // Push a char, even though we'll soon swap it.
   // This gives us at least the right space.
@@ -435,7 +435,7 @@ bool cnStringPushChar(cnString* string, char c) {
 }
 
 
-bool cnStringPushStr(cnString* string, const char* str) {
+bool cnStringPushStr(String* string, const char* str) {
   char* formerEnd;
   bool wasEmpty = !string->reservedCount;
   Count extra = strlen(str);
