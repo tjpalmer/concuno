@@ -47,7 +47,7 @@ struct cnSearcher {
    * TODO Support dynamic reordering? It would be expensive, and would need to
    * TODO be explicit, but some needs might warrant it.
    */
-  cnBool (*better)(cnSearcher* searcher, cnSearchOption a, cnSearchOption b);
+  bool (*better)(cnSearcher* searcher, cnSearchOption a, cnSearchOption b);
 
   /**
    * Set to non-null for automatic destruction of info.
@@ -68,7 +68,7 @@ struct cnSearcher {
    *
    * If null, the search only terminates when all the options run out.
    */
-  cnBool (*finished)(cnSearcher* searcher);
+  bool (*finished)(cnSearcher* searcher);
 
   /**
    * Custom info for your own needs.
@@ -86,7 +86,7 @@ struct cnSearcher {
    *
    * The step function must be thread safe when using threaded search.
    */
-  cnBool (*step)(
+  bool (*step)(
     cnSearcher* searcher, cnSearchOption option, cnList(cnSearchOption)* nexts
   );
 
@@ -103,7 +103,7 @@ void cnSearcherDestroy(cnSearcher* searcher);
  * Searches until finished. Returns true for no error. The best option is
  * available inside the searcher.
  */
-cnBool cnSearch(cnSearcher* searcher);
+bool cnSearch(cnSearcher* searcher);
 
 
 cnCEnd;

@@ -23,15 +23,6 @@ cnCBegin;
 #define cnEnd }
 
 
-typedef enum {cnFalse, cnTrue} cnBool;
-
-
-/**
- * Macro to ease transition to cpp.
- */
-#define cnBoolify(x) ((x) ? cnTrue : cnFalse)
-
-
 typedef unsigned char cnByte;
 
 
@@ -180,7 +171,7 @@ typedef struct cnHeapAny {
   /**
    * Set to non-null if you want automatic info destruction.
    */
-  cnBool (*destroyInfo)(cnRefAny info);
+  bool (*destroyInfo)(cnRefAny info);
 
   /**
    * Set to non-null if you want automatic item destruction.
@@ -192,7 +183,7 @@ typedef struct cnHeapAny {
   /**
    * Says whether a is less than b.
    */
-  cnBool (*less)(cnRefAny info, cnRefAny a, cnRefAny b);
+  bool (*less)(cnRefAny info, cnRefAny a, cnRefAny b);
 
 } cnHeapAny;
 
@@ -216,14 +207,14 @@ void cnGridInit(cnGridAny* grid);
  * Inits the dims to the number of rows and columns specified, and preallocates
  * the space requested.
  */
-cnBool cnGridInit2d(cnGridAny* grid, cnCount nrows, cnCount ncols);
+bool cnGridInit2d(cnGridAny* grid, cnCount nrows, cnCount ncols);
 
 
 /**
  * Inits the dims to a copy of the dims given, and preallocates the space
  * requested.
  */
-cnBool cnGridInitNd(cnGridAny* grid, const cnList(cnCount)* dims);
+bool cnGridInitNd(cnGridAny* grid, const cnList(cnCount)* dims);
 
 
 /**
@@ -238,7 +229,7 @@ void cnHeapClear(cnHeapAny* heap);
  *
  * TODO An option for initial contents for O(n) heapify?
  */
-cnHeapAny* cnHeapCreate(cnBool (*less)(cnRefAny info, cnRefAny a, cnRefAny b));
+cnHeapAny* cnHeapCreate(bool (*less)(cnRefAny info, cnRefAny a, cnRefAny b));
 
 
 void cnHeapDestroy(cnHeapAny* heap);
@@ -250,13 +241,13 @@ cnRefAny cnHeapPeek(cnHeapAny* heap);
 cnRefAny cnHeapPull(cnHeapAny* heap);
 
 
-cnBool cnHeapPush(cnHeapAny* heap, cnRefAny item);
+bool cnHeapPush(cnHeapAny* heap, cnRefAny item);
 
 
 /**
  * Returns whether x is NaN.
  */
-cnBool cnIsNaN(cnFloat x);
+bool cnIsNaN(cnFloat x);
 
 
 /**
@@ -451,10 +442,10 @@ char cnStringGetChar(cnString* string, cnIndex index);
 void cnStringInit(cnString* string);
 
 
-cnBool cnStringPushChar(cnString* string, char c);
+bool cnStringPushChar(cnString* string, char c);
 
 
-cnBool cnStringPushStr(cnString* string, const char* str);
+bool cnStringPushStr(cnString* string, const char* str);
 
 
 cnCEnd;

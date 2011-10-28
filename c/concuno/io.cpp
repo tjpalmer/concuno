@@ -25,7 +25,7 @@ char* cnDelimit(char** string, char delimiter) {
 }
 
 
-cnBool cnDelimitInt(char** string, char** token, cnInt* i, char delimiter) {
+bool cnDelimitInt(char** string, char** token, cnInt* i, char delimiter) {
   char* intEnd;
   cnInt temp;
   char* tempToken;
@@ -33,22 +33,22 @@ cnBool cnDelimitInt(char** string, char** token, cnInt* i, char delimiter) {
   // First delimit the token.
   tempToken = cnDelimit(string, delimiter);
   if (token) *token = tempToken;
-  if (!tempToken) return cnFalse;
+  if (!tempToken) return false;
 
   // Now convert to int.
   // TODO Hand-code instead of using strtol to avoid dependence on errno.
   temp = strtol(tempToken, &intEnd, 10);
 
   // Now see if we consumed the whole token, failing if not.
-  if (*intEnd) return cnFalse;
+  if (*intEnd) return false;
 
   // Must be good to go (except for ignoring errno and therefore overflow).
   *i = temp;
-  return cnTrue;
+  return true;
 }
 
 
-cnBool cnIndent(cnString* indent) {
+bool cnIndent(cnString* indent) {
   return cnStringPushStr(indent, "  ");
 }
 
@@ -71,7 +71,7 @@ char cnParseChar(char* begin, char** end) {
 }
 
 char* cnParseStr(char* begin, char** end) {
-  cnBool pastSpace = cnFalse;
+  bool pastSpace = false;
   char* c;
   for (c = begin; *c; c++) {
     if (isspace(*c)) {
@@ -84,7 +84,7 @@ char* cnParseStr(char* begin, char** end) {
       }
     } else if (!pastSpace) {
       begin = c;
-      pastSpace = cnTrue;
+      pastSpace = true;
     }
   }
   if (!pastSpace) {
@@ -133,14 +133,14 @@ cnCount cnReadLine(FILE* file, cnString* string) {
 }
 
 
-cnBool cnStrEndsWith(char* string, const char* ending) {
+bool cnStrEndsWith(char* string, const char* ending) {
   cnCount endingLength = strlen(ending);
   cnCount stringLength = strlen(string);
   if (stringLength >= endingLength) {
     // Long enough. Check the contents.
     return strcmp(string + stringLength - endingLength, ending) ?
       // Zero means equal. Nonzero means different.
-      cnFalse : cnTrue;
+      false : true;
   }
-  return cnFalse;
+  return false;
 }

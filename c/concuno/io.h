@@ -43,7 +43,7 @@ char* cnDelimit(char** string, char delimiter);
  *
  * if (!cnDelimitInt(&text, &token, &number, ',')) ...
  */
-cnBool cnDelimitInt(char** string, char** token, cnInt* i, char delimiter);
+bool cnDelimitInt(char** string, char** token, cnInt* i, char delimiter);
 
 
 /**
@@ -51,7 +51,7 @@ cnBool cnDelimitInt(char** string, char** token, cnInt* i, char delimiter);
  *
  * TODO Abstract this better into stream facility.
  */
-cnBool cnIndent(cnString* indent);
+bool cnIndent(cnString* indent);
 
 
 /**
@@ -95,7 +95,7 @@ cnCount cnReadLine(FILE* file, cnString* string);
 /**
  * Returns true if and only if the string ends with ending.
  */
-cnBool cnStrEndsWith(char* string, const char* ending);
+bool cnStrEndsWith(char* string, const char* ending);
 
 
 cnCEnd;

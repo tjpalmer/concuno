@@ -8,9 +8,9 @@ struct cnSearcherSelf: cnSearcher {
 };
 
 
-cnBool cnSearch(cnSearcher* searcher) {
+bool cnSearch(cnSearcher* searcher) {
   cnList(cnSearchOption) nexts;
-  cnBool result = cnFalse;
+  bool result = false;
   cnSearcherSelf* self = (cnSearcherSelf*)searcher;
 
   // Init.
@@ -60,7 +60,7 @@ cnBool cnSearch(cnSearcher* searcher) {
       if (!cnHeapPush(self->options, *option)) cnErrTo(DONE, "No push.");
     } cnEnd;
   }
-  result = cnTrue;
+  result = true;
 
   DONE:
   cnListDispose(&nexts);
@@ -75,7 +75,7 @@ void cnSearcherCreate_destroyItem(void* info, void* item) {
   if (searcher->destroyOption) searcher->destroyOption(searcher, item);
 }
 
-cnBool cnSearcherCreate_less(void* info, void* a, void* b) {
+bool cnSearcherCreate_less(void* info, void* a, void* b) {
   cnSearcher* searcher = reinterpret_cast<cnSearcher*>(info);
   // If it's better, it should bubble to the top. So better means less.
   return searcher->better(searcher, a, b);

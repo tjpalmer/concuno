@@ -21,16 +21,16 @@ void cnBagDispose(cnBag* bag) {
   cnListDispose(&bag->participantOptions);
 
   // Other stuff.
-  bag->label = cnFalse;
+  bag->label = false;
   bag->entities = NULL;
 }
 
 
-cnBool cnBagInit(cnBag* bag, cnList(cnEntity)* entities) {
-  cnBool result = cnFalse;
+bool cnBagInit(cnBag* bag, cnList(cnEntity)* entities) {
+  bool result = false;
 
   // Safety first.
-  bag->label = cnFalse;
+  bag->label = false;
   bag->entities = entities ? entities : cnAlloc(cnList(cnEntity), 1);
   cnListInit(&bag->participantOptions, sizeof(cnList(cnEntity)));
 
@@ -39,7 +39,7 @@ cnBool cnBagInit(cnBag* bag, cnList(cnEntity)* entities) {
   if (!entities) cnListInit(bag->entities, sizeof(cnEntity));
 
   // Winned!
-  result = cnTrue;
+  result = true;
 
   DONE:
   return result;
@@ -66,9 +66,9 @@ void cnBagListDispose(
 }
 
 
-cnBool cnBagPushParticipant(cnBag* bag, cnIndex depth, cnEntity participant) {
+bool cnBagPushParticipant(cnBag* bag, cnIndex depth, cnEntity participant) {
   cnList(cnEntity)* participantOptions;
-  cnBool result = cnFalse;
+  bool result = false;
 
   // Grow more lists if needed.
   while (depth >= bag->participantOptions.count) {
@@ -89,7 +89,7 @@ cnBool cnBagPushParticipant(cnBag* bag, cnIndex depth, cnEntity participant) {
   }
 
   // Winned.
-  result = cnTrue;
+  result = true;
 
   DONE:
   return result;
@@ -424,8 +424,8 @@ void cnFunctionDrop(cnFunction* function) {
 }
 
 
-cnBool cnFunctionWrite(cnFunction* function, FILE* file, cnString* indent) {
-  return function->write ? function->write(function, file, indent) : cnFalse;
+bool cnFunctionWrite(cnFunction* function, FILE* file, cnString* indent) {
+  return function->write ? function->write(function, file, indent) : false;
 }
 
 
@@ -535,7 +535,7 @@ void cnPredicateCreateDistanceThreshold_Dispose(cnPredicate* predicate) {
   predicate->evaluate = NULL;
 }
 
-cnBool cnPredicateCreateDistanceThreshold_Evaluate(
+bool cnPredicateCreateDistanceThreshold_Evaluate(
   cnPredicate* predicate, void* in
 ) {
   cnPredicateThresholdInfo info =
@@ -548,15 +548,15 @@ cnBool cnPredicateCreateDistanceThreshold_Evaluate(
   }
   // TODO I'd prefer <, but need better a handling of bulks of equal distances
   // TODO in threshold choosing. I've hit the problem before.
-  return cnBoolify(distance <= info->threshold);
+  return distance <= info->threshold;
 }
 
-cnBool cnPredicateCreateDistanceThreshold_write(
+bool cnPredicateCreateDistanceThreshold_write(
   cnPredicate* predicate, FILE* file, cnString* indent
 ) {
   cnPredicateThresholdInfo info =
     reinterpret_cast<cnPredicateThresholdInfo>(predicate->info);
-  cnBool result = cnFalse;
+  bool result = false;
 
   // TODO Check error state?
   fprintf(file, "{\n");
@@ -577,7 +577,7 @@ cnBool cnPredicateCreateDistanceThreshold_write(
   fprintf(file, "%s}", cnStr(indent));
 
   // Winned!
-  result = cnTrue;
+  result = true;
 
   return result;
 }
@@ -607,8 +607,8 @@ cnPredicate* cnPredicateCreateDistanceThreshold(
 }
 
 
-cnBool cnPredicateWrite(cnPredicate* predicate, FILE* file, cnString* indent) {
-  return predicate->write ? predicate->write(predicate, file, indent) : cnFalse;
+bool cnPredicateWrite(cnPredicate* predicate, FILE* file, cnString* indent) {
+  return predicate->write ? predicate->write(predicate, file, indent) : false;
 }
 
 
@@ -651,7 +651,7 @@ void cnPropertyFieldPut(cnProperty* property, cnEntity entity, void* value) {
 }
 
 
-cnBool cnPropertyInitField(
+bool cnPropertyInitField(
   cnProperty* property, cnType* containerType, cnType* type, const char* name,
   cnCount offset, cnCount count
 ) {
@@ -661,7 +661,7 @@ cnBool cnPropertyInitField(
   // Now other things.
   if (!cnStringPushStr(&property->name, name)) {
     cnPropertyDispose(property);
-    return cnFalse;
+    return false;
   }
   property->containerType = containerType;
   property->count = count;
@@ -670,7 +670,7 @@ cnBool cnPropertyInitField(
   property->put = cnPropertyFieldPut;
   property->topology = cnTopologyEuclidean;
   property->type = type;
-  return cnTrue;
+  return true;
 }
 
 
@@ -689,7 +689,7 @@ void cnSchemaInit(cnSchema* schema) {
 }
 
 
-cnBool cnSchemaInitDefault(cnSchema* schema) {
+bool cnSchemaInitDefault(cnSchema* schema) {
   cnType *type;
   // Init schema.
   cnSchemaInit(schema);
@@ -702,12 +702,12 @@ cnBool cnSchemaInitDefault(cnSchema* schema) {
   if (!cnListPush(&schema->types, &type)) cnErrTo(FAIL, "Can't push type.");
   schema->floatType = type;
   // We winned!
-  return cnTrue;
+  return true;
 
   FAIL:
   cnTypeDrop(type);
   cnSchemaDispose(schema);
-  return cnFalse;
+  return false;
 }
 
 

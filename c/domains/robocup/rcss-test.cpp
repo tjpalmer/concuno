@@ -12,34 +12,34 @@
 using namespace std;
 
 
-cnBool cnrGenColumnVector(yajl_gen gen, cnCount count, cnFloat* x);
+bool cnrGenColumnVector(yajl_gen gen, cnCount count, cnFloat* x);
 
 
-cnBool cnrGenFloat(yajl_gen gen, cnFloat x);
+bool cnrGenFloat(yajl_gen gen, cnFloat x);
 
 
-cnBool cnrGenStr(yajl_gen gen, const char* str);
+bool cnrGenStr(yajl_gen gen, const char* str);
 
 
 /**
  * TODO This is duped from run's cnvPickFunctions. Perhaps centralize.
  */
-cnBool cnrPickFunctions(cnList(cnEntityFunction*)* functions, cnType* type);
+bool cnrPickFunctions(cnList(cnEntityFunction*)* functions, cnType* type);
 
 
-cnBool cnrProcess(
+bool cnrProcess(
   cnrGame* game,
-  cnBool (*process)(cnList(cnBag)* holdBags, cnList(cnBag)* passBags)
+  bool (*process)(cnList(cnBag)* holdBags, cnList(cnBag)* passBags)
 );
 
 
-cnBool cnrProcessExport(cnList(cnBag)* holdBags, cnList(cnBag)* passBags);
+bool cnrProcessExport(cnList(cnBag)* holdBags, cnList(cnBag)* passBags);
 
 
-cnBool cnrProcessLearn(cnList(cnBag)* holdBags, cnList(cnBag)* passBags);
+bool cnrProcessLearn(cnList(cnBag)* holdBags, cnList(cnBag)* passBags);
 
 
-cnBool cnrSaveBags(const char* name, cnList(cnBag)* bags);
+bool cnrSaveBags(const char* name, cnList(cnBag)* bags);
 
 
 int main(int argc, char** argv) {
@@ -94,7 +94,7 @@ int main(int argc, char** argv) {
 }
 
 
-cnBool cnrGenColumnVector(yajl_gen gen, cnCount count, cnFloat* x) {
+bool cnrGenColumnVector(yajl_gen gen, cnCount count, cnFloat* x) {
   cnFloat* end = x + count;
   if (yajl_gen_array_open(gen)) cnFailTo(FAIL);
   for (; x < end; x++) {
@@ -105,26 +105,26 @@ cnBool cnrGenColumnVector(yajl_gen gen, cnCount count, cnFloat* x) {
   if (yajl_gen_array_close(gen)) cnFailTo(FAIL);
 
   // Winned.
-  return cnTrue;
+  return true;
 
   FAIL:
-  return cnFalse;
+  return false;
 }
 
 
-cnBool cnrGenFloat(yajl_gen gen, cnFloat x) {
+bool cnrGenFloat(yajl_gen gen, cnFloat x) {
   // TODO Fancierness to get nicer results.
-  return yajl_gen_double(gen, x) ? cnFalse : cnTrue;
+  return yajl_gen_double(gen, x) ? false : true;
 }
 
 
-cnBool cnrGenStr(yajl_gen gen, const char* str) {
+bool cnrGenStr(yajl_gen gen, const char* str) {
   return yajl_gen_string(gen, (unsigned char*)str, strlen(str)) ?
-    cnFalse : cnTrue;
+    false : true;
 }
 
 
-cnBool cnrPickFunctions(cnList(cnEntityFunction*)* functions, cnType* type) {
+bool cnrPickFunctions(cnList(cnEntityFunction*)* functions, cnType* type) {
   // For now, just put in valid and common functions for each property.
   if (!cnPushValidFunction(functions, type->schema, 1)) {
     cnErrTo(FAIL, "No valid 1.");
@@ -142,9 +142,9 @@ cnBool cnrPickFunctions(cnList(cnEntityFunction*)* functions, cnType* type) {
       cnErrTo(FAIL, "Function not pushed.");
     }
     // TODO Distance (and difference?) angle, too?
-    if (cnTrue || !strcmp("Location", cnStr(&function->name))) {
+    if (true || !strcmp("Location", cnStr(&function->name))) {
       cnEntityFunction* distance;
-      if (cnTrue) {
+      if (true) {
         // Actually, skip this N^2 thing for now. For many items per bag and few
         // bags, this is both extremely slow and allows overfit, since there are
         // so many options to consider.
@@ -181,22 +181,22 @@ cnBool cnrPickFunctions(cnList(cnEntityFunction*)* functions, cnType* type) {
   } cnEnd;
 
   // We winned!
-  return cnTrue;
+  return true;
 
   FAIL:
   // TODO Remove all added functions?
-  return cnFalse;
+  return false;
 }
 
 
-cnBool cnrProcess(
+bool cnrProcess(
   cnrGame* game,
-  cnBool (*process)(cnList(cnBag)* holdBags, cnList(cnBag)* passBags)
+  bool (*process)(cnList(cnBag)* holdBags, cnList(cnBag)* passBags)
 ) {
   cnList(cnBag) holdBags;
   cnList(cnList(cnEntity)*) entityLists;
   cnList(cnBag) passBags;
-  cnBool result = cnFalse;
+  bool result = false;
 
   // Init for safety.
   cnListInit(&holdBags, sizeof(cnBag));
@@ -211,7 +211,7 @@ cnBool cnrProcess(
   if (!process(&holdBags, &passBags)) cnFailTo(DONE);
 
   // Winned.
-  result = cnTrue;
+  result = true;
 
   DONE:
   // Bags and entities. The entity lists get disposed with the first call,
@@ -223,24 +223,24 @@ cnBool cnrProcess(
 }
 
 
-cnBool cnrProcessExport(cnList(cnBag)* holdBags, cnList(cnBag)* passBags) {
+bool cnrProcessExport(cnList(cnBag)* holdBags, cnList(cnBag)* passBags) {
   // Export stuff.
   // TODO Allow specifying file names? Choose automatically by date?
   // TODO Option for learning in concuno rather than saving?
   if (!cnrSaveBags("keepaway-hold-bags.json", holdBags)) cnFailTo(FAIL);
   if (!cnrSaveBags("keepaway-pass-bags.json", passBags)) cnFailTo(FAIL);
-  return cnTrue;
+  return true;
 
   FAIL:
-  return cnFalse;
+  return false;
 }
 
 
-cnBool cnrProcessLearn(cnList(cnBag)* holdBags, cnList(cnBag)* passBags) {
+bool cnrProcessLearn(cnList(cnBag)* holdBags, cnList(cnBag)* passBags) {
   cnList(cnEntityFunction*) functions;
   cnRootNode* learnedTree = NULL;
   cnLearner learner;
-  cnBool result = cnFalse;
+  bool result = false;
   cnSchema schema;
 
   // Inits.
@@ -266,7 +266,7 @@ cnBool cnrProcessLearn(cnList(cnBag)* holdBags, cnList(cnBag)* passBags) {
   printf("\n");
 
   // Winned.
-  result = cnTrue;
+  result = true;
 
   DONE:
   cnNodeDrop(&learnedTree->node);
@@ -280,14 +280,14 @@ cnBool cnrProcessLearn(cnList(cnBag)* holdBags, cnList(cnBag)* passBags) {
 }
 
 
-cnBool cnrSaveBags(const char* name, cnList(cnBag)* bags) {
+bool cnrSaveBags(const char* name, cnList(cnBag)* bags) {
   const unsigned char* buffer;
   size_t bufferSize;
   ofstream file;
   yajl_gen gen = NULL;
   const char* itemsKey = "items";
   const char* locationKey = "location";
-  cnBool result = cnFalse;
+  bool result = false;
 
   printf("Writing %s\n", name);
   if (!(gen = yajl_gen_alloc(NULL))) cnErrTo(DONE, "No json formatter.");
@@ -295,7 +295,7 @@ cnBool cnrSaveBags(const char* name, cnList(cnBag)* bags) {
   file.open(name); if (!file) throw "Failed to open output file.";
 
   if (!(
-    yajl_gen_config(gen, yajl_gen_beautify, cnTrue) &&
+    yajl_gen_config(gen, yajl_gen_beautify, true) &&
     yajl_gen_config(gen, yajl_gen_indent_string, "  ")
   )) cnFailTo(DONE);
   if (yajl_gen_array_open(gen) || yajl_gen_array_open(gen)) cnFailTo(DONE);
@@ -365,7 +365,7 @@ cnBool cnrSaveBags(const char* name, cnList(cnBag)* bags) {
   if (!file) throw "Failed to close file.";
 
   // Winned.
-  result = cnTrue;
+  result = true;
 
   DONE:
   if (gen) yajl_gen_free(gen);

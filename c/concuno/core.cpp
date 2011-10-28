@@ -45,7 +45,7 @@ void cnHeapClear(cnHeapAny* heap) {
 }
 
 
-cnHeapAny* cnHeapCreate(cnBool (*less)(cnRefAny info, cnRefAny a, cnRefAny b)) {
+cnHeapAny* cnHeapCreate(bool (*less)(cnRefAny info, cnRefAny a, cnRefAny b)) {
   cnHeapAny* heap = cnAlloc(cnHeapAny, 1);
   if (!heap) cnErrTo(DONE, "No heap.");
   heap->destroyInfo = NULL;
@@ -171,11 +171,11 @@ cnRefAny cnHeapPull(cnHeapAny* heap) {
 }
 
 
-cnBool cnHeapPush(cnHeapAny* heap, cnRefAny item) {
-  cnBool result = cnFalse;
+bool cnHeapPush(cnHeapAny* heap, cnRefAny item) {
+  bool result = false;
   if (!cnListPush(&heap->items, &item)) cnErrTo(DONE, "No push.");
   cnHeapUp(heap, heap->items.count - 1);
-  result = cnTrue;
+  result = true;
   DONE:
   return result;
 }
@@ -203,15 +203,15 @@ void cnHeapUp(cnHeapAny* heap, cnIndex index) {
 }
 
 
-cnBool cnIsNaN(cnFloat x) {
+bool cnIsNaN(cnFloat x) {
   // TODO Technique from:
   // http://stackoverflow.com/questions/570669/...
   // checking-if-a-double-or-float-is-nan-in-c
   // TODO _isnan for Windows?
   //  volatile double d = x;
-  //  return cnBoolify(d != d);
+  //  return d != d;
   #ifdef isnan
-    return cnBoolify(isnan(x));
+    return isnan(x);
   #else
     return x != x;
   #endif
@@ -410,7 +410,7 @@ void cnStringInit(cnString* string) {
 }
 
 
-cnBool cnStringPushChar(cnString* string, char c) {
+bool cnStringPushChar(cnString* string, char c) {
   char* str;
   // Push a char, even though we'll soon swap it.
   // This gives us at least the right space.
@@ -418,22 +418,22 @@ cnBool cnStringPushChar(cnString* string, char c) {
   if (!string->reservedCount) {
     // Extra allocation because we need two chars for the first.
     if (!cnListPush(string, &c)) {
-      return cnFalse;
+      return false;
     }
   }
   if (!cnListPush(string, &c)) {
     // TODO Anything to do with null chars for failure?
-    return cnFalse;
+    return false;
   }
   // Now swap the null char and the final.
   str = reinterpret_cast<char*>(string->items);
   str[string->count - 2] = c;
   str[string->count - 1] = '\0';
-  return cnTrue;
+  return true;
 }
 
 
-cnBool cnStringPushStr(cnString* string, const char* str) {
+bool cnStringPushStr(cnString* string, const char* str) {
   char* formerEnd;
   bool wasEmpty = !string->reservedCount;
   cnCount extra = strlen(str);
@@ -444,7 +444,7 @@ cnBool cnStringPushStr(cnString* string, const char* str) {
   // Make space.
   formerEnd = reinterpret_cast<char*>(cnListExpandMulti(string, extra));
   if (!formerEnd) {
-    return cnFalse;
+    return false;
   }
   if (!wasEmpty) {
     // Overwrite the old null char.
@@ -452,5 +452,5 @@ cnBool cnStringPushStr(cnString* string, const char* str) {
   }
   // Copy including the null char, and we're done.
   strcpy(formerEnd, str);
-  return cnTrue;
+  return true;
 }

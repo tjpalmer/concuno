@@ -34,12 +34,12 @@ typedef struct stItem {
    *
    * This is somewhat cheating. Maybe ignore it.
    */
-  cnBool grasped;
+  bool grasped;
 
   /**
    * Only ever true for tools.
    */
-  cnBool grasping;
+  bool grasping;
 
   stId id;
 
@@ -58,7 +58,7 @@ typedef struct stItem {
 
 typedef struct stState {
 
-  cnBool cleared;
+  bool cleared;
 
   cnList(stItem) items;
 
@@ -75,7 +75,7 @@ void stItemInit(stItem* item);
  *
  * Dispose with cnSchemaDispose (since nothing special needed here).
  */
-cnBool stSchemaInit(cnSchema* schema);
+bool stSchemaInit(cnSchema* schema);
 
 
 void stStateDispose(stState* state);
@@ -87,7 +87,7 @@ stItem* stStateFindItem(stState* state, stId id);
 void stStateInit(stState* state);
 
 
-cnBool stStateCopy(stState* to, stState* from);
+bool stStateCopy(stState* to, stState* from);
 
 
 #endif

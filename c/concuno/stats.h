@@ -92,7 +92,7 @@ void cnGaussianDispose(cnGaussian* gaussian);
  *
  * TODO Init to mean zero and identity cov? Or just NaNs?
  */
-cnBool cnGaussianInit(cnGaussian* gaussian, cnCount dims, cnFloat* mean);
+bool cnGaussianInit(cnGaussian* gaussian, cnCount dims, cnFloat* mean);
 
 
 /**
@@ -136,9 +136,9 @@ void cnMultinomialSample(cnMultinomial multinomial, cnCount* out);
  * The handler receives the permutations of options in sequence, given the count
  * back again for convenience and the provided data pointer.
  */
-cnBool cnPermutations(
+bool cnPermutations(
   cnCount options, cnCount count,
-  cnBool (*handler)(void* data, cnCount count, cnIndex* permutation),
+  bool (*handler)(void* data, cnCount count, cnIndex* permutation),
   void* data
 );
 

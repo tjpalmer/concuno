@@ -331,7 +331,7 @@ void cnBindingBagListDrop(cnBindingBagList** list);
 /**
  * Push on the bags as new empty bindings on the given list.
  */
-cnBool cnBindingBagListPushBags(
+bool cnBindingBagListPushBags(
   cnBindingBagList* bindingBags, const cnList(cnBag)* bags
 );
 
@@ -342,7 +342,7 @@ cnBool cnBindingBagListPushBags(
  *
  * TODO If entities were a sized 2D grid, we could avoid the count here.
  */
-cnBool cnBindingValid(cnCount entityCount, cnEntity* entities);
+bool cnBindingValid(cnCount entityCount, cnEntity* entities);
 
 
 /**
@@ -417,7 +417,7 @@ void cnNodeInit(cnNode* node, cnNodeType type);
 /**
  * Stores all leaves under this node in the given list.
  */
-cnBool cnNodeLeaves(cnNode* node, cnList(cnLeafNode*)* leaves);
+bool cnNodeLeaves(cnNode* node, cnList(cnLeafNode*)* leaves);
 
 
 /**
@@ -426,7 +426,7 @@ cnBool cnNodeLeaves(cnNode* node, cnList(cnLeafNode*)* leaves);
  *
  * The leaf binding bags are not cleared out.
  */
-cnBool cnNodePropagateBindingBag(
+bool cnNodePropagateBindingBag(
   cnNode* node, cnBindingBag* bindingBag,
   cnList(cnLeafBindingBag)* leafBindingBags
 );
@@ -436,7 +436,7 @@ cnBool cnNodePropagateBindingBag(
  * Propagates multiple binding bags to the leaves, storing a leaf bindings group
  * for each leaf.
  */
-cnBool cnNodePropagateBindingBags(
+bool cnNodePropagateBindingBags(
   cnNode* node, cnList(cnBindingBag)* bindingBags,
   cnList(cnLeafBindingBagGroup)* leafBindingBagGroups
 );
@@ -480,10 +480,10 @@ void cnPointBagInit(cnPointBag* pointBag);
  * Even if it fails, it is safe to call dispose of the root after calling this
  * function.
  */
-cnBool cnRootNodeInit(cnRootNode* root, cnBool addLeaf);
+bool cnRootNodeInit(cnRootNode* root, bool addLeaf);
 
 
-cnSplitNode* cnSplitNodeCreate(cnBool addLeaves);
+cnSplitNode* cnSplitNodeCreate(bool addLeaves);
 
 
 /**
@@ -509,7 +509,7 @@ cnPointBag* cnSplitNodePointBag(
  * TODO Guaranteed to be in the same order as the binding bags and bindings,
  * TODO except for the duplicates issue.
  */
-cnBool cnSplitNodePointBags(
+bool cnSplitNodePointBags(
   cnSplitNode* split,
   cnList(cnBindingBag)* bindingBags,
   cnList(cnPointBag)* pointBags
@@ -533,7 +533,7 @@ cnFloat cnTreeLogMetric(cnRootNode* root, cnList(cnBag)* bags);
  *
  * No guarantee is made on the order of the counts coming out.
  */
-cnBool cnTreeMaxLeafCounts(
+bool cnTreeMaxLeafCounts(
   cnRootNode* root, cnList(cnLeafCount)* counts, cnList(cnBag)* bags
 );
 
@@ -543,7 +543,7 @@ cnBool cnTreeMaxLeafCounts(
  * outbound list with indices of the binding bags, but retaining only those
  * which are max for each leaf.
  */
-cnBool cnTreeMaxLeafBags(
+bool cnTreeMaxLeafBags(
   cnList(cnLeafBindingBagGroup)* groupsIn,
   cnList(cnList(cnIndex))* groupsMaxOut
 );
@@ -553,13 +553,13 @@ cnBool cnTreeMaxLeafBags(
  * Writes the tree to the given file, in a format readable by machines and
  * people.
  */
-cnBool cnTreeWrite(cnRootNode* tree, FILE* file);
+bool cnTreeWrite(cnRootNode* tree, FILE* file);
 
 
 /**
  * Propagates a bags to the leaves, storing a leaf binding bag for each leaf.
  */
-cnBool cnTreePropagateBag(
+bool cnTreePropagateBag(
   cnRootNode* tree, cnBag* bag, cnList(cnLeafBindingBag)* leafBindingBags
 );
 
@@ -570,13 +570,13 @@ cnBool cnTreePropagateBag(
  *
  * TODO Expose generic grouper function?
  */
-cnBool cnTreePropagateBags(
+bool cnTreePropagateBags(
   cnRootNode* tree, cnList(cnBag)* bags,
   cnList(cnLeafBindingBagGroup)* leafBindingBagGroups
 );
 
 
-cnVarNode* cnVarNodeCreate(cnBool addLeaf);
+cnVarNode* cnVarNodeCreate(bool addLeaf);
 
 
 cnCEnd;

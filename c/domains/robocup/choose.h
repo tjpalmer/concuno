@@ -5,7 +5,7 @@
 #include "domain.h"
 
 
-cnBool cnrChooseHoldsAndPasses(
+bool cnrChooseHoldsAndPasses(
   cnrGame* game,
   cnList(cnBag)* holdBags, cnList(cnBag)* passBags,
   cnList(cnList(cnEntity)*)* entityLists

@@ -14,8 +14,8 @@ void stItemInit(stItem* item) {
   item->alive = false;
   stFill(item->color, 0.0, f, end);
   stFill(item->extent, 0.0, f, end);
-  item->grasped = cnFalse;
-  item->grasping = cnFalse;
+  item->grasped = false;
+  item->grasping = false;
   item->id = 0; // TODO or -1?
   stFill(item->location, 0.0, f, end);
   item->orientation = 0.0;
@@ -25,12 +25,12 @@ void stItemInit(stItem* item) {
 }
 
 
-cnBool stSchemaInit(cnSchema* schema) {
+bool stSchemaInit(cnSchema* schema) {
   cnProperty* property;
   cnType* type;
 
   if (!cnSchemaInitDefault(schema)) {
-    return cnFalse;
+    return false;
   }
 
   // Item type.
@@ -66,18 +66,18 @@ cnBool stSchemaInit(cnSchema* schema) {
   )) goto FAIL;
 
   // Good to go.
-  return cnTrue;
+  return true;
 
   FAIL:
   cnSchemaDispose(schema);
-  return cnFalse;
+  return false;
 }
 
 
-cnBool stStateCopy(stState* to, stState* from) {
+bool stStateCopy(stState* to, stState* from) {
   *to = *from;
   cnListInit(&to->items, to->items.itemSize);
-  return cnBoolify(cnListPushAll(&to->items, &from->items));
+  return cnListPushAll(&to->items, &from->items);
 }
 
 
@@ -88,7 +88,7 @@ void stStateDispose(stState* state) {
 
 
 void stStateInit(stState* state) {
-  state->cleared = cnFalse;
+  state->cleared = false;
   cnListInit(&state->items, sizeof(stItem));
   state->time = 0;
 }

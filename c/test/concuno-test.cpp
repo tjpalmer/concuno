@@ -112,11 +112,11 @@ void testHeap_destroyItem(cnRefAny unused, cnRefAny item) {
   free(item);
 }
 
-cnBool testHeap_greater(cnRefAny unused, cnRefAny a, cnRefAny b) {
+bool testHeap_greater(cnRefAny unused, cnRefAny a, cnRefAny b) {
   cnFloat indexA = *(cnRef(cnFloat))a;
   cnFloat indexB = *(cnRef(cnFloat))b;
   // Make it a max heap for kicks.
-  return cnBoolify(indexA > indexB);
+  return indexA > indexB;
 }
 
 #define testHeap_COUNT 10
@@ -216,7 +216,7 @@ void testMultinomial(void) {
 }
 
 
-cnBool testPermutations_handle(
+bool testPermutations_handle(
   void *data, cnCount count, cnIndex *permutation
 ) {
   cnIndex* end = permutation + count;
@@ -224,7 +224,7 @@ cnBool testPermutations_handle(
     printf("%ld ", *permutation);
   }
   printf("\n");
-  return cnTrue;
+  return true;
 }
 
 void testPermutations(void) {
@@ -250,14 +250,14 @@ void testPropagate_charsDiffGet(
   }
 }
 
-cnBool testPropagate_equalEvaluate(cnPredicate* predicate, void* in) {
-  return cnBoolify(!*(cnFloat*)in);
+bool testPropagate_equalEvaluate(cnPredicate* predicate, void* in) {
+  return !*(cnFloat*)in;
 }
 
-cnBool testPropagate_write(
+bool testPropagate_write(
   cnPredicate* predicate, FILE* file, cnString* indent
 ) {
-  cnBool result = cnFalse;
+  bool result = false;
 
   // TODO Check error state?
   fprintf(file, "{");
@@ -267,7 +267,7 @@ cnBool testPropagate_write(
   fprintf(file, "}");
 
   // Winned!
-  result = cnTrue;
+  result = true;
 
   DONE:
   return result;
@@ -288,7 +288,7 @@ void testPropagate(void) {
   // Init stuff.
   cnListInit(&leafBindingBags, sizeof(cnLeafBindingBag));
   initOkay &= cnBagInit(&bag, NULL) ? true : false;
-  initOkay &= cnRootNodeInit(&tree, cnFalse) ? true : false;
+  initOkay &= cnRootNodeInit(&tree, false) ? true : false;
   if (!initOkay) cnErrTo(DONE, "Init failed.");
   // TODO Float required because of NaN convention. Fix this!
   if (!(type = cnTypeCreate("Float", sizeof(cnFloat)))) {
@@ -302,13 +302,13 @@ void testPropagate(void) {
 
   // Add var nodes.
   // Create and add nodes one at a time, so destruction will be automatic.
-  if (!(vars[0] = cnVarNodeCreate(cnFalse))) cnErrTo(DONE, "No var[0].");
+  if (!(vars[0] = cnVarNodeCreate(false))) cnErrTo(DONE, "No var[0].");
   cnNodePutKid(&tree.node, 0, &vars[0]->node);
-  if (!(vars[1] = cnVarNodeCreate(cnFalse))) cnErrTo(DONE, "No var[1].");
+  if (!(vars[1] = cnVarNodeCreate(false))) cnErrTo(DONE, "No var[1].");
   cnNodePutKid(&vars[0]->node, 0, &vars[1]->node);
 
   // Add split node.
-  if (!(split = cnSplitNodeCreate(cnTrue))) cnErrTo(DONE, "No split.");
+  if (!(split = cnSplitNodeCreate(true))) cnErrTo(DONE, "No split.");
   cnNodePutKid(&vars[1]->node, 0, &split->node);
   split->function = entityFunction;
   // Var indices.

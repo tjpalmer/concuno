@@ -90,7 +90,7 @@ cnCount cnBinomialSample(cnBinomial binomial) {
 }
 
 
-cnBool cnFunctionEvaluateMahalanobisDistance(
+bool cnFunctionEvaluateMahalanobisDistance(
   cnFunction* function, void* in, void* out
 ) {
   *((cnFloat*)out) = cnMahalanobisDistance(
@@ -98,7 +98,7 @@ cnBool cnFunctionEvaluateMahalanobisDistance(
     reinterpret_cast<cnFloat*>(in)
   );
   // Always good.
-  return cnTrue;
+  return true;
 }
 
 
@@ -124,11 +124,11 @@ void cnFunctionCreateMahalanobisDistance_dispose(cnFunction* function) {
   free(function->info);
 }
 
-cnBool cnFunctionCreateMahalanobisDistance_write(
+bool cnFunctionCreateMahalanobisDistance_write(
   cnFunction* function, FILE* file, cnString* indent
 ) {
   cnGaussian* gaussian = reinterpret_cast<cnGaussian*>(function->info);
-  cnBool result = cnFalse;
+  bool result = false;
 
   // TODO Check error state?
   fprintf(file, "{\n");
@@ -143,7 +143,7 @@ cnBool cnFunctionCreateMahalanobisDistance_write(
   fprintf(file, "%s}", cnStr(indent));
 
   // Winned!
-  result = cnTrue;
+  result = true;
 
   return result;
 }
@@ -169,7 +169,7 @@ void cnGaussianDispose(cnGaussian* gaussian) {
 }
 
 
-cnBool cnGaussianInit(cnGaussian* gaussian, cnCount dims, cnFloat* mean) {
+bool cnGaussianInit(cnGaussian* gaussian, cnCount dims, cnFloat* mean) {
   // Make space.
   gaussian->cov = cnAlloc(cnFloat, dims * dims);
   gaussian->mean = cnAlloc(cnFloat, dims);
@@ -188,11 +188,11 @@ cnBool cnGaussianInit(cnGaussian* gaussian, cnCount dims, cnFloat* mean) {
     }
   }
   // Good to go.
-  return cnTrue;
+  return true;
   // Or not.
   FAIL:
   cnGaussianDispose(gaussian);
-  return cnFalse;
+  return false;
 }
 
 
@@ -315,15 +315,15 @@ void cnMultinomialSample(cnMultinomial multinomial, cnCount* out) {
 }
 
 
-cnBool cnPermutations(
+bool cnPermutations(
   cnCount options, cnCount count,
-  cnBool (*handler)(void* info, cnCount count, cnIndex* permutation),
+  bool (*handler)(void* info, cnCount count, cnIndex* permutation),
   void* data
 ) {
-  cnBool result = cnFalse;
+  bool result = false;
   cnIndex c, o;
   cnIndex* permutation = cnAlloc(cnIndex, count);
-  cnBool* used = cnAlloc(cnBool, options);
+  bool* used = cnAlloc(bool, options);
   if (!(permutation && used)) cnErrTo(DONE, "No permutation or used.");
 
   // Sanity checks.
@@ -335,14 +335,14 @@ cnBool cnPermutations(
 
   // Clear out the info.
   for (c = 0; c < count; c++) permutation[c] = -1;
-  for (o = 0; o < options; o++) used[o] = cnFalse;
+  for (o = 0; o < options; o++) used[o] = false;
 
   // Loop until we've gone past the last option in the first spot.
   c = 0;
   while (c >= 0) {
     // Mark our current option free before moving on.
     if (permutation[c] >= 0) {
-      used[permutation[c]] = cnFalse;
+      used[permutation[c]] = false;
     } else {
       permutation[c] = -1;
     }
@@ -359,7 +359,7 @@ cnBool cnPermutations(
       c--;
     } else {
       // Found one. Move on.
-      used[permutation[c]] = cnTrue;
+      used[permutation[c]] = true;
       c++;
       if (c >= count) {
         // Past the end. Report the permutation, and move back.
@@ -371,7 +371,7 @@ cnBool cnPermutations(
     }
   }
   // We winned!
-  result = cnTrue;
+  result = true;
 
   DONE:
   free(permutation);

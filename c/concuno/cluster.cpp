@@ -8,16 +8,16 @@
 /**
  * TODO A dissimilarity metric, too.
  */
-cnBool cnCluster(cnCount size, cnCount count, cnFloat* points);
+bool cnCluster(cnCount size, cnCount count, cnFloat* points);
 
 
-cnBool cnDensityEstimate(cnCount size, cnCount count, cnFloat* points);
+bool cnDensityEstimate(cnCount size, cnCount count, cnFloat* points);
 
 
 void cnLogPoints(cnEntityFunction* function, cnCount count, cnFloat* points);
 
 
-cnBool cnCluster(cnCount size, cnCount count, cnFloat* points) {
+bool cnCluster(cnCount size, cnCount count, cnFloat* points) {
   cnFloat* point;
   cnFloat* pointsEnd = points + size * count;
   cnDensityEstimate(size, count, points);
@@ -28,12 +28,12 @@ cnBool cnCluster(cnCount size, cnCount count, cnFloat* points) {
     // TODO Mean shift or something.
     break;
   }
-  return cnTrue;
+  return true;
 }
 
 
-cnBool cnClusterOnFunction(cnList(cnBag)* bags, cnEntityFunction* function) {
-  cnBool result = cnFalse;
+bool cnClusterOnFunction(cnList(cnBag)* bags, cnEntityFunction* function) {
+  bool result = false;
   cnFloat* point;
   cnFloat* points;
   cnCount pointCount = 0;
@@ -54,7 +54,7 @@ cnBool cnClusterOnFunction(cnList(cnBag)* bags, cnEntityFunction* function) {
   printf("%ld points total\n", pointCount);
   points = cnAlloc(cnFloat, pointCount * function->outCount);
   if (!points) {
-    return cnFalse;
+    return false;
   }
 
   // Get the point data.
@@ -74,7 +74,7 @@ cnBool cnClusterOnFunction(cnList(cnBag)* bags, cnEntityFunction* function) {
 }
 
 
-cnBool cnDensityEstimate(cnCount size, cnCount count, cnFloat* points) {
+bool cnDensityEstimate(cnCount size, cnCount count, cnFloat* points) {
 
   // TODO Replace all this with precalculated kernel mask and array-based
   // TODO convolution? Or else more clever knn?
@@ -98,7 +98,7 @@ cnBool cnDensityEstimate(cnCount size, cnCount count, cnFloat* points) {
   FILE *file = fopen("cnDensityEstimate.log", "w");
 
   // Check okay, find bounds, and determine step size.
-  if (!(max && stepIndices)) return cnFalse;
+  if (!(max && stepIndices)) return false;
   cnVectorMax(size, max, count, points);
   cnVectorMin(size, min, count, points);
   for (dim = 0; dim < size; dim++) {
@@ -166,7 +166,7 @@ cnBool cnDensityEstimate(cnCount size, cnCount count, cnFloat* points) {
   cnStackFree(max);
   cnStackFree(stepIndices);
   fclose(file);
-  return cnTrue;
+  return true;
 }
 
 

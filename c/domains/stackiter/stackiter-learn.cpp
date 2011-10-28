@@ -3,7 +3,7 @@
 #include "stackiter-learn.h"
 
 
-cnBool stClusterStuff(
+bool stClusterStuff(
   cnList(stState)* states, cnList(cnEntityFunction*)* functions
 );
 
@@ -13,15 +13,15 @@ void stDisposeSchemaAndEntityFunctions(
 );
 
 
-cnBool stInitSchemaAndEntityFunctions(
+bool stInitSchemaAndEntityFunctions(
   cnSchema* schema, cnList(cnEntityFunction*)* functions
 );
 
 
-cnBool stLearnConcept(
+bool stLearnConcept(
   cnList(stState)* states,
   cnList(cnEntityFunction*)* functions,
-  cnBool (*choose)(
+  bool (*choose)(
     cnList(stState)* states, cnList(cnBag)* bags,
     cnList(cnList(cnEntity)*)* entityLists
   )
@@ -95,12 +95,12 @@ int main(int argc, char** argv) {
 }
 
 
-cnBool stClusterStuff(
+bool stClusterStuff(
   cnList(stState)* states, cnList(cnEntityFunction*)* functions
 ) {
   cnList(cnBag) bags;
   cnEntityFunction* function;
-  cnBool result = cnFalse;
+  bool result = false;
 
   // Choose out the states we want to focus on.
   cnListInit(&bags, sizeof(cnBag));
@@ -116,7 +116,7 @@ cnBool stClusterStuff(
   }
 
   // TODO Cluster!
-  result = cnTrue;
+  result = true;
 
   DISPOSE_BAGS:
   cnListEachBegin(&bags, cnBag, bag) {
@@ -141,7 +141,7 @@ void stDisposeSchemaAndEntityFunctions(
 }
 
 
-cnBool stInitSchemaAndEntityFunctions(
+bool stInitSchemaAndEntityFunctions(
   cnSchema* schema, cnList(cnEntityFunction*)* functions
 ) {
   cnEntityFunction* function;
@@ -151,7 +151,7 @@ cnBool stInitSchemaAndEntityFunctions(
   if (!stSchemaInit(schema)) {
     printf("Failed to init schema.\n");
     // Nothing to clean up yet.
-    return cnFalse;
+    return false;
   }
 
   // Set up entity functions.
@@ -161,7 +161,7 @@ cnBool stInitSchemaAndEntityFunctions(
   itemType = reinterpret_cast<cnType*>(cnListGetPointer(&schema->types, 1));
 
   // Valid.
-  if (cnTrue) {
+  if (true) {
     if (!cnPushValidFunction(functions, schema, 1)) {
       cnErrTo(FAIL, "Failed to push Valid1.");
     }
@@ -171,7 +171,7 @@ cnBool stInitSchemaAndEntityFunctions(
   }
 
   // Color.
-  if (cnTrue) {
+  if (true) {
     if (!(function = cnPushPropertyFunction(
       functions,
       reinterpret_cast<cnProperty*>(cnListGet(&itemType->properties, 0))
@@ -187,7 +187,7 @@ cnBool stInitSchemaAndEntityFunctions(
   }
 
   // Location.
-  if (cnTrue) {
+  if (true) {
     // TODO Look up the property by name.
     if (!(function = cnPushPropertyFunction(
       functions,
@@ -209,7 +209,7 @@ cnBool stInitSchemaAndEntityFunctions(
   }
 
   // Velocity.
-  if (cnFalse) {
+  if (false) {
     // TODO Look up the property by name.
     if (!(function = cnPushPropertyFunction(
       functions,
@@ -221,19 +221,19 @@ cnBool stInitSchemaAndEntityFunctions(
   }
 
   // We made it!
-  return cnTrue;
+  return true;
 
   FAIL:
   // Clean it all up if we fail.
   stDisposeSchemaAndEntityFunctions(schema, functions);
-  return cnFalse;
+  return false;
 }
 
 
-cnBool stLearnConcept(
+bool stLearnConcept(
   cnList(stState)* states,
   cnList(cnEntityFunction*)* functions,
-  cnBool (*choose)(
+  bool (*choose)(
     cnList(stState)* states, cnList(cnBag)* bags,
     cnList(cnList(cnEntity)*)* entityLists
   )
@@ -242,7 +242,7 @@ cnBool stLearnConcept(
   cnList(cnList(cnEntity)*) entityLists;
   cnRootNode* learnedTree = NULL;
   cnLearner learner;
-  cnBool result = cnFalse;
+  bool result = false;
   cnCount trueCount;
 
   // Init for safety.
@@ -278,7 +278,7 @@ cnBool stLearnConcept(
 
   // We made it!
   // TODO Any stats?
-  result = cnTrue;
+  result = true;
 
   // Dispose of the learned tree.
   cnNodeDrop(&learnedTree->node);

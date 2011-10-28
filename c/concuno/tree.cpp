@@ -9,7 +9,7 @@
 void cnLeafNodeInit(cnLeafNode* leaf);
 
 
-cnBool cnLeafNodePropagateBindingBag(
+bool cnLeafNodePropagateBindingBag(
   cnLeafNode* leaf, cnBindingBag* bindingBag,
   cnList(cnLeafBindingBag)* leafBindingBags
 );
@@ -18,7 +18,7 @@ cnBool cnLeafNodePropagateBindingBag(
 void cnRootNodeDispose(cnRootNode* root);
 
 
-cnBool cnRootNodePropagateBindingBag(
+bool cnRootNodePropagateBindingBag(
   cnRootNode* root, cnBindingBag* bindingBag,
   cnList(cnLeafBindingBag)* leafBindingBags
 );
@@ -27,10 +27,10 @@ cnBool cnRootNodePropagateBindingBag(
 void cnSplitNodeDispose(cnSplitNode* split);
 
 
-cnBool cnSplitNodeInit(cnSplitNode* split, cnBool addLeaves);
+bool cnSplitNodeInit(cnSplitNode* split, bool addLeaves);
 
 
-cnBool cnSplitNodePropagateBindingBag(
+bool cnSplitNodePropagateBindingBag(
   cnSplitNode* split, cnBindingBag* bindingBag,
   cnList(cnLeafBindingBag)* leafBindingBags
 );
@@ -39,10 +39,10 @@ cnBool cnSplitNodePropagateBindingBag(
 void cnVarNodeDispose(cnVarNode* var);
 
 
-cnBool cnVarNodeInit(cnVarNode* var, cnBool addLeaf);
+bool cnVarNodeInit(cnVarNode* var, bool addLeaf);
 
 
-cnBool cnVarNodePropagateBindingBag(
+bool cnVarNodePropagateBindingBag(
   cnVarNode* var, cnBindingBag* bindingBag,
   cnList(cnLeafBindingBag)* leafBindingBags
 );
@@ -93,14 +93,14 @@ void cnBindingBagListDrop(cnBindingBagList** list) {
 }
 
 
-cnBool cnBindingBagListPushBags(
+bool cnBindingBagListPushBags(
   cnBindingBagList* bindingBags, const cnList(cnBag)* bags
 ) {
   // Preallocate all the space we need.
   cnBindingBag* bindingBag = reinterpret_cast<cnBindingBag*>(
     cnListExpandMulti(&bindingBags->bindingBags, bags->count)
   );
-  if (!bindingBag) return cnFalse;
+  if (!bindingBag) return false;
   // Now init each one.
   cnListEachBegin(bags, cnBag, bag) {
     cnBindingBagInit(bindingBag, bag, 0);
@@ -108,20 +108,20 @@ cnBool cnBindingBagListPushBags(
     bindingBag->bindings.count++;
     bindingBag++;
   } cnEnd;
-  return cnTrue;
+  return true;
 }
 
 
-cnBool cnBindingValid(cnCount entityCount, cnEntity* entities) {
+bool cnBindingValid(cnCount entityCount, cnEntity* entities) {
   cnEntity* entity = entities;
   cnEntity* end = entities + entityCount;
   for (; entity < end; entity++) {
     if (!*entity) {
       // Bogus/dummy binding.
-      return cnFalse;
+      return false;
     }
   }
-  return cnTrue;
+  return true;
 }
 
 
@@ -140,12 +140,12 @@ cnFloat cnCountsLogMetric(cnList(cnLeafCount)* counts) {
 }
 
 
-cnBool cnGroupLeafBindingBags(
+bool cnGroupLeafBindingBags(
   cnList(cnLeafBindingBagGroup)* leafBindingBagGroups,
   cnList(cnLeafBindingBag)* leafBindingBags
 ) {
   cnLeafBindingBagGroup* group;
-  cnBool result = cnFalse;
+  bool result = false;
 
   // See if we already have space in the output list. This is needed only for
   // the first bag, but it's convenient just to leave in place for now.
@@ -196,7 +196,7 @@ cnBool cnGroupLeafBindingBags(
   cnListClear(leafBindingBags);
 
   // Winned.
-  result = cnTrue;
+  result = true;
 
   DONE:
   return result;
@@ -302,11 +302,11 @@ void cnLeafNodeInit(cnLeafNode* leaf) {
 }
 
 
-cnBool cnLeafNodePropagateBindingBag(
+bool cnLeafNodePropagateBindingBag(
   cnLeafNode* leaf, cnBindingBag* bindingBag,
   cnList(cnLeafBindingBag)* leafBindingBags
 ) {
-  cnBool result = cnFalse;
+  bool result = false;
   cnLeafBindingBag* binding =
     reinterpret_cast<cnLeafBindingBag*>(cnListExpand(leafBindingBags));
 
@@ -324,7 +324,7 @@ cnBool cnLeafNodePropagateBindingBag(
   }
 
   // Winned!
-  result = cnTrue;
+  result = true;
 
   DONE:
   return result;
@@ -377,7 +377,7 @@ cnNode** cnNodeKids(cnNode* node) {
   case cnNodeTypeVar:
     return &((cnVarNode*)node)->kid;
   default:
-    assert(cnFalse);
+    assert(false);
     return NULL; // to avoid warnings.
   }
 }
@@ -393,32 +393,32 @@ cnCount cnNodeKidCount(cnNode* node) {
   case cnNodeTypeSplit:
     return 3;
   default:
-    assert(cnFalse);
+    assert(false);
     return 0; // to avoid warnings.
   }
 }
 
 
-cnBool cnNodeLeaves(cnNode* node, cnList(cnLeafNode*)* leaves) {
+bool cnNodeLeaves(cnNode* node, cnList(cnLeafNode*)* leaves) {
   cnCount count = cnNodeKidCount(node);
   cnNode** kid = cnNodeKids(node);
   cnNode** end = kid + count;
   for (; kid < end; kid++) {
     if ((*kid)->type == cnNodeTypeLeaf) {
       if (!cnListPush(leaves, kid)) {
-        return cnFalse;
+        return false;
       }
     } else {
       if (!cnNodeLeaves(*kid, leaves)) {
-        return cnFalse;
+        return false;
       }
     }
   }
-  return cnTrue;
+  return true;
 }
 
 
-cnBool cnNodePropagateBindingBag(
+bool cnNodePropagateBindingBag(
   cnNode* node, cnBindingBag* bindingBag,
   cnList(cnLeafBindingBag)* leafBindingBags
 ) {
@@ -442,17 +442,17 @@ cnBool cnNodePropagateBindingBag(
     );
   default:
     printf("I don't handle type %u for prop.\n", node->type);
-    return cnFalse;
+    return false;
   }
 }
 
 
-cnBool cnNodePropagateBindingBags(
+bool cnNodePropagateBindingBags(
   cnNode* node, cnList(cnBindingBag)* bindingBags,
   cnList(cnLeafBindingBagGroup)* leafBindingBagGroups
 ) {
   cnList(cnLeafBindingBag) leafBindingBags;
-  cnBool result = cnFalse;
+  bool result = false;
 
   // Init.
   cnListInit(&leafBindingBags, sizeof(cnLeafBindingBag));
@@ -470,7 +470,7 @@ cnBool cnNodePropagateBindingBags(
   } cnEnd;
 
   // Winned!
-  result = cnTrue;
+  result = true;
 
   DONE:
   cnListDispose(&leafBindingBags);
@@ -555,11 +555,11 @@ void cnRootNodeDispose(cnRootNode* root) {
     cnNodeDrop(root->kid);
   }
   // TODO Anything else special?
-  cnRootNodeInit(root, cnFalse);
+  cnRootNodeInit(root, false);
 }
 
 
-cnBool cnRootNodeInit(cnRootNode* root, cnBool addLeaf) {
+bool cnRootNodeInit(cnRootNode* root, bool addLeaf) {
   cnNodeInit(&root->node, cnNodeTypeRoot);
   root->node.id = 0;
   root->kid = NULL;
@@ -567,26 +567,26 @@ cnBool cnRootNodeInit(cnRootNode* root, cnBool addLeaf) {
   if (addLeaf) {
     cnLeafNode* leaf = cnLeafNodeCreate();
     if (!leaf) {
-      return cnFalse;
+      return false;
     }
     cnNodePutKid(&root->node, 0, &leaf->node);
   }
-  return cnTrue;
+  return true;
 }
 
 
-cnBool cnRootNodePropagateBindingBag(
+bool cnRootNodePropagateBindingBag(
   cnRootNode* root, cnBindingBag* bindingBag,
   cnList(cnLeafBindingBag)* leafBindingBags
 ) {
   if (root->kid) {
     return cnNodePropagateBindingBag(root->kid, bindingBag, leafBindingBags);
   }
-  return cnTrue;
+  return true;
 }
 
 
-cnSplitNode* cnSplitNodeCreate(cnBool addLeaves) {
+cnSplitNode* cnSplitNodeCreate(bool addLeaves) {
   cnSplitNode* split = cnAlloc(cnSplitNode, 1);
   if (!split) return NULL;
   if (!cnSplitNodeInit(split, addLeaves)) {
@@ -610,11 +610,11 @@ void cnSplitNodeDispose(cnSplitNode* split) {
   }
   free(split->varIndices);
   // TODO Anything else special?
-  cnSplitNodeInit(split, cnFalse);
+  cnSplitNodeInit(split, false);
 }
 
 
-cnBool cnSplitNodeInit(cnSplitNode* split, cnBool addLeaves) {
+bool cnSplitNodeInit(cnSplitNode* split, bool addLeaves) {
   cnNode** kid;
   cnNode** end = split->kids + cnSplitCount;
   cnNodeInit(&split->node, cnNodeTypeSplit);
@@ -631,12 +631,12 @@ cnBool cnSplitNodeInit(cnSplitNode* split, cnBool addLeaves) {
       cnLeafNode* leaf = cnLeafNodeCreate();
       if (!leaf) {
         cnNodeDispose(&split->node);
-        return cnFalse;
+        return false;
       }
       cnNodePutKid(&split->node, k, &leaf->node);
     }
   }
-  return cnTrue;
+  return true;
 }
 
 
@@ -829,13 +829,13 @@ cnPointBag* cnSplitNodePointBag(
 }
 
 
-cnBool cnSplitNodePointBags(
+bool cnSplitNodePointBags(
   cnSplitNode* split,
   cnList(cnBindingBag)* bindingBags,
   cnList(cnPointBag)* pointBags
 ) {
   cnPointBag* pointBag;
-  cnBool result = cnFalse;
+  bool result = false;
   cnCount validBindingsCount = 0;
 
   // Init first for safety.
@@ -869,7 +869,7 @@ cnBool cnSplitNodePointBags(
   printf("Points built: %ld\n", validBindingsCount);
 
   // It all worked.
-  result = cnTrue;
+  result = true;
   goto DONE;
 
   FAIL:
@@ -883,11 +883,11 @@ cnBool cnSplitNodePointBags(
 }
 
 
-cnBool cnSplitNodePropagateBindingBag(
+bool cnSplitNodePropagateBindingBag(
   cnSplitNode* split, cnBindingBag* bindingBag,
   cnList(cnLeafBindingBag)* leafBindingBags
 ) {
-  cnBool allToErr = cnFalse;
+  bool allToErr = false;
   cnIndex b;
   cnBindingBag bagsOut[cnSplitCount];
   cnIndex p;
@@ -895,7 +895,7 @@ cnBool cnSplitNodePropagateBindingBag(
   cnPointBag* pointBag = NULL;
   cnFloat* pointsEnd;
   cnBindingBag** pointBindingBagOuts = NULL;
-  cnBool result = cnFalse;
+  bool result = false;
   cnNode* yes = split->kids[cnSplitYes];
   cnNode* no = split->kids[cnSplitNo];
   cnNode* err = split->kids[cnSplitErr];
@@ -913,12 +913,12 @@ cnBool cnSplitNodePropagateBindingBag(
 
   // Check error cases.
   if (!(yes && no && err)) {
-    result = cnTrue;
+    result = true;
     goto DONE;
   }
   if (!(split->function && split->predicate)) {
     // No way to say where to go, so go to error node.
-    allToErr = cnTrue;
+    allToErr = true;
     goto PROPAGATE;
   }
 
@@ -942,13 +942,13 @@ cnBool cnSplitNodePropagateBindingBag(
     pointBag->pointMatrix.pointCount * pointBag->pointMatrix.valueCount;
   for (; point < pointsEnd; point += pointBag->pointMatrix.valueCount) {
     // Check for error.
-    cnBool allGood = cnTrue;
+    bool allGood = true;
     cnFloat* value = point;
     cnFloat* pointEnd = point + split->function->outCount;
     // TODO Let the function tell us instead of explicitly checking bad?
     for (value = point; value < pointEnd; value++) {
       if (cnIsNaN(*value)) {
-        allGood = cnFalse;
+        allGood = false;
         break;
       }
     }
@@ -998,7 +998,7 @@ cnBool cnSplitNodePropagateBindingBag(
   }
 
   // Winned!
-  result = cnTrue;
+  result = true;
 
   DONE:
   free(pointBindingBagOuts);
@@ -1017,11 +1017,11 @@ cnBool cnSplitNodePropagateBindingBag(
 }
 
 
-cnBool cnTreeCopy_handleSplit(cnSplitNode* source, cnSplitNode* copy) {
+bool cnTreeCopy_handleSplit(cnSplitNode* source, cnSplitNode* copy) {
   if (source->varIndices) {
     // TODO Assert source->function?
     copy->varIndices = cnAlloc(cnIndex, source->function->inCount);
-    if (!copy->varIndices) return cnFalse;
+    if (!copy->varIndices) return false;
     if (copy->varIndices) {
       memcpy(
         copy->varIndices, source->varIndices,
@@ -1037,14 +1037,14 @@ cnBool cnTreeCopy_handleSplit(cnSplitNode* source, cnSplitNode* copy) {
         // Clean up this, too.
         free(copy->varIndices);
       }
-      return cnFalse;
+      return false;
     }
   }
-  return cnTrue;
+  return true;
 }
 
 cnNode* cnTreeCopy(cnNode* node) {
-  bool anyFailed = cnFalse;
+  bool anyFailed = false;
   cnNode* copy = NULL;
   cnNode** end;
   cnNode** kid;
@@ -1075,7 +1075,7 @@ cnNode* cnTreeCopy(cnNode* node) {
   for (; kid < end; kid++) {
     *kid = anyFailed ? NULL : cnTreeCopy(*kid);
     if (!*kid) {
-      anyFailed = cnTrue;
+      anyFailed = true;
       continue;
     }
     (*kid)->parent = copy;
@@ -1124,13 +1124,13 @@ int cnTreeMaxLeafCounts_compareLeafProbsDown(const void* a, const void* b) {
     -1;
 }
 
-cnBool cnTreeMaxLeafCounts(
+bool cnTreeMaxLeafCounts(
   cnRootNode* root, cnList(cnLeafCount)* counts, cnList(cnBag)* bags
 ) {
   cnIndex b;
-  cnBool* bagsUsed = NULL;
+  bool* bagsUsed = NULL;
   cnList(cnLeafBindingBagGroup) groups;
-  cnBool result = cnFalse;
+  bool result = false;
 
   // First propagate bags, and gather leaves.
   // TODO Bindings out of leaves, then extra function to get the lists.
@@ -1147,10 +1147,10 @@ cnBool cnTreeMaxLeafCounts(
 
   // Prepare space to track which bags have been used up already.
   // TODO Could be bit-efficient, since bools, but don't stress it.
-  bagsUsed = cnAlloc(cnBool, bags->count);
+  bagsUsed = cnAlloc(bool, bags->count);
   if (!bagsUsed) cnErrTo(DONE, "No used tracking.");
   // Clear it out manually, fearing bit representations.
-  for (b = 0; b < bags->count; b++) bagsUsed[b] = cnFalse;
+  for (b = 0; b < bags->count; b++) bagsUsed[b] = false;
 
   // Sort the leaves down by probability. Not too many leaves, so no worries.
   qsort(
@@ -1182,11 +1182,11 @@ cnBool cnTreeMaxLeafCounts(
       } else {
         count->negCount++;
       }
-      bagsUsed[bagIndex] = cnTrue;
+      bagsUsed[bagIndex] = true;
     } cnEnd;
   } cnEnd;
   // All done!
-  result = cnTrue;
+  result = true;
 
   DONE:
   free(bagsUsed);
@@ -1213,7 +1213,7 @@ int cnTreeMaxLeafBags_compareLeafProbsDown(const void* a, const void* b) {
     -1;
 }
 
-cnBool cnTreeMaxLeafBags(
+bool cnTreeMaxLeafBags(
   cnList(cnLeafBindingBagGroup)* groupsIn,
   cnList(cnList(cnIndex))* groupsMaxOut
 ) {
@@ -1221,10 +1221,10 @@ cnBool cnTreeMaxLeafBags(
   cnCount bagCount;
   cnBag* bags = NULL;
   cnBag* bagsEnd = NULL;
-  cnBool* bagsUsed = NULL;
+  bool* bagsUsed = NULL;
   cnIndex g;
   cnTreeMaxLeafBags_IndexedGroup* indexedGroupsIn = NULL;
-  cnBool result = cnFalse;
+  bool result = false;
 
   // TODO Can I generify this enough to unify max bags and max counts somewhat?
   // TODO That is, with callbacks in the later loops?
@@ -1266,9 +1266,9 @@ cnBool cnTreeMaxLeafBags(
   // Init which bags used. First, we need to find how many and where they start.
   cnLeafBindingBagGroupListLimits(groupsIn, &bags, &bagsEnd);
   bagCount = bagsEnd - bags;
-  bagsUsed = cnAlloc(cnBool, bagCount);
+  bagsUsed = cnAlloc(bool, bagCount);
   if (!bagsUsed) cnErrTo(FAIL, "No bags used array.");
-  for (b = 0; b < bagCount; b++) bagsUsed[b] = cnFalse;
+  for (b = 0; b < bagCount; b++) bagsUsed[b] = false;
 
   // Loop through leaves from max prob to min, count bags and marking them used
   // along the way.
@@ -1290,14 +1290,14 @@ cnBool cnTreeMaxLeafBags(
         if (!cnListPush(indices, &b)) {
           cnErrTo(FAIL, "No binding bag ref.")
         }
-        bagsUsed[bagIndex] = cnTrue;
+        bagsUsed[bagIndex] = true;
       }
       b++;
     } cnEnd;
   }
 
   // All done!
-  result = cnTrue;
+  result = true;
   goto DONE;
 
   FAIL:
@@ -1314,11 +1314,11 @@ cnBool cnTreeMaxLeafBags(
 }
 
 
-cnBool cnTreePropagateBag(
+bool cnTreePropagateBag(
   cnRootNode* tree, cnBag* bag, cnList(cnLeafBindingBag)* leafBindingBags
 ) {
   cnBindingBag bindingBag;
-  cnBool result;
+  bool result;
 
   // Init an empty binding bag (with an abusive 0-sized item), and propagate it.
   cnBindingBagInit(&bindingBag, bag, 0);
@@ -1331,12 +1331,12 @@ cnBool cnTreePropagateBag(
 }
 
 
-cnBool cnTreePropagateBags(
+bool cnTreePropagateBags(
   cnRootNode* tree, cnList(cnBag)* bags,
   cnList(cnLeafBindingBagGroup)* leafBindingBagGroups
 ) {
   cnList(cnLeafBindingBag) leafBindingBags;
-  cnBool result = cnFalse;
+  bool result = false;
 
   // Init.
   cnListInit(&leafBindingBags, sizeof(cnLeafBindingBag));
@@ -1354,21 +1354,21 @@ cnBool cnTreePropagateBags(
   } cnEnd;
 
   // Winned!
-  result = cnTrue;
+  result = true;
 
   DONE:
   cnListDispose(&leafBindingBags);
   return result;
 }
 
-cnBool cnTreeWrite_leaf(cnLeafNode* leaf, FILE* file, cnString* indent);
-cnBool cnTreeWrite_root(cnRootNode* root, FILE* file, cnString* indent);
-cnBool cnTreeWrite_split(cnSplitNode* split, FILE* file, cnString* indent);
-cnBool cnTreeWrite_var(cnVarNode* var, FILE* file, cnString* indent);
+bool cnTreeWrite_leaf(cnLeafNode* leaf, FILE* file, cnString* indent);
+bool cnTreeWrite_root(cnRootNode* root, FILE* file, cnString* indent);
+bool cnTreeWrite_split(cnSplitNode* split, FILE* file, cnString* indent);
+bool cnTreeWrite_var(cnVarNode* var, FILE* file, cnString* indent);
 
-cnBool cnTreeWrite_any(cnNode* node, FILE* file, cnString* indent) {
+bool cnTreeWrite_any(cnNode* node, FILE* file, cnString* indent) {
   cnCount kidCount;
-  cnBool result = cnFalse;
+  bool result = false;
 
   fprintf(file, "{\n");
   if (!cnIndent(indent)) cnErrTo(DONE, "No indent.");
@@ -1420,7 +1420,7 @@ cnBool cnTreeWrite_any(cnNode* node, FILE* file, cnString* indent) {
   }
 
   // Winned.
-  result = cnTrue;
+  result = true;
 
   CLOSE:
   // Need to dedent if indented.
@@ -1432,22 +1432,22 @@ cnBool cnTreeWrite_any(cnNode* node, FILE* file, cnString* indent) {
   return result;
 }
 
-cnBool cnTreeWrite_leaf(cnLeafNode* leaf, FILE* file, cnString* indent) {
+bool cnTreeWrite_leaf(cnLeafNode* leaf, FILE* file, cnString* indent) {
   // TODO Check error states?
   fprintf(file, "%s\"type\": \"Leaf\",\n", cnStr(indent));
   fprintf(file, "%s\"probability\": %lg,\n", cnStr(indent), leaf->probability);
   fprintf(file, "%s\"strength\": %lg\n", cnStr(indent), leaf->strength);
-  return cnTrue;
+  return true;
 }
 
-cnBool cnTreeWrite_root(cnRootNode* root, FILE* file, cnString* indent) {
+bool cnTreeWrite_root(cnRootNode* root, FILE* file, cnString* indent) {
   // TODO Check error states?
   fprintf(file, "%s\"type\": \"Root\",\n", cnStr(indent));
-  return cnTrue;
+  return true;
 }
 
-cnBool cnTreeWrite_split(cnSplitNode* split, FILE* file, cnString* indent) {
-  cnBool result = cnFalse;
+bool cnTreeWrite_split(cnSplitNode* split, FILE* file, cnString* indent) {
+  bool result = false;
 
   // TODO Check error states?
   fprintf(file, "%s\"type\": \"Split\",\n", cnStr(indent));
@@ -1478,21 +1478,21 @@ cnBool cnTreeWrite_split(cnSplitNode* split, FILE* file, cnString* indent) {
   }
 
   // Winned!
-  result = cnTrue;
+  result = true;
 
   DONE:
   return result;
 }
 
-cnBool cnTreeWrite_var(cnVarNode* var, FILE* file, cnString* indent) {
+bool cnTreeWrite_var(cnVarNode* var, FILE* file, cnString* indent) {
   // TODO Check error states?
   fprintf(file, "%s\"type\": \"Var\",\n", cnStr(indent));
-  return cnTrue;
+  return true;
 }
 
-cnBool cnTreeWrite(cnRootNode* tree, FILE* file) {
+bool cnTreeWrite(cnRootNode* tree, FILE* file) {
   cnString indent;
-  cnBool result = cnFalse;
+  bool result = false;
   cnStringInit(&indent);
   // TODO In future stream abstraction, store indent level directly.
   result = cnTreeWrite_any(&tree->node, file, &indent);
@@ -1501,7 +1501,7 @@ cnBool cnTreeWrite(cnRootNode* tree, FILE* file) {
 }
 
 
-cnVarNode* cnVarNodeCreate(cnBool addLeaf) {
+cnVarNode* cnVarNodeCreate(bool addLeaf) {
   cnVarNode* var = cnAlloc(cnVarNode, 1);
   if (!var) return NULL;
   if (!cnVarNodeInit(var, addLeaf)) {
@@ -1518,31 +1518,31 @@ void cnVarNodeDispose(cnVarNode* var) {
     cnNodeDrop(var->kid);
   }
   // TODO Anything else special?
-  cnVarNodeInit(var, cnFalse);
+  cnVarNodeInit(var, false);
 }
 
 
-cnBool cnVarNodeInit(cnVarNode* var, cnBool addLeaf) {
+bool cnVarNodeInit(cnVarNode* var, bool addLeaf) {
   cnNodeInit(&var->node, cnNodeTypeVar);
   var->kid = NULL;
   if (addLeaf) {
     cnLeafNode* leaf = cnLeafNodeCreate();
     if (!leaf) {
-      return cnFalse;
+      return false;
     }
     cnNodePutKid(&var->node, 0, &leaf->node);
   }
-  return cnTrue;
+  return true;
 }
 
 
-cnBool cnVarNodePropagate_pushBinding(
+bool cnVarNodePropagate_pushBinding(
   cnEntity* entitiesIn, cnBindingBag* bindingBagIn,
   cnEntity entityOut, cnBindingBag* bindingBagOut, cnCount* bindingsOutCount
 ) {
   cnEntity* entitiesOut =
     reinterpret_cast<cnEntity*>(cnListExpand(&bindingBagOut->bindings));
-  if (!entitiesOut) return cnFalse;
+  if (!entitiesOut) return false;
   (*bindingsOutCount)++;
   // For the zero length arrays, I'm not sure if memcpy from null is
   // okay, so check that first.
@@ -1553,18 +1553,18 @@ cnBool cnVarNodePropagate_pushBinding(
   }
   // Put the new one on.
   entitiesOut[bindingBagIn->entityCount] = entityOut;
-  return cnTrue;
+  return true;
 }
 
 
-cnBool cnVarNodePropagateBindingBag(
+bool cnVarNodePropagateBindingBag(
   cnVarNode* var, cnBindingBag* bindingBag,
   cnList(cnLeafBindingBag)* leafBindingBags
 ) {
   cnIndex b;
   cnBindingBag bindingBagOut;
   cnCount bindingsOutCount = 0;
-  cnBool result = cnFalse;
+  bool result = false;
 
   // Init first.
   cnBindingBagInit(
@@ -1580,7 +1580,7 @@ cnBool cnVarNodePropagateBindingBag(
   for (b = 0; b < bindingBag->bindings.count; b++) {
     cnEntity* entitiesIn =
       reinterpret_cast<cnEntity*>(cnListGet(&bindingBag->bindings, b));
-    cnBool anyLeft = cnFalse;
+    bool anyLeft = false;
     // Figure out if we have constrained options.
     cnList(cnEntity)* entitiesOut = reinterpret_cast<cnList(cnEntity)*>(
       cnListGet(&bindingBag->bag->participantOptions, bindingBag->entityCount)
@@ -1591,20 +1591,20 @@ cnBool cnVarNodePropagateBindingBag(
     }
     // Find the entities to add on.
     cnListEachBegin(entitiesOut, cnEntity, entityOut) {
-      cnBool found = cnFalse;
+      bool found = false;
       cnEntity* entityIn = entitiesIn;
       cnEntity* entitiesInEnd = entityIn + bindingBag->entityCount;
       // TODO Loop okay since usually few vars?
       for (; entityIn < entitiesInEnd; entityIn++) {
         if (*entityIn == *entityOut) {
           // Already used.
-          found = cnTrue;
+          found = true;
           break;
         }
       }
       if (!found) {
         // Didn't find it. Push a new binding with the new entity.
-        anyLeft = cnTrue;
+        anyLeft = true;
         if (!cnVarNodePropagate_pushBinding(
           entitiesIn, bindingBag,
           *entityOut, &bindingBagOut, &bindingsOutCount
@@ -1630,7 +1630,7 @@ cnBool cnVarNodePropagateBindingBag(
   }
 
   // Winned!
-  result = cnTrue;
+  result = true;
 
   DONE:
   cnBindingBagDispose(&bindingBagOut);

@@ -6,25 +6,25 @@
 /**
  * Finds items grasped in the state, and returns whether any were found.
  */
-cnBool stFindGraspedItems(const stState* state, cnList(stItem*)* items);
+bool stFindGraspedItems(const stState* state, cnList(stItem*)* items);
 
 
-cnBool stOnGround(const stItem* item);
+bool stOnGround(const stItem* item);
 
 
 /**
  * Place pointers to alive items into the entities vector.
  */
-cnBool stPlaceLiveItems(
+bool stPlaceLiveItems(
   const cnList(stItem)* items, cnList(stItem*)* entities
 );
 
 
-cnBool stAllBagsFalse(
+bool stAllBagsFalse(
   cnList(stState)* states, cnList(cnBag)* bags,
   cnList(cnList(cnEntity)*)* entityLists
 ) {
-  cnBool result = cnFalse;
+  bool result = false;
 
   cnListEachBegin(states, stState, state) {
     // Every state gets a bag.
@@ -40,18 +40,18 @@ cnBool stAllBagsFalse(
   } cnEnd;
 
   // Winned.
-  result = cnTrue;
+  result = true;
 
   DONE:
   return result;
 }
 
 
-cnBool stChooseDropWhereLandOnOther(
+bool stChooseDropWhereLandOnOther(
   cnList(stState)* states, cnList(cnBag)* bags,
   cnList(cnList(cnEntity)*)* entityLists
 ) {
-  cnBool result = cnFalse;
+  bool result = false;
   bool formerHadGrasp = false;
   stId graspedId = -1;
   const stState* ungraspState = NULL;
@@ -61,10 +61,10 @@ cnBool stChooseDropWhereLandOnOther(
     if (ungraspState) {
       // Look for stable state.
       int label = -1;
-      cnBool settled = cnFalse;
+      bool settled = false;
       if (state->cleared) {
         // World cleared. Say it's settled, but don't assign a label.
-        settled = cnTrue;
+        settled = true;
       } else {
         stItem* item = stStateFindItem(state, graspedId);
         if (item) {
@@ -74,12 +74,12 @@ cnBool stChooseDropWhereLandOnOther(
             // TODO If the block bounced up, we might be catching it at the
             // TODO peak. Maybe we should check for that (by accel or
             // TODO location?).
-            settled = cnTrue;
+            settled = true;
             label = !stOnGround(item);
           }
         } else {
           // It fell off the table, so it didn't land on another block.
-          settled = cnTrue;
+          settled = true;
           label = true;
         }
       }
@@ -91,7 +91,7 @@ cnBool stChooseDropWhereLandOnOther(
           }
           // Now init the bag in the list.
           if (!cnBagInit(bag, NULL)) cnErrTo(DONE, "No bag init.");
-          bag->label = cnBoolify(label);
+          bag->label = label;
           // If we defer placing entity pointers until after we've stored the
           // bag itself, then cleanup from failure is easier.
           if (!stPlaceLiveItems(&ungraspState->items, bag->entities)) {
@@ -120,7 +120,7 @@ cnBool stChooseDropWhereLandOnOther(
   } cnEnd;
 
   // Winned!
-  result = cnTrue;
+  result = true;
 
   DONE:
   cnListDispose(&graspedItems);
@@ -128,18 +128,18 @@ cnBool stChooseDropWhereLandOnOther(
 }
 
 
-cnBool stChooseWhereNotMoving(
+bool stChooseWhereNotMoving(
   cnList(stState)* states, cnList(cnBag)* bags,
   cnList(cnList(cnEntity)*)* entityLists
 ) {
   cnFloat epsilon = 1e-2;
-  cnBool result = cnFalse;
+  bool result = false;
 
   // Find bags.
   cnListEachBegin(states, stState, state) {
     // Every state gets a bag.
     cnList(cnEntity)* entities = NULL;
-    cnBool keep = cnTrue;
+    bool keep = true;
     // Assume bags have none moving by default.
 
     // Label based on whether any are moving.
@@ -148,7 +148,7 @@ cnBool stChooseWhereNotMoving(
         // Ignore cases where items are grasped until we have support for
         // discrete topologies.
         // TODO Get back to this!
-        keep = cnFalse;
+        keep = false;
         break;
       }
     } cnEnd;
@@ -212,42 +212,42 @@ cnBool stChooseWhereNotMoving(
         item->velocity[1] * item->velocity[1]
       );
       // True here is stationary.
-      bag->label = cnBoolify(speed < epsilon);
+      bag->label = speed < epsilon;
     } cnEnd;
   } cnEnd;
 
   // Winned!
-  result = cnTrue;
+  result = true;
 
   DONE:
   return result;
 }
 
 
-cnBool stFindGraspedItems(const stState* state, cnList(stItem*)* items) {
+bool stFindGraspedItems(const stState* state, cnList(stItem*)* items) {
   cnListEachBegin(&state->items, stItem, item) {
     if (item->grasped) {
       if (items) {
         if (!cnListPush(items, &item)) {
-          return cnFalse;
+          return false;
         }
       }
     }
   } cnEnd;
-  return cnTrue;
+  return true;
 }
 
 
-cnBool stOnGround(const stItem* item) {
+bool stOnGround(const stItem* item) {
   cnFloat angle = item->orientation;
   // Angles go from -1 to 1.
   // Here, dim 1 is upright, and 0 sideways.
   int dim = angle < -0.75 || (-0.25 < angle && angle < 0.25) || 0.75 < angle;
-  return cnBoolify(fabs(item->extent[dim] - item->location[1]) < 0.01);
+  return fabs(item->extent[dim] - item->location[1]) < 0.01;
 }
 
 
-cnBool stPlaceLiveItems(
+bool stPlaceLiveItems(
   const cnList(stItem)* items, cnList(stItem*)* entities
 ) {
   cnListEachBegin(items, stItem, item) {
@@ -259,5 +259,5 @@ cnBool stPlaceLiveItems(
       cnListPush(entities, &entity);
     }
   } cnEnd;
-  return cnTrue;
+  return true;
 }

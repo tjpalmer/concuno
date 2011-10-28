@@ -8,7 +8,7 @@
 cnCBegin;
 
 
-cnBool cnClusterOnFunction(cnList(cnBag)* bags, cnEntityFunction* function);
+bool cnClusterOnFunction(cnList(cnBag)* bags, cnEntityFunction* function);
 
 
 cnCEnd;

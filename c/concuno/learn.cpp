@@ -112,7 +112,7 @@ cnFloat* cnBestPointByDiverseDensity(
  * TODO Always store the best point in the center when done? If so, use a
  * TODO different indicator for whether any point found?
  */
-cnBool cnBestPointByScore(
+bool cnBestPointByScore(
   cnFunction* distanceFunction, cnGaussian* distribution,
   cnList(cnPointBag)* pointBags,
   cnFunction** bestFunction, cnFloat* bestThreshold
@@ -132,8 +132,8 @@ cnBool cnBestPointByScore(
  *
  * TODO Actually, all I do here is find distances then pick a threshold.
  */
-cnBool cnChooseThreshold(
-  cnBool yesLabel,
+bool cnChooseThreshold(
+  bool yesLabel,
   cnFunction* distanceFunction, cnList(cnPointBag)* pointBags,
   cnFloat* score, cnFloat* threshold,
   cnList(cnFloat)* nearPosPoints, cnList(cnFloat)* nearNegPoints
@@ -155,7 +155,7 @@ cnBool cnChooseThreshold(
  * more likely about fishing for statistics.
  */
 cnFloat cnChooseThresholdWithDistances(
-  cnBool yesLabel,
+  bool yesLabel,
   cnBagDistance* distances, cnBagDistance* distancesEnd, cnFloat* score,
   cnList(cnFloat)* nearPosPoints, cnList(cnFloat)* nearNegPoints
 );
@@ -170,12 +170,12 @@ cnFloat cnChooseThresholdWithDistances(
 cnRootNode* cnExpandedTree(cnLearnerConfig* config, cnExpansion* expansion);
 
 
-cnBool cnExpansionRedundant(
+bool cnExpansionRedundant(
   cnList(cnExpansion)* expansions, cnEntityFunction* function, cnIndex* indices
 );
 
 
-cnBool cnLearnSplitModel(
+bool cnLearnSplitModel(
   cnLearner* learner, cnSplitNode* split, cnList(cnBindingBag)* bindingBags
 );
 
@@ -189,7 +189,7 @@ cnLeafNode* cnPickBestLeaf(cnRootNode* tree, cnList(cnBag)* bags);
 void cnPrintExpansion(cnExpansion* expansion);
 
 
-cnBool cnPushExpansionsByIndices(
+bool cnPushExpansionsByIndices(
   cnList(cnExpansion)* expansions, cnExpansion* prototype, cnCount varDepth
 );
 
@@ -200,13 +200,13 @@ cnRootNode* cnTryExpansionsAtLeaf(cnLearnerConfig* config, cnLeafNode* leaf);
 /**
  * Updates all the leaf probabilities in the tree.
  */
-cnBool cnUpdateLeafProbabilities(cnRootNode* root, cnList(cnBag)* bags);
+bool cnUpdateLeafProbabilities(cnRootNode* root, cnList(cnBag)* bags);
 
 
 /**
  * Updates leaf probabilities working directly from counts.
  */
-cnBool cnUpdateLeafProbabilitiesWithBindingBags(
+bool cnUpdateLeafProbabilitiesWithBindingBags(
   cnList(cnLeafBindingBagGroup)* groups, cnList(cnLeafCount)* counts
 );
 
@@ -217,7 +217,7 @@ cnBool cnUpdateLeafProbabilitiesWithBindingBags(
  *
  * Returns true for non-error. The test result comes through the result param.
  */
-cnBool cnVerifyImprovement(
+bool cnVerifyImprovement(
   cnLearnerConfig* config, cnRootNode* candidate, cnFloat* pValue
 );
 
@@ -248,12 +248,12 @@ void cnBuildInitialKernel(cnTopology topology, cnList(cnPointBag)* pointBags) {
     point = pointBag->pointMatrix.points;
     matrixEnd = point + pointBag->pointMatrix.pointCount * valueCount;
     for (; point < matrixEnd; point += valueCount) {
-      cnBool allGood = cnTrue;
+      bool allGood = true;
       cnFloat* value = point;
       cnFloat* pointEnd = point + valueCount;
       for (value = point; value < pointEnd; value++) {
         if (cnIsNaN(*value)) {
-          allGood = cnFalse;
+          allGood = false;
           break;
         }
       }
@@ -278,12 +278,12 @@ void cnBuildInitialKernel(cnTopology topology, cnList(cnPointBag)* pointBags) {
     point = pointBag->pointMatrix.points;
     matrixEnd = point + pointBag->pointMatrix.pointCount * valueCount;
     for (; point < matrixEnd; point += valueCount) {
-      cnBool allGood = cnTrue;
+      bool allGood = true;
       cnFloat *value = point, *positiveValue = positivePoint;
       cnFloat* pointEnd = point + valueCount;
       for (value = point; value < pointEnd; value++, positiveValue++) {
         if (cnIsNaN(*value)) {
-          allGood = cnFalse;
+          allGood = false;
           break;
         }
         *positiveValue = *value;
@@ -339,12 +339,12 @@ cnFloat* cnBestPointByDiverseDensity(
     printf("B ");
     for (; point < matrixEnd; point += valueCount) {
       cnFloat sumNegMin = 0, sumPosMin = 0;
-      cnBool allGood = cnTrue;
+      bool allGood = true;
       cnFloat* value;
       cnFloat* pointEnd = point + valueCount;
       for (value = point; value < pointEnd; value++) {
         if (cnIsNaN(*value)) {
-          allGood = cnFalse;
+          allGood = false;
           break;
         }
       }
@@ -397,7 +397,7 @@ cnFloat* cnBestPointByDiverseDensity(
 }
 
 
-cnBool cnBestPointByScore(
+bool cnBestPointByScore(
   cnFunction* distanceFunction, cnGaussian* distribution,
   cnList(cnPointBag)* pointBags,
   cnFunction** bestFunction, cnFloat* bestThreshold
@@ -405,7 +405,7 @@ cnBool cnBestPointByScore(
   cnFloat bestScore = -HUGE_VAL, score = bestScore;
   cnCount negBagsLeft = 8, posBagsLeft = 8;
   cnList(cnFloat) posPointsIn;
-  cnBool result = cnFalse;
+  bool result = false;
   cnFloat threshold;
   cnCount valueCount = pointBags->count ?
     ((cnPointBag*)pointBags->items)->pointMatrix.valueCount : 0;
@@ -462,12 +462,12 @@ cnBool cnBestPointByScore(
     );
     fflush(stdout);
     for (; point < matrixEnd; point += valueCount) {
-      cnBool allGood = cnTrue;
+      bool allGood = true;
       cnFloat* value;
       cnFloat* pointEnd = point + valueCount;
       for (value = point; value < pointEnd; value++) {
         if (cnIsNaN(*value)) {
-          allGood = cnFalse;
+          allGood = false;
           break;
         }
       }
@@ -558,7 +558,7 @@ cnBool cnBestPointByScore(
   printf("\n");
 
   // Winned!
-  result = cnTrue;
+  result = true;
 
   DONE:
   cnListDispose(&posPointsIn);
@@ -566,8 +566,8 @@ cnBool cnBestPointByScore(
 }
 
 
-cnBool cnChooseThreshold(
-  cnBool yesLabel,
+bool cnChooseThreshold(
+  bool yesLabel,
   cnFunction* distanceFunction, cnList(cnPointBag)* pointBags,
   cnFloat* score, cnFloat* threshold,
   cnList(cnFloat)* nearPosPoints, cnList(cnFloat)* nearNegPoints
@@ -577,7 +577,7 @@ cnBool cnChooseThreshold(
   cnBagDistance* distance;
   cnBagDistance* distances = cnAlloc(cnBagDistance, pointBags->count);
   cnBagDistance* distancesEnd = distances + pointBags->count;
-  cnBool result = cnFalse;
+  bool result = false;
   cnFloat thresholdStorage;
 
   if (!distances) cnErrTo(DONE, "No distances.");
@@ -637,7 +637,7 @@ cnBool cnChooseThreshold(
   *threshold = cnChooseThresholdWithDistances(
     yesLabel, distances, distancesEnd, score, nearPosPoints, nearNegPoints
   );
-  result = cnTrue;
+  result = true;
 
   DONE:
   free(distances);
@@ -675,7 +675,7 @@ int cnChooseThreshold_compare(const void* a, const void* b) {
 }
 
 cnFloat cnChooseThresholdWithDistances(
-  cnBool yesLabel,
+  bool yesLabel,
   cnBagDistance* distances, cnBagDistance* distancesEnd, cnFloat* score,
   cnList(cnFloat)* nearPosPoints, cnList(cnFloat)* nearNegPoints
 ) {
@@ -869,7 +869,7 @@ cnFloat cnChooseThresholdWithDistances(
       bestYesCount = yesCount;
     }
   }
-  if (cnTrue && !cnIsNaN(bestYesProb)) {
+  if (true && !cnIsNaN(bestYesProb)) {
     printf(
       "Best thresh: %.9lg (%.2lg of %ld, %.2lg of %ld: %.4lg)\n",
       threshold, bestYesProb, bestYesCount, bestNoProb, bestNoCount,
@@ -933,7 +933,7 @@ cnRootNode* cnExpandedTree(cnLearnerConfig* config, cnExpansion* expansion) {
 
   // Add requested vars.
   for (varsAdded = 0; varsAdded < expansion->newVarCount; varsAdded++) {
-    cnVarNode* var = cnVarNodeCreate(cnTrue);
+    cnVarNode* var = cnVarNodeCreate(true);
     if (!var) cnErrTo(FAIL, "No var %ld for expansion.", varsAdded);
     cnNodeReplaceKid(&leaf->node, &var->node);
     leaf = *(cnLeafNode**)cnNodeKids(&var->node);
@@ -957,7 +957,7 @@ cnRootNode* cnExpandedTree(cnLearnerConfig* config, cnExpansion* expansion) {
   // Add the split, and provide the bindings from the old parent.
   // TODO Just always propagate from the root?
   // TODO Don't bother even to store bindings??? How fast is it, usually?
-  if (!(split = cnSplitNodeCreate(cnTrue))) cnErrTo(FAIL, "No split.");
+  if (!(split = cnSplitNodeCreate(true))) cnErrTo(FAIL, "No split.");
   cnNodeReplaceKid(&leaf->node, &split->node);
 
   // Configure the split, and learn a model (distribution, threshold).
@@ -994,7 +994,7 @@ cnRootNode* cnExpandedTree(cnLearnerConfig* config, cnExpansion* expansion) {
 }
 
 
-cnBool cnExpansionRedundant(
+bool cnExpansionRedundant(
   cnList(cnExpansion)* expansions, cnEntityFunction* function, cnIndex* indices
 ) {
   // Hack assuming all things are symmetric, and we only want increasing order.
@@ -1002,7 +1002,7 @@ cnBool cnExpansionRedundant(
   cnIndex i;
   for (i = 1; i < function->inCount; i++) {
     if (indices[i] <= indices[i - 1]) {
-      return cnTrue;
+      return true;
     }
   }
 
@@ -1029,7 +1029,7 @@ cnBool cnExpansionRedundant(
   */
 
   // No duplicate found.
-  return cnFalse;
+  return false;
 }
 
 
@@ -1043,33 +1043,33 @@ void cnLearnerDispose(cnLearner* learner) {
 }
 
 
-cnBool cnLearnerInit(cnLearner* learner, cnRandom random) {
-  cnBool result = cnFalse;
+bool cnLearnerInit(cnLearner* learner, cnRandom random) {
+  bool result = false;
 
   // Init for safety.
   learner->bags = NULL;
   learner->entityFunctions = NULL;
   learner->initialTree = NULL;
   learner->random = random;
-  learner->randomOwned = cnFalse;
+  learner->randomOwned = false;
 
   // Prepare a random, if requested (via NULL).
   if (!random) {
     if (!(learner->random = cnRandomCreate())) {
       cnErrTo(DONE, "No default random.");
     }
-    learner->randomOwned = cnTrue;
+    learner->randomOwned = true;
   }
 
   // Winned.
-  result = cnTrue;
+  result = true;
 
   DONE:
   return result;
 }
 
 
-cnBool cnLearnSplitModel(
+bool cnLearnSplitModel(
   cnLearner* learner, cnSplitNode* split, cnList(cnBindingBag)* bindingBags
 ) {
   // TODO Other topologies, etc.
@@ -1078,7 +1078,7 @@ cnBool cnLearnSplitModel(
   cnGaussian* gaussian;
   cnCount outCount = split->function->outCount;
   cnFloat threshold = 0.0;
-  cnBool result = cnFalse;
+  bool result = false;
   cnList(cnPointBag) pointBags;
 
   // Get point bags.
@@ -1136,7 +1136,7 @@ cnBool cnLearnSplitModel(
     goto DONE;
   }
   // Good to go. Skip to the "do always" cleanup.
-  result = cnTrue;
+  result = true;
 
   DONE:
   cnListEachBegin(&pointBags, cnPointBag, pointBag) {
@@ -1164,7 +1164,7 @@ cnRootNode* cnLearnTree(cnLearner* learner) {
     initialTree = cnAlloc(cnRootNode, 1);
     if (!initialTree) cnErrTo(DONE, "Failed to allocate root.");
     // Set up the tree.
-    if (!cnRootNodeInit(initialTree, cnTrue)) {
+    if (!cnRootNodeInit(initialTree, true)) {
       cnErrTo(DONE, "Failed to init stub tree.");
     }
   }
@@ -1191,7 +1191,7 @@ cnRootNode* cnLearnTree(cnLearner* learner) {
   }
 
   config.previous = initialTree;
-  while (cnTrue) {
+  while (true) {
     cnRootNode* expanded;
     // Print training score to observe conveniently the training progress.
     // TODO Could retain counts from the previous propagation to save the repeat
@@ -1456,7 +1456,7 @@ typedef struct cnPushExpansionsByIndices_Data {
   cnCount varDepth;
 } cnPushExpansionsByIndices_Data;
 
-cnBool cnPushExpansionsByIndices_Push(
+bool cnPushExpansionsByIndices_Push(
   void* d, cnCount arity, cnIndex* indices
 ) {
   cnPushExpansionsByIndices_Data* data =
@@ -1469,17 +1469,17 @@ cnBool cnPushExpansionsByIndices_Push(
   // TODO but that's more complicated, and low arity makes the issue unlikely
   // TODO to matter for speed issues.
   for (v = firstCommitted; v < data->varDepth; v++) {
-    cnBool found = cnFalse;
+    bool found = false;
     cnIndex i;
     for (i = 0; i < arity; i++) {
       if (indices[i] == v) {
-        found = cnTrue;
+        found = true;
         break;
       }
     }
     if (!found) {
       // We're missing a committed var. Throw it back in the pond.
-      return cnTrue;
+      return true;
     }
   }
 
@@ -1489,28 +1489,28 @@ cnBool cnPushExpansionsByIndices_Push(
   )) {
     // We already have an equivalent expansion under consideration.
     // TODO Is there a more efficient way to avoid redundancy?
-    return cnTrue;
+    return true;
   }
 
   // It's good to go. Allocate space, and copy the indices.
   if (!(data->prototype->varIndices = cnAlloc(cnIndex, arity))) {
-    return cnFalse;
+    return false;
   }
   memcpy(data->prototype->varIndices, indices, arity * sizeof(cnIndex));
 
   // Push the expansion, copying the prototype.
   if (!cnListPush(data->expansions, data->prototype)) {
     free(data->prototype->varIndices);
-    return cnFalse;
+    return false;
   }
 
   // Revert the prototype.
   data->prototype->varIndices = NULL;
   //printf("Done.\n");
-  return cnTrue;
+  return true;
 }
 
-cnBool cnPushExpansionsByIndices(
+bool cnPushExpansionsByIndices(
   cnList(cnExpansion)* expansions, cnExpansion* prototype, cnCount varDepth
 ) {
   cnPushExpansionsByIndices_Data data;
@@ -1663,9 +1663,9 @@ cnRootNode* cnTryExpansionsAtLeaf(cnLearnerConfig* config, cnLeafNode* leaf) {
 }
 
 
-cnBool cnUpdateLeafProbabilities(cnRootNode* root, cnList(cnBag)* bags) {
+bool cnUpdateLeafProbabilities(cnRootNode* root, cnList(cnBag)* bags) {
   cnList(cnLeafBindingBagGroup) groups;
-  cnBool result = cnFalse;
+  bool result = false;
 
   // Get all leaf binding bag groups.
   cnListInit(&groups, sizeof(cnLeafBindingBagGroup));
@@ -1679,7 +1679,7 @@ cnBool cnUpdateLeafProbabilities(cnRootNode* root, cnList(cnBag)* bags) {
   }
 
   // Winned.
-  result = cnTrue;
+  result = true;
 
   DONE:
   cnLeafBindingBagGroupListDispose(&groups);
@@ -1687,18 +1687,18 @@ cnBool cnUpdateLeafProbabilities(cnRootNode* root, cnList(cnBag)* bags) {
 }
 
 
-cnBool cnUpdateLeafProbabilitiesWithBindingBags(
+bool cnUpdateLeafProbabilitiesWithBindingBags(
   cnList(cnLeafBindingBagGroup)* groups, cnList(cnLeafCount)* counts
 ) {
   cnIndex b;
   cnCount bagCount;
   cnBag* bags = NULL;
   cnBag* bagsEnd = NULL;
-  cnBool* bagsUsed = NULL;
+  bool* bagsUsed = NULL;
   cnFloat bonus = 1.0;
   cnList(cnLeafBindingBagGroup) groupsCopied;
   cnFloat previousProb = 1.0;
-  cnBool result = cnFalse;
+  bool result = false;
 
   // Copy this list, because we're going to be clearing leaf pointers.
   cnListInit(&groupsCopied, sizeof(cnLeafBindingBagGroup));
@@ -1713,9 +1713,9 @@ cnBool cnUpdateLeafProbabilitiesWithBindingBags(
   // Init which bags used. First, we need to find how many and where they start.
   cnLeafBindingBagGroupListLimits(groups, &bags, &bagsEnd);
   bagCount = bagsEnd - bags;
-  bagsUsed = cnAlloc(cnBool, bagCount);
+  bagsUsed = cnAlloc(bool, bagCount);
   if (!bagsUsed) goto DONE;
-  for (b = 0; b < bagCount; b++) bagsUsed[b] = cnFalse;
+  for (b = 0; b < bagCount; b++) bagsUsed[b] = false;
 
   // Loop through the groups.
   cnListEachBegin(&groupsCopied, cnLeafBindingBagGroup, group) {
@@ -1793,12 +1793,12 @@ cnBool cnUpdateLeafProbabilitiesWithBindingBags(
     // Mark the leaf and its bags as used.
     maxGroup->leaf = NULL;
     cnListEachBegin(&maxGroup->bindingBags, cnBindingBag, bindingBag) {
-      bagsUsed[bindingBag->bag - bags] = cnTrue;
+      bagsUsed[bindingBag->bag - bags] = true;
     } cnEnd;
   } cnEnd;
 
   // We finished.
-  result = cnTrue;
+  result = true;
 
   DONE:
   free(bagsUsed);
@@ -1845,14 +1845,14 @@ void cnVerifyImprovement_StatsDispose(cnVerifyImprovement_Stats* stats) {
   cnVerifyImprovement_StatsInit(stats);
 }
 
-cnBool cnVerifyImprovement_StatsPrepare(
+bool cnVerifyImprovement_StatsPrepare(
   cnVerifyImprovement_Stats* stats, cnRootNode* tree, cnList(cnBag)* bags,
   cnRandom random
 ) {
   cnCount classCount;
   cnIndex i;
   cnFloat* probs = NULL;
-  cnBool result = cnFalse;
+  bool result = false;
 
   // Gather up the original counts for each leaf.
   if (!cnTreeMaxLeafCounts(tree, &stats->leafCounts, bags)) {
@@ -1887,14 +1887,14 @@ cnBool cnVerifyImprovement_StatsPrepare(
   )) cnErrTo(DONE, "No multinomial.")
 
   // Winned.
-  result = cnTrue;
+  result = true;
 
   DONE:
   cnStackFree(probs);
   return result;
 }
 
-cnBool cnVerifyImprovement(
+bool cnVerifyImprovement(
   cnLearnerConfig* config, cnRootNode* candidate, cnFloat* pValue
 ) {
   // I don't know how to randomize across results from different trees.
@@ -1923,7 +1923,7 @@ cnBool cnVerifyImprovement(
   cnCount candidateWinCounts = 0;
   cnVerifyImprovement_Stats candidateStats;
   cnIndex i;
-  cnBool okay = cnFalse;
+  bool okay = false;
   cnVerifyImprovement_Stats previousStats;
 
   // Inits.
@@ -1953,7 +1953,7 @@ cnBool cnVerifyImprovement(
     candidateWinCounts += candidateScore > previousScore;
   }
   *pValue = 1 - (candidateWinCounts / (cnFloat)bootRepeatCount);
-  okay = cnTrue;
+  okay = true;
 
   DONE:
   // Cleanup is safe because of proper init.

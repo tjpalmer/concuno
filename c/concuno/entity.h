@@ -27,7 +27,7 @@ typedef struct cnBag {
   /**
    * Positive or negative bag.
    */
-  cnBool label;
+  bool label;
 
   /**
    * Entities known to participate in the labeling. These should be bound to
@@ -129,7 +129,7 @@ struct cnFunction {
   /**
    * Return value indicates status.
    */
-  cnBool (*evaluate)(cnFunction* function, void* in, void* out);
+  bool (*evaluate)(cnFunction* function, void* in, void* out);
 
   /**
    * Writes the predicate in JSON format without surrounding whitespace.
@@ -137,7 +137,7 @@ struct cnFunction {
    * TODO Instead provide structured, reflective access (such as via property
    * TODO metadata or hashtables), and have various IO elsewhere?
    */
-  cnBool (*write)(cnFunction* function, FILE* file, cnString* indent);
+  bool (*write)(cnFunction* function, FILE* file, cnString* indent);
 
 };
 
@@ -164,7 +164,7 @@ struct cnPredicate {
    *
    * TODO Error indicated by result other than true or false? Maybe too sneaky.
    */
-  cnBool (*evaluate)(cnPredicate* predicate, void* in);
+  bool (*evaluate)(cnPredicate* predicate, void* in);
 
   /**
    * Writes the predicate in JSON format without surrounding whitespace.
@@ -172,7 +172,7 @@ struct cnPredicate {
    * TODO Instead provide structured, reflective access (such as via property
    * TODO metadata or hashtables), and have various IO elsewhere?
    */
-  cnBool (*write)(cnPredicate* predicate, FILE* file, cnString* indent);
+  bool (*write)(cnPredicate* predicate, FILE* file, cnString* indent);
 
 };
 
@@ -274,7 +274,7 @@ struct cnType {
 void cnBagDispose(cnBag* bag);
 
 
-cnBool cnBagInit(cnBag* bag, cnList(cnEntity)* entities);
+bool cnBagInit(cnBag* bag, cnList(cnEntity)* entities);
 
 
 /**
@@ -291,7 +291,7 @@ void cnBagListDispose(
  * Pushes on the given participant to the options for the given depth (or
  * parameter index, so to speak).
  */
-cnBool cnBagPushParticipant(cnBag* bag, cnIndex depth, cnEntity participant);
+bool cnBagPushParticipant(cnBag* bag, cnIndex depth, cnEntity participant);
 
 
 cnEntityFunction* cnEntityFunctionCreateDifference(cnEntityFunction* base);
@@ -379,7 +379,7 @@ cnPredicate* cnPredicateCreateDistanceThreshold(
  * Uses the predicate's write function to write itself to the file as a JSON
  * object.
  */
-cnBool cnPredicateWrite(cnPredicate* predicate, FILE* file, cnString* indent);
+bool cnPredicateWrite(cnPredicate* predicate, FILE* file, cnString* indent);
 
 
 /**
@@ -397,7 +397,7 @@ void cnPropertyDispose(cnProperty* property);
  *
  * On failure, leaves the property in a stable (nulled out) state.
  */
-cnBool cnPropertyInitField(
+bool cnPropertyInitField(
   cnProperty* property, cnType* containerType, cnType* type, const char* name,
   cnCount offset, cnCount count
 );
@@ -440,7 +440,7 @@ void cnSchemaInit(cnSchema* schema);
  *
  * On failure, leaves the schema in a stable (nulled out) state.
  */
-cnBool cnSchemaInitDefault(cnSchema* schema);
+bool cnSchemaInitDefault(cnSchema* schema);
 
 
 /**
@@ -450,7 +450,7 @@ cnBool cnSchemaInitDefault(cnSchema* schema);
  *
  * TODO Actually keep this here, or just stick to init default above?
  */
-cnBool cnSchemaDefineStandardTypes(cnSchema* schema);
+bool cnSchemaDefineStandardTypes(cnSchema* schema);
 
 
 /**

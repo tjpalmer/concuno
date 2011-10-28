@@ -83,7 +83,7 @@ struct cnrParser {
   /**
    * The item is bogus and should be deleted after parsing.
    */
-  cnBool deletePlayer;
+  bool deletePlayer;
 
   /**
    * The game being loaded into.
@@ -117,16 +117,16 @@ struct cnrParser {
  * Parses the contents of a parenthesized expression (or the top level of the
  * file). The open paren should already be consumed.
  */
-cnBool cnrParseContents(cnrParser* parser, char** line);
+bool cnrParseContents(cnrParser* parser, char** line);
 
 
 /**
  * An identifier following some kind of rules.
  */
-cnBool cnrParseId(cnrParser* parser, char** line);
+bool cnrParseId(cnrParser* parser, char** line);
 
 
-cnBool cnrParseNumber(cnrParser* parser, char** line);
+bool cnrParseNumber(cnrParser* parser, char** line);
 
 
 /**
@@ -147,51 +147,51 @@ char* cnrParseQuoted(cnrParser* parser, char** line);
 /**
  * Parses a single rcg line.
  */
-cnBool cnrParseRcgLine(cnrParser* parser, char* line);
+bool cnrParseRcgLine(cnrParser* parser, char* line);
 
 
 /**
  * Parses all lines in the file. The rcg format is a line-oriented format.
  */
-cnBool cnrParseRcgLines(cnrParser* parser, FILE* file);
+bool cnrParseRcgLines(cnrParser* parser, FILE* file);
 
 
 /**
  * Trigger the beginning of contents.
  */
-cnBool cnrParserTriggerContentsBegin(cnrParser* parser);
+bool cnrParserTriggerContentsBegin(cnrParser* parser);
 
 
 /**
  * Trigger the beginning of contents.
  */
-cnBool cnrParserTriggerContentsEnd(cnrParser* parser);
+bool cnrParserTriggerContentsEnd(cnrParser* parser);
 
 
 /**
  * Trigger an id. Treat id as temporary only for this function call.
  */
-cnBool cnrParserTriggerId(cnrParser* parser, char* id);
+bool cnrParserTriggerId(cnrParser* parser, char* id);
 
 
 /**
  * Trigger an number.
  */
-cnBool cnrParserTriggerNumber(cnrParser* parser, cnFloat number);
+bool cnrParserTriggerNumber(cnrParser* parser, cnFloat number);
 
 
 /**
  * Parse a show command. The leading paren and the show token have both already
  * been consumed from the line.
  */
-cnBool cnrParseShow(cnrParser* parser, char* line);
+bool cnrParseShow(cnrParser* parser, char* line);
 
 
 /**
  * Parse a team command. The leading paren and the show token have both already
  * been consumed from the line.
  */
-cnBool cnrParseTeam(cnrParser* parser, char* line);
+bool cnrParseTeam(cnrParser* parser, char* line);
 
 
 void cnrRcgParserItemLocation(
@@ -205,16 +205,16 @@ void cnrRcgParserDispose(cnrParser* parser);
 void cnrRcgParserInit(cnrParser* parser);
 
 
-cnBool cnrRclParseLine(cnrParser* parser, char* line);
+bool cnrRclParseLine(cnrParser* parser, char* line);
 
 
-cnBool cnrLoadCommandLog(cnrGame* game, char* name) {
+bool cnrLoadCommandLog(cnrGame* game, char* name) {
   FILE* file = NULL;
   cnString line;
   cnCount lineCount = 0;
   cnrParser parser;
   cnCount readCount;
-  cnBool result = cnFalse;
+  bool result = false;
 
   // Inits.
   cnrRcgParserInit(&parser);
@@ -234,7 +234,7 @@ cnBool cnrLoadCommandLog(cnrGame* game, char* name) {
   if (readCount < 0) cnErrTo(DONE, "Failed reading line.");
 
   // Winned.
-  result = cnTrue;
+  result = true;
 
   DONE:
   if (file) fclose(file);
@@ -244,11 +244,11 @@ cnBool cnrLoadCommandLog(cnrGame* game, char* name) {
 }
 
 
-cnBool cnrLoadGameLog(cnrGame* game, char* name) {
+bool cnrLoadGameLog(cnrGame* game, char* name) {
   FILE* file = NULL;
   cnString line;
   struct cnrParser parser;
-  cnBool result = cnFalse;
+  bool result = false;
 
   // Init stuff and open file.
   cnrRcgParserInit(&parser);
@@ -276,7 +276,7 @@ cnBool cnrLoadGameLog(cnrGame* game, char* name) {
   if (!cnrParseRcgLines(&parser, file)) cnErrTo(DONE, "Failed parsing.");
 
   // Winned!
-  result = cnTrue;
+  result = true;
 
   DONE:
   if (file) fclose(file);
@@ -286,9 +286,9 @@ cnBool cnrLoadGameLog(cnrGame* game, char* name) {
 }
 
 
-cnBool cnrParseContents(cnrParser* parser, char** line) {
+bool cnrParseContents(cnrParser* parser, char** line) {
   cnIndex index = -1;
-  cnBool result = cnFalse;
+  bool result = false;
 
   if (!cnrParserTriggerContentsBegin(parser)) {
     cnErrTo(DONE, "Failed begin trigger.");
@@ -339,18 +339,18 @@ cnBool cnrParseContents(cnrParser* parser, char** line) {
   }
 
   // Winned.
-  result = cnTrue;
+  result = true;
 
   DONE:
   return result;
 }
 
 
-cnBool cnrParseId(cnrParser* parser, char** line) {
+bool cnrParseId(cnrParser* parser, char** line) {
   char c;
   char* id = *line;
-  cnBool result = cnFalse;
-  cnBool triggerResult;
+  bool result = false;
+  bool triggerResult;
 
   // Parse and handle.
   for (; **line && !(isspace(**line) || **line == ')'); (*line)++) {}
@@ -365,17 +365,17 @@ cnBool cnrParseId(cnrParser* parser, char** line) {
   if (!triggerResult) cnErrTo(DONE, "Failed id trigger.");
 
   // Winned.
-  result = cnTrue;
+  result = true;
 
   DONE:
   return result;
 }
 
 
-cnBool cnrParseNumber(cnrParser* parser, char** line) {
+bool cnrParseNumber(cnrParser* parser, char** line) {
   char* end;
   cnFloat number;
-  cnBool result = cnFalse;
+  bool result = false;
 
   // Parse the number.
   number = strtod(*line, &end);
@@ -388,7 +388,7 @@ cnBool cnrParseNumber(cnrParser* parser, char** line) {
   }
 
   // Winned.
-  result = cnTrue;
+  result = true;
 
   DONE:
   return result;
@@ -416,8 +416,8 @@ char* cnrParseQuoted(cnrParser* parser, char** line) {
 }
 
 
-cnBool cnrParseRcgLine(cnrParser* parser, char* line) {
-  cnBool result = cnFalse;
+bool cnrParseRcgLine(cnrParser* parser, char* line) {
+  bool result = false;
   char* type;
 
   // Make sure we have a paren.
@@ -443,18 +443,18 @@ cnBool cnrParseRcgLine(cnrParser* parser, char* line) {
 
   // Winned.
   SUCCESS:
-  result = cnTrue;
+  result = true;
 
   DONE:
   return result;
 }
 
 
-cnBool cnrParseRcgLines(cnrParser* parser, FILE* file) {
+bool cnrParseRcgLines(cnrParser* parser, FILE* file) {
   cnString line;
   cnCount lineCount = 0;
   cnCount readCount;
-  cnBool result = cnFalse;
+  bool result = false;
 
   cnStringInit(&line);
 
@@ -467,7 +467,7 @@ cnBool cnrParseRcgLines(cnrParser* parser, FILE* file) {
   if (readCount < 0) cnErrTo(DONE, "Failed reading line.");
 
   // Winned.
-  result = cnTrue;
+  result = true;
 
   DONE:
   cnStringDispose(&line);
@@ -475,8 +475,8 @@ cnBool cnrParseRcgLines(cnrParser* parser, FILE* file) {
 }
 
 
-cnBool cnrParserTriggerContentsBegin(cnrParser* parser) {
-  cnBool result = cnFalse;
+bool cnrParserTriggerContentsBegin(cnrParser* parser) {
+  bool result = false;
 
   // TODO State management?
 
@@ -512,15 +512,15 @@ cnBool cnrParserTriggerContentsBegin(cnrParser* parser) {
   }
 
   // Winned.
-  result = cnTrue;
+  result = true;
 
   DONE:
   return result;
 }
 
 
-cnBool cnrParserTriggerContentsEnd(cnrParser* parser) {
-  cnBool result = cnFalse;
+bool cnrParserTriggerContentsEnd(cnrParser* parser) {
+  bool result = false;
 
   // TODO Anything else?
 
@@ -541,7 +541,7 @@ cnBool cnrParserTriggerContentsEnd(cnrParser* parser) {
     if (parser->deletePlayer) {
       // Pop off the most recent player. Players don't need disposed.
       parser->state->players.count--;
-      parser->deletePlayer = cnFalse;
+      parser->deletePlayer = false;
     }
     parser->mode = cnrParseModeShow;
     parser->item = NULL;
@@ -555,15 +555,15 @@ cnBool cnrParserTriggerContentsEnd(cnrParser* parser) {
   }
 
   // Winned.
-  result = cnTrue;
+  result = true;
 
   DONE:
   return result;
 }
 
 
-cnBool cnrParserTriggerId(cnrParser* parser, char* id) {
-  cnBool result = cnFalse;
+bool cnrParserTriggerId(cnrParser* parser, char* id) {
+  bool result = false;
 
   // Mode state machine.
   switch (parser->mode) {
@@ -575,7 +575,7 @@ cnBool cnrParserTriggerId(cnrParser* parser, char* id) {
   case cnrParseModeCommandNonPlayer:
     if (parser->index == 2 && !strcmp(id, "Keepaway")) {
       // It's a new keepaway session.
-      parser->state->newSession = cnTrue;
+      parser->state->newSession = true;
     }
     break;
   case cnrParseModeShowItemId:
@@ -623,15 +623,15 @@ cnBool cnrParserTriggerId(cnrParser* parser, char* id) {
   }
 
   // Winned.
-  result = cnTrue;
+  result = true;
 
   DONE:
   return result;
 }
 
 
-cnBool cnrParserTriggerNumber(cnrParser* parser, cnFloat number) {
-  cnBool result = cnFalse;
+bool cnrParserTriggerNumber(cnrParser* parser, cnFloat number) {
+  bool result = false;
   cnrPlayer* player;
 
   // Mode state machine.
@@ -680,7 +680,7 @@ cnBool cnrParserTriggerNumber(cnrParser* parser, cnFloat number) {
           // Active status? It seems to be, but I haven't checked specs.
           if (!number) {
             // This player is actually bogus. Mark for deletion.
-            parser->deletePlayer = cnTrue;
+            parser->deletePlayer = true;
           }
           break;
         case 7:
@@ -714,15 +714,15 @@ cnBool cnrParserTriggerNumber(cnrParser* parser, cnFloat number) {
   }
 
   // Winned.
-  result = cnTrue;
+  result = true;
 
   DONE:
   return result;
 }
 
 
-cnBool cnrParseShow(cnrParser* parser, char* line) {
-  cnBool result = cnFalse;
+bool cnrParseShow(cnrParser* parser, char* line) {
+  bool result = false;
 
   // Prepare a new state to work with.
   if (!(
@@ -741,7 +741,7 @@ cnBool cnrParseShow(cnrParser* parser, char* line) {
   //printf("\n");
 
   // Winned.
-  result = cnTrue;
+  result = true;
 
   DONE:
   parser->mode = cnrParseModeTop;
@@ -749,8 +749,8 @@ cnBool cnrParseShow(cnrParser* parser, char* line) {
 }
 
 
-cnBool cnrParseTeam(cnrParser* parser, char* line) {
-  cnBool result = cnFalse;
+bool cnrParseTeam(cnrParser* parser, char* line) {
+  bool result = false;
 
   // Parse through the rest.
   parser->mode = cnrParseModeTopTeam;
@@ -760,7 +760,7 @@ cnBool cnrParseTeam(cnrParser* parser, char* line) {
   //printf("\n");
 
   // Winned.
-  result = cnTrue;
+  result = true;
 
   DONE:
   parser->mode = cnrParseModeTop;
@@ -784,7 +784,7 @@ void cnrRcgParserDispose(cnrParser* parser) {
 
 
 void cnrRcgParserInit(cnrParser* parser) {
-  parser->deletePlayer = cnFalse;
+  parser->deletePlayer = false;
   parser->game = NULL;
   parser->index = 0;
   parser->item = NULL;
@@ -793,9 +793,9 @@ void cnrRcgParserInit(cnrParser* parser) {
 }
 
 
-cnBool cnrRclParseLine(cnrParser* parser, char* line) {
+bool cnrRclParseLine(cnrParser* parser, char* line) {
   cnIndex playerIndex;
-  cnBool result = cnFalse;
+  bool result = false;
   cnrState* statesEnd;
   cnIndex subtime;
   cnrTeam team;
@@ -884,7 +884,7 @@ cnBool cnrRclParseLine(cnrParser* parser, char* line) {
   }
 
   WIN:
-  result = cnTrue;
+  result = true;
 
   DONE:
   return result;

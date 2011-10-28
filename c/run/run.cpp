@@ -27,7 +27,7 @@ typedef struct cnvTypedOffset {
 /**
  * Fills in the bags with the given label information and data.
  */
-cnBool cnvBuildBags(
+bool cnvBuildBags(
   cnList(cnBag)* bags,
   char* labelId, cnType* labelType, cnListAny* labels,
   cnType* featureType, cnListAny* features
@@ -42,13 +42,13 @@ cnType* cnvLoadTable(
 );
 
 
-cnBool cnvPickFunctions(cnList(cnEntityFunction*)* functions, cnType* type);
+bool cnvPickFunctions(cnList(cnEntityFunction*)* functions, cnType* type);
 
 
 void cnvPrintType(cnType* type);
 
 
-cnBool cnvPushOrExpandProperty(
+bool cnvPushOrExpandProperty(
   cnType* type, char* propertyName, cnvTypedOffset* offset
 );
 
@@ -59,7 +59,7 @@ int main(int argc, char** argv) {
   cnListAny features;
   cnType* featureType;
   cnList(cnEntityFunction*) functions;
-  bool initOkay = cnTrue;
+  bool initOkay = true;
   cnListAny labels;
   cnType* labelType;
   cnRootNode* learnedTree = NULL;
@@ -125,7 +125,7 @@ int main(int argc, char** argv) {
 }
 
 
-cnBool cnvBuildBags(
+bool cnvBuildBags(
   cnList(cnBag)* bags,
   char* labelId, cnType* labelType, cnListAny* labels,
   cnType* featureType, cnListAny* features
@@ -133,7 +133,7 @@ cnBool cnvBuildBags(
   char* feature = reinterpret_cast<char*>(features->items);
   char* featuresEnd = reinterpret_cast<char*>(cnListEnd(features));
   cnCount labelOffset = -1;
-  cnBool result = cnFalse;
+  bool result = false;
 
   // Find the offset matching the label id.
   cnListEachBegin(&labelType->properties, cnProperty, property) {
@@ -152,7 +152,7 @@ cnBool cnvBuildBags(
     // Check the bag allocation, and init the thing.
     if (!bag) cnErrTo(DONE, "No bag.");
     if (!cnBagInit(bag, NULL)) cnErrTo(DONE, "No bag init.");
-    bag->label = *(cnFloat*)(labelItem + labelOffset) ? cnTrue : cnFalse;
+    bag->label = *(cnFloat*)(labelItem + labelOffset) ? true : false;
     // Add features.
     //printf("Reached bag %ld, labeled %u.\n", bagId, bag->label);
     for (; feature < featuresEnd; feature += features->itemSize) {
@@ -164,7 +164,7 @@ cnBool cnvBuildBags(
   } cnEnd;
 
   // We winned!
-  result = cnTrue;
+  result = true;
 
   DONE:
   return result;
@@ -198,7 +198,7 @@ cnType* cnvLoadTable(
   // Read the headers.
   if (cnReadLine(file, &line) <= 0) cnErrTo(FAIL, "No headers.");
   remaining = cnStr(&line);
-  while (cnTrue) {
+  while (true) {
     cnvTypedOffset* offset;
     char* next = cnParseStr(remaining, &remaining);
     if (!*next) break;
@@ -254,7 +254,7 @@ cnType* cnvLoadTable(
 }
 
 
-cnBool cnvPickFunctions(cnList(cnEntityFunction*)* functions, cnType* type) {
+bool cnvPickFunctions(cnList(cnEntityFunction*)* functions, cnType* type) {
   // For now, just put in valid and common functions for each property.
   if (!cnPushValidFunction(functions, type->schema, 1)) {
     cnErrTo(FAIL, "No valid 1.");
@@ -276,9 +276,9 @@ cnBool cnvPickFunctions(cnList(cnEntityFunction*)* functions, cnType* type) {
       cnErrTo(FAIL, "Function not pushed.");
     }
     // TODO Distance (and difference?) angle, too?
-    if (cnTrue || !strcmp("Location", cnStr(&function->name))) {
+    if (true || !strcmp("Location", cnStr(&function->name))) {
       cnEntityFunction* distance;
-      if (cnTrue) {
+      if (true) {
         // Actually, skip this N^2 thing for now. For many items per bag and few
         // bags, this is both extremely slow and allows overfit, since there are
         // so many options to consider.
@@ -306,11 +306,11 @@ cnBool cnvPickFunctions(cnList(cnEntityFunction*)* functions, cnType* type) {
   } cnEnd;
 
   // We winned!
-  return cnTrue;
+  return true;
 
   FAIL:
   // TODO Remove all added functions?
-  return cnFalse;
+  return false;
 }
 
 
@@ -326,11 +326,11 @@ void cnvPrintType(cnType* type) {
 }
 
 
-cnBool cnvPushOrExpandProperty(
+bool cnvPushOrExpandProperty(
   cnType* type, char* propertyName, cnvTypedOffset* offset
 ) {
   cnProperty* property = NULL;
-  cnBool result = cnFalse;
+  bool result = false;
 
   // Find the property with this name.
   cnListEachBegin(&type->properties, cnProperty, propertyToCheck) {
@@ -364,7 +364,7 @@ cnBool cnvPushOrExpandProperty(
     offset->type = property->type;
   }
   // We winned.
-  result = cnTrue;
+  result = true;
 
   DONE:
   return result;

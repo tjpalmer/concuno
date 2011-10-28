@@ -152,7 +152,7 @@ void cnrPropertyFieldInfoDispose(cnProperty* property) {
 }
 
 
-cnBool cnrPropertyInitTypedField(
+bool cnrPropertyInitTypedField(
   cnProperty* property, cnType* containerType, cnrType itemType,
   cnType* type, cnrFieldType fieldType,
   const char* name, cnCount offset, cnCount count
@@ -180,15 +180,15 @@ cnBool cnrPropertyInitTypedField(
   property->put = cnrPropertyFieldPut;
   property->topology = cnTopologyEuclidean;
   property->type = type;
-  return cnTrue;
+  return true;
 
   FAIL:
   cnPropertyDispose(property);
-  return cnFalse;
+  return false;
 }
 
 
-cnBool cnrSchemaInit(cnSchema* schema) {
+bool cnrSchemaInit(cnSchema* schema) {
   cnProperty* property;
   cnType* type;
 
@@ -228,11 +228,11 @@ cnBool cnrSchemaInit(cnSchema* schema) {
   )) cnFailTo(FAIL);
 
   // Good to go.
-  return cnTrue;
+  return true;
 
   FAIL:
   cnSchemaDispose(schema);
-  return cnFalse;
+  return false;
 }
 
 
@@ -244,7 +244,7 @@ void cnrStateDispose(cnrState* state) {
 
 void cnrStateInit(cnrState* state) {
   cnrItemInit(&state->ball.item, cnrTypeBall);
-  state->newSession = cnFalse;
+  state->newSession = false;
   cnListInit(&state->players, sizeof(struct cnrPlayer));
   // Seems first times are 0 1, so 0 0 should be an okay bogus.
   state->subtime = 0;

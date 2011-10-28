@@ -4,15 +4,15 @@
 /**
  * Only call this function if there is a next state available, too.
  */
-cnBool cnrExtractHoldOrPass(
+bool cnrExtractHoldOrPass(
   cnrGame* game, cnrState* state, cnrPlayer* kicker,
   cnList(cnBag)* holdBags, cnList(cnBag)* passBags,
   cnList(cnList(cnEntity)*)* entityLists,
-  cnBool label
+  bool label
 );
 
 
-cnBool cnrChooseHoldsAndPasses(
+bool cnrChooseHoldsAndPasses(
   cnrGame* game,
   cnList(cnBag)* holdBags, cnList(cnBag)* passBags,
   cnList(cnList(cnEntity)*)* entityLists
@@ -24,7 +24,7 @@ cnBool cnrChooseHoldsAndPasses(
   // certain amount. Better heuristics might improve labeling, but that might
   // also be too much assistance. What's best?
   cnCount failureLookahead = 8;
-  cnBool result = cnFalse;
+  bool result = false;
 
   // Loop through states.
   cnListEachBegin(&game->states, cnrState, state) {
@@ -53,8 +53,8 @@ cnBool cnrChooseHoldsAndPasses(
     //
     if (kicker && state + failureLookahead < end && !(state + 1)->newSession) {
       // Ooh. We have a next state. Look even further to see if keepers keep.
-      cnBool anyLaterKick = cnFalse;
-      cnBool label = cnTrue;
+      bool anyLaterKick = false;
+      bool label = true;
       cnrState* next;
       cnrState* lookaheadEnd = state + failureLookahead;
       for (next = state + 1; next < end; next++) {
@@ -62,14 +62,14 @@ cnBool cnrChooseHoldsAndPasses(
           cnListEachBegin(&next->players, cnrPlayer, player) {
             if (player->team == cnrTeamKeepers && !cnIsNaN(player->kickPower)) {
               // Found another keeper kick. Still a positive label.
-              anyLaterKick = cnTrue;
+              anyLaterKick = true;
               break;
             }
           } cnEnd;
         }
         if (next->newSession) {
           // Nope. We failed too soon. Must have made a bad choice.
-          label = cnFalse;
+          label = false;
           break;
         }
         if (anyLaterKick && next >= lookaheadEnd) {
@@ -93,26 +93,26 @@ cnBool cnrChooseHoldsAndPasses(
   } cnEnd;
 
   // Winned.
-  result = cnTrue;
+  result = true;
 
   DONE:
   return result;
 }
 
 
-cnBool cnrExtractHoldOrPass(
+bool cnrExtractHoldOrPass(
   cnrGame* game, cnrState* state, cnrPlayer* kicker,
   cnList(cnBag)* holdBags, cnList(cnBag)* passBags,
   cnList(cnList(cnEntity)*)* entityLists,
-  cnBool label
+  bool label
 ) {
-  cnBool result = cnFalse;
+  bool result = false;
   cnBag* bag = NULL;
   cnrPlayer* receiver = NULL;
   cnrBall* ball = &state->ball;
   cnFloat* ballLocation = ball->item.location;
   cnList(cnEntity)* entities;
-  cnBool kickedAgain = cnFalse;
+  bool kickedAgain = false;
   cnFloat* kickerLocation = kicker->item.location;
   cnrState* next = state + 1;
   cnFloat* nextBallLocation = next->ball.item.location;
@@ -149,7 +149,7 @@ cnBool cnrExtractHoldOrPass(
     if (player->index == kicker->index && player->team == kicker->team) {
       // Same player. Do we kick?
       if (!cnIsNaN(player->kickPower)) {
-        kickedAgain = cnTrue;
+        kickedAgain = true;
         break;
       }
     }
@@ -222,10 +222,10 @@ cnBool cnrExtractHoldOrPass(
   // And provide the given bag label already determined before the call.
   // Well, invert the label because "fail" can be determined existentially, but
   // "succeed" can't.
-  bag->label = label ? cnFalse : cnTrue;
+  bag->label = label ? false : true;
 
   // Winned.
-  result = cnTrue;
+  result = true;
 
   DONE:
   return result;

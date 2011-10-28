@@ -16,7 +16,7 @@ cnKdSplitter* cnKdSplitterCreate(cnRandom random) {
   // Init.
   splitter->pointMatrix = NULL;
   splitter->random = random;
-  splitter->randomOwned = cnFalse;
+  splitter->randomOwned = false;
   // See if we need more.
   if (!random) {
     splitter->random = cnRandomCreate();
@@ -25,7 +25,7 @@ cnKdSplitter* cnKdSplitterCreate(cnRandom random) {
       splitter = NULL;
       cnErrTo(DONE, "No random.");
     }
-    splitter->randomOwned = cnTrue;
+    splitter->randomOwned = true;
   }
   DONE:
   return splitter;

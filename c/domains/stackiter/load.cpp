@@ -16,36 +16,36 @@ typedef struct stParser {
 /**
  * Individual parse handlers for specific commands.
  */
-cnBool stHandleAlive(stParser* parser, char* args);
-cnBool stHandleClear(stParser* parser, char* args);
-cnBool stHandleColor(stParser* parser, char* args);
-cnBool stHandleDestroy(stParser* parser, char* args);
-cnBool stHandleExtent(stParser* parser, char* args);
-cnBool stHandleGrasp(stParser* parser, char* args);
-cnBool stHandleItem(stParser* parser, char* args);
-cnBool stHandlePos(stParser* parser, char* args);
-cnBool stHandlePosVel(stParser* parser, char* args);
-cnBool stHandleRelease(stParser* parser, char* args);
-cnBool stHandleRot(stParser* parser, char* args);
-cnBool stHandleRotVel(stParser* parser, char* args);
-cnBool stHandleTime(stParser* parser, char* args);
-cnBool stHandleType(stParser* parser, char* args);
+bool stHandleAlive(stParser* parser, char* args);
+bool stHandleClear(stParser* parser, char* args);
+bool stHandleColor(stParser* parser, char* args);
+bool stHandleDestroy(stParser* parser, char* args);
+bool stHandleExtent(stParser* parser, char* args);
+bool stHandleGrasp(stParser* parser, char* args);
+bool stHandleItem(stParser* parser, char* args);
+bool stHandlePos(stParser* parser, char* args);
+bool stHandlePosVel(stParser* parser, char* args);
+bool stHandleRelease(stParser* parser, char* args);
+bool stHandleRot(stParser* parser, char* args);
+bool stHandleRotVel(stParser* parser, char* args);
+bool stHandleTime(stParser* parser, char* args);
+bool stHandleType(stParser* parser, char* args);
 
 
 /**
  * Parses a single line, returning true for no error.
  */
-cnBool stParseLine(stParser* parser, cnString* line);
+bool stParseLine(stParser* parser, cnString* line);
 
 
 stItem* stParserItem(stParser* parser, char* begin, char** end);
 
 
-cnBool stPushState(stParser* parser);
+bool stPushState(stParser* parser);
 
 
-cnBool stLoad(char* name, cnList(stState)* states) {
-  cnBool result = cnTrue;
+bool stLoad(char* name, cnList(stState)* states) {
+  bool result = true;
   int closeError;
   FILE* file;
   cnString line;
@@ -58,7 +58,7 @@ cnBool stLoad(char* name, cnList(stState)* states) {
   file = fopen(name, "r");
   if (!file) {
     printf("Failed to open: %s\n", name);
-    return cnFalse;
+    return false;
   }
   printf("Parsing %s ...\n", name);
   // TODO Init state.
@@ -73,13 +73,13 @@ cnBool stLoad(char* name, cnList(stState)* states) {
       printf(
           "Error parsing line %ld of %s: %s\n", lineCount, name, cnStr(&line)
       );
-      result = cnFalse;
+      result = false;
       break;
     }
   }
   // Grab the last state.
   if (!stPushState(&parser)) {
-    result = cnFalse;
+    result = false;
   }
   // Clean up.
   cnStringDispose(&line);
@@ -88,30 +88,30 @@ cnBool stLoad(char* name, cnList(stState)* states) {
   closeError = fclose(file);
   if (readCount < 0 || closeError) {
     printf("Error reading or closing: %s\n", name);
-    result = cnFalse;
+    result = false;
   }
   return result;
 }
 
 
-cnBool stHandleAlive(stParser* parser, char* args) {
+bool stHandleAlive(stParser* parser, char* args) {
   stItem* item = stParserItem(parser, args, &args);
   char* status = cnParseStr(args, &args);
   if (!item || !*status) {
-    return cnFalse;
+    return false;
   }
   item->alive = !strcmp(status, "true");
-  return cnTrue;
+  return true;
 }
 
 
-cnBool stHandleClear(stParser* parser, char* args) {
-  parser->state.cleared = cnTrue;
-  return cnTrue;
+bool stHandleClear(stParser* parser, char* args) {
+  parser->state.cleared = true;
+  return true;
 }
 
 
-cnBool stHandleColor(stParser* parser, char* args) {
+bool stHandleColor(stParser* parser, char* args) {
   stItem* item = stParserItem(parser, args, &args);
   // TODO Use HSV colorspace to begin with?
   // TODO Verify we haven't run out of args?
@@ -119,22 +119,22 @@ cnBool stHandleColor(stParser* parser, char* args) {
   item->color[1] = strtod(args, &args);
   item->color[2] = strtod(args, &args);
   // Ignore opacity, the 4th value. It's bogus for now.
-  return cnTrue;
+  return true;
 }
 
 
-cnBool stHandleDestroy(stParser* parser, char* args) {
+bool stHandleDestroy(stParser* parser, char* args) {
   stId id = strtol(args, &args, 10);
   cnIndex* index = (cnIndex*)cnListGet(&parser->indices, id);
   cnIndex* indices = reinterpret_cast<cnIndex*>(parser->indices.items);
   cnList(stItem)* items;
   if (!index) {
     printf("Bad id: %ld\n", id);
-    return cnFalse;
+    return false;
   }
   if (!*index) {
     printf("Already destroyed: %ld\n", id);
-    return cnFalse;
+    return false;
   }
   // Remove the destroyed item.
   items = &parser->state.items;
@@ -151,29 +151,29 @@ cnBool stHandleDestroy(stParser* parser, char* args) {
     }
   }
   *index = 0;
-  return cnTrue;
+  return true;
 }
 
 
-cnBool stHandleExtent(stParser* parser, char* args) {
+bool stHandleExtent(stParser* parser, char* args) {
   stItem* item = stParserItem(parser, args, &args);
   item->extent[0] = strtod(args, &args);
   item->extent[1] = strtod(args, &args);
-  return cnTrue;
+  return true;
 }
 
 
-cnBool stHandleGrasp(stParser* parser, char* args) {
+bool stHandleGrasp(stParser* parser, char* args) {
   stItem* tool = stParserItem(parser, args, &args);
   stItem* item = stParserItem(parser, args, &args);
   // TODO Parse and use the relative grasp location?
-  tool->grasping = cnTrue;
-  item->grasped = cnTrue;
-  return cnTrue;
+  tool->grasping = true;
+  item->grasped = true;
+  return true;
 }
 
 
-cnBool stHandleItem(stParser* parser, char* args) {
+bool stHandleItem(stParser* parser, char* args) {
   stItem item;
   stId badId = 0;
   cnIndex i, index = parser->state.items.count;
@@ -182,82 +182,82 @@ cnBool stHandleItem(stParser* parser, char* args) {
   // TODO Verify against duplicate ID?
   // TODO Extra data copy here. Do I care?
   if (!cnListPush(&parser->state.items, &item)) {
-    return cnFalse;
+    return false;
   }
   // TODO Bulk expand?
   for (i = parser->indices.count; i <= item.id; i++) {
     if (!cnListPush(&parser->indices, &badId)) {
-      return cnFalse;
+      return false;
     }
   }
   // Guaranteed good array spot here.
   ((cnIndex*)parser->indices.items)[item.id] = index;
-  return cnTrue;
+  return true;
 }
 
 
-cnBool stHandlePos(stParser* parser, char* args) {
+bool stHandlePos(stParser* parser, char* args) {
   stItem* item = stParserItem(parser, args, &args);
   // TODO Verify we haven't run out of args or have other errors?
   item->location[0] = strtod(args, &args);
   item->location[1] = strtod(args, &args);
-  return cnTrue;
+  return true;
 }
 
 
-cnBool stHandlePosVel(stParser* parser, char* args) {
+bool stHandlePosVel(stParser* parser, char* args) {
   stItem* item = stParserItem(parser, args, &args);
   item->velocity[0] = strtod(args, &args);
   item->velocity[1] = strtod(args, &args);
-  return cnTrue;
+  return true;
 }
 
 
-cnBool stHandleRelease(stParser* parser, char* args) {
+bool stHandleRelease(stParser* parser, char* args) {
   stItem* tool = stParserItem(parser, args, &args);
   stItem* item = stParserItem(parser, args, &args);
-  tool->grasping = cnFalse;
-  item->grasped = cnFalse;
-  return cnTrue;
+  tool->grasping = false;
+  item->grasped = false;
+  return true;
 }
 
 
-cnBool stHandleRot(stParser* parser, char* args) {
+bool stHandleRot(stParser* parser, char* args) {
   stItem* item = stParserItem(parser, args, &args);
   // TODO Angle is in rats. Convert to radians or not?
   item->orientation = strtod(args, &args);
-  return cnTrue;
+  return true;
 }
 
 
-cnBool stHandleRotVel(stParser* parser, char* args) {
+bool stHandleRotVel(stParser* parser, char* args) {
   stItem* item = stParserItem(parser, args, &args);
   // TODO Angular velocity is in rats. Convert to radians or not?
   item->orientationVelocity = strtod(args, &args);
-  return cnTrue;
+  return true;
 }
 
 
-cnBool stHandleTime(stParser* parser, char* args) {
+bool stHandleTime(stParser* parser, char* args) {
   cnCount steps;
   char* type = cnParseStr(args, &args);
   if (!strcmp(type, "sim")) {
     if (!stPushState(parser)) {
-      return cnFalse;
+      return false;
     }
     // TODO Some general 'reset' function?
-    parser->state.cleared = cnFalse;
+    parser->state.cleared = false;
     // Just eat the number of steps for now. Maybe I'll care more about it
     // later.
     steps = strtol(args, &args, 10);
     // I pretend the sim time (in seconds) is what matters here.
     parser->state.time = strtod(args, &args);
   }
-  return cnTrue;
+  return true;
 }
 
 
-cnBool stHandleType(stParser* parser, char* args) {
+bool stHandleType(stParser* parser, char* args) {
   stItem* item = stParserItem(parser, args, &args);
   char* type = cnParseStr(args, &args);
   if (!strcmp(type, "block")) {
@@ -267,14 +267,14 @@ cnBool stHandleType(stParser* parser, char* args) {
   } else {
     // TODO Handle others?
   }
-  return cnTrue;
+  return true;
 }
 
 
-cnBool stParseLine(stParser* parser, cnString* line) {
+bool stParseLine(stParser* parser, cnString* line) {
   // TODO Extract command then scanf it?
   char *args, *command;
-  cnBool (*parse)(stParser* parser, char* args) = NULL;
+  bool (*parse)(stParser* parser, char* args) = NULL;
   command = cnParseStr(cnStr(line), &args);
   // TODO Hashtable? This is still quite fast.
   if (!strcmp(command, "alive")) {
@@ -311,7 +311,7 @@ cnBool stParseLine(stParser* parser, cnString* line) {
   } else {
     // TODO List explicit known okay ignore commands?
     //printf("Unknown command: %s\n", command);
-    return cnTrue;
+    return true;
   }
 }
 
@@ -324,16 +324,16 @@ stItem* stParserItem(stParser* parser, char* begin, char** end) {
 }
 
 
-cnBool stPushState(stParser* parser) {
+bool stPushState(stParser* parser) {
   // Save a copy of the current state.
   stState state;
   if (!stStateCopy(&state, &parser->state)) {
     printf("Failed state copy.\n");
-    return cnFalse;
+    return false;
   }
   if (!cnListPush(parser->states, &state)) {
     printf("Failed to push state copy.\n");
-    return cnFalse;
+    return false;
   }
-  return cnTrue;
+  return true;
 }

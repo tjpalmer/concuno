@@ -14,7 +14,7 @@
  * TODO On the other hand, do I care about this function being interchangeable
  * TODO with other choose functions?
  */
-cnBool stAllBagsFalse(
+bool stAllBagsFalse(
   cnList(stState)* states, cnList(cnBag)* bags,
   cnList(cnList(cnEntity)*)* entityLists
 );
@@ -28,7 +28,7 @@ cnBool stAllBagsFalse(
  * The entity lists from the bags are provided separately, because sometimes we
  * do sub-state bags.
  */
-cnBool stChooseDropWhereLandOnOther(
+bool stChooseDropWhereLandOnOther(
   cnList(stState)* states, cnList(cnBag)* bags,
   cnList(cnList(cnEntity)*)* entityLists
 );
@@ -41,7 +41,7 @@ cnBool stChooseDropWhereLandOnOther(
  * The entity lists from the bags are provided separately, because here we do
  * sub-state bags.
  */
-cnBool stChooseWhereNotMoving(
+bool stChooseWhereNotMoving(
   cnList(stState)* states, cnList(cnBag)* bags,
   cnList(cnList(cnEntity)*)* entityLists
 );

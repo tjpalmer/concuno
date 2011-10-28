@@ -33,7 +33,7 @@ struct cnKdSplitter {
    * TODO Switch random to always destroyed and require others to null it before
    * TODO destroying the splitter?
    */
-  cnBool randomOwned;
+  bool randomOwned;
 
 };
 

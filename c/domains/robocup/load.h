@@ -11,14 +11,14 @@
  *
  * Adds action information to the already present states.
  */
-cnBool cnrLoadCommandLog(cnrGame* game, char* name);
+bool cnrLoadCommandLog(cnrGame* game, char* name);
 
 
 /**
  * Loads the file indicated by the given name. Game logs usually end in
  * extension ".rcg".
  */
-cnBool cnrLoadGameLog(cnrGame* game, char* name);
+bool cnrLoadGameLog(cnrGame* game, char* name);
 
 
 #endif

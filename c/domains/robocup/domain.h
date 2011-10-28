@@ -106,7 +106,7 @@ struct cnrState {
    *
    * TODO For soccer, could this represent resumed play after certain events?
    */
-  cnBool newSession;
+  bool newSession;
 
   cnList(cnrPlayer) players;
 
@@ -150,7 +150,7 @@ void cnrPlayerInit(cnrPlayer* player);
  *
  * Dispose with cnSchemaDispose (since nothing special needed here).
  */
-cnBool cnrSchemaInit(cnSchema* schema);
+bool cnrSchemaInit(cnSchema* schema);
 
 
 /**

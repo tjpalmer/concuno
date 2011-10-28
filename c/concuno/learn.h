@@ -59,7 +59,7 @@ typedef struct cnLearner {
    * Whether the random is owned by the learner. Defaults to true when the
    * random is created automatically for the learner.
    */
-  cnBool randomOwned;
+  bool randomOwned;
 
 } cnLearner;
 
@@ -80,7 +80,7 @@ void cnLearnerDispose(cnLearner* learner);
  *
  * Even on failure, the learner is safe to dispose.
  */
-cnBool cnLearnerInit(cnLearner* learner, cnRandom random);
+bool cnLearnerInit(cnLearner* learner, cnRandom random);
 
 
 /**
