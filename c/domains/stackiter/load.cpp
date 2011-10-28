@@ -9,7 +9,7 @@ using namespace concuno;
 
 
 typedef struct stParser {
-  cnList(cnIndex) indices;
+  cnList(Index) indices;
   stState state;
   cnList(stState)* states;
 } stParser;
@@ -51,11 +51,11 @@ bool stLoad(char* name, cnList(stState)* states) {
   int closeError;
   FILE* file;
   cnString line;
-  cnCount lineCount, readCount;
+  Count lineCount, readCount;
   stParser parser;
   parser.states = states;
   stStateInit(&parser.state);
-  cnListInit(&parser.indices, sizeof(cnIndex));
+  cnListInit(&parser.indices, sizeof(Index));
   // Open file.
   file = fopen(name, "r");
   if (!file) {
@@ -127,8 +127,8 @@ bool stHandleColor(stParser* parser, char* args) {
 
 bool stHandleDestroy(stParser* parser, char* args) {
   stId id = strtol(args, &args, 10);
-  cnIndex* index = (cnIndex*)cnListGet(&parser->indices, id);
-  cnIndex* indices = reinterpret_cast<cnIndex*>(parser->indices.items);
+  Index* index = (Index*)cnListGet(&parser->indices, id);
+  Index* indices = reinterpret_cast<Index*>(parser->indices.items);
   cnList(stItem)* items;
   if (!index) {
     printf("Bad id: %ld\n", id);
@@ -178,7 +178,7 @@ bool stHandleGrasp(stParser* parser, char* args) {
 bool stHandleItem(stParser* parser, char* args) {
   stItem item;
   stId badId = 0;
-  cnIndex i, index = parser->state.items.count;
+  Index i, index = parser->state.items.count;
   stItemInit(&item);
   item.id = strtol(args, &args, 10);
   // TODO Verify against duplicate ID?
@@ -193,7 +193,7 @@ bool stHandleItem(stParser* parser, char* args) {
     }
   }
   // Guaranteed good array spot here.
-  ((cnIndex*)parser->indices.items)[item.id] = index;
+  ((Index*)parser->indices.items)[item.id] = index;
   return true;
 }
 
@@ -241,7 +241,7 @@ bool stHandleRotVel(stParser* parser, char* args) {
 
 
 bool stHandleTime(stParser* parser, char* args) {
-  cnCount steps;
+  Count steps;
   char* type = cnParseStr(args, &args);
   if (!strcmp(type, "sim")) {
     if (!stPushState(parser)) {
@@ -321,7 +321,7 @@ bool stParseLine(stParser* parser, cnString* line) {
 stItem* stParserItem(stParser* parser, char* begin, char** end) {
   // TODO Better validation?
   stId id = strtol(begin, end, 10);
-  cnIndex* index = (cnIndex*)cnListGet(&parser->indices, id);
+  Index* index = (Index*)cnListGet(&parser->indices, id);
   return reinterpret_cast<stItem*>(cnListGet(&parser->state.items, *index));
 }
 

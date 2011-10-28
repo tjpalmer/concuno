@@ -24,7 +24,7 @@ typedef struct cnBindingBag {
    */
   cnList(cnEntity) bindings;
 
-  cnCount entityCount;
+  Count entityCount;
 
 } cnBindingBag;
 
@@ -45,7 +45,7 @@ typedef struct cnBindingBagList {
    * trees, some of which will be kept, and some thrown away. In the end, that
    * makes it hard to track when to dispose of bindings.
    */
-  cnCount refCount;
+  Count refCount;
 
 } cnBindingBagList;
 
@@ -62,14 +62,14 @@ typedef struct $cnPointMatrix {
   /**
    * The total number of points in the bag.
    */
-  cnCount pointCount;
+  Count pointCount;
 
   /**
    * An array of pointCount points of valueCount values each.
    *
    * TODO Arbitrary topologies?
    */
-  cnFloat* points;
+  Float* points;
   // Or cnGridAny points; ??
 
   /**
@@ -82,12 +82,12 @@ typedef struct $cnPointMatrix {
   /**
    * Number of homogeneous values per point.
    */
-  cnCount valueCount;
+  Count valueCount;
 
   /**
    * The size of each value.
    */
-  cnCount valueSize;
+  Count valueSize;
 
 }* cnPointMatrix;
 
@@ -116,7 +116,7 @@ typedef struct cnPointBag {
    *
    * TODO Do go to the list of lists?
    */
-  cnIndex* bindingPointIndices;
+  Index* bindingPointIndices;
 
   /**
    * One point at a time.
@@ -146,7 +146,7 @@ struct cnNode {
   /**
    * We need to find these guys easily across clones, hence the ids to go with.
    */
-  cnIndex id;
+  Index id;
 
   cnNode* parent;
 
@@ -163,7 +163,7 @@ typedef struct cnLeafNode {
   /**
    * The probability of a binding at this node belonging to the target concept.
    */
-  cnFloat probability;
+  Float probability;
 
   /**
    * The strength of the probability, based on the amount of data, including any
@@ -175,7 +175,7 @@ typedef struct cnLeafNode {
    *
    * TODO What would strength mean in independent bindings mode?
    */
-  cnFloat strength;
+  Float strength;
 
 } cnLeafNode;
 
@@ -189,7 +189,7 @@ typedef struct cnRootNode {
 
   cnNode* kid;
 
-  cnIndex nextId;
+  Index nextId;
 
 } cnRootNode;
 
@@ -224,7 +224,7 @@ typedef struct cnSplitNode {
   /**
    * Owned by this node and dropped with this node.
    */
-  cnIndex* varIndices;
+  Index* varIndices;
 
   /**
    * Owned by this node and dropped with this node if not null.
@@ -255,7 +255,7 @@ typedef struct cnLeafBindingBag {
 
   cnLeafNode* leaf;
 
-  // TODO cnFloat probability; // For cases when leaves aren't needed?
+  // TODO Float probability; // For cases when leaves aren't needed?
 
 } cnLeafBindingBag;
 
@@ -269,7 +269,7 @@ typedef struct cnLeafBindingBagGroup {
 
   cnLeafNode* leaf;
 
-  // TODO cnFloat probability; // For cases when leaves aren't needed?
+  // TODO Float probability; // For cases when leaves aren't needed?
 
 } cnLeafBindingBagGroup;
 
@@ -286,11 +286,11 @@ typedef struct cnLeafCount {
 
   cnLeafNode* leaf;
 
-  cnCount negCount;
+  Count negCount;
 
-  cnCount posCount;
+  Count posCount;
 
-  // TODO cnFloat probability; // For cases when leaves aren't needed?
+  // TODO Float probability; // For cases when leaves aren't needed?
 
 } cnLeafCount;
 
@@ -305,7 +305,7 @@ void cnBindingBagDispose(cnBindingBag* bindingBag);
  * Creates binding bags where each binding references entityCount entities.
  */
 void cnBindingBagInit(
-  cnBindingBag* bindingBag, Bag* bag, cnCount entityCount
+  cnBindingBag* bindingBag, Bag* bag, Count entityCount
 );
 
 
@@ -342,13 +342,13 @@ bool cnBindingBagListPushBags(
  *
  * TODO If entities were a sized 2D grid, we could avoid the count here.
  */
-bool cnBindingValid(cnCount entityCount, cnEntity* entities);
+bool cnBindingValid(Count entityCount, cnEntity* entities);
 
 
 /**
  * Calculate the score directly from a list of counts of max bags at leaves.
  */
-cnFloat cnCountsLogMetric(cnList(cnLeafCount)* counts);
+Float cnCountsLogMetric(cnList(cnLeafCount)* counts);
 
 
 void cnLeafBindingBagDispose(cnLeafBindingBag* leafBindingBag);
@@ -396,7 +396,7 @@ void cnNodeDrop(cnNode* node);
  * Searches depth first under the given node to find the node with the given
  * id, returning a pointer to that node if found or else null.
  */
-cnNode* cnNodeFindById(cnNode* node, cnIndex id);
+cnNode* cnNodeFindById(cnNode* node, Index id);
 
 
 /**
@@ -405,7 +405,7 @@ cnNode* cnNodeFindById(cnNode* node, cnIndex id);
 cnNode** cnNodeKids(cnNode* node);
 
 
-cnCount cnNodeKidCount(cnNode* node);
+Count cnNodeKidCount(cnNode* node);
 
 
 /**
@@ -446,7 +446,7 @@ bool cnNodePropagateBindingBags(
  * Replaces the kid at the index, if any, with the new kid, disposing of and
  * freeing the old one if any.
  */
-void cnNodePutKid(cnNode* parent, cnIndex k, cnNode* kid);
+void cnNodePutKid(cnNode* parent, Index k, cnNode* kid);
 
 
 /**
@@ -464,7 +464,7 @@ cnRootNode* cnNodeRoot(cnNode* node);
 /**
  * Returns the number of var nodes in the tree above the given node.
  */
-cnCount cnNodeVarDepth(cnNode* node);
+Count cnNodeVarDepth(cnNode* node);
 
 
 void cnPointBagDispose(cnPointBag* pointBag);
@@ -523,7 +523,7 @@ bool cnSplitNodePointBags(
 cnNode* cnTreeCopy(cnNode* node);
 
 
-cnFloat cnTreeLogMetric(cnRootNode* root, cnList(Bag)* bags);
+Float cnTreeLogMetric(cnRootNode* root, cnList(Bag)* bags);
 
 
 /**
@@ -545,7 +545,7 @@ bool cnTreeMaxLeafCounts(
  */
 bool cnTreeMaxLeafBags(
   cnList(cnLeafBindingBagGroup)* groupsIn,
-  cnList(cnList(cnIndex))* groupsMaxOut
+  cnList(cnList(Index))* groupsMaxOut
 );
 
 

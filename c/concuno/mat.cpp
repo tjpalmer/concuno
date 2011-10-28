@@ -6,14 +6,14 @@
 namespace concuno {
 
 
-cnFloat cnEuclideanDistance(cnCount size, cnFloat* x, cnFloat* y) {
+Float cnEuclideanDistance(Count size, Float* x, Float* y) {
   return sqrt(cnSquaredEuclideanDistance(size, x, y));
 }
 
 
-cnFloat cnNorm(cnCount size, cnFloat* x) {
-  cnFloat norm = 0;
-  cnFloat* xEnd = x + size;
+Float cnNorm(Count size, Float* x) {
+  Float norm = 0;
+  Float* xEnd = x + size;
   for (; x < xEnd; x++) {
     norm += *x * *x;
   }
@@ -22,9 +22,9 @@ cnFloat cnNorm(cnCount size, cnFloat* x) {
 
 
 void cnReframe(
-  cnCount size, cnFloat* origin, cnFloat* target, cnFloat* result
+  Count size, Float* origin, Float* target, Float* result
 ) {
-  cnIndex i;
+  Index i;
 
   // Translate. This is the first easy part.
   for (i = 0; i < size; i++) {
@@ -57,11 +57,11 @@ void cnReframe(
     // This part is what uses the stable calculation recommendations at
     // Wikipedia. I haven't usually paid attention to stability elsewhere.
     // TODO Think on that? Can this be simplified?
-    cnFloat x = target[0];
-    cnFloat y = target[i];
-    cnFloat cosine;
-    cnFloat sine;
-    cnFloat radius;
+    Float x = target[0];
+    Float y = target[i];
+    Float cosine;
+    Float sine;
+    Float radius;
 
     // Calculate the rotation.
     if (!y) {
@@ -77,14 +77,14 @@ void cnReframe(
       radius = fabs(y);
     } else if (fabs(x) >= fabs(y)) {
       // At Wikipedia, ratio is t, and radius before being finished is u.
-      cnFloat ratio = x / y;
+      Float ratio = x / y;
       radius = copysign(sqrt(1 + ratio * ratio), y);
       sine = -1.0 / radius;
       cosine = -sine * ratio;
       radius *= y;
     } else {
       // Alternative for |y| > |x|.
-      cnFloat ratio = y / x;
+      Float ratio = y / x;
       radius = copysign(sqrt(1 + ratio * ratio), x);
       cosine = 1.0 / radius;
       sine = -cosine * ratio;
@@ -111,28 +111,28 @@ void cnReframe(
 }
 
 
-cnFloat cnSquaredEuclideanDistance(cnCount size, cnFloat* x, cnFloat* y) {
+Float cnSquaredEuclideanDistance(Count size, Float* x, Float* y) {
   // Doesn't use generic norm so as not to allocate a temporary diff vector.
-  cnFloat distance = 0;
-  cnFloat* xEnd = x + size;
+  Float distance = 0;
+  Float* xEnd = x + size;
   for (; x < xEnd; x++, y++) {
-    cnFloat diff = *x - *y;
+    Float diff = *x - *y;
     distance += diff * diff;
   }
   return distance;
 }
 
 
-void cnVectorPrint(FILE* file, cnCount size, cnFloat* values) {
+void cnVectorPrint(FILE* file, Count size, Float* values) {
   cnVectorPrintDelimited(file, size, values, " ");
 }
 
 
 void cnVectorPrintDelimited(
-  FILE* file, cnCount size, cnFloat* values, const char* delimiter
+  FILE* file, Count size, Float* values, const char* delimiter
 ) {
   // TODO Awesomer printing a la Matlab or better?
-  cnFloat *value = values, *end = values + size;
+  Float *value = values, *end = values + size;
   for (; value < end; value++) {
     if (value > values) {
       fprintf(file, "%s", delimiter);
@@ -142,7 +142,7 @@ void cnVectorPrintDelimited(
 }
 
 
-cnRadian cnWrapRadians(cnRadian angle) {
+Radian cnWrapRadians(Radian angle) {
   angle = fmod(angle, 2 * cnPi);
   if (angle < -cnPi) {
     angle += 2 * cnPi;

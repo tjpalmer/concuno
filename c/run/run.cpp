@@ -16,7 +16,7 @@ typedef struct cnvTypedOffset {
   /**
    * Offset in bytes.
    */
-  cnCount offset;
+  Count offset;
 
   /**
    * Type at this offset.
@@ -130,7 +130,7 @@ bool cnvBuildBags(
 ) {
   char* feature = reinterpret_cast<char*>(features->items);
   char* featuresEnd = reinterpret_cast<char*>(cnListEnd(features));
-  cnCount labelOffset = -1;
+  Count labelOffset = -1;
   bool result = false;
 
   // Find the offset matching the label id.
@@ -146,15 +146,15 @@ bool cnvBuildBags(
   // Assume for now that the labels and features go in the same order.
   cnListEachBegin(labels, char, labelItem) {
     Bag* bag = reinterpret_cast<Bag*>(cnListExpand(bags));
-    cnIndex bagId = *(cnFloat*)labelItem;
+    Index bagId = *(Float*)labelItem;
     // Check the bag allocation, and init the thing.
     if (!bag) cnErrTo(DONE, "No bag.");
     bag->init();
-    bag->label = *(cnFloat*)(labelItem + labelOffset);
+    bag->label = *(Float*)(labelItem + labelOffset);
     // Add features.
     //printf("Reached bag %ld, labeled %u.\n", bagId, bag->label);
     for (; feature < featuresEnd; feature += features->itemSize) {
-      cnIndex featureBagId = *(cnFloat*)feature;
+      Index featureBagId = *(Float*)feature;
       if (featureBagId != bagId) break;
       // The feature goes with this bag.
       cnListPush(bag->entities, &feature);
@@ -172,7 +172,7 @@ bool cnvBuildBags(
 cnType* cnvLoadTable(
   const char* fileName, const char* typeName, cnSchema* schema, cnListAny* items
 ) {
-  cnCount countRead;
+  Count countRead;
   FILE* file = NULL;
   cnString line;
   char* remaining;
@@ -226,9 +226,9 @@ cnType* cnvLoadTable(
     cnListEachBegin(&offsets, cnvTypedOffset, offset) {
       // TODO Don't assume all are floats! Need custom parsing?
       char* former = remaining;
-      cnFloat value = strtod(remaining, &remaining);
+      Float value = strtod(remaining, &remaining);
       if (remaining == former) cnErrTo(FAIL, "No data to read?");
-      *(cnFloat*)(((char*)item) + offset->offset) = value;
+      *(Float*)(((char*)item) + offset->offset) = value;
     } cnEnd;
   }
   if (countRead < 0) cnErrTo(FAIL, "Error reading line.");

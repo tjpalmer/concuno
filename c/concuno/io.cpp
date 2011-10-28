@@ -28,9 +28,9 @@ char* cnDelimit(char** string, char delimiter) {
 }
 
 
-bool cnDelimitInt(char** string, char** token, cnInt* i, char delimiter) {
+bool cnDelimitInt(char** string, char** token, Int* i, char delimiter) {
   char* intEnd;
-  cnInt temp;
+  Int temp;
   char* tempToken;
 
   // First delimit the token.
@@ -106,11 +106,11 @@ char* cnParseStr(char* begin, char** end) {
  */
 #define cnReadLine_BufferSize 64
 
-cnCount cnReadLine(FILE* file, cnString* string) {
+Count cnReadLine(FILE* file, cnString* string) {
   char buffer[cnReadLine_BufferSize];
-  cnIndex bufferIndex = 0;
-  cnCount count = 0;
-  cnCount maxRead = cnReadLine_BufferSize - 1;
+  Index bufferIndex = 0;
+  Count count = 0;
+  Count maxRead = cnReadLine_BufferSize - 1;
   int i;
   cnStringClear(string);
   while ((i = fgetc(file)) != EOF) {
@@ -137,8 +137,8 @@ cnCount cnReadLine(FILE* file, cnString* string) {
 
 
 bool cnStrEndsWith(char* string, const char* ending) {
-  cnCount endingLength = strlen(ending);
-  cnCount stringLength = strlen(string);
+  Count endingLength = strlen(ending);
+  Count stringLength = strlen(string);
   if (stringLength >= endingLength) {
     // Long enough. Check the contents.
     return strcmp(string + stringLength - endingLength, ending) ?

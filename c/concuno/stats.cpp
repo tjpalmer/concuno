@@ -15,9 +15,9 @@ namespace concuno {
 
 typedef struct cnBinomialInfo {
 
-  cnCount count;
+  Count count;
 
-  cnFloat prob;
+  Float prob;
 
   cnRandom random;
 
@@ -33,13 +33,13 @@ typedef struct cnMultiBinomial {
    * We need to remember the index, because we sort by decreasing probability
    * and need to get back to where we were.
    */
-  cnIndex index;
+  Index index;
 
   /**
    * The conditional probability for this binomial given its order in the
    * multinomial.
    */
-  cnFloat prob;
+  Float prob;
 
 } cnMultiBinomial;
 
@@ -52,16 +52,16 @@ typedef struct cnMultinomialInfo {
    */
   cnMultiBinomial* binomials;
 
-  cnCount classCount;
+  Count classCount;
 
-  cnCount sampleCount;
+  Count sampleCount;
 
   cnRandom random;
 
 } cnMultinomialInfo;
 
 
-cnBinomial cnBinomialCreate(cnRandom random, cnCount count, cnFloat prob) {
+cnBinomial cnBinomialCreate(cnRandom random, Count count, Float prob) {
   cnBinomialInfo* binomial;
 
   // Allocate space.
@@ -84,7 +84,7 @@ void cnBinomialDestroy(cnBinomial binomial) {
 }
 
 
-cnCount cnBinomialSample(cnBinomial binomial) {
+Count cnBinomialSample(cnBinomial binomial) {
   cnBinomialInfo* info = (cnBinomialInfo*)binomial;
   // TODO They only remember state for one binomial at a time in rk_state.
   // TODO Consider adding support on our end for retaining that state in our own
@@ -96,9 +96,9 @@ cnCount cnBinomialSample(cnBinomial binomial) {
 bool cnFunctionEvaluateMahalanobisDistance(
   cnFunction* function, void* in, void* out
 ) {
-  *((cnFloat*)out) = cnMahalanobisDistance(
-    reinterpret_cast<cnGaussian*>(function->info),
-    reinterpret_cast<cnFloat*>(in)
+  *((Float*)out) = cnMahalanobisDistance(
+    reinterpret_cast<Gaussian*>(function->info),
+    reinterpret_cast<Float*>(in)
   );
   // Always good.
   return true;
@@ -106,8 +106,8 @@ bool cnFunctionEvaluateMahalanobisDistance(
 
 
 cnFunction* cnFunctionCreateMahalanobisDistance_copy(cnFunction* function) {
-  cnGaussian* other = reinterpret_cast<cnGaussian*>(function->info);
-  cnGaussian* gaussian = cnAlloc(cnGaussian, 1);
+  Gaussian* other = reinterpret_cast<Gaussian*>(function->info);
+  Gaussian* gaussian = cnAlloc(Gaussian, 1);
   cnFunction* copy;
   if (!gaussian) return NULL;
   if (!cnGaussianInit(gaussian, other->dims, other->mean)) {
@@ -123,14 +123,14 @@ cnFunction* cnFunctionCreateMahalanobisDistance_copy(cnFunction* function) {
 }
 
 void cnFunctionCreateMahalanobisDistance_dispose(cnFunction* function) {
-  cnGaussianDispose(reinterpret_cast<cnGaussian*>(function->info));
+  cnGaussianDispose(reinterpret_cast<Gaussian*>(function->info));
   free(function->info);
 }
 
 bool cnFunctionCreateMahalanobisDistance_write(
   cnFunction* function, FILE* file, cnString* indent
 ) {
-  cnGaussian* gaussian = reinterpret_cast<cnGaussian*>(function->info);
+  Gaussian* gaussian = reinterpret_cast<Gaussian*>(function->info);
   bool result = false;
 
   // TODO Check error state?
@@ -151,7 +151,7 @@ bool cnFunctionCreateMahalanobisDistance_write(
   return result;
 }
 
-cnFunction* cnFunctionCreateMahalanobisDistance(cnGaussian* gaussian) {
+cnFunction* cnFunctionCreateMahalanobisDistance(Gaussian* gaussian) {
   cnFunction* function = cnAlloc(cnFunction, 1);
   if (!function) return NULL;
   function->info = gaussian;
@@ -163,7 +163,7 @@ cnFunction* cnFunctionCreateMahalanobisDistance(cnGaussian* gaussian) {
 }
 
 
-void cnGaussianDispose(cnGaussian* gaussian) {
+void cnGaussianDispose(Gaussian* gaussian) {
   free(gaussian->cov);
   free(gaussian->mean);
   gaussian->cov = NULL;
@@ -172,16 +172,16 @@ void cnGaussianDispose(cnGaussian* gaussian) {
 }
 
 
-bool cnGaussianInit(cnGaussian* gaussian, cnCount dims, cnFloat* mean) {
+bool cnGaussianInit(Gaussian* gaussian, Count dims, Float* mean) {
   // Make space.
-  gaussian->cov = cnAlloc(cnFloat, dims * dims);
-  gaussian->mean = cnAlloc(cnFloat, dims);
+  gaussian->cov = cnAlloc(Float, dims * dims);
+  gaussian->mean = cnAlloc(Float, dims);
   if (!(gaussian->cov && gaussian->mean)) goto FAIL;
   // Store values.
   gaussian->dims = dims;
   if (mean) {
     // Use the mean supplied.
-    memcpy(gaussian->mean, mean, dims * sizeof(cnFloat));
+    memcpy(gaussian->mean, mean, dims * sizeof(Float));
   } else {
     // Just center at 0 for now.
     // TODO Vector fill function?
@@ -199,19 +199,19 @@ bool cnGaussianInit(cnGaussian* gaussian, cnCount dims, cnFloat* mean) {
 }
 
 
-cnFloat cnMahalanobisDistance(cnGaussian* gaussian, cnFloat* point) {
-  cnFloat distance = 0;
-  cnCount dims = gaussian->dims;
-  cnFloat* mean = gaussian->mean;
-  cnFloat* meanEnd = mean + dims;
+Float cnMahalanobisDistance(Gaussian* gaussian, Float* point) {
+  Float distance = 0;
+  Count dims = gaussian->dims;
+  Float* mean = gaussian->mean;
+  Float* meanEnd = mean + dims;
   // TODO Covariance.
-  cnFloat *meanValue, *pointValue;
+  Float *meanValue, *pointValue;
   for (
     meanValue = mean, pointValue = point;
     meanValue < meanEnd;
     meanValue++, pointValue++
   ) {
-    cnFloat diff = *pointValue - *meanValue;
+    Float diff = *pointValue - *meanValue;
     // TODO Apply covariance scaling.
     distance += diff * diff;
   }
@@ -229,11 +229,11 @@ int cnMultinomialCreate_compareBinomials(const void *a, const void *b) {
 }
 
 cnMultinomial cnMultinomialCreate(
-  cnRandom random, cnCount sampleCount, cnCount classCount, cnFloat* probs
+  cnRandom random, Count sampleCount, Count classCount, Float* probs
 ) {
-  cnIndex i;
+  Index i;
   cnMultinomialInfo* info;
-  cnFloat probLeft;
+  Float probLeft;
 
   // Allocate and init basics.
   if (!(info = cnAlloc(cnMultinomialInfo, 1))) {
@@ -270,7 +270,7 @@ cnMultinomial cnMultinomialCreate(
   // that for now.
   probLeft = 1.0;
   for (i = 0; i < classCount; i++) {
-    cnFloat multiProb = info->binomials[i].prob;
+    Float multiProb = info->binomials[i].prob;
     // Keep it at 0 instead of going NaN for 0-prob classes.
     if (multiProb) {
       info->binomials[i].prob /= probLeft;
@@ -299,15 +299,15 @@ void cnMultinomialDestroy(cnMultinomial multinomial) {
 }
 
 
-void cnMultinomialSample(cnMultinomial multinomial, cnCount* out) {
-  cnCount samplesLeft;
-  cnIndex i;
+void cnMultinomialSample(cnMultinomial multinomial, Count* out) {
+  Count samplesLeft;
+  Index i;
   cnMultinomialInfo* info = (cnMultinomialInfo*)multinomial;
 
   // Binomial sample all but the last. Speed matters more for sampling.
   samplesLeft = info->sampleCount;
   for (i = 0; i < info->classCount - 1; i++) {
-    cnCount successCount = info->binomials[i].prob ?
+    Count successCount = info->binomials[i].prob ?
       cnRandomBinomial(info->random, samplesLeft, info->binomials[i].prob) : 0;
     out[info->binomials[i].index] = successCount;
     samplesLeft -= successCount;
@@ -319,13 +319,13 @@ void cnMultinomialSample(cnMultinomial multinomial, cnCount* out) {
 
 
 bool cnPermutations(
-  cnCount options, cnCount count,
-  bool (*handler)(void* info, cnCount count, cnIndex* permutation),
+  Count options, Count count,
+  bool (*handler)(void* info, Count count, Index* permutation),
   void* data
 ) {
   bool result = false;
-  cnIndex c, o;
-  cnIndex* permutation = cnAlloc(cnIndex, count);
+  Index c, o;
+  Index* permutation = cnAlloc(Index, count);
   bool* used = cnAlloc(bool, options);
   if (!(permutation && used)) cnErrTo(DONE, "No permutation or used.");
 
@@ -395,7 +395,7 @@ cnRandom cnRandomCreate(void) {
 }
 
 
-cnCount cnRandomBinomial(cnRandom random, cnCount count, cnFloat prob) {
+Count cnRandomBinomial(cnRandom random, Count count, Float prob) {
   rk_state* state = (rk_state*)random;
   return rk_binomial(state, count, prob);
 }
@@ -406,15 +406,15 @@ void cnRandomDestroy(cnRandom random) {
 }
 
 
-cnFloat cnScalarCovariance(
-  cnCount count,
-  cnCount skipA, cnFloat* inA,
-  cnCount skipB, cnFloat* inB
+Float cnScalarCovariance(
+  Count count,
+  Count skipA, Float* inA,
+  Count skipB, Float* inB
 ) {
-  cnIndex i;
-  cnFloat sumA = 0.0;
-  cnFloat sumB = 0.0;
-  cnFloat sumAB = 0.0;
+  Index i;
+  Float sumA = 0.0;
+  Float sumB = 0.0;
+  Float sumAB = 0.0;
   for (i = 0; i < count; i++) {
     sumA += *inA;
     sumB += *inB;
@@ -428,19 +428,19 @@ cnFloat cnScalarCovariance(
 }
 
 
-cnFloat cnScalarVariance(cnCount count, cnCount skip, cnFloat* in) {
+Float cnScalarVariance(Count count, Count skip, Float* in) {
   // TODO Is this right?
   return cnScalarCovariance(count, skip, in, skip, in);
 }
 
 
-cnFloat cnUnitRand() {
+Float cnUnitRand() {
   // TODO This is a horrible implementation right now. Do much improvement!
-  cnCount value = rand();
+  Count value = rand();
   // Despite the abuse, subtract 1 instead of adding to RAND_MAX, in case
   // RAND_MAX is already at the cap before rollover.
   if (value == RAND_MAX) value--;
-  return value / (cnFloat)RAND_MAX;
+  return value / (Float)RAND_MAX;
 }
 
 
@@ -453,12 +453,12 @@ void cnVectorCov(void) {
 }
 
 
-cnFloat* cnVectorMax(cnCount size, cnFloat* out, cnCount count, cnFloat* in) {
-  cnFloat *inBegin = in, *inEnd = in + size * count;
-  cnFloat* outEnd = out + size;
+Float* cnVectorMax(Count size, Float* out, Count count, Float* in) {
+  Float *inBegin = in, *inEnd = in + size * count;
+  Float* outEnd = out + size;
   if (!count) {
     // I don't know the max of nothing.
-    cnFloat nan = cnNaN();
+    Float nan = cnNaN();
     for (; out < outEnd; out++) {
       *out = nan;
     }
@@ -478,9 +478,9 @@ cnFloat* cnVectorMax(cnCount size, cnFloat* out, cnCount count, cnFloat* in) {
 }
 
 
-cnFloat* cnVectorMean(cnCount size, cnFloat* out, cnCount count, cnFloat* in) {
-  cnFloat *inBegin = in, *inEnd = in + size * count;
-  cnFloat* outEnd = out + size;
+Float* cnVectorMean(Count size, Float* out, Count count, Float* in) {
+  Float *inBegin = in, *inEnd = in + size * count;
+  Float* outEnd = out + size;
   // TODO Go one vector at a time for nicer memory access?
   // Do one element of out at a time, starting in from an equivalent offset.
   for (; out < outEnd; out++, inBegin++) {
@@ -495,12 +495,12 @@ cnFloat* cnVectorMean(cnCount size, cnFloat* out, cnCount count, cnFloat* in) {
 }
 
 
-cnFloat* cnVectorMin(cnCount size, cnFloat* out, cnCount count, cnFloat* in) {
-  cnFloat *inBegin = in, *inEnd = in + size * count;
-  cnFloat* outEnd = out + size;
+Float* cnVectorMin(Count size, Float* out, Count count, Float* in) {
+  Float *inBegin = in, *inEnd = in + size * count;
+  Float* outEnd = out + size;
   if (!count) {
     // I don't know the max of nothing.
-    cnFloat nan = cnNaN();
+    Float nan = cnNaN();
     for (; out < outEnd; out++) {
       *out = nan;
     }

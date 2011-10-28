@@ -12,10 +12,10 @@ using namespace concuno;
 using namespace std;
 
 
-bool cnrGenColumnVector(yajl_gen gen, cnCount count, cnFloat* x);
+bool cnrGenColumnVector(yajl_gen gen, Count count, Float* x);
 
 
-bool cnrGenFloat(yajl_gen gen, cnFloat x);
+bool cnrGenFloat(yajl_gen gen, Float x);
 
 
 bool cnrGenStr(yajl_gen gen, const char* str);
@@ -68,7 +68,7 @@ int main(int argc, char** argv) {
     // Assume the file is in the same place but named rcl instead of rcg.
     if (cnStrEndsWith(name, ".rcg")) {
       // Abusively just modify the arg. TODO Is this legit?
-      cnIndex lastIndex = strlen(name) - 1;
+      Index lastIndex = strlen(name) - 1;
       name[lastIndex] = 'l';
       printf("Trying also to read %s\n", name);
       if (!cnrLoadCommandLog(&game, name)) {
@@ -94,8 +94,8 @@ int main(int argc, char** argv) {
 }
 
 
-bool cnrGenColumnVector(yajl_gen gen, cnCount count, cnFloat* x) {
-  cnFloat* end = x + count;
+bool cnrGenColumnVector(yajl_gen gen, Count count, Float* x) {
+  Float* end = x + count;
   if (yajl_gen_array_open(gen)) cnFailTo(FAIL);
   for (; x < end; x++) {
     if (yajl_gen_array_open(gen)) cnFailTo(FAIL);
@@ -112,7 +112,7 @@ bool cnrGenColumnVector(yajl_gen gen, cnCount count, cnFloat* x) {
 }
 
 
-bool cnrGenFloat(yajl_gen gen, cnFloat x) {
+bool cnrGenFloat(yajl_gen gen, Float x) {
   // TODO Fancierness to get nicer results.
   return yajl_gen_double(gen, x) ? false : true;
 }
@@ -301,7 +301,7 @@ bool cnrSaveBags(const char* name, cnList(Bag)* bags) {
     if (yajl_gen_array_open(gen)) cnFailTo(DONE);
     // Write each item (ball or player).
     cnListEachBegin(bag->entities, cnEntity, entity) {
-      cnIndex depth = 0;
+      Index depth = 0;
       cnrItem* item = reinterpret_cast<cnrItem*>(*entity);
       if (yajl_gen_map_open(gen)) cnFailTo(DONE);
       // Type as ball, left (team), or right (team).

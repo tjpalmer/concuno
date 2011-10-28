@@ -134,7 +134,7 @@ bool stChooseWhereNotMoving(
   cnList(stState)* states, cnList(Bag)* bags,
   cnList(cnList(cnEntity)*)* entityLists
 ) {
-  cnFloat epsilon = 1e-2;
+  Float epsilon = 1e-2;
   bool result = false;
 
   // Find bags.
@@ -185,7 +185,7 @@ bool stChooseWhereNotMoving(
       Bag* bag;
       cnList(cnEntity)* participant;
       stItem* item = *(stItem**)entity;
-      cnFloat speed;
+      Float speed;
 
       // Bag.
       if (!(bag = reinterpret_cast<Bag*>(cnListExpand(bags)))) {
@@ -241,7 +241,7 @@ bool stFindGraspedItems(const stState* state, cnList(stItem*)* items) {
 
 
 bool stOnGround(const stItem* item) {
-  cnFloat angle = item->orientation;
+  Float angle = item->orientation;
   // Angles go from -1 to 1.
   // Here, dim 1 is upright, and 0 sideways.
   int dim = angle < -0.75 || (-0.25 < angle && angle < 0.25) || 0.75 < angle;

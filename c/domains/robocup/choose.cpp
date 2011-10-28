@@ -25,7 +25,7 @@ bool cnrChooseHoldsAndPasses(
   // is a problem, that problem does need to precede loss of the ball by a
   // certain amount. Better heuristics might improve labeling, but that might
   // also be too much assistance. What's best?
-  cnCount failureLookahead = 8;
+  Count failureLookahead = 8;
   bool result = false;
 
   // Loop through states.
@@ -112,18 +112,18 @@ bool cnrExtractHoldOrPass(
   Bag* bag = NULL;
   cnrPlayer* receiver = NULL;
   cnrBall* ball = &state->ball;
-  cnFloat* ballLocation = ball->item.location;
+  Float* ballLocation = ball->item.location;
   cnList(cnEntity)* entities;
   bool kickedAgain = false;
-  cnFloat* kickerLocation = kicker->item.location;
+  Float* kickerLocation = kicker->item.location;
   cnrState* next = state + 1;
-  cnFloat* nextBallLocation = next->ball.item.location;
-  cnFloat ballVelocity[] = {
+  Float* nextBallLocation = next->ball.item.location;
+  Float ballVelocity[] = {
     nextBallLocation[0] - ballLocation[0],
     nextBallLocation[1] - ballLocation[1]
   };
-  cnFloat ballSpeed = cnNorm(2, ballVelocity);
-  cnFloat ballDistance = cnEuclideanDistance(
+  Float ballSpeed = cnNorm(2, ballVelocity);
+  Float ballDistance = cnEuclideanDistance(
     2, nextBallLocation, kickerLocation
   );
 
@@ -164,19 +164,19 @@ bool cnrExtractHoldOrPass(
   // on whether the ball actually seems to be going toward a team member.
   if (!kickedAgain && ballSpeed > 0.6 && ballDistance > 0.6) {
     // Presume it's a pass for now. Find the receiver, if within pi/10.
-    cnRadian minDiff = 0.1 * cnPi;
-    cnRadian passAngle = atan2(ballVelocity[1], ballVelocity[0]);
+    Radian minDiff = 0.1 * cnPi;
+    Radian passAngle = atan2(ballVelocity[1], ballVelocity[0]);
     cnListEachBegin(&state->players, struct cnrPlayer, player) {
       // Actually, for the same state, pointer equality for player and kicker
       // should be good enough, but check indices to be more general.
       if (player->index != kicker->index && player->team == kicker->team) {
-        cnFloat* playerLocation = player->item.location;
-        cnFloat playerDelta[] = {
+        Float* playerLocation = player->item.location;
+        Float playerDelta[] = {
           playerLocation[0] - kickerLocation[0],
           playerLocation[1] - kickerLocation[1]
         };
-        cnRadian playerAngle = atan2(playerDelta[1], playerDelta[0]);
-        cnRadian diff = fabs(cnWrapRadians(playerAngle - passAngle));
+        Radian playerAngle = atan2(playerDelta[1], playerDelta[0]);
+        Radian diff = fabs(cnWrapRadians(playerAngle - passAngle));
         if (diff < minDiff) {
           minDiff = diff;
           receiver = player;

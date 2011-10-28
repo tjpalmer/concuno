@@ -43,7 +43,7 @@ char* cnDelimit(char** string, char delimiter);
  *
  * if (!cnDelimitInt(&text, &token, &number, ',')) ...
  */
-bool cnDelimitInt(char** string, char** token, cnInt* i, char delimiter);
+bool cnDelimitInt(char** string, char** token, Int* i, char delimiter);
 
 
 /**
@@ -89,7 +89,7 @@ char* cnParseStr(char* begin, char** end);
  * is read, returns 0. Returns the positive count of chars read if no error. If
  * error, returns the negative count of chars read.
  */
-cnCount cnReadLine(FILE* file, cnString* string);
+Count cnReadLine(FILE* file, cnString* string);
 
 
 /**

@@ -15,7 +15,7 @@ typedef enum {
 } stType;
 
 
-typedef concuno::cnIndex stId;
+typedef concuno::Index stId;
 
 
 typedef int stTypeId;
@@ -25,9 +25,9 @@ typedef struct stItem {
 
   bool alive;
 
-  concuno::cnFloat color[3];
+  concuno::Float color[3];
 
-  concuno::cnFloat extent[2];
+  concuno::Float extent[2];
 
   /**
    * Only ever true for blocks.
@@ -43,15 +43,15 @@ typedef struct stItem {
 
   stId id;
 
-  concuno::cnFloat location[2];
+  concuno::Float location[2];
 
-  concuno::cnFloat orientation;
+  concuno::Float orientation;
 
-  concuno::cnFloat orientationVelocity;
+  concuno::Float orientationVelocity;
 
   stType type;
 
-  concuno::cnFloat velocity[2];
+  concuno::Float velocity[2];
 
 } stItem;
 

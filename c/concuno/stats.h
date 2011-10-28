@@ -14,15 +14,15 @@ typedef void* cnBinomial;
 /**
  * A multivariate normal distribution.
  */
-typedef struct cnGaussian {
+struct Gaussian {
 
-  cnCount dims;
+  Count dims;
 
-  cnFloat* mean;
+  Float* mean;
 
-  cnFloat* cov;
+  Float* cov;
 
-} cnGaussian;
+};
 
 
 /**
@@ -55,7 +55,7 @@ typedef void* cnRandom;
  *
  * TODO Citation to the folks with the algorithm I use.
  */
-cnBinomial cnBinomialCreate(cnRandom random, cnCount count, cnFloat prob);
+cnBinomial cnBinomialCreate(cnRandom random, Count count, Float prob);
 
 
 /**
@@ -72,19 +72,19 @@ void cnBinomialDestroy(cnBinomial binomial);
  * Returns the number of successes for a draw of count samples, ranging between
  * 0 and count.
  */
-cnCount cnBinomialSample(cnBinomial binomial);
+Count cnBinomialSample(cnBinomial binomial);
 
 
 /**
  * Provides a Mahalanobis distance metric based on a Gaussian distribution.
  */
-cnFunction* cnFunctionCreateMahalanobisDistance(cnGaussian* gaussian);
+cnFunction* cnFunctionCreateMahalanobisDistance(Gaussian* gaussian);
 
 
 /**
  * Frees the mean and cov, setting them to NULL and dims to zero.
  */
-void cnGaussianDispose(cnGaussian* gaussian);
+void cnGaussianDispose(Gaussian* gaussian);
 
 
 /**
@@ -92,7 +92,7 @@ void cnGaussianDispose(cnGaussian* gaussian);
  *
  * TODO Init to mean zero and identity cov? Or just NaNs?
  */
-bool cnGaussianInit(cnGaussian* gaussian, cnCount dims, cnFloat* mean);
+bool cnGaussianInit(Gaussian* gaussian, Count dims, Float* mean);
 
 
 /**
@@ -101,7 +101,7 @@ bool cnGaussianInit(cnGaussian* gaussian, cnCount dims, cnFloat* mean);
  *
  * TODO Just Euclidean distance so far!!!
  */
-cnFloat cnMahalanobisDistance(cnGaussian* gaussian, cnFloat* point);
+Float cnMahalanobisDistance(Gaussian* gaussian, Float* point);
 
 
 /**
@@ -115,7 +115,7 @@ cnFloat cnMahalanobisDistance(cnGaussian* gaussian, cnFloat* point);
  * TODO Remove this requirement?
  */
 cnMultinomial cnMultinomialCreate(
-  cnRandom random, cnCount sampleCount, cnCount classCount, cnFloat* probs
+  cnRandom random, Count sampleCount, Count classCount, Float* probs
 );
 
 
@@ -128,7 +128,7 @@ void cnMultinomialDestroy(cnMultinomial multinomial);
  * We could provide one less, since the value is implied, but this seems more
  * convenient for users.
  */
-void cnMultinomialSample(cnMultinomial multinomial, cnCount* out);
+void cnMultinomialSample(cnMultinomial multinomial, Count* out);
 
 
 /**
@@ -137,8 +137,8 @@ void cnMultinomialSample(cnMultinomial multinomial, cnCount* out);
  * back again for convenience and the provided data pointer.
  */
 bool cnPermutations(
-  cnCount options, cnCount count,
-  bool (*handler)(void* data, cnCount count, cnIndex* permutation),
+  Count options, Count count,
+  bool (*handler)(void* data, Count count, Index* permutation),
   void* data
 );
 
@@ -155,7 +155,7 @@ cnRandom cnRandomCreate(void);
  * Often count and prob are called n and p, respectively. There are count
  * samples drawn at a time, and prob is the probability of "success" for each.
  */
-cnCount cnRandomBinomial(cnRandom random, cnCount count, cnFloat prob);
+Count cnRandomBinomial(cnRandom random, Count count, Float prob);
 
 
 /**
@@ -169,10 +169,10 @@ void cnRandomDestroy(cnRandom random);
  *
  * Skip units are float indices, not bytes.
  */
-cnFloat cnScalarCovariance(
-  cnCount count,
-  cnCount skipA, cnFloat* inA,
-  cnCount skipB, cnFloat* inB
+Float cnScalarCovariance(
+  Count count,
+  Count skipA, Float* inA,
+  Count skipB, Float* inB
 );
 
 
@@ -181,7 +181,7 @@ cnFloat cnScalarCovariance(
  *
  * Skip units are float indices, not bytes.
  */
-cnFloat cnScalarVariance(cnCount count, cnCount skip, cnFloat* in);
+Float cnScalarVariance(Count count, Count skip, Float* in);
 
 
 /**
@@ -190,7 +190,7 @@ cnFloat cnScalarVariance(cnCount count, cnCount skip, cnFloat* in);
  *
  * TODO Random stream state management?
  */
-cnFloat cnUnitRand();
+Float cnUnitRand();
 
 
 void cnVectorCov(void);
@@ -201,7 +201,7 @@ void cnVectorCov(void);
  *
  * Returns out.
  */
-cnFloat* cnVectorMax(cnCount size, cnFloat* out, cnCount count, cnFloat* in);
+Float* cnVectorMax(Count size, Float* out, Count count, Float* in);
 
 
 /**
@@ -209,7 +209,7 @@ cnFloat* cnVectorMax(cnCount size, cnFloat* out, cnCount count, cnFloat* in);
  *
  * Returns out.
  */
-cnFloat* cnVectorMean(cnCount size, cnFloat* out, cnCount count, cnFloat* in);
+Float* cnVectorMean(Count size, Float* out, Count count, Float* in);
 
 
 /**
@@ -217,7 +217,7 @@ cnFloat* cnVectorMean(cnCount size, cnFloat* out, cnCount count, cnFloat* in);
  *
  * Returns out.
  */
-cnFloat* cnVectorMin(cnCount size, cnFloat* out, cnCount count, cnFloat* in);
+Float* cnVectorMin(Count size, Float* out, Count count, Float* in);
 
 
 }

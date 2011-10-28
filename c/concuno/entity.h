@@ -30,7 +30,7 @@ struct Bag {
    * Pushes on the given participant to the options for the given depth (or
    * parameter index, so to speak).
    */
-  void pushParticipant(cnIndex depth, cnEntity participant);
+  void pushParticipant(Index depth, cnEntity participant);
 
   // TODO id? Or are pointer addresses good enough (if stable)?
 
@@ -103,11 +103,11 @@ struct cnEntityFunction {
 
   void* data;
 
-  cnCount inCount;
+  Count inCount;
 
   cnString name;
 
-  cnCount outCount;
+  Count outCount;
 
   cnTopology outTopology;
 
@@ -197,7 +197,7 @@ typedef struct $cnPredicateThresholdInfo {
 
   cnFunction* distanceFunction;
 
-  cnFloat threshold;
+  Float threshold;
 
 }* cnPredicateThresholdInfo;
 
@@ -219,7 +219,7 @@ struct cnProperty {
    * Therefore, this is a fixed count. A varied length would need to be
    * provided by copying out a pointer here or something.
    */
-  cnCount count;
+  Count count;
 
   union {
 
@@ -231,7 +231,7 @@ struct cnProperty {
     /**
      * For the common case of struct field access.
      */
-    cnCount offset;
+    Count offset;
 
   };
 
@@ -253,7 +253,7 @@ struct cnProperty {
 struct cnSchema {
 
   /**
-   * Corresponds to cnFloat (double).
+   * Corresponds to Float (double).
    *
    * Could be NULL if undefined for this schema.
    */
@@ -282,7 +282,7 @@ struct cnType {
 
   cnSchema* schema;
 
-  cnCount size;
+  Count size;
 
 };
 
@@ -332,7 +332,7 @@ cnEntityFunction* cnEntityFunctionCreateReframe(cnEntityFunction* base);
  *
  * TODO Consider error branches off var nodes?
  */
-cnEntityFunction* cnEntityFunctionCreateValid(cnSchema* schema, cnCount arity);
+cnEntityFunction* cnEntityFunctionCreateValid(cnSchema* schema, Count arity);
 
 
 void cnEntityFunctionDrop(cnEntityFunction* function);
@@ -342,7 +342,7 @@ void cnEntityFunctionDrop(cnEntityFunction* function);
  * Just a basic create for if you want to fill in your own and start out clean.
  */
 cnEntityFunction* cnEntityFunctionCreate(
-  const char* name, cnCount inCount, cnCount outCount
+  const char* name, Count inCount, Count outCount
 );
 
 
@@ -374,7 +374,7 @@ void cnPredicateDrop(cnPredicate* predicate);
  * The distanceFunction will be dropped with this predicate.
  */
 cnPredicate* cnPredicateCreateDistanceThreshold(
-  cnFunction* distanceFunction, cnFloat threshold
+  cnFunction* distanceFunction, Float threshold
 );
 
 
@@ -402,7 +402,7 @@ void cnPropertyDispose(cnProperty* property);
  */
 bool cnPropertyInitField(
   cnProperty* property, cnType* containerType, cnType* type, const char* name,
-  cnCount offset, cnCount count
+  Count offset, Count count
 );
 
 
@@ -422,7 +422,7 @@ cnEntityFunction* cnPushPropertyFunction(
 
 
 cnEntityFunction* cnPushValidFunction(
-  cnList(cnEntityFunction*)* functions, cnSchema* schema, cnCount arity
+  cnList(cnEntityFunction*)* functions, cnSchema* schema, Count arity
 );
 
 
@@ -459,7 +459,7 @@ bool cnSchemaDefineStandardTypes(cnSchema* schema);
 /**
  * On failure, returns null.
  */
-cnType* cnTypeCreate(const char* name, cnCount size);
+cnType* cnTypeCreate(const char* name, Count size);
 
 
 /**

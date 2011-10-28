@@ -76,11 +76,11 @@ int main(void) {
 
 void testBinomial(void) {
   cnBinomial binomial = NULL;
-  cnCount countPerSample = 1000;
-  cnIndex i;
-  cnFloat prob = 0.3;
-  cnCount successTotal = 0;
-  cnCount sampleTotal = 1000000;
+  Count countPerSample = 1000;
+  Index i;
+  Float prob = 0.3;
+  Count successTotal = 0;
+  Count sampleTotal = 1000000;
   cnRandom random = NULL;
 
   // Init.
@@ -92,7 +92,7 @@ void testBinomial(void) {
   // Sample.
   printf("Binomial (%ld, %.3lf) samples:", countPerSample, prob);
   for (i = 0; i < sampleTotal; i++) {
-    cnCount successCount = cnBinomialSample(binomial);
+    Count successCount = cnBinomialSample(binomial);
     //printf(" %ld", successCount);
     successTotal += successCount;
   }
@@ -100,8 +100,8 @@ void testBinomial(void) {
   // Report stats.
   printf(
     " (%lg of %ld*%lg total)\n",
-    successTotal / (cnFloat)(sampleTotal * countPerSample),
-    countPerSample, (cnFloat)sampleTotal
+    successTotal / (Float)(sampleTotal * countPerSample),
+    countPerSample, (Float)sampleTotal
   );
 
   DONE:
@@ -115,8 +115,8 @@ void testHeap_destroyItem(cnRefAny unused, cnRefAny item) {
 }
 
 bool testHeap_greater(cnRefAny unused, cnRefAny a, cnRefAny b) {
-  cnFloat indexA = *(cnRef(cnFloat))a;
-  cnFloat indexB = *(cnRef(cnFloat))b;
+  Float indexA = *(cnRef(Float))a;
+  Float indexB = *(cnRef(Float))b;
   // Make it a max heap for kicks.
   return indexA > indexB;
 }
@@ -124,14 +124,14 @@ bool testHeap_greater(cnRefAny unused, cnRefAny a, cnRefAny b) {
 #define testHeap_COUNT 10
 
 void testHeap(void) {
-  cnHeap(cnIndex)* heap = cnHeapCreate(testHeap_greater);
-  cnIndex i;
+  cnHeap(Index)* heap = cnHeapCreate(testHeap_greater);
+  Index i;
   if (!heap) cnErrTo(DONE, "No heap.");
 
   // Load the heap.
   heap->destroyItem = testHeap_destroyItem;
   for (i = 0; i < testHeap_COUNT; i++) {
-    cnFloat* number = cnAlloc(cnFloat, 1);
+    Float* number = cnAlloc(Float, 1);
     if (!number) cnErrTo(DONE, "No float %ld.", i);
     *number = cnUnitRand();
     if (!cnHeapPush(heap, number)) cnErrTo(DONE, "No push %ld.", i);
@@ -140,7 +140,7 @@ void testHeap(void) {
   // Drain the heap partially.
   printf("Pulling half: ");
   while (heap->items.count > testHeap_COUNT / 2) {
-    cnFloat* number = reinterpret_cast<cnFloat*>(cnHeapPull(heap));
+    Float* number = reinterpret_cast<Float*>(cnHeapPull(heap));
     printf(" %lf", *number);
     free(number);
   }
@@ -149,7 +149,7 @@ void testHeap(void) {
   // Load the heap again.
   heap->destroyItem = testHeap_destroyItem;
   for (i = 0; i < testHeap_COUNT / 2; i++) {
-    cnFloat* number = reinterpret_cast<cnFloat*>(malloc(sizeof(cnFloat)));
+    Float* number = reinterpret_cast<Float*>(malloc(sizeof(Float)));
     if (!number) cnErrTo(DONE, "No 2nd float %ld.", i);
     *number = cnUnitRand();
     if (!cnHeapPush(heap, number)) cnErrTo(DONE, "No 2nd push %ld.", i);
@@ -158,7 +158,7 @@ void testHeap(void) {
   // Drain the heap completely.
   printf("Pulling all: ");
   while (heap->items.count) {
-    cnFloat* number = reinterpret_cast<cnFloat*>(cnHeapPull(heap));
+    Float* number = reinterpret_cast<Float*>(cnHeapPull(heap));
     printf(" %lf", *number);
     free(number);
   }
@@ -172,15 +172,15 @@ void testHeap(void) {
 #define testMultinomial_CLASS_COUNT 4
 
 void testMultinomial(void) {
-  cnCount countPerSample = 1000;
-  cnIndex i;
-  cnIndex j;
+  Count countPerSample = 1000;
+  Index i;
+  Index j;
   cnMultinomial multinomial = NULL;
-  cnCount out[testMultinomial_CLASS_COUNT];
-  cnFloat p[] = {0.2, 0.1, 0.4, 0.3};
+  Count out[testMultinomial_CLASS_COUNT];
+  Float p[] = {0.2, 0.1, 0.4, 0.3};
   cnRandom random = NULL;
-  cnCount sampleTotal = 100000;
-  cnCount sum[testMultinomial_CLASS_COUNT];
+  Count sampleTotal = 100000;
+  Count sum[testMultinomial_CLASS_COUNT];
 
   // Init.
   if (!(random = cnRandomCreate())) cnErrTo(DONE, "No random.");
@@ -191,7 +191,7 @@ void testMultinomial(void) {
   )) cnErrTo(DONE, "No multinomial.");
 
   printf(
-    "testMultinomialSample (%ld*%lg):\n", countPerSample, (cnFloat)sampleTotal
+    "testMultinomialSample (%ld*%lg):\n", countPerSample, (Float)sampleTotal
   );
   for (j = 0; j < testMultinomial_CLASS_COUNT; j++) {
     printf("%lg ", p[j]);
@@ -209,7 +209,7 @@ void testMultinomial(void) {
   }
 
   for (j = 0; j < testMultinomial_CLASS_COUNT; j++) {
-    printf("%lg ", sum[j] / (cnFloat)(countPerSample * sampleTotal));
+    printf("%lg ", sum[j] / (Float)(countPerSample * sampleTotal));
   }
 
   DONE:
@@ -219,9 +219,9 @@ void testMultinomial(void) {
 
 
 bool testPermutations_handle(
-  void *data, cnCount count, cnIndex *permutation
+  void *data, Count count, Index *permutation
 ) {
-  cnIndex* end = permutation + count;
+  Index* end = permutation + count;
   for (; permutation < end; permutation++) {
     printf("%ld ", *permutation);
   }
@@ -230,8 +230,8 @@ bool testPermutations_handle(
 }
 
 void testPermutations(void) {
-  cnCount count = 2;
-  cnCount options = 4;
+  Count count = 2;
+  Count options = 4;
   printf("Permutations of %ld, taken %ld at a time:\n", options, count);
   cnPermutations(options, count, testPermutations_handle, NULL);
   printf("\n");
@@ -246,14 +246,14 @@ void testPropagate_charsDiffGet(
   if (a < 'A' || b < 'A') {
     // Give a NaN for non-letters, just for kicks.
     // TODO Non-float error convention!
-    *(cnFloat*)outs = cnNaN();
+    *(Float*)outs = cnNaN();
   } else {
-    *(cnFloat*)outs = a - b;
+    *(Float*)outs = a - b;
   }
 }
 
 bool testPropagate_equalEvaluate(cnPredicate* predicate, void* in) {
-  return !*(cnFloat*)in;
+  return !*(Float*)in;
 }
 
 bool testPropagate_write(
@@ -279,7 +279,7 @@ void testPropagate(void) {
   Bag bag;
   const char* data = "Hello!";
   cnEntityFunction* entityFunction = NULL;
-  cnIndex i;
+  Index i;
   cnList(cnLeafBindingBag) leafBindingBags;
   cnSplitNode* split;
   cnVarNode* vars[2];
@@ -290,7 +290,7 @@ void testPropagate(void) {
   cnListInit(&leafBindingBags, sizeof(cnLeafBindingBag));
   if (!cnRootNodeInit(&tree, false)) cnErrTo(DONE, "Init failed.");
   // TODO Float required because of NaN convention. Fix this!
-  if (!(type = cnTypeCreate("Float", sizeof(cnFloat)))) {
+  if (!(type = cnTypeCreate("Float", sizeof(Float)))) {
     cnErrTo(DONE, "No type.");
   }
   if (!(entityFunction = cnEntityFunctionCreate("CharsDiff", 2, 1))) {
@@ -312,7 +312,7 @@ void testPropagate(void) {
   split->function = entityFunction;
   // Var indices.
   if (!(
-    split->varIndices = cnAlloc(cnIndex, entityFunction->inCount)
+    split->varIndices = cnAlloc(Index, entityFunction->inCount)
   )) cnErrTo(DONE, "No var indices.");
   for (i = 0; i < entityFunction->inCount; i++) split->varIndices[i] = i;
   // Predicate.
@@ -345,7 +345,7 @@ void testPropagate(void) {
   cnListEachBegin(&leafBindingBags, cnLeafBindingBag, leafBindingBag) {
     printf("Bindings at leaf with id %ld:\n", leafBindingBag->leaf->node.id);
     cnListEachBegin(&leafBindingBag->bindingBag.bindings, cnEntity, entities) {
-      cnIndex e;
+      Index e;
       printf("  ");
       for (e = 0; e < leafBindingBag->bindingBag.entityCount; e++) {
         const char* c = reinterpret_cast<const char *>(entities[e]);
@@ -367,9 +367,9 @@ void testPropagate(void) {
 
 
 void testReframe_get(cnEntityFunction* function, cnEntity* ins, void* outs) {
-  cnFloat* in = *(cnFloat**)ins;
-  cnFloat* inEnd = in + function->outCount;
-  cnFloat* out = reinterpret_cast<cnFloat*>(outs);
+  Float* in = *(Float**)ins;
+  Float* inEnd = in + function->outCount;
+  Float* out = reinterpret_cast<Float*>(outs);
   for (; in < inEnd; in++, out++) {
     *out = *in;
   }
@@ -377,7 +377,7 @@ void testReframe_get(cnEntityFunction* function, cnEntity* ins, void* outs) {
 
 void testReframe_case(
   cnEntityFunction* reframe,
-  cnFloat x0, cnFloat y0, cnFloat x1, cnFloat y1, cnFloat x2, cnFloat y2
+  Float x0, Float y0, Float x1, Float y1, Float x2, Float y2
 ) {
   // Set up data.
   double pointsData[][2] = {{x0, y0}, {x1, y1}, {x2, y2}};
@@ -395,9 +395,9 @@ void testReframe_case(
 }
 
 void testReframe_case3d(
-  cnFloat x0, cnFloat y0, cnFloat z0,
-  cnFloat x1, cnFloat y1, cnFloat z1,
-  cnFloat x2, cnFloat y2, cnFloat z2
+  Float x0, Float y0, Float z0,
+  Float x1, Float y1, Float z1,
+  Float x2, Float y2, Float z2
 ) {
   // Set up data.
   double oldPoints[][3] = {{x0, y0, z0}, {x1, y1, z1}, {x2, y2, z2}};
@@ -454,8 +454,8 @@ void testReframe(void) {
 
 
 void testRadians(void) {
-  cnRadian a = cnPi - 0.01;
-  cnRadian b = -cnPi + 0.01;
+  Radian a = cnPi - 0.01;
+  Radian b = -cnPi + 0.01;
   printf(
     "Radian difference %lg - %lg is %lg, and reverse is %lg.\n",
     a, b, cnWrapRadians(a - b), cnWrapRadians(b - a)
@@ -476,7 +476,7 @@ void testRadians(void) {
 
 
 void testUnitRand(void) {
-  cnIndex i;
+  Index i;
   // TODO Assert stuff, calculate statistics, and so on, instead of printing.
   printf("testUnitRand:\n");
   for (i = 0; i < 10; i++) {
@@ -487,10 +487,10 @@ void testUnitRand(void) {
 
 
 void testVariance(void) {
-  cnFloat a[] = {1.5, 3.2, -0.1, 4.1, 12.3};
-  cnFloat b[] = {6.7, 1.8, 0.2, 4.5, 4.3};
-  cnFloat variance = cnScalarVariance(5, 1, a);
-  cnFloat covariance = cnScalarCovariance(5, 1, a, 1, b);
+  Float a[] = {1.5, 3.2, -0.1, 4.1, 12.3};
+  Float b[] = {6.7, 1.8, 0.2, 4.5, 4.3};
+  Float variance = cnScalarVariance(5, 1, a);
+  Float covariance = cnScalarCovariance(5, 1, a, 1, b);
   printf("Variance: %lg\n", variance);
   printf("Covariance: %lg\n", covariance);
 }

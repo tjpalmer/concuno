@@ -13,12 +13,12 @@ enum cnrFieldType {
   cnrFieldTypeEnum,
 
   /**
-   * These are of type 'cnInt' (usually 'long').
+   * These are of type 'Int' (usually 'long').
    */
   cnrFieldTypeInt,
 
   /**
-   * Type cnFloat.
+   * Type Float.
    */
   cnrFieldTypeFloat,
 
@@ -31,7 +31,7 @@ struct cnrFieldInfo {
 
   cnrType itemType;
 
-  cnCount offset;
+  Count offset;
 
 };
 
@@ -83,24 +83,24 @@ void cnrPropertyFieldGet(cnProperty* property, cnEntity entity, void* storage) {
   if (info->itemType != cnrTypeAny && item->type != info->itemType) {
     // Types don't match. Give NaNs.
     // TODO If we were more explicit, could we be more efficient in learning?
-    cnFloat* out = reinterpret_cast<cnFloat*>(storage);
-    cnFloat* outEnd = out + property->count;
+    Float* out = reinterpret_cast<Float*>(storage);
+    Float* outEnd = out + property->count;
     for (; out < outEnd; out++) {
-      *((cnFloat*)storage) = cnNaN();
+      *((Float*)storage) = cnNaN();
     }
   } else if (info->fieldType == cnrFieldTypeEnum) {
     // Out must be float.
     unsigned int* in = (unsigned int*)(((char*)entity) + info->offset);
-    cnFloat* out = reinterpret_cast<cnFloat*>(storage);
-    cnFloat* outEnd = out + property->count;
+    Float* out = reinterpret_cast<Float*>(storage);
+    Float* outEnd = out + property->count;
     for (; out < outEnd; in++, out++) {
       *out = *in;
     }
   } else if (info->fieldType == cnrFieldTypeInt) {
     // Out must be float.
-    cnInt* in = (cnInt*)(((char*)entity) + info->offset);
-    cnFloat* out = reinterpret_cast<cnFloat*>(storage);
-    cnFloat* outEnd = out + property->count;
+    Int* in = (Int*)(((char*)entity) + info->offset);
+    Float* out = reinterpret_cast<Float*>(storage);
+    Float* outEnd = out + property->count;
     for (; out < outEnd; in++, out++) {
       *out = *in;
     }
@@ -123,7 +123,7 @@ void cnrPropertyFieldPut(cnProperty* property, cnEntity entity, void* value) {
     // TODO Any way to indicate error?
   } else if (info->fieldType == cnrFieldTypeEnum) {
     // In must be float.
-    cnFloat* in = reinterpret_cast<cnFloat*>(value);
+    Float* in = reinterpret_cast<Float*>(value);
     unsigned int* out = (unsigned int*)(((char*)entity) + info->offset);
     unsigned int* outEnd = out + property->count;
     for (; out < outEnd; in++, out++) {
@@ -131,11 +131,11 @@ void cnrPropertyFieldPut(cnProperty* property, cnEntity entity, void* value) {
     }
   } else if (info->fieldType == cnrFieldTypeInt) {
     // In must be float.
-    cnFloat* in = reinterpret_cast<cnFloat*>(value);
-    cnInt* out = (cnInt*)(((char*)entity) + info->offset);
-    cnInt* outEnd = out + property->count;
+    Float* in = reinterpret_cast<Float*>(value);
+    Int* out = (Int*)(((char*)entity) + info->offset);
+    Int* outEnd = out + property->count;
     for (; out < outEnd; in++, out++) {
-      *out = (cnInt)*in;
+      *out = (Int)*in;
     }
   } else {
     // Just copy.
@@ -157,7 +157,7 @@ void cnrPropertyFieldInfoDispose(cnProperty* property) {
 bool cnrPropertyInitTypedField(
   cnProperty* property, cnType* containerType, cnrType itemType,
   cnType* type, cnrFieldType fieldType,
-  const char* name, cnCount offset, cnCount count
+  const char* name, Count offset, Count count
 ) {
   cnrFieldInfo* info;
   // Safety items first.

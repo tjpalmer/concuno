@@ -24,7 +24,7 @@ enum cnrType {
  * although perhaps not in RoboCup, there also could technically be more than
  * two teams.
  */
-typedef concuno::cnIndex cnrTeam;
+typedef concuno::Index cnrTeam;
 
 #define cnrTeamLeft 0
 #define cnrTeamRight 1
@@ -34,14 +34,14 @@ typedef concuno::cnIndex cnrTeam;
 #define cnrTeamTakers 1
 
 
-typedef concuno::cnIndex cnrTime;
+typedef concuno::Index cnrTime;
 
 
 struct cnrItem {
 
   cnrType type;
 
-  concuno::cnFloat location[2];
+  concuno::Float location[2];
 
   // TODO Velocity.
 
@@ -68,28 +68,28 @@ struct cnrPlayer {
    *
    * TODO Units?
    */
-  concuno::cnFloat kickAngle;
+  concuno::Float kickAngle;
 
   /**
    * Use NaN for no kick.
    *
    * TODO Units?
    */
-  concuno::cnFloat kickPower;
+  concuno::Float kickPower;
 
   // TODO Explicit ball posession indicator?
 
   /**
    * Unique only by team.
    */
-  concuno::cnIndex index;
+  concuno::Index index;
 
   /**
    * Body angle.
    *
    * TODO What units?
    */
-  concuno::cnFloat orientation;
+  concuno::Float orientation;
 
   cnrTeam team;
 

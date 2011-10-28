@@ -12,7 +12,7 @@ using namespace concuno;
 
 
 void stItemInit(stItem* item) {
-  cnFloat *f, *end;
+  Float *f, *end;
   item->alive = false;
   stFill(item->color, 0.0, f, end);
   stFill(item->extent, 0.0, f, end);

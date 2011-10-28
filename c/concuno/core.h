@@ -22,19 +22,19 @@ namespace concuno {
 #define cnEnd }
 
 
-typedef unsigned char cnByte;
+typedef unsigned char Byte;
 
 
-typedef long cnInt;
+typedef long Int;
 
 
-typedef cnInt cnCount;
+typedef Int Count;
 
 
-typedef double cnFloat;
+typedef double Float;
 
 
-typedef cnInt cnIndex;
+typedef Int Index;
 
 
 /**
@@ -62,10 +62,10 @@ typedef void* cnRefAny;
 
 
 typedef struct cnList {
-  cnCount count;
-  cnCount itemSize;
+  Count count;
+  Count itemSize;
   void* items;
-  cnCount reservedCount;
+  Count reservedCount;
 } cnListAny;
 
 
@@ -104,7 +104,7 @@ typedef struct cnGridAny {
    *
    * TODO Matlab style or Numpy style?
    */
-  cnList(cnCount) dims;
+  cnList(Count) dims;
 
   /**
    * Value item storage. Note that values.count must equal the product of the
@@ -206,14 +206,14 @@ void cnGridInit(cnGridAny* grid);
  * Inits the dims to the number of rows and columns specified, and preallocates
  * the space requested.
  */
-bool cnGridInit2d(cnGridAny* grid, cnCount nrows, cnCount ncols);
+bool cnGridInit2d(cnGridAny* grid, Count nrows, Count ncols);
 
 
 /**
  * Inits the dims to a copy of the dims given, and preallocates the space
  * requested.
  */
-bool cnGridInitNd(cnGridAny* grid, const cnList(cnCount)* dims);
+bool cnGridInitNd(cnGridAny* grid, const cnList(Count)* dims);
 
 
 /**
@@ -246,7 +246,7 @@ bool cnHeapPush(cnHeapAny* heap, cnRefAny item);
 /**
  * Returns whether x is NaN.
  */
-bool cnIsNaN(cnFloat x);
+bool cnIsNaN(Float x);
 
 
 /**
@@ -259,7 +259,7 @@ void cnListClear(cnListAny* list);
  * Allocates and inits a list for items of the given size. Returns null on
  * error.
  */
-cnListAny* cnListCreate(cnCount itemSize);
+cnListAny* cnListCreate(Count itemSize);
 
 
 /**
@@ -318,20 +318,20 @@ void* cnListExpand(cnListAny* list);
  * space to use. However, it's still technically successful. That makes
  * usability awkward. TODO Consider changing the API here?
  */
-void* cnListExpandMulti(cnListAny* list, cnCount count);
+void* cnListExpandMulti(cnListAny* list, Count count);
 
 
-void* cnListGet(cnListAny* list, cnIndex index);
+void* cnListGet(cnListAny* list, Index index);
 
 
 /**
  * Assumes this list holds pointers and returns the pointer value instead of
  * the pointer to the pointer.
  */
-void* cnListGetPointer(cnListAny* list, cnIndex index);
+void* cnListGetPointer(cnListAny* list, Index index);
 
 
-void cnListInit(cnListAny* list, cnCount itemSize);
+void cnListInit(cnListAny* list, Count itemSize);
 
 
 /**
@@ -357,17 +357,17 @@ void* cnListPushAll(cnListAny* list, cnListAny* from);
  * Returns the destination pointer to the first item just pushed, or NULL if
  * failure.
  */
-void* cnListPushMulti(cnListAny* list, void* items, cnCount count);
+void* cnListPushMulti(cnListAny* list, void* items, Count count);
 
 
-void cnListPut(cnListAny* list, cnIndex index, void* value);
+void cnListPut(cnListAny* list, Index index, void* value);
 
 
 /**
  * Does not reduce memory usage nor change the address of items. The count is
  * reduced by one and the item at the index is deleted from the array.
  */
-void cnListRemove(cnListAny* list, cnIndex index);
+void cnListRemove(cnListAny* list, Index index);
 
 
 /**
@@ -383,7 +383,7 @@ void cnListShuffle(cnListAny* list);
 /**
  * Quiet NaN (not a number).
  */
-cnFloat cnNaN(void);
+Float cnNaN(void);
 
 
 /**
@@ -432,7 +432,7 @@ void cnStringClear(cnString* string);
 void cnStringDispose(cnString* string);
 
 
-char cnStringGetChar(cnString* string, cnIndex index);
+char cnStringGetChar(cnString* string, Index index);
 
 
 /**

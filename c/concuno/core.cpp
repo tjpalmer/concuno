@@ -12,15 +12,15 @@ namespace concuno {
 /**
  * Bubbles the item at the given index down the heap.
  */
-void cnHeapDown(cnHeapAny* heap, cnIndex index);
+void cnHeapDown(cnHeapAny* heap, Index index);
 
 
 /**
  * Provides the kids of the given parent index, using -1 to mean no such kid.
  */
 void cnHeapKids(
-  cnHeapAny* heap, cnIndex parentIndex,
-  cnRef(cnIndex) kid1Index, cnRef(cnIndex) kid2Index
+  cnHeapAny* heap, Index parentIndex,
+  cnRef(Index) kid1Index, cnRef(Index) kid2Index
 );
 
 
@@ -28,13 +28,13 @@ void cnHeapKids(
  * Provides the parent of the given kid index, providing -1 for no parent (in
  * the case of the root at index 0).
  */
-cnIndex cnHeapParent(cnHeapAny heap, cnIndex kidIndex);
+Index cnHeapParent(cnHeapAny heap, Index kidIndex);
 
 
 /**
  * Bubbles the item at the given index up the heap.
  */
-void cnHeapUp(cnHeapAny* heap, cnIndex index);
+void cnHeapUp(cnHeapAny* heap, Index index);
 
 
 void cnHeapClear(cnHeapAny* heap) {
@@ -77,12 +77,12 @@ void cnHeapDestroy(cnHeapAny* heap) {
 }
 
 
-void cnHeapDown(cnHeapAny* heap, cnIndex index) {
+void cnHeapDown(cnHeapAny* heap, Index index) {
   while (index >= 0) {
     cnRef(cnRefAny) item = ((cnArr(cnRefAny))heap->items.items) + index;
-    cnIndex kidIndex;
+    Index kidIndex;
     cnRef(cnRefAny) kidItem;
-    cnIndex kid2Index;
+    Index kid2Index;
 
     // Find the kids, and see if they exist.
     cnHeapKids(heap, index, &kidIndex, &kid2Index);
@@ -123,8 +123,8 @@ void cnHeapDown(cnHeapAny* heap, cnIndex index) {
 
 
 void cnHeapKids(
-  cnHeapAny* heap, cnIndex parentIndex,
-  cnRef(cnIndex) kid1Index, cnRef(cnIndex) kid2Index
+  cnHeapAny* heap, Index parentIndex,
+  cnRef(Index) kid1Index, cnRef(Index) kid2Index
 ) {
   // TODO Use a "B-Heap" or Emde Boas layout or some such for more efficient
   // TODO memory access.
@@ -140,7 +140,7 @@ void cnHeapKids(
 }
 
 
-cnIndex cnHeapParent(cnHeapAny* heap, cnIndex kidIndex) {
+Index cnHeapParent(cnHeapAny* heap, Index kidIndex) {
   // TODO Use a "B-Heap" or Emde Boas layout or some such for more efficient
   // TODO memory access.
   return kidIndex ? (kidIndex - 1) / 2 : -1;
@@ -183,10 +183,10 @@ bool cnHeapPush(cnHeapAny* heap, cnRefAny item) {
 }
 
 
-void cnHeapUp(cnHeapAny* heap, cnIndex index) {
+void cnHeapUp(cnHeapAny* heap, Index index) {
   while (index) {
     cnRef(cnRefAny) item = ((cnArr(cnRefAny))heap->items.items) + index;
-    cnIndex parentIndex = cnHeapParent(heap, index);
+    Index parentIndex = cnHeapParent(heap, index);
     cnRef(cnRefAny) parentItem =
       ((cnArr(cnRefAny))heap->items.items) + parentIndex;
     // TODO Error checking on less? It hypothetically could fail ...
@@ -205,7 +205,7 @@ void cnHeapUp(cnHeapAny* heap, cnIndex index) {
 }
 
 
-bool cnIsNaN(cnFloat x) {
+bool cnIsNaN(Float x) {
   // TODO Technique from:
   // http://stackoverflow.com/questions/570669/...
   // checking-if-a-double-or-float-is-nan-in-c
@@ -220,7 +220,7 @@ bool cnIsNaN(cnFloat x) {
 }
 
 
-cnListAny* cnListCreate(cnCount itemSize) {
+cnListAny* cnListCreate(Count itemSize) {
   cnListAny* list = cnAlloc(cnListAny, 1);
   if (list) cnListInit(list, itemSize);
   return list;
@@ -245,7 +245,7 @@ void cnListDispose(cnListAny* list) {
 }
 
 
-void* cnListGet(cnListAny* list, cnIndex index) {
+void* cnListGet(cnListAny* list, Index index) {
   // TODO Support negative indexes from back?
   if (index < 0 || index >= list->count) {
     return NULL;
@@ -254,7 +254,7 @@ void* cnListGet(cnListAny* list, cnIndex index) {
 }
 
 
-void* cnListGetPointer(cnListAny* list, cnIndex index) {
+void* cnListGetPointer(cnListAny* list, Index index) {
   return *(void**)cnListGet(list, index);
 }
 
@@ -269,9 +269,9 @@ void* cnListExpand(cnListAny* list) {
 }
 
 
-void* cnListExpandMulti(cnListAny* list, cnCount count) {
+void* cnListExpandMulti(cnListAny* list, Count count) {
   void* formerEnd;
-  cnCount needed = list->count + count;
+  Count needed = list->count + count;
 
   // If you add nothing to an empty list, it's successful, but there's no space
   // to use, so don't pretend there's any.
@@ -281,7 +281,7 @@ void* cnListExpandMulti(cnListAny* list, cnCount count) {
   if (needed > list->reservedCount) {
     void* newItems;
     // Exponential growth to avoid slow pushing.
-    cnCount wanted = 2 * list->reservedCount;
+    Count wanted = 2 * list->reservedCount;
     if (wanted < needed) {
       // If pushing several, could go past 2 * current.
       wanted = 2 * needed; // or just needed?
@@ -304,7 +304,7 @@ void* cnListExpandMulti(cnListAny* list, cnCount count) {
 }
 
 
-void cnListInit(cnListAny* list, cnCount itemSize) {
+void cnListInit(cnListAny* list, Count itemSize) {
   list->count = 0;
   list->itemSize = itemSize;
   list->items = NULL;
@@ -329,7 +329,7 @@ void* cnListPushAll(cnListAny* list, cnListAny* from) {
 }
 
 
-void* cnListPushMulti(cnListAny* list, void* items, cnCount count) {
+void* cnListPushMulti(cnListAny* list, void* items, Count count) {
   void* formerEnd = cnListExpandMulti(list, count);
   if (formerEnd) {
     memcpy(formerEnd, items, list->itemSize * count);
@@ -338,7 +338,7 @@ void* cnListPushMulti(cnListAny* list, void* items, cnCount count) {
 }
 
 
-void cnListRemove(cnListAny* list, cnIndex index) {
+void cnListRemove(cnListAny* list, Index index) {
   char *begin = reinterpret_cast<char*>(cnListGet(list, index));
   if (!begin) {
     printf("Bad index for remove: %ld\n", index);
@@ -360,12 +360,12 @@ void cnListShuffle(cnListAny* list) {
   // Fisher-Yates shuffling from:
   // http://en.wikipedia.org/wiki/Fisher%E2%80%93Yates_shuffle#
   // The_modern_algorithm
-  cnIndex i;
+  Index i;
   for (i = list->count - 1; i >= 1; i--) {
     // Find where we're going.
     void* a;
     void* b;
-    cnIndex j = rand() % (i + 1);
+    Index j = rand() % (i + 1);
     if (i == j) continue;
     a = ((char*)list->items) + (i * list->itemSize);
     b = ((char*)list->items) + (j * list->itemSize);
@@ -379,8 +379,8 @@ void cnListShuffle(cnListAny* list) {
 }
 
 
-cnFloat cnNaN(void) {
-  return numeric_limits<cnFloat>::quiet_NaN();
+Float cnNaN(void) {
+  return numeric_limits<Float>::quiet_NaN();
 }
 
 
@@ -402,7 +402,7 @@ void cnStringDispose(cnString* string) {
 }
 
 
-char cnStringGetChar(cnString* string, cnIndex index) {
+char cnStringGetChar(cnString* string, Index index) {
   return *(char*)cnListGet(string, index);
 }
 
@@ -438,7 +438,7 @@ bool cnStringPushChar(cnString* string, char c) {
 bool cnStringPushStr(cnString* string, const char* str) {
   char* formerEnd;
   bool wasEmpty = !string->reservedCount;
-  cnCount extra = strlen(str);
+  Count extra = strlen(str);
   if (wasEmpty) {
     // For the null char.
     extra++;

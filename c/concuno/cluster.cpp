@@ -11,18 +11,18 @@ namespace concuno {
 /**
  * TODO A dissimilarity metric, too.
  */
-bool cnCluster(cnCount size, cnCount count, cnFloat* points);
+bool cnCluster(Count size, Count count, Float* points);
 
 
-bool cnDensityEstimate(cnCount size, cnCount count, cnFloat* points);
+bool cnDensityEstimate(Count size, Count count, Float* points);
 
 
-void cnLogPoints(cnEntityFunction* function, cnCount count, cnFloat* points);
+void cnLogPoints(cnEntityFunction* function, Count count, Float* points);
 
 
-bool cnCluster(cnCount size, cnCount count, cnFloat* points) {
-  cnFloat* point;
-  cnFloat* pointsEnd = points + size * count;
+bool cnCluster(Count size, Count count, Float* points) {
+  Float* point;
+  Float* pointsEnd = points + size * count;
   cnDensityEstimate(size, count, points);
   for (point = points; point < pointsEnd; point += size) {
     printf("Starting at: ");
@@ -37,9 +37,9 @@ bool cnCluster(cnCount size, cnCount count, cnFloat* points) {
 
 bool cnClusterOnFunction(cnList(Bag)* bags, cnEntityFunction* function) {
   bool result = false;
-  cnFloat* point;
-  cnFloat* points;
-  cnCount pointCount = 0;
+  Float* point;
+  Float* points;
+  Count pointCount = 0;
 
   // Check our limitations.
   if (function->inCount != 1) {
@@ -55,7 +55,7 @@ bool cnClusterOnFunction(cnList(Bag)* bags, cnEntityFunction* function) {
     pointCount += bag->entities->count;
   } cnEnd;
   printf("%ld points total\n", pointCount);
-  points = cnAlloc(cnFloat, pointCount * function->outCount);
+  points = cnAlloc(Float, pointCount * function->outCount);
   if (!points) {
     return false;
   }
@@ -77,26 +77,26 @@ bool cnClusterOnFunction(cnList(Bag)* bags, cnEntityFunction* function) {
 }
 
 
-bool cnDensityEstimate(cnCount size, cnCount count, cnFloat* points) {
+bool cnDensityEstimate(Count size, Count count, Float* points) {
 
   // TODO Replace all this with precalculated kernel mask and array-based
   // TODO convolution? Or else more clever knn?
 
-  cnIndex dim;
-  cnFloat kernelFactor;
-  cnFloat* pointsEnd = points + size * count;
+  Index dim;
+  Float kernelFactor;
+  Float* pointsEnd = points + size * count;
   // TODO Parameterize step counts.
   // TODO Allow different step counts by dimension.
-  cnCount stepCount = 31;
-  cnFloat maxStepSize;
+  Count stepCount = 31;
+  Float maxStepSize;
   // Hack these 4 together as a matrix, for convenience.
-  cnFloat* max = cnStackAllocOf(cnFloat, 4 * size);
-  cnFloat* min = max + size;
-  cnFloat* point = min + size;
-  cnFloat* stepSize = point + size;
+  Float* max = cnStackAllocOf(Float, 4 * size);
+  Float* min = max + size;
+  Float* point = min + size;
+  Float* stepSize = point + size;
   // And another we need of a different type.
   // We could try to avoid this, but being discrete feels safer.
-  cnIndex* stepIndices = cnStackAllocOf(cnIndex, size);
+  Index* stepIndices = cnStackAllocOf(Index, size);
 
   FILE *file = fopen("cnDensityEstimate.log", "w");
 
@@ -126,14 +126,14 @@ bool cnDensityEstimate(cnCount size, cnCount count, cnFloat* points) {
   // moment, at least for C.
   while (*stepIndices < stepCount) {
     // Estimate density at this point.
-    cnFloat density = 0;
-    cnFloat* other;
+    Float density = 0;
+    Float* other;
     for (other = points; other < pointsEnd; other += size) {
       // TODO Finish general Gaussian implementation.
-      cnFloat distance = cnSquaredEuclideanDistance(size, point, other);
+      Float distance = cnSquaredEuclideanDistance(size, point, other);
       // Four standard deviations out should be more than enough.
       if (distance < 16 * maxStepSize) {
-        cnFloat weight =
+        Float weight =
           kernelFactor * exp(-0.5 * distance / pow(maxStepSize, size));
         density += weight;
       }
@@ -173,12 +173,12 @@ bool cnDensityEstimate(cnCount size, cnCount count, cnFloat* points) {
 }
 
 
-void cnLogPoints(cnEntityFunction* function, cnCount count, cnFloat* points) {
+void cnLogPoints(cnEntityFunction* function, Count count, Float* points) {
   FILE *file;
   cnString name;
-  cnFloat* point;
-  cnCount size = function->outCount;
-  cnFloat* pointsEnd = points + size * count;
+  Float* point;
+  Count size = function->outCount;
+  Float* pointsEnd = points + size * count;
 
   // Prepare file name, and open/create output file.
   cnStringInit(&name);

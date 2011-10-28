@@ -95,7 +95,7 @@ struct cnrParser {
   /**
    * The index in the current parentheses.
    */
-  cnIndex index;
+  Index index;
 
   /**
    * The item (ball or player) currently being parsed, if any.
@@ -179,7 +179,7 @@ bool cnrParserTriggerId(cnrParser* parser, char* id);
 /**
  * Trigger an number.
  */
-bool cnrParserTriggerNumber(cnrParser* parser, cnFloat number);
+bool cnrParserTriggerNumber(cnrParser* parser, Float number);
 
 
 /**
@@ -197,7 +197,7 @@ bool cnrParseTeam(cnrParser* parser, char* line);
 
 
 void cnrRcgParserItemLocation(
-  cnrParser* parser, cnIndex xIndex, cnFloat value
+  cnrParser* parser, Index xIndex, Float value
 );
 
 
@@ -213,9 +213,9 @@ bool cnrRclParseLine(cnrParser* parser, char* line);
 bool cnrLoadCommandLog(cnrGame* game, char* name) {
   FILE* file = NULL;
   cnString line;
-  cnCount lineCount = 0;
+  Count lineCount = 0;
   cnrParser parser;
-  cnCount readCount;
+  Count readCount;
   bool result = false;
 
   // Inits.
@@ -289,7 +289,7 @@ bool cnrLoadGameLog(cnrGame* game, char* name) {
 
 
 bool cnrParseContents(cnrParser* parser, char** line) {
-  cnIndex index = -1;
+  Index index = -1;
   bool result = false;
 
   if (!cnrParserTriggerContentsBegin(parser)) {
@@ -376,7 +376,7 @@ bool cnrParseId(cnrParser* parser, char** line) {
 
 bool cnrParseNumber(cnrParser* parser, char** line) {
   char* end;
-  cnFloat number;
+  Float number;
   bool result = false;
 
   // Parse the number.
@@ -454,8 +454,8 @@ bool cnrParseRcgLine(cnrParser* parser, char* line) {
 
 bool cnrParseRcgLines(cnrParser* parser, FILE* file) {
   cnString line;
-  cnCount lineCount = 0;
-  cnCount readCount;
+  Count lineCount = 0;
+  Count readCount;
   bool result = false;
 
   cnStringInit(&line);
@@ -632,7 +632,7 @@ bool cnrParserTriggerId(cnrParser* parser, char* id) {
 }
 
 
-bool cnrParserTriggerNumber(cnrParser* parser, cnFloat number) {
+bool cnrParserTriggerNumber(cnrParser* parser, Float number) {
   bool result = false;
   cnrPlayer* player;
 
@@ -703,7 +703,7 @@ bool cnrParserTriggerNumber(cnrParser* parser, cnFloat number) {
     if (parser->index == 1) {
       player = (cnrPlayer*)parser->item;
       if (player->item.type != cnrTypePlayer) {
-        cnErrTo(DONE, "Index %ld of non-player.", (cnIndex)number);
+        cnErrTo(DONE, "Index %ld of non-player.", (Index)number);
       }
       // TODO Verify nonduplicate player?
       player->index = number;
@@ -771,7 +771,7 @@ bool cnrParseTeam(cnrParser* parser, char* line) {
 
 
 void cnrRcgParserItemLocation(
-  cnrParser* parser, cnIndex xIndex, cnFloat value
+  cnrParser* parser, Index xIndex, Float value
 ) {
   if (xIndex <= parser->index && parser->index <= xIndex + 1) {
     parser->item->location[parser->index - xIndex] = value;
@@ -796,12 +796,12 @@ void cnrRcgParserInit(cnrParser* parser) {
 
 
 bool cnrRclParseLine(cnrParser* parser, char* line) {
-  cnIndex playerIndex;
+  Index playerIndex;
   bool result = false;
   cnrState* statesEnd;
-  cnIndex subtime;
+  Index subtime;
   cnrTeam team;
-  cnIndex time;
+  Index time;
   char* token;
 
   // Format: time,subtime\t(Recv|\(...\)) TeamName_N: (command (content))

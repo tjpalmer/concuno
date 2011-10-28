@@ -17,17 +17,17 @@ namespace concuno {
 /**
  * A measure of angle in radians.
  */
-typedef cnFloat cnRadian;
+typedef Float Radian;
 
 
 // TODO Something else on Windows?
-#define cnPi ((cnFloat)M_PI)
+#define cnPi ((Float)M_PI)
 
 
-cnFloat cnEuclideanDistance(cnCount size, cnFloat* x, cnFloat* y);
+Float cnEuclideanDistance(Count size, Float* x, Float* y);
 
 
-cnFloat cnNorm(cnCount size, cnFloat* x);
+Float cnNorm(Count size, Float* x);
 
 
 /**
@@ -37,24 +37,24 @@ cnFloat cnNorm(cnCount size, cnFloat* x);
  *
  * TODO Reconsider the modification of target.
  */
-void cnReframe(cnCount size, cnFloat* origin, cnFloat* target, cnFloat* result);
+void cnReframe(Count size, Float* origin, Float* target, Float* result);
 
 
-cnFloat cnSquaredEuclideanDistance(cnCount size, cnFloat* x, cnFloat* y);
+Float cnSquaredEuclideanDistance(Count size, Float* x, Float* y);
 
 
-void cnVectorPrint(FILE* file, cnCount size, cnFloat* values);
+void cnVectorPrint(FILE* file, Count size, Float* values);
 
 
 void cnVectorPrintDelimited(
-  FILE* file, cnCount size, cnFloat* values, const char* delimiter
+  FILE* file, Count size, Float* values, const char* delimiter
 );
 
 
 /**
  * Normalizes radians to between -pi and pi.
  */
-cnRadian cnWrapRadians(cnRadian angle);
+Radian cnWrapRadians(Radian angle);
 
 
 }

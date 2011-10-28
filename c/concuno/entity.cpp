@@ -56,7 +56,7 @@ void Bag::init(cnList(cnEntity)* $entities) {
 }
 
 
-void Bag::pushParticipant(cnIndex depth, cnEntity participant) {
+void Bag::pushParticipant(Index depth, cnEntity participant) {
   cnList(cnEntity)* participantOptions;
 
   // Grow more lists if needed.
@@ -103,17 +103,17 @@ void cnEntityFunctionCreateDifference_get(
   cnEntityFunction* function, cnEntity* ins, void* outs
 ) {
   // TODO Remove float assumption here.
-  cnIndex i;
+  Index i;
   cnEntityFunction* base = reinterpret_cast<cnEntityFunction*>(function->data);
   // Vectors are assumed small, so use stack memory.
   // Our assumption that base->outCount == function->outCount allows the use
   // of base here. And the use of base here allows this difference function to
   // be used directly by distance as well.
-  cnFloat* x = cnStackAllocOf(cnFloat, base->outCount);
-  cnFloat* result = reinterpret_cast<cnFloat*>(outs);
+  Float* x = cnStackAllocOf(Float, base->outCount);
+  Float* result = reinterpret_cast<Float*>(outs);
   if (!x) {
     // TODO Some way to report errors. Just NaN out for now.
-    cnFloat nan = cnNaN();
+    Float nan = cnNaN();
     for (i = 0; i < base->outCount; i++) {
       result[i] = nan;
     }
@@ -165,11 +165,11 @@ void cnEntityFunctionCreateDistance_get(
   cnEntityFunction* function, cnEntity* ins, void* outs
 ) {
   // TODO Remove float assumption here.
-  cnIndex i;
+  Index i;
   cnEntityFunction* base = reinterpret_cast<cnEntityFunction*>(function->data);
   // Vectors are assumed small, so use stack memory.
-  cnFloat* diff = cnStackAllocOf(cnFloat, base->outCount);
-  cnFloat* result = reinterpret_cast<cnFloat*>(outs);
+  Float* diff = cnStackAllocOf(Float, base->outCount);
+  Float* result = reinterpret_cast<Float*>(outs);
   if (!diff) {
     // TODO Some way to report errors. Just NaN out for now.
     *result = cnNaN();
@@ -231,10 +231,10 @@ void cnEntityFunctionCreateProperty_get(
     // Provide NaNs for floats when no input given.
     // TODO Anything for other types? Error result?
     if (function->outType == function->outType->schema->floatType) {
-      cnFloat nan = cnNaN();
-      cnIndex o;
+      Float nan = cnNaN();
+      Index o;
       for (o = 0; o < function->outCount; o++) {
-        ((cnFloat*)outs)[o] = nan;
+        ((Float*)outs)[o] = nan;
       }
     }
   } else {
@@ -267,17 +267,17 @@ void cnEntityFunctionCreateReframe_get(
 ) {
   // Some work here based on the stable computation technique for Givens
   // rotations at Wikipedia: http://en.wikipedia.org/wiki/Givens_rotation
-  cnIndex i;
+  Index i;
   cnEntityFunction* base = reinterpret_cast<cnEntityFunction*>(function->data);
   // Vectors are assumed small, so use stack memory.
   // Our assumption that base->outCount == function->outCount allows the use
   // of base here.
-  cnFloat* origin = cnStackAllocOf(cnFloat, 2 * base->outCount);
-  cnFloat* target = origin + base->outCount;
-  cnFloat* result = reinterpret_cast<cnFloat*>(outs);
+  Float* origin = cnStackAllocOf(Float, 2 * base->outCount);
+  Float* target = origin + base->outCount;
+  Float* result = reinterpret_cast<Float*>(outs);
   if (!(origin && target)) {
     // TODO Some way to report errors. Just NaN out for now.
-    cnFloat nan = cnNaN();
+    Float nan = cnNaN();
     if (origin) cnStackFree(origin);
     for (i = 0; i < base->outCount; i++) {
       result[i] = nan;
@@ -337,8 +337,8 @@ cnEntityFunction* cnEntityFunctionCreateReframe(cnEntityFunction* base) {
 void cnEntityFunctionCreateValid_get(
   cnEntityFunction* function, cnEntity* ins, void* outs
 ) {
-  cnIndex i;
-  cnFloat* out = reinterpret_cast<cnFloat*>(outs);
+  Index i;
+  Float* out = reinterpret_cast<Float*>(outs);
   for (i = 0; i < function->inCount; i++) {
     if (!ins[i]) {
       // No good, so false.
@@ -352,7 +352,7 @@ void cnEntityFunctionCreateValid_get(
   *out = 1.0;
 }
 
-cnEntityFunction* cnEntityFunctionCreateValid(cnSchema* schema, cnCount arity) {
+cnEntityFunction* cnEntityFunctionCreateValid(cnSchema* schema, Count arity) {
   cnEntityFunction* function = cnAlloc(cnEntityFunction, 1);
   if (!function) return NULL;
   function->data = NULL;
@@ -389,7 +389,7 @@ void cnEntityFunctionDrop(cnEntityFunction* function) {
 
 
 cnEntityFunction* cnEntityFunctionCreate(
-  const char* name, cnCount inCount, cnCount outCount
+  const char* name, Count inCount, Count outCount
 ) {
   cnEntityFunction* function = cnAlloc(cnEntityFunction, 1);
   if (!function) cnErrTo(DONE, "No function.");
@@ -486,7 +486,7 @@ cnEntityFunction* cnPushPropertyFunction(
 
 
 cnEntityFunction* cnPushValidFunction(
-  cnList(cnEntityFunction*)* functions, cnSchema* schema, cnCount arity
+  cnList(cnEntityFunction*)* functions, cnSchema* schema, Count arity
 ) {
   cnEntityFunction* function;
   if ((function = cnEntityFunctionCreateValid(schema, arity))) {
@@ -543,7 +543,7 @@ bool cnPredicateCreateDistanceThreshold_Evaluate(
 ) {
   cnPredicateThresholdInfo info =
     reinterpret_cast<cnPredicateThresholdInfo>(predicate->info);
-  cnFloat distance;
+  Float distance;
   if (
     !info->distanceFunction->evaluate(info->distanceFunction, in, &distance)
   ) {
@@ -586,7 +586,7 @@ bool cnPredicateCreateDistanceThreshold_write(
 }
 
 cnPredicate* cnPredicateCreateDistanceThreshold(
-  cnFunction* distanceFunction, cnFloat threshold
+  cnFunction* distanceFunction, Float threshold
 ) {
   cnPredicate* predicate = cnAlloc(cnPredicate, 1);
   cnPredicateThresholdInfo info;
@@ -656,7 +656,7 @@ void cnPropertyFieldPut(cnProperty* property, cnEntity entity, void* value) {
 
 bool cnPropertyInitField(
   cnProperty* property, cnType* containerType, cnType* type, const char* name,
-  cnCount offset, cnCount count
+  Count offset, Count count
 ) {
   // Safety items first.
   cnStringInit(&property->name);
@@ -697,7 +697,7 @@ bool cnSchemaInitDefault(cnSchema* schema) {
   // Init schema.
   cnSchemaInit(schema);
   // Create float type.
-  if (!(type = cnTypeCreate("Float", sizeof(cnFloat)))) {
+  if (!(type = cnTypeCreate("Float", sizeof(Float)))) {
     cnErrTo(FAIL, "No type.");
   }
   type->schema = schema;
@@ -714,7 +714,7 @@ bool cnSchemaInitDefault(cnSchema* schema) {
 }
 
 
-cnType* cnTypeCreate(const char* name, cnCount size) {
+cnType* cnTypeCreate(const char* name, Count size) {
   cnType* type = cnAlloc(cnType, 1);
   if (!type) cnErrTo(FAIL, "No type.");
   // Put safety values first.

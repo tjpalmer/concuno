@@ -245,7 +245,7 @@ bool stLearnConcept(
   cnRootNode* learnedTree = NULL;
   Learner learner;
   bool result = false;
-  cnCount trueCount;
+  Count trueCount;
 
   // Init for safety.
   cnListInit(&bags, sizeof(Bag));
