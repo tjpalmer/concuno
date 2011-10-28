@@ -75,7 +75,7 @@ typedef struct cnLearnerConfig {
   /**
    * Need to keep track of the main info, too.
    */
-  cnLearner* learner;
+  Learner* learner;
 
   cnRootNode* previous;
 
@@ -179,7 +179,7 @@ bool cnExpansionRedundant(
 
 
 bool cnLearnSplitModel(
-  cnLearner* learner, cnSplitNode* split, cnList(cnBindingBag)* bindingBags
+  Learner* learner, cnSplitNode* split, cnList(cnBindingBag)* bindingBags
 );
 
 
@@ -1036,7 +1036,7 @@ bool cnExpansionRedundant(
 }
 
 
-void cnLearnerDispose(cnLearner* learner) {
+void cnLearnerDispose(Learner* learner) {
   // TODO This will leak memory if someone nulls out the random beforehand!
   if (learner->randomOwned) cnRandomDestroy(learner->random);
   // Abusively pass down a potentially broken random.
@@ -1046,7 +1046,7 @@ void cnLearnerDispose(cnLearner* learner) {
 }
 
 
-bool cnLearnerInit(cnLearner* learner, cnRandom random) {
+bool cnLearnerInit(Learner* learner, cnRandom random) {
   bool result = false;
 
   // Init for safety.
@@ -1073,7 +1073,7 @@ bool cnLearnerInit(cnLearner* learner, cnRandom random) {
 
 
 bool cnLearnSplitModel(
-  cnLearner* learner, cnSplitNode* split, cnList(cnBindingBag)* bindingBags
+  Learner* learner, cnSplitNode* split, cnList(cnBindingBag)* bindingBags
 ) {
   // TODO Other topologies, etc.
   cnFunction* bestFunction = NULL;
@@ -1151,7 +1151,7 @@ bool cnLearnSplitModel(
 }
 
 
-cnRootNode* cnLearnTree(cnLearner* learner) {
+cnRootNode* cnLearnTree(Learner* learner) {
   cnLearnerConfig config;
   cnRootNode* initialTree;
   cnLeafNode* leaf;

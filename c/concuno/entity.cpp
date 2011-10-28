@@ -56,6 +56,29 @@ void Bag::init(cnList(cnEntity)* $entities) {
 }
 
 
+void Bag::pushParticipant(cnIndex depth, cnEntity participant) {
+  cnList(cnEntity)* participantOptions;
+
+  // Grow more lists if needed.
+  while (depth >= this->participantOptions.count) {
+    if (!(participantOptions = reinterpret_cast<cnList(cnEntity)*>(
+      cnListExpand(&this->participantOptions)
+    ))) {
+      throw "Failed to grow participant options.";
+    }
+    cnListInit(participantOptions, sizeof(cnEntity));
+  }
+
+  // Expand the one for the right depth.
+  participantOptions = reinterpret_cast<cnList(cnEntity)*>(
+    cnListGet(&this->participantOptions, depth)
+  );
+  if (!cnListPush(participantOptions, &participant)) {
+    throw "Failed to push participant.";
+  }
+}
+
+
 void cnBagListDispose(
   cnList(Bag)* bags, cnList(cnList(cnEntity)*)* entityLists
 ) {
@@ -73,36 +96,6 @@ void cnBagListDispose(
     } cnEnd;
     cnListDispose(entityLists);
   }
-}
-
-
-bool cnBagPushParticipant(Bag* bag, cnIndex depth, cnEntity participant) {
-  cnList(cnEntity)* participantOptions;
-  bool result = false;
-
-  // Grow more lists if needed.
-  while (depth >= bag->participantOptions.count) {
-    if (!(participantOptions = reinterpret_cast<cnList(cnEntity)*>(
-      cnListExpand(&bag->participantOptions)
-    ))) {
-      cnErrTo(DONE, "Failed to grow participant options.");
-    }
-    cnListInit(participantOptions, sizeof(cnEntity));
-  }
-
-  // Expand the one for the right depth.
-  participantOptions = reinterpret_cast<cnList(cnEntity)*>(
-    cnListGet(&bag->participantOptions, depth)
-  );
-  if (!cnListPush(participantOptions, &participant)) {
-    cnErrTo(DONE, "Failed to push participant.");
-  }
-
-  // Winned.
-  result = true;
-
-  DONE:
-  return result;
 }
 
 

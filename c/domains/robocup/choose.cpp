@@ -211,15 +211,8 @@ bool cnrExtractHoldOrPass(
   }
 
   // We should have a bag by now. Pin the participants.
-  if (!cnBagPushParticipant(bag, 0, kicker)) {
-    cnErrTo(DONE, "Failed to push kicker.");
-  }
-  if (receiver) {
-    // Pin the receiver, too.
-    if (!cnBagPushParticipant(bag, 1, receiver)) {
-      cnErrTo(DONE, "Failed to push receiver.");
-    }
-  }
+  bag->pushParticipant(0, kicker);
+  bag->pushParticipant(1, receiver);
 
   // And provide the given bag label already determined before the call.
   // Well, invert the label because "fail" can be determined existentially, but

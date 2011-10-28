@@ -65,7 +65,7 @@ int main(int argc, char** argv) {
   cnListAny labels;
   cnType* labelType;
   cnRootNode* learnedTree = NULL;
-  cnLearner learner;
+  Learner learner;
   cnSchema schema;
 
   // Init lists first for safety.

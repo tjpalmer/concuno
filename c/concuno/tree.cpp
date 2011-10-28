@@ -1174,8 +1174,8 @@ bool cnTreeMaxLeafCounts(
     count->posCount = 0;
     // Loop through bags, if any.
     cnListEachBegin(&group->bindingBags, cnBindingBag, bindingBag) {
-      // TODO This subtraction only works if bags is an array of cnBag and not
-      // TODO cnBag*, because we'd otherwise have no reference point. Should I
+      // TODO This subtraction only works if bags is an array of Bag and not
+      // TODO Bag*, because we'd otherwise have no reference point. Should I
       // TODO consider explicit ids/indices at some point?
       cnIndex bagIndex = bindingBag->bag - (Bag*)bags->items;
       if (bagsUsed[bagIndex]) continue;
@@ -1285,8 +1285,8 @@ bool cnTreeMaxLeafBags(
     // Loop through bags.
     b = 0;
     cnListEachBegin(&groupIn->group->bindingBags, cnBindingBag, bindingBag) {
-      // TODO This subtraction only works if bags is an array of cnBag and not
-      // TODO cnBag*, because we'd otherwise have no reference point. Should I
+      // TODO This subtraction only works if bags is an array of Bag and not
+      // TODO Bag*, because we'd otherwise have no reference point. Should I
       // TODO consider explicit ids/indices at some point?
       cnIndex bagIndex = bindingBag->bag - bags;
       if (!bagsUsed[bagIndex]) {

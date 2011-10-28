@@ -26,6 +26,12 @@ struct Bag {
 
   void init(cnList(cnEntity)* entities = 0);
 
+  /**
+   * Pushes on the given participant to the options for the given depth (or
+   * parameter index, so to speak).
+   */
+  void pushParticipant(cnIndex depth, cnEntity participant);
+
   // TODO id? Or are pointer addresses good enough (if stable)?
 
   /**
@@ -289,13 +295,6 @@ struct cnType {
 void cnBagListDispose(
   cnList(Bag)* bags, cnList(cnList(cnEntity)*)* entityLists
 );
-
-
-/**
- * Pushes on the given participant to the options for the given depth (or
- * parameter index, so to speak).
- */
-bool cnBagPushParticipant(Bag* bag, cnIndex depth, cnEntity participant);
 
 
 cnEntityFunction* cnEntityFunctionCreateDifference(cnEntityFunction* base);

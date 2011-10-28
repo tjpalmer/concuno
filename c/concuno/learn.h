@@ -13,7 +13,7 @@ namespace concuno {
  * The whole Learner thing is a placeholder. I can't imagine not wanting a few
  * configuration options at some point.
  */
-typedef struct cnLearner {
+struct Learner {
   // TODO Learning options go here.
 
   /**
@@ -27,7 +27,7 @@ typedef struct cnLearner {
    * These will not be disposed of with the learner. Outside code needs to take
    * care of that.
    */
-  cnList(cnBag)* bags;
+  cnList(Bag)* bags;
 
   /**
    * The entity functions to be used during the learning process.
@@ -61,7 +61,7 @@ typedef struct cnLearner {
    */
   bool randomOwned;
 
-} cnLearner;
+};
 
 
 /**
@@ -70,7 +70,7 @@ typedef struct cnLearner {
  * For now, it just sets bags to null, so the caller needs to have separate
  * access to them if they haven't yet done the cleanup.
  */
-void cnLearnerDispose(cnLearner* learner);
+void cnLearnerDispose(Learner* learner);
 
 
 /**
@@ -80,7 +80,7 @@ void cnLearnerDispose(cnLearner* learner);
  *
  * Even on failure, the learner is safe to dispose.
  */
-bool cnLearnerInit(cnLearner* learner, cnRandom random);
+bool cnLearnerInit(Learner* learner, cnRandom random);
 
 
 /**
@@ -92,7 +92,7 @@ bool cnLearnerInit(cnLearner* learner, cnRandom random);
  *
  * TODO Fill a list of trees for beam search purposes?
  */
-cnRootNode* cnLearnTree(cnLearner* learner);
+cnRootNode* cnLearnTree(Learner* learner);
 
 
 }

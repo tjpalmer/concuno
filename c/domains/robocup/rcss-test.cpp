@@ -239,7 +239,7 @@ bool cnrProcessExport(cnList(Bag)* holdBags, cnList(Bag)* passBags) {
 bool cnrProcessLearn(cnList(Bag)* holdBags, cnList(Bag)* passBags) {
   cnList(cnEntityFunction*) functions;
   cnRootNode* learnedTree = NULL;
-  cnLearner learner;
+  Learner learner;
   bool result = false;
   cnSchema schema;
 

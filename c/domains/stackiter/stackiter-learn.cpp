@@ -243,7 +243,7 @@ bool stLearnConcept(
   cnList(Bag) bags;
   cnList(cnList(cnEntity)*) entityLists;
   cnRootNode* learnedTree = NULL;
-  cnLearner learner;
+  Learner learner;
   bool result = false;
   cnCount trueCount;
 

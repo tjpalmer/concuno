@@ -7,8 +7,9 @@
 
 bool cnrChooseHoldsAndPasses(
   cnrGame* game,
-  concuno::cnList(cnBag)* holdBags, concuno::cnList(cnBag)* passBags,
-  concuno::cnList(cnList(cnEntity)*)* entityLists
+  concuno::cnList(concuno::Bag)* holdBags,
+  concuno::cnList(concuno::Bag)* passBags,
+  concuno::cnList(concuno::cnList(concuno::cnEntity)*)* entityLists
 );
 
 
