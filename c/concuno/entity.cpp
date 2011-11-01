@@ -123,10 +123,9 @@ void cnEntityFunctionCreateDifference_get(
 EntityFunction* cnEntityFunctionCreateDifference(EntityFunction* base) {
   EntityFunction* function = cnAlloc(EntityFunction, 1);
   if (!function) return NULL;
+  // TODO Out count valid for all topologies?
+  new(function) EntityFunction("Difference", 2, base->outCount);
   function->data = base;
-  function->dispose = NULL;
-  function->inCount = 2;
-  function->outCount = base->outCount; // TODO For all topologies?
   function->outTopology = base->outTopology;
   // TODO Verify non-nulls?
   //printf("outType: %s\n", cnStr(&base->outType->name));
@@ -138,7 +137,7 @@ EntityFunction* cnEntityFunctionCreateDifference(EntityFunction* base) {
   }
   function->outType = base->outType;
   function->get = cnEntityFunctionCreateDifference_get;
-  function->name.append("Difference").append(base->name);
+  function->name.append(base->name);
   return function;
 
   FAIL:
@@ -178,10 +177,8 @@ EntityFunction* cnEntityFunctionCreateDistance(EntityFunction* base) {
   // TODO Combine setup with difference? Differences indicated below.
   EntityFunction* function = cnAlloc(EntityFunction, 1);
   if (!function) return NULL;
+  new(function) EntityFunction("Distance", 2, 1); // Different from difference!
   function->data = base;
-  function->dispose = NULL;
-  function->inCount = 2;
-  function->outCount = 1; // Different from difference!
   function->outTopology = base->outTopology;
   // TODO Verify non-nulls?
   //printf("outType: %s\n", cnStr(&base->outType->name));
@@ -193,7 +190,7 @@ EntityFunction* cnEntityFunctionCreateDistance(EntityFunction* base) {
   }
   function->outType = base->outType;
   function->get = cnEntityFunctionCreateDistance_get; // Also different!
-  function->name.append("Distance").append(base->name); // Also different!
+  function->name.append(base->name);
   return function;
 
   FAIL:
@@ -224,14 +221,11 @@ void cnEntityFunctionCreateProperty_get(
 EntityFunction* cnEntityFunctionCreateProperty(Property* property) {
   EntityFunction* function = cnAlloc(EntityFunction, 1);
   if (!function) return NULL;
+  new(function) EntityFunction(cnStr(&property->name), 1, property->count);
   function->data = property;
-  function->dispose = NULL;
-  function->inCount = 1;
-  function->outCount = property->count;
   function->outTopology = property->topology;
   function->outType = property->type;
   function->get = cnEntityFunctionCreateProperty_get;
-  function->name.append(cnStr((String*)&property->name));
   return function;
 }
 
@@ -275,10 +269,10 @@ void cnEntityFunctionCreateReframe_get(
 EntityFunction* cnEntityFunctionCreateReframe(EntityFunction* base) {
   EntityFunction* function = cnAlloc(EntityFunction, 1);
   if (!function) return NULL;
+  // TODO Out count valid for all topologies?
+  // Different from difference!
+  new(function) EntityFunction("Reframe", 3, base->outCount);
   function->data = base;
-  function->dispose = NULL;
-  function->inCount = 3;
-  function->outCount = base->outCount; // TODO For all topologies?
   function->outTopology = base->outTopology;
   // TODO Verify non-nulls?
   //printf("outType: %s\n", cnStr(&base->outType->name));
@@ -291,8 +285,8 @@ EntityFunction* cnEntityFunctionCreateReframe(EntityFunction* base) {
     cnErrTo(FAIL, "Only works for floats so far.");
   }
   function->outType = base->outType;
-  function->get = cnEntityFunctionCreateReframe_get;
-  function->name.append("Reframe").append(base->name); // Also different!
+  function->get = cnEntityFunctionCreateReframe_get; // Also different!
+  function->name.append(base->name);
   return function;
 
   FAIL:
@@ -322,16 +316,11 @@ void cnEntityFunctionCreateValid_get(
 EntityFunction* cnEntityFunctionCreateValid(Schema* schema, Count arity) {
   EntityFunction* function = cnAlloc(EntityFunction, 1);
   if (!function) return NULL;
-  function->data = NULL;
-  function->dispose = NULL;
-  function->inCount = arity;
-  function->outCount = 1;
-  function->outTopology = TopologyEuclidean; // TODO Discrete or ordinal?
+  // TODO Customize name by arity?
+  // TODO Discrete topology for valid?
+  new(function) EntityFunction("Valid", arity, 1);
   function->outType = schema->floatType; // TODO Integer or some such?
   function->get = cnEntityFunctionCreateValid_get;
-  // The one thing that can fail directly here.
-  // TODO Customize name by arity?
-  function->name.append("Valid");
   return function;
 }
 

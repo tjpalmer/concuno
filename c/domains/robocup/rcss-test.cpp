@@ -218,10 +218,13 @@ bool cnrProcess(
   result = true;
 
   DONE:
-  // Bags and entities. The entity lists get disposed with the first call,
-  // leaving bogus pointers inside the passBags, but they'll be unused.
+  // Bags and entities. The entity lists get disposed with the first call.
   cnBagListDispose(&holdBags, &entityLists);
-  cnBagListDispose(&passBags, &entityLists);
+  // Clear out entities manually for safe disposal fo bag list later.
+  cnListEachBegin(&passBags, Bag, bag) {
+    bag->entities = NULL;
+  } cnEnd;
+  cnBagListDispose(&passBags, NULL);
   // Result.
   return result;
 }

@@ -132,9 +132,10 @@ bool cnrExtractHoldOrPass(
   );
 
   // We'll need an entity list for the state, whether it's a hold or a pass.
-  if (!(entities = new List<Entity>)) {
+  if (!(entities = cnAlloc(List<Entity>, 1))) {
     cnErrTo(DONE, "No entities.");
   }
+  new(entities) List<Entity>;
   // Push the ball.
   if (!cnListPush(entities, &ball)) cnErrTo(DONE, "No ball for list.");
   // And the players.
