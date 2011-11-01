@@ -46,7 +46,7 @@ bool cnClusterOnFunction(cnList(Bag)* bags, EntityFunction* function) {
     printf("Only handle arity 1 for now, not %ld\n", function->inCount);
   }
   if (function->outType != function->outType->schema->floatType) {
-    printf("Only handle float type, not %s\n", cnStr(&function->outType->name));
+    printf("Only handle float type, not %s\n", function->outType->name.c_str());
   }
 
   // Count the points, and allocate space.
@@ -181,7 +181,7 @@ void cnLogPoints(EntityFunction* function, Count count, Float* points) {
   Float* pointsEnd = points + size * count;
 
   // Prepare file name, and open/create output file.
-  if (!cnListPushAll(&name, &function->name)) {
+  if (!cnStringPushStr(&name, function->name.c_str())) {
     // TODO Error code.
     return;
   }

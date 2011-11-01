@@ -151,7 +151,7 @@ bool cnrPickFunctions(cnList(EntityFunction*)* functions, Type* type) {
       cnErrTo(FAIL, "Function not pushed.");
     }
     // TODO Distance (and difference?) angle, too?
-    if (true || !strcmp("Location", cnStr(&function->name))) {
+    if (true || function->name == "Location") {
       EntityFunction* distance;
       if (true) {
         // Actually, skip this N^2 thing for now. For many items per bag and few
@@ -162,29 +162,29 @@ bool cnrPickFunctions(cnList(EntityFunction*)* functions, Type* type) {
 
       // Distance.
       if (!(distance = cnEntityFunctionCreateDistance(function))) {
-        cnErrTo(FAIL, "No distance %s.", cnStr(&function->name));
+        cnErrTo(FAIL, "No distance %s.", function->name.c_str());
       }
       if (!cnListPush(functions, &distance)) {
         cnEntityFunctionDrop(distance);
-        cnErrTo(FAIL, "Function %s not pushed.", cnStr(&distance->name));
+        cnErrTo(FAIL, "Function %s not pushed.", distance->name.c_str());
       }
 
       // Difference.
       if (!(distance = cnEntityFunctionCreateDifference(function))) {
-        cnErrTo(FAIL, "No distance %s.", cnStr(&function->name));
+        cnErrTo(FAIL, "No distance %s.", function->name.c_str());
       }
       if (!cnListPush(functions, &distance)) {
         cnEntityFunctionDrop(distance);
-        cnErrTo(FAIL, "Function %s not pushed.", cnStr(&distance->name));
+        cnErrTo(FAIL, "Function %s not pushed.", distance->name.c_str());
       }
 
       // Reframe.
       if (!(distance = cnEntityFunctionCreateReframe(function))) {
-        cnErrTo(FAIL, "No reframe %s.", cnStr(&function->name));
+        cnErrTo(FAIL, "No reframe %s.", function->name.c_str());
       }
       if (!cnListPush(functions, &distance)) {
         cnEntityFunctionDrop(distance);
-        cnErrTo(FAIL, "Function %s not pushed.", cnStr(&distance->name));
+        cnErrTo(FAIL, "Function %s not pushed.", distance->name.c_str());
       }
     }
   } cnEnd;

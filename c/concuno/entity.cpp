@@ -126,7 +126,6 @@ EntityFunction* cnEntityFunctionCreateDifference(EntityFunction* base) {
   function->data = base;
   function->dispose = NULL;
   function->inCount = 2;
-  function->name.init();
   function->outCount = base->outCount; // TODO For all topologies?
   function->outTopology = base->outTopology;
   // TODO Verify non-nulls?
@@ -139,13 +138,7 @@ EntityFunction* cnEntityFunctionCreateDifference(EntityFunction* base) {
   }
   function->outType = base->outType;
   function->get = cnEntityFunctionCreateDifference_get;
-  // Deal with this last, to make sure everything else is sane first.
-  if (!cnStringPushStr(&function->name, "Difference")) {
-    cnFailTo(FAIL);
-  }
-  if (!cnStringPushStr(&function->name, cnStr((String*)&base->name))) {
-    cnFailTo(FAIL);
-  }
+  function->name.append("Difference").append(base->name);
   return function;
 
   FAIL:
@@ -188,7 +181,6 @@ EntityFunction* cnEntityFunctionCreateDistance(EntityFunction* base) {
   function->data = base;
   function->dispose = NULL;
   function->inCount = 2;
-  function->name.init();
   function->outCount = 1; // Different from difference!
   function->outTopology = base->outTopology;
   // TODO Verify non-nulls?
@@ -201,13 +193,7 @@ EntityFunction* cnEntityFunctionCreateDistance(EntityFunction* base) {
   }
   function->outType = base->outType;
   function->get = cnEntityFunctionCreateDistance_get; // Also different!
-  // Deal with this last, to make sure everything else is sane first.
-  if (!cnStringPushStr(&function->name, "Distance")) { // Also different!
-    cnFailTo(FAIL);
-  }
-  if (!cnStringPushStr(&function->name, cnStr((String*)&base->name))) {
-    cnFailTo(FAIL);
-  }
+  function->name.append("Distance").append(base->name); // Also different!
   return function;
 
   FAIL:
@@ -245,12 +231,7 @@ EntityFunction* cnEntityFunctionCreateProperty(Property* property) {
   function->outTopology = property->topology;
   function->outType = property->type;
   function->get = cnEntityFunctionCreateProperty_get;
-  function->name.init();
-  // The one thing that can fail directly here.
-  if (!cnStringPushStr(&function->name, cnStr((String*)&property->name))) {
-    cnEntityFunctionDrop(function);
-    return NULL;
-  }
+  function->name.append(cnStr((String*)&property->name));
   return function;
 }
 
@@ -297,7 +278,6 @@ EntityFunction* cnEntityFunctionCreateReframe(EntityFunction* base) {
   function->data = base;
   function->dispose = NULL;
   function->inCount = 3;
-  function->name.init();
   function->outCount = base->outCount; // TODO For all topologies?
   function->outTopology = base->outTopology;
   // TODO Verify non-nulls?
@@ -312,13 +292,7 @@ EntityFunction* cnEntityFunctionCreateReframe(EntityFunction* base) {
   }
   function->outType = base->outType;
   function->get = cnEntityFunctionCreateReframe_get;
-  // Deal with this last, to make sure everything else is sane first.
-  if (!cnStringPushStr(&function->name, "Reframe")) {
-    cnFailTo(FAIL);
-  }
-  if (!cnStringPushStr(&function->name, cnStr((String*)&base->name))) {
-    cnFailTo(FAIL);
-  }
+  function->name.append("Reframe").append(base->name); // Also different!
   return function;
 
   FAIL:
@@ -355,27 +329,31 @@ EntityFunction* cnEntityFunctionCreateValid(Schema* schema, Count arity) {
   function->outTopology = TopologyEuclidean; // TODO Discrete or ordinal?
   function->outType = schema->floatType; // TODO Integer or some such?
   function->get = cnEntityFunctionCreateValid_get;
-  function->name.init();
   // The one thing that can fail directly here.
   // TODO Customize name by arity?
-  if (!cnStringPushStr(&function->name, "Valid")) {
-    cnEntityFunctionDrop(function);
-    return NULL;
-  }
+  function->name.append("Valid");
   return function;
 }
 
 
-void cnEntityFunctionDrop(EntityFunction* function) {
-  if (function->dispose) {
-    function->dispose(function);
-    function->dispose = NULL;
+EntityFunction::EntityFunction(
+  const char* $name, Count $inCount, Count $outCount
+):
+  data(NULL), inCount($inCount), name($name), outCount($outCount),
+  outTopology(TopologyEuclidean), outType(NULL), dispose(NULL), get(NULL)
+{}
+
+
+EntityFunction::~EntityFunction() {
+  if (dispose) {
+    dispose(this);
   }
-  function->data = NULL;
-  function->get = NULL;
-  function->outTopology = TopologyEuclidean;
-  function->outCount = 0;
-  function->outType = NULL;
+}
+
+
+void cnEntityFunctionDrop(EntityFunction* function) {
+  if (!function) return;
+  function->~EntityFunction();
   free(function);
 }
 
@@ -383,23 +361,10 @@ void cnEntityFunctionDrop(EntityFunction* function) {
 EntityFunction* cnEntityFunctionCreate(
   const char* name, Count inCount, Count outCount
 ) {
+  // TODO Replace with new!
   EntityFunction* function = cnAlloc(EntityFunction, 1);
-  if (!function) cnErrTo(DONE, "No function.");
-  function->data = NULL;
-  function->dispose = NULL;
-  function->inCount = inCount;
-  function->outCount = outCount;
-  function->outTopology = TopologyEuclidean;
-  function->outType = NULL;
-  function->get = NULL;
-  function->name.init();
-  // Build name now.
-  if (!cnStringPushStr(&function->name, name)) {
-    cnEntityFunctionDrop(function);
-    function = NULL;
-    cnErrTo(DONE, "No function name.");
-  }
-  DONE:
+  if (!function) throw Error("No function.");
+  new(function) EntityFunction(name, inCount, outCount);
   return function;
 }
 
@@ -703,32 +668,32 @@ bool cnSchemaInitDefault(Schema* schema) {
 }
 
 
+Type::Type(const char* $name, Count $size):
+  name($name),
+  // Let schema be set later, if wanted.
+  schema(NULL),
+  size($size)
+{}
+
+
+Type::~Type() {
+  cnListEachBegin(&properties, Property, property) {
+    cnPropertyDispose(property);
+  } cnEnd;
+}
+
+
 Type* cnTypeCreate(const char* name, Count size) {
   Type* type = cnAlloc(Type, 1);
-  if (!type) cnErrTo(FAIL, "No type.");
-  // Put safety values first.
-  type->size = size;
-  // Let schema be set later, if wanted.
-  type->schema = NULL;
-  type->name.init();
-  type->properties.init(sizeof(Property));
-  // Now try things that might fail.
-  if (!cnStringPushStr(&type->name, name)) cnErrTo(FAIL, "No type name.");
+  if (!type) throw Error("No type.");
+  new(type) Type(name, size);
   return type;
-
-  FAIL:
-  cnTypeDrop(type);
-  return NULL;
 }
 
 
 void cnTypeDrop(Type* type) {
   if (!type) return;
-  cnListEachBegin(&type->properties, Property, property) {
-    cnPropertyDispose(property);
-  } cnEnd;
-  type->size = 0;
-  type->schema = NULL;
+  type->~Type();
   free(type);
 }
 

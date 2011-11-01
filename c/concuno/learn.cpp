@@ -1236,7 +1236,7 @@ void cnLogPointBags(SplitNode* split, List<PointBag>* pointBags) {
   String name;
 
   // Prepare file name, and open/create output file.
-  if (!cnListPushAll(&name, &split->function->name)) {
+  if (!cnStringPushStr(&name, split->function->name.c_str())) {
     // TODO Error code.
     return;
   }
@@ -1415,7 +1415,7 @@ LeafNode* cnPickBestLeaf(RootNode* tree, List<Bag>* bags) {
 
 void cnPrintExpansion(cnExpansion* expansion) {
   Index i;
-  printf("%s(", cnStr(&expansion->function->name));
+  printf("%s(", expansion->function->name.c_str());
   for (i = 0; i < expansion->function->inCount; i++) {
     if (i > 0) {
       printf(", ");

@@ -2,6 +2,7 @@
 #define concuno_entity_h
 
 
+#include <string>
 #include <vector>
 
 #include "core.h"
@@ -99,13 +100,15 @@ struct Type;
  */
 struct EntityFunction {
 
+  EntityFunction(const char* name, Count inCount, Count outCount);
+
   virtual ~EntityFunction();
 
   void* data;
 
   Count inCount;
 
-  String name;
+  std::string name;
 
   Count outCount;
 
@@ -272,7 +275,11 @@ struct Schema {
 
 struct Type {
 
-  String name;
+  Type(const char* name, Count size);
+
+  ~Type();
+
+  std::string name;
 
   /**
    * TODO Store pointers instead of expanded, to keep later pointers here

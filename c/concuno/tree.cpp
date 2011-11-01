@@ -1408,7 +1408,7 @@ bool cnTreeWrite_split(SplitNode* split, FILE* file, String* indent) {
     // TODO Escape strings (like function name)!!
     fprintf(
       file, "%s\"function\": \"%s\",\n",
-      cnStr(indent), cnStr(&split->function->name)
+      cnStr(indent), split->function->name.c_str()
     );
 
     // Var indices.
