@@ -19,15 +19,17 @@ typedef void* Entity;
 
 struct Bag {
 
+  /**
+   * Creates an entity list for managing here.
+   */
   Bag();
 
+  /**
+   * Uses the given entity list.
+   */
   Bag(cnList(Entity)* entities);
 
   ~Bag();
-
-  void dispose();
-
-  void init(cnList(Entity)* entities = 0);
 
   /**
    * Pushes on the given participant to the options for the given depth (or
@@ -40,6 +42,8 @@ struct Bag {
   /**
    * Entities in the pool. The same entity list might be shared by multiple
    * bag samples. Therefore, it is _not_ disposed of with the bag.
+   *
+   * TODO Actually, it currently is deleted if not null. Change this?
    */
   List<Entity>* entities;
 

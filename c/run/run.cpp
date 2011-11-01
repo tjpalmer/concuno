@@ -142,7 +142,7 @@ bool cnvBuildBags(
     Index bagId = *(Float*)labelItem;
     // Check the bag allocation, and init the thing.
     if (!bag) cnErrTo(DONE, "No bag.");
-    bag->init();
+    new(bag) Bag;
     bag->label = *(Float*)(labelItem + labelOffset);
     // Add features.
     //printf("Reached bag %ld, labeled %u.\n", bagId, bag->label);

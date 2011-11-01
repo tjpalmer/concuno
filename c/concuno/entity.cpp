@@ -9,14 +9,10 @@
 namespace concuno {
 
 
-Bag::Bag() {
-  init();
-}
+Bag::Bag(): entities(new List<Entity>), label(false) {}
 
 
-Bag::Bag(List<Entity>* $entities) {
-  init($entities);
-}
+Bag::Bag(List<Entity>* $entities): entities($entities), label(false) {}
 
 
 Bag::~Bag() {
@@ -32,13 +28,6 @@ Bag::~Bag() {
     // form. Nothing knows they're being destroyed.
     list->dispose();
   } cnEnd;
-}
-
-
-void Bag::init(List<Entity>* $entities) {
-  // Safety first.
-  label = false;
-  entities = $entities ? $entities : new List<Entity>;
 }
 
 

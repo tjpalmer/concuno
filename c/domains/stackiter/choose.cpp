@@ -34,7 +34,7 @@ bool stAllBagsFalse(
     if (!(bag = reinterpret_cast<Bag*>(cnListExpand(bags)))) {
       cnErrTo(DONE, "Failed to push bag.");
     }
-    bag->init();
+    new(bag) Bag;
     // Each bag gets the live items.
     if (!stPlaceLiveItems(&state->items, bag->entities)) {
       cnErrTo(DONE, "Failed to push entities.");
@@ -91,7 +91,7 @@ bool stChooseDropWhereLandOnOther(
             cnErrTo(DONE, "Failed to push bag.");
           }
           // Now init the bag in the list.
-          bag->init();
+          new(bag) Bag;
           bag->label = label;
           // If we defer placing entity pointers until after we've stored the
           // bag itself, then cleanup from failure is easier.
@@ -188,7 +188,7 @@ bool stChooseWhereNotMoving(
         cnErrTo(DONE, "Failed to push bag.");
       }
       // With provided entities, bag init doesn't fail.
-      bag->init(entities);
+      new(bag) Bag(entities);
 
       // Participant.
       if (!(
