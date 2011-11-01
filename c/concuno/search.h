@@ -78,7 +78,7 @@ struct cnSearcher {
   /**
    * The initial options from which to begin the search. At least one is needed.
    */
-  cnList(cnSearchOption) initialOptions;
+  List<cnSearchOption> initialOptions;
 
   /**
    * Given the current option, advance the search, providing the next options to

@@ -76,23 +76,13 @@ bool stSchemaInit(Schema* schema) {
 }
 
 
+stState::stState(): cleared(false), time(0) {}
+
+
 bool stStateCopy(stState* to, stState* from) {
   *to = *from;
-  cnListInit(&to->items, to->items.itemSize);
+  to->items.init();
   return cnListPushAll(&to->items, &from->items);
-}
-
-
-void stStateDispose(stState* state) {
-  cnListDispose(&state->items);
-  stStateInit(state);
-}
-
-
-void stStateInit(stState* state) {
-  state->cleared = false;
-  cnListInit(&state->items, sizeof(stItem));
-  state->time = 0;
 }
 
 

@@ -12,12 +12,9 @@ struct cnSearcherSelf: cnSearcher {
 
 
 bool cnSearch(cnSearcher* searcher) {
-  cnList(cnSearchOption) nexts;
+  List<cnSearchOption> nexts;
   bool result = false;
   cnSearcherSelf* self = (cnSearcherSelf*)searcher;
-
-  // Init.
-  cnListInit(&nexts, sizeof(cnSearchOption));
 
   // Push initial options on the heap.
   cnListEachBegin(&searcher->initialOptions, cnSearchOption, option) {
@@ -66,7 +63,6 @@ bool cnSearch(cnSearcher* searcher) {
   result = true;
 
   DONE:
-  cnListDispose(&nexts);
   cnHeapClear(self->options);
   return result;
 }
@@ -95,7 +91,6 @@ cnSearcher* cnSearcherCreate(void) {
   searcher->destroyOption = NULL;
   searcher->finished = NULL;
   searcher->info = NULL;
-  cnListInit(&searcher->initialOptions, sizeof(cnSearchOption));
   searcher->step = NULL;
 
   // Now possible failures.

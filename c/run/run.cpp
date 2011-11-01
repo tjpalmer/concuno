@@ -31,8 +31,8 @@ typedef struct cnvTypedOffset {
  */
 bool cnvBuildBags(
   cnList(Bag)* bags,
-  char* labelId, Type* labelType, cnListAny* labels,
-  Type* featureType, cnListAny* features
+  char* labelId, Type* labelType, ListAny* labels,
+  Type* featureType, ListAny* features
 );
 
 
@@ -40,7 +40,7 @@ bool cnvBuildBags(
  * Returns the created item type or null for failure.
  */
 Type* cnvLoadTable(
-  const char* fileName, const char* typeName, Schema* schema, cnListAny* items
+  const char* fileName, const char* typeName, Schema* schema, ListAny* items
 );
 
 
@@ -57,22 +57,17 @@ bool cnvPushOrExpandProperty(
 
 int main(int argc, char** argv) {
   int result = EXIT_FAILURE;
-  cnList(Bag) bags;
-  cnListAny features;
+  List<Bag> bags;
+  ListAny features;
   Type* featureType;
-  cnList(EntityFunction*) functions;
-  cnListAny labels;
+  List<EntityFunction*> functions;
+  ListAny labels;
   Type* labelType;
   RootNode* learnedTree = NULL;
   Learner learner;
   Schema schema;
 
-  // Init lists first for safety.
-  cnListInit(&bags, sizeof(Bag));
-  // We don't yet know how big the items are.
-  cnListInit(&features, 0);
-  cnListInit(&functions, sizeof(EntityFunction*));
-  cnListInit(&labels, 0);
+  // Init first for safety.
   if (!cnSchemaInitDefault(&schema)) cnErrTo(DONE, "Init failed.");
 
   if (argc < 4) cnErrTo(
@@ -112,12 +107,9 @@ int main(int argc, char** argv) {
   DONE:
   cnNodeDrop(&learnedTree->node);
   cnSchemaDispose(&schema);
-  cnListDispose(&labels);
   cnListEachBegin(&functions, EntityFunction*, function) {
     cnEntityFunctionDrop(*function);
   } cnEnd;
-  cnListDispose(&functions);
-  cnListDispose(&features);
   cnBagListDispose(&bags, NULL);
   return result;
 }
@@ -125,8 +117,8 @@ int main(int argc, char** argv) {
 
 bool cnvBuildBags(
   cnList(Bag)* bags,
-  char* labelId, Type* labelType, cnListAny* labels,
-  Type* featureType, cnListAny* features
+  char* labelId, Type* labelType, ListAny* labels,
+  Type* featureType, ListAny* features
 ) {
   char* feature = reinterpret_cast<char*>(features->items);
   char* featuresEnd = reinterpret_cast<char*>(cnListEnd(features));
@@ -170,19 +162,15 @@ bool cnvBuildBags(
 
 
 Type* cnvLoadTable(
-  const char* fileName, const char* typeName, Schema* schema, cnListAny* items
+  const char* fileName, const char* typeName, Schema* schema, ListAny* items
 ) {
   Count countRead;
   FILE* file = NULL;
   String line;
   char* remaining;
-  cnList(cnvTypedOffset) offsets;
+  List<cnvTypedOffset> offsets;
   cnvTypedOffset* offsetsEnd;
   Type* type = NULL;
-
-  // Init lists for safety.
-  cnStringInit(&line);
-  cnListInit(&offsets, sizeof(cnvTypedOffset));
 
   // Create the type.
   if (!(type = cnTypeCreate(typeName, 0))) cnErrTo(FAIL, "No type create.");
@@ -246,8 +234,6 @@ Type* cnvLoadTable(
 
   DONE:
   if (file) fclose(file);
-  cnListDispose(&offsets);
-  cnStringDispose(&line);
   return type;
 }
 

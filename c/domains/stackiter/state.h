@@ -21,7 +21,7 @@ typedef concuno::Index stId;
 typedef int stTypeId;
 
 
-typedef struct stItem {
+struct stItem {
 
   bool alive;
 
@@ -53,18 +53,20 @@ typedef struct stItem {
 
   concuno::Float velocity[2];
 
-} stItem;
+};
 
 
-typedef struct stState {
+struct stState {
+
+  stState();
 
   bool cleared;
 
-  concuno::cnList(stItem) items;
+  concuno::List<stItem> items;
 
   double time;
 
-} stState;
+};
 
 
 void stItemInit(stItem* item);
@@ -82,9 +84,6 @@ void stStateDispose(stState* state);
 
 
 stItem* stStateFindItem(stState* state, stId id);
-
-
-void stStateInit(stState* state);
 
 
 bool stStateCopy(stState* to, stState* from);

@@ -113,7 +113,7 @@ bool cnrExtractHoldOrPass(
   cnrPlayer* receiver = NULL;
   cnrBall* ball = &state->ball;
   Float* ballLocation = ball->item.location;
-  cnList(Entity)* entities;
+  List<Entity>* entities;
   bool kickedAgain = false;
   Float* kickerLocation = kicker->item.location;
   cnrState* next = state + 1;
@@ -128,7 +128,7 @@ bool cnrExtractHoldOrPass(
   );
 
   // We'll need an entity list for the state, whether it's a hold or a pass.
-  if (!(entities = cnListCreate(sizeof(Entity)))) {
+  if (!(entities = new List<Entity>)) {
     cnErrTo(DONE, "No entities.");
   }
   // Push the ball.
@@ -141,7 +141,8 @@ bool cnrExtractHoldOrPass(
   } cnEnd;
   if (!cnListPush(entityLists, &entities)) {
     // Clean up before fail.
-    cnListDestroy(entities);
+    // TODO Wrap now with catch for thise cleanup?
+    delete entities;
     cnErrTo(DONE, "Can't push entities list.");
   }
 

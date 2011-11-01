@@ -27,16 +27,16 @@ Bag::~Bag() {
 void Bag::dispose() {
   // If managed elsewhere, the list might be nulled, so check it.
   if (entities) {
-    cnListDispose(entities);
-    free(entities);
+    delete entities;
   }
 
   // Participants are always owned by the bag, however.
   // TODO Really? By allowing outside control, can it be made more efficient?
-  cnListEachBegin(&participantOptions, cnList(Entity), list) {
-    cnListDispose(list);
+  cnListEachBegin(&participantOptions, List<Entity>, list) {
+    // These would need done manually because allocation is done in unofficial
+    // form. Nothing knows they're being destroyed.
+    list->dispose();
   } cnEnd;
-  cnListDispose(&participantOptions);
 
   // Other stuff.
   label = false;
@@ -47,12 +47,7 @@ void Bag::dispose() {
 void Bag::init(cnList(Entity)* $entities) {
   // Safety first.
   label = false;
-  entities = $entities ? $entities : cnAlloc(cnList(Entity), 1);
-  cnListInit(&participantOptions, sizeof(cnList(Entity)));
-
-  // Check on and finish up entities.
-  if (!entities) throw "No bag entities.";
-  if (!$entities) cnListInit(entities, sizeof(Entity));
+  entities = $entities ? $entities : new List<Entity>;
 }
 
 
@@ -66,7 +61,7 @@ void Bag::pushParticipant(Index depth, Entity participant) {
     ))) {
       throw "Failed to grow participant options.";
     }
-    cnListInit(participantOptions, sizeof(Entity));
+    participantOptions->init(sizeof(Entity));
   }
 
   // Expand the one for the right depth.
@@ -88,13 +83,11 @@ void cnBagListDispose(
     if (entityLists) bag->entities = NULL;
     bag->dispose();
   } cnEnd;
-  cnListDispose(bags);
   // Lists in the bags.
   if (entityLists) {
     cnListEachBegin(entityLists, cnList(Entity)*, list) {
       cnListDestroy(*list);
     } cnEnd;
-    cnListDispose(entityLists);
   }
 }
 
@@ -133,7 +126,7 @@ EntityFunction* cnEntityFunctionCreateDifference(EntityFunction* base) {
   function->data = base;
   function->dispose = NULL;
   function->inCount = 2;
-  cnStringInit(&function->name);
+  function->name.init();
   function->outCount = base->outCount; // TODO For all topologies?
   function->outTopology = base->outTopology;
   // TODO Verify non-nulls?
@@ -195,7 +188,7 @@ EntityFunction* cnEntityFunctionCreateDistance(EntityFunction* base) {
   function->data = base;
   function->dispose = NULL;
   function->inCount = 2;
-  cnStringInit(&function->name);
+  function->name.init();
   function->outCount = 1; // Different from difference!
   function->outTopology = base->outTopology;
   // TODO Verify non-nulls?
@@ -252,7 +245,7 @@ EntityFunction* cnEntityFunctionCreateProperty(Property* property) {
   function->outTopology = property->topology;
   function->outType = property->type;
   function->get = cnEntityFunctionCreateProperty_get;
-  cnStringInit(&function->name);
+  function->name.init();
   // The one thing that can fail directly here.
   if (!cnStringPushStr(&function->name, cnStr((String*)&property->name))) {
     cnEntityFunctionDrop(function);
@@ -304,7 +297,7 @@ EntityFunction* cnEntityFunctionCreateReframe(EntityFunction* base) {
   function->data = base;
   function->dispose = NULL;
   function->inCount = 3;
-  cnStringInit(&function->name);
+  function->name.init();
   function->outCount = base->outCount; // TODO For all topologies?
   function->outTopology = base->outTopology;
   // TODO Verify non-nulls?
@@ -362,7 +355,7 @@ EntityFunction* cnEntityFunctionCreateValid(Schema* schema, Count arity) {
   function->outTopology = TopologyEuclidean; // TODO Discrete or ordinal?
   function->outType = schema->floatType; // TODO Integer or some such?
   function->get = cnEntityFunctionCreateValid_get;
-  cnStringInit(&function->name);
+  function->name.init();
   // The one thing that can fail directly here.
   // TODO Customize name by arity?
   if (!cnStringPushStr(&function->name, "Valid")) {
@@ -378,7 +371,6 @@ void cnEntityFunctionDrop(EntityFunction* function) {
     function->dispose(function);
     function->dispose = NULL;
   }
-  cnStringDispose(&function->name);
   function->data = NULL;
   function->get = NULL;
   function->outTopology = TopologyEuclidean;
@@ -400,7 +392,7 @@ EntityFunction* cnEntityFunctionCreate(
   function->outTopology = TopologyEuclidean;
   function->outType = NULL;
   function->get = NULL;
-  cnStringInit(&function->name);
+  function->name.init();
   // Build name now.
   if (!cnStringPushStr(&function->name, name)) {
     cnEntityFunctionDrop(function);
@@ -625,8 +617,6 @@ void cnPropertyDispose(Property* property) {
   // insufficient, but here goes.
   property->offset = 0;
   property->data = NULL;
-  // Clear out the name.
-  cnStringDispose(&property->name);
   // Clear out the simple things.
   property->count = 0;
   property->get = NULL;
@@ -659,7 +649,7 @@ bool cnPropertyInitField(
   Count offset, Count count
 ) {
   // Safety items first.
-  cnStringInit(&property->name);
+  property->name.init();
   property->dispose = NULL;
   // Now other things.
   if (!cnStringPushStr(&property->name, name)) {
@@ -681,14 +671,13 @@ void cnSchemaDispose(Schema* schema) {
   cnListEachBegin(&schema->types, Type*, type) {
     cnTypeDrop(*type);
   } cnEnd;
-  cnListDispose(&schema->types);
   cnSchemaInit(schema);
 }
 
 
 void cnSchemaInit(Schema* schema) {
   schema->floatType = NULL;
-  cnListInit(&schema->types, sizeof(Type*));
+  schema->types.init(sizeof(Type*));
 }
 
 
@@ -721,8 +710,8 @@ Type* cnTypeCreate(const char* name, Count size) {
   type->size = size;
   // Let schema be set later, if wanted.
   type->schema = NULL;
-  cnStringInit(&type->name);
-  cnListInit(&type->properties, sizeof(Property));
+  type->name.init();
+  type->properties.init(sizeof(Property));
   // Now try things that might fail.
   if (!cnStringPushStr(&type->name, name)) cnErrTo(FAIL, "No type name.");
   return type;
@@ -735,11 +724,9 @@ Type* cnTypeCreate(const char* name, Count size) {
 
 void cnTypeDrop(Type* type) {
   if (!type) return;
-  cnStringDispose(&type->name);
   cnListEachBegin(&type->properties, Property, property) {
     cnPropertyDispose(property);
   } cnEnd;
-  cnListDispose(&type->properties);
   type->size = 0;
   type->schema = NULL;
   free(type);

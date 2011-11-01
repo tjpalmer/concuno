@@ -48,9 +48,6 @@ int main(int argc, char** argv) {
   int result = EXIT_FAILURE;
 
   try {
-    // Init first.
-    cnrGameInit(&game);
-
     // Check args.
     if (argc < 2) cnErrTo(DONE, "No file specified.");
 
@@ -193,15 +190,10 @@ bool cnrProcess(
   cnrGame* game,
   bool (*process)(cnList(Bag)* holdBags, cnList(Bag)* passBags)
 ) {
-  cnList(Bag) holdBags;
-  cnList(cnList(Entity)*) entityLists;
-  cnList(Bag) passBags;
+  List<Bag> holdBags;
+  List<List<Entity>*> entityLists;
+  List<Bag> passBags;
   bool result = false;
-
-  // Init for safety.
-  cnListInit(&holdBags, sizeof(Bag));
-  cnListInit(&passBags, sizeof(Bag));
-  cnListInit(&entityLists, sizeof(cnList(Entity)*));
 
   if (!cnrChooseHoldsAndPasses(game, &holdBags, &passBags, &entityLists)) {
     cnErrTo(DONE, "Choose failed.");
@@ -237,14 +229,13 @@ bool cnrProcessExport(cnList(Bag)* holdBags, cnList(Bag)* passBags) {
 
 
 bool cnrProcessLearn(cnList(Bag)* holdBags, cnList(Bag)* passBags) {
-  cnList(EntityFunction*) functions;
+  List<EntityFunction*> functions;
   RootNode* learnedTree = NULL;
   Learner learner;
   bool result = false;
   Schema schema;
 
   // Inits.
-  cnListInit(&functions, sizeof(EntityFunction*));
   if (!cnrSchemaInit(&schema)) cnFailTo(DONE);
   cnrPickFunctions(&functions, *(Type**)cnListGet(&schema.types, 1));
 
@@ -271,7 +262,6 @@ bool cnrProcessLearn(cnList(Bag)* holdBags, cnList(Bag)* passBags) {
   cnListEachBegin(&functions, EntityFunction*, function) {
     cnEntityFunctionDrop(*function);
   } cnEnd;
-  cnListDispose(&functions);
   return result;
 }
 

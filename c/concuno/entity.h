@@ -2,6 +2,8 @@
 #define concuno_entity_h
 
 
+#include <vector>
+
 #include "core.h"
 
 
@@ -38,7 +40,7 @@ struct Bag {
    * Entities in the pool. The same entity list might be shared by multiple
    * bag samples. Therefore, it is _not_ disposed of with the bag.
    */
-  cnList(Entity)* entities;
+  List<Entity>* entities;
 
   /**
    * Positive or negative bag.
@@ -62,7 +64,7 @@ struct Bag {
    * TODO options? If so, we need to allow null to distinguish from empty,
    * TODO which means storing pointers or maybe a struct with a separate bool.
    */
-  cnList(cnList(Entity)) participantOptions;
+  List<List<Entity> > participantOptions;
 
 };
 
@@ -96,6 +98,8 @@ struct Type;
  * otherwise discernable by the function pointers here.
  */
 struct EntityFunction {
+
+  virtual ~EntityFunction();
 
   void* data;
 
@@ -261,7 +265,7 @@ struct Schema {
    * TODO
    * TODO Make more things typedef'd to pointers all around? More opaque, too?
    */
-  cnList(Type*) types;
+  List<Type*> types;
 
 };
 
@@ -274,7 +278,7 @@ struct Type {
    * TODO Store pointers instead of expanded, to keep later pointers here
    * TODO stable?
    */
-  cnList(Property) properties;
+  List<Property> properties;
 
   Schema* schema;
 

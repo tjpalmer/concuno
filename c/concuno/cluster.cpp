@@ -181,18 +181,14 @@ void cnLogPoints(EntityFunction* function, Count count, Float* points) {
   Float* pointsEnd = points + size * count;
 
   // Prepare file name, and open/create output file.
-  cnStringInit(&name);
   if (!cnListPushAll(&name, &function->name)) {
-    cnStringDispose(&name);
     // TODO Error code.
     return;
   }
   if (!cnStringPushStr(&name, ".log")) {
-    cnStringDispose(&name);
     return;
   }
   file = fopen(cnStr(&name), "w");
-  cnStringDispose(&name);
   if (!file) {
     return;
   }

@@ -8,7 +8,7 @@ using namespace concuno;
 /**
  * Finds items grasped in the state, and returns whether any were found.
  */
-bool stFindGraspedItems(const stState* state, cnList(stItem*)* items);
+bool stFindGraspedItems(const stState* state, List<stItem*>* items);
 
 
 bool stOnGround(const stItem* item);
@@ -18,13 +18,13 @@ bool stOnGround(const stItem* item);
  * Place pointers to alive items into the entities vector.
  */
 bool stPlaceLiveItems(
-  const cnList(stItem)* items, cnList(stItem*)* entities
+  const List<stItem>* items, List<Entity>* entities
 );
 
 
 bool stAllBagsFalse(
-  cnList(stState)* states, cnList(Bag)* bags,
-  cnList(cnList(Entity)*)* entityLists
+  List<stState>* states, List<Bag>* bags,
+  List<List<Entity>*>* entityLists
 ) {
   bool result = false;
 
@@ -50,15 +50,14 @@ bool stAllBagsFalse(
 
 
 bool stChooseDropWhereLandOnOther(
-  cnList(stState)* states, cnList(Bag)* bags,
-  cnList(cnList(Entity)*)* entityLists
+  List<stState>* states, List<Bag>* bags,
+  List<List<Entity>*>* entityLists
 ) {
   bool result = false;
   bool formerHadGrasp = false;
   stId graspedId = -1;
   const stState* ungraspState = NULL;
-  cnList(stItem*) graspedItems;
-  cnListInit(&graspedItems, sizeof(stItem*));
+  List<stItem*> graspedItems;
   cnListEachBegin(states, stState, state) {
     if (ungraspState) {
       // Look for stable state.
@@ -125,14 +124,13 @@ bool stChooseDropWhereLandOnOther(
   result = true;
 
   DONE:
-  cnListDispose(&graspedItems);
   return result;
 }
 
 
 bool stChooseWhereNotMoving(
-  cnList(stState)* states, cnList(Bag)* bags,
-  cnList(cnList(Entity)*)* entityLists
+  List<stState>* states, List<Bag>* bags,
+  List<List<Entity>*>* entityLists
 ) {
   Float epsilon = 1e-2;
   bool result = false;
@@ -140,7 +138,7 @@ bool stChooseWhereNotMoving(
   // Find bags.
   cnListEachBegin(states, stState, state) {
     // Every state gets a bag.
-    cnList(Entity)* entities = NULL;
+    List<Entity>* entities = NULL;
     bool keep = true;
     // Assume bags have none moving by default.
 
@@ -161,15 +159,13 @@ bool stChooseWhereNotMoving(
 
     // We want it.
     // First make an entity list usable for multiple bags.
-    if (!(entities = cnAlloc(cnList(Entity), 1))) {
-      cnErrTo(DONE, "No entity list.");
-    }
-    cnListInit(entities, sizeof(Entity));
+    entities = new List<Entity>;
 
     // Push it on the list.
     if (!cnListPush(entityLists, &entities)) {
       // If it didn't get on the list, it won't be freed later. Free it now.
-      cnListDispose(entities);
+      delete entities;
+      entities->dispose();
       free(entities);
       cnErrTo(DONE, "Failed to push entities list.");
     }
@@ -183,7 +179,7 @@ bool stChooseWhereNotMoving(
     // label based on whether the item is moving.
     cnListEachBegin(entities, Entity, entity) {
       Bag* bag;
-      cnList(Entity)* participant;
+      List<Entity>* participant;
       stItem* item = *(stItem**)entity;
       Float speed;
 
@@ -196,14 +192,14 @@ bool stChooseWhereNotMoving(
 
       // Participant.
       if (!(
-        participant = reinterpret_cast<cnList(Entity)*>(
+        participant = reinterpret_cast<List<Entity>*>(
           cnListExpand(&bag->participantOptions))
       )) {
         // Hide the bag and fail.
         bags->count--;
         cnErrTo(DONE, "Failed to push participant list.");
       }
-      cnListInit(participant, sizeof(Entity));
+      participant->init();
       // Push the (pointer to the) item, after earlier safety init.
       if (!cnListPush(participant, entity)) cnErrTo(DONE, "No participant.");
 
@@ -226,7 +222,7 @@ bool stChooseWhereNotMoving(
 }
 
 
-bool stFindGraspedItems(const stState* state, cnList(stItem*)* items) {
+bool stFindGraspedItems(const stState* state, List<stItem*>* items) {
   cnListEachBegin(&state->items, stItem, item) {
     if (item->grasped) {
       if (items) {
@@ -250,7 +246,7 @@ bool stOnGround(const stItem* item) {
 
 
 bool stPlaceLiveItems(
-  const cnList(stItem)* items, cnList(stItem*)* entities
+  const List<stItem>* items, List<Entity>* entities
 ) {
   cnListEachBegin(items, stItem, item) {
     // Make sure it's alive and not the ground.

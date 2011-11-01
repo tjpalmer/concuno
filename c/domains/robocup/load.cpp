@@ -222,7 +222,6 @@ bool cnrLoadCommandLog(cnrGame* game, char* name) {
   cnrRcgParserInit(&parser);
   parser.game = game;
   parser.state = reinterpret_cast<cnrState*>(parser.game->states.items);
-  cnStringInit(&line);
 
   // Load file, and parse lines.
   if (!(file = fopen(name, "r"))) cnErrTo(DONE, "Couldn't open file!");
@@ -240,7 +239,6 @@ bool cnrLoadCommandLog(cnrGame* game, char* name) {
 
   DONE:
   if (file) fclose(file);
-  cnStringDispose(&line);
   cnrRcgParserDispose(&parser);
   return result;
 }
@@ -255,7 +253,6 @@ bool cnrLoadGameLog(cnrGame* game, char* name) {
   // Init stuff and open file.
   cnrRcgParserInit(&parser);
   parser.game = game;
-  cnStringInit(&line);
   if (!(file = fopen(name, "r"))) cnErrTo(DONE, "Couldn't open file!");
 
   // Consume version indicator.
@@ -282,7 +279,6 @@ bool cnrLoadGameLog(cnrGame* game, char* name) {
 
   DONE:
   if (file) fclose(file);
-  cnStringDispose(&line);
   cnrRcgParserDispose(&parser);
   return result;
 }
@@ -458,8 +454,6 @@ bool cnrParseRcgLines(cnrParser* parser, FILE* file) {
   Count readCount;
   bool result = false;
 
-  cnStringInit(&line);
-
   while ((readCount = cnReadLine(file, &line)) > 0) {
     lineCount++;
     if (!cnrParseRcgLine(parser, cnStr(&line))) {
@@ -472,7 +466,6 @@ bool cnrParseRcgLines(cnrParser* parser, FILE* file) {
   result = true;
 
   DONE:
-  cnStringDispose(&line);
   return result;
 }
 
@@ -607,11 +600,9 @@ bool cnrParserTriggerId(cnrParser* parser, char* id) {
       if (parser->game->teamNames.count == team) {
         // Team index as expected.
         String name;
-        cnStringInit(&name);
         if (!cnStringPushStr(&name, id)) cnErrTo(DONE, "No team name %s.", id);
         if (!cnListPush(&parser->game->teamNames, &name)) {
           // Clean then fail.
-          cnStringDispose(&name);
           cnErrTo(DONE, "No push name.");
         }
       } else {

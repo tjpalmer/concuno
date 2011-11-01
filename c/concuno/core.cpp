@@ -53,7 +53,7 @@ cnHeapAny* cnHeapCreate(bool (*less)(cnRefAny info, cnRefAny a, cnRefAny b)) {
   heap->destroyInfo = NULL;
   heap->destroyItem = NULL;
   heap->info = NULL;
-  cnListInit(&heap->items, sizeof(cnRefAny));
+  heap->items.init(sizeof(cnRefAny));
   heap->less = less;
   DONE:
   return heap;
@@ -66,7 +66,6 @@ void cnHeapDestroy(cnHeapAny* heap) {
 
   // Items.
   cnHeapClear(heap);
-  cnListDispose(&heap->items);
 
   // Info.
   if (heap->destroyInfo) heap->destroyInfo(heap->info);
@@ -220,32 +219,50 @@ bool cnIsNaN(Float x) {
 }
 
 
-cnListAny* cnListCreate(Count itemSize) {
-  cnListAny* list = cnAlloc(cnListAny, 1);
-  if (list) cnListInit(list, itemSize);
-  return list;
+ListAny::ListAny() {
+  // TODO Is it a good idea to have itemSize 0? I guess init needs called again
+  // TODO later, either way, and some init here seems safer than nothing.
+  init(0);
 }
 
 
-void cnListClear(cnListAny* list) {
+ListAny::ListAny(Count itemSize) {
+  init(itemSize);
+}
+
+
+ListAny::~ListAny() {
+  dispose();
+}
+
+
+void ListAny::dispose() {
+  if (!this) return;
+  free(items);
+  init(itemSize);
+}
+
+
+void ListAny::init(Count itemSize) {
+  count = 0;
+  this->itemSize = itemSize;
+  items = NULL;
+  reservedCount = 0;
+}
+
+
+void cnListClear(ListAny* list) {
   list->count = 0;
 }
 
 
-void cnListDestroy(cnListAny* list) {
-  cnListDispose(list);
+void cnListDestroy(ListAny* list) {
+  list->dispose();
   free(list);
 }
 
 
-void cnListDispose(cnListAny* list) {
-  if (!list) return;
-  free(list->items);
-  cnListInit(list, list->itemSize);
-}
-
-
-void* cnListGet(cnListAny* list, Index index) {
+void* cnListGet(ListAny* list, Index index) {
   // TODO Support negative indexes from back?
   if (index < 0 || index >= list->count) {
     return NULL;
@@ -254,22 +271,22 @@ void* cnListGet(cnListAny* list, Index index) {
 }
 
 
-void* cnListGetPointer(cnListAny* list, Index index) {
+void* cnListGetPointer(ListAny* list, Index index) {
   return *(void**)cnListGet(list, index);
 }
 
 
-void* cnListEnd(const cnListAny* list) {
+void* cnListEnd(const ListAny* list) {
   return ((char*)list->items) + (list->count * list->itemSize);
 }
 
 
-void* cnListExpand(cnListAny* list) {
+void* cnListExpand(ListAny* list) {
   return cnListExpandMulti(list, 1);
 }
 
 
-void* cnListExpandMulti(cnListAny* list, Count count) {
+void* cnListExpandMulti(ListAny* list, Count count) {
   void* formerEnd;
   Count needed = list->count + count;
 
@@ -304,20 +321,12 @@ void* cnListExpandMulti(cnListAny* list, Count count) {
 }
 
 
-void cnListInit(cnListAny* list, Count itemSize) {
-  list->count = 0;
-  list->itemSize = itemSize;
-  list->items = NULL;
-  list->reservedCount = 0;
-}
-
-
-void* cnListPush(cnListAny* list, void* item) {
+void* cnListPush(ListAny* list, void* item) {
   return cnListPushMulti(list, item, 1);
 }
 
 
-void* cnListPushAll(cnListAny* list, cnListAny* from) {
+void* cnListPushAll(ListAny* list, ListAny* from) {
   if (list->itemSize != from->itemSize) {
     printf(
       "list itemSize %ld != from itemSize %ld\n",
@@ -329,7 +338,7 @@ void* cnListPushAll(cnListAny* list, cnListAny* from) {
 }
 
 
-void* cnListPushMulti(cnListAny* list, void* items, Count count) {
+void* cnListPushMulti(ListAny* list, void* items, Count count) {
   void* formerEnd = cnListExpandMulti(list, count);
   if (formerEnd) {
     memcpy(formerEnd, items, list->itemSize * count);
@@ -338,7 +347,7 @@ void* cnListPushMulti(cnListAny* list, void* items, Count count) {
 }
 
 
-void cnListRemove(cnListAny* list, Index index) {
+void cnListRemove(ListAny* list, Index index) {
   char *begin = reinterpret_cast<char*>(cnListGet(list, index));
   if (!begin) {
     printf("Bad index for remove: %ld\n", index);
@@ -354,7 +363,7 @@ void cnListRemove(cnListAny* list, Index index) {
 }
 
 
-void cnListShuffle(cnListAny* list) {
+void cnListShuffle(ListAny* list) {
   // I'd rather just do simple copies than fancy n-byte xors.
   void* buffer = malloc(list->itemSize);
   // Fisher-Yates shuffling from:
@@ -397,18 +406,8 @@ void cnStringClear(String* string) {
 }
 
 
-void cnStringDispose(String* string) {
-  cnListDispose(string);
-}
-
-
 char cnStringGetChar(String* string, Index index) {
   return *(char*)cnListGet(string, index);
-}
-
-
-void cnStringInit(String* string) {
-  cnListInit(string, sizeof(char));
 }
 
 

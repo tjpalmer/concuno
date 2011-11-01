@@ -9,9 +9,9 @@ using namespace concuno;
 
 
 typedef struct stParser {
-  cnList(Index) indices;
+  List<Index> indices;
   stState state;
-  cnList(stState)* states;
+  List<stState>* states;
 } stParser;
 
 
@@ -43,10 +43,10 @@ bool stParseLine(stParser* parser, String* line);
 stItem* stParserItem(stParser* parser, char* begin, char** end);
 
 
-bool stPushState(stParser* parser);
+void stPushState(stParser* parser);
 
 
-bool stLoad(char* name, cnList(stState)* states) {
+bool stLoad(char* name, List<stState>* states) {
   bool result = true;
   int closeError;
   FILE* file;
@@ -54,8 +54,6 @@ bool stLoad(char* name, cnList(stState)* states) {
   Count lineCount, readCount;
   stParser parser;
   parser.states = states;
-  stStateInit(&parser.state);
-  cnListInit(&parser.indices, sizeof(Index));
   // Open file.
   file = fopen(name, "r");
   if (!file) {
@@ -65,7 +63,6 @@ bool stLoad(char* name, cnList(stState)* states) {
   printf("Parsing %s ...\n", name);
   // TODO Init state.
   // Read lines.
-  cnStringInit(&line);
   lineCount = 0;
   while ((readCount = cnReadLine(file, &line)) > 0) {
     //printf("Line: %s", cnStr(&line));
@@ -80,13 +77,8 @@ bool stLoad(char* name, cnList(stState)* states) {
     }
   }
   // Grab the last state.
-  if (!stPushState(&parser)) {
-    result = false;
-  }
+  stPushState(&parser);
   // Clean up.
-  cnStringDispose(&line);
-  cnListDispose(&parser.indices);
-  stStateDispose(&parser.state);
   closeError = fclose(file);
   if (readCount < 0 || closeError) {
     printf("Error reading or closing: %s\n", name);
@@ -129,7 +121,7 @@ bool stHandleDestroy(stParser* parser, char* args) {
   stId id = strtol(args, &args, 10);
   Index* index = (Index*)cnListGet(&parser->indices, id);
   Index* indices = reinterpret_cast<Index*>(parser->indices.items);
-  cnList(stItem)* items;
+  List<stItem>* items;
   if (!index) {
     printf("Bad id: %ld\n", id);
     return false;
@@ -244,9 +236,7 @@ bool stHandleTime(stParser* parser, char* args) {
   Count steps;
   char* type = cnParseStr(args, &args);
   if (!strcmp(type, "sim")) {
-    if (!stPushState(parser)) {
-      return false;
-    }
+    stPushState(parser);
     // TODO Some general 'reset' function?
     parser->state.cleared = false;
     // Just eat the number of steps for now. Maybe I'll care more about it
@@ -326,16 +316,13 @@ stItem* stParserItem(stParser* parser, char* begin, char** end) {
 }
 
 
-bool stPushState(stParser* parser) {
+void stPushState(stParser* parser) {
   // Save a copy of the current state.
-  stState state;
-  if (!stStateCopy(&state, &parser->state)) {
-    printf("Failed state copy.\n");
-    return false;
+  stState* state;
+  if (!(state = reinterpret_cast<stState*>(cnListExpand(parser->states)))) {
+    throw "Failed to expand states for copy.";
   }
-  if (!cnListPush(parser->states, &state)) {
-    printf("Failed to push state copy.\n");
-    return false;
+  if (!stStateCopy(state, &parser->state)) {
+    throw "Failed state copy.";
   }
-  return true;
 }

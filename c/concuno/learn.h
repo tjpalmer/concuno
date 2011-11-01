@@ -56,14 +56,14 @@ struct Learner {
    * These will not be disposed of with the learner. Outside code needs to take
    * care of that.
    */
-  cnList(Bag)* bags;
+  List<Bag>* bags;
 
   /**
    * The entity functions to be used during the learning process.
    *
    * Managed separately from the learner itself. No disposal here.
    */
-  cnList(cnEntityFunction)* entityFunctions;
+  List<EntityFunction*>* entityFunctions;
 
   /**
    * The tree to work from for learning.

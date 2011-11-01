@@ -41,19 +41,11 @@ void cnrGameDispose(cnrGame* game) {
   cnListEachBegin(&game->states, cnrState, state) {
     cnrStateDispose(state);
   } cnEnd;
-  cnListDispose(&game->states);
 
   // Dispose team names.
   cnListEachBegin(&game->teamNames, String, name) {
-    cnStringDispose(name);
+    name->dispose();
   } cnEnd;
-  cnListDispose(&game->teamNames);
-}
-
-
-void cnrGameInit(cnrGame* game) {
-  cnListInit(&game->states, sizeof(cnrState));
-  cnListInit(&game->teamNames, sizeof(String));
 }
 
 
@@ -161,7 +153,7 @@ bool cnrPropertyInitTypedField(
 ) {
   cnrFieldInfo* info;
   // Safety items first.
-  cnStringInit(&property->name);
+  property->name.init();
   property->dispose = NULL;
   // Failing things.
   if (!cnStringPushStr(&property->name, name)) cnFailTo(FAIL);
@@ -239,7 +231,6 @@ bool cnrSchemaInit(Schema* schema) {
 
 
 void cnrStateDispose(cnrState* state) {
-  cnListDispose(&state->players);
   cnrStateInit(state);
 }
 
@@ -247,7 +238,6 @@ void cnrStateDispose(cnrState* state) {
 void cnrStateInit(cnrState* state) {
   cnrItemInit(&state->ball.item, cnrTypeBall);
   state->newSession = false;
-  cnListInit(&state->players, sizeof(struct cnrPlayer));
   // Seems first times are 0 1, so 0 0 should be an okay bogus.
   state->subtime = 0;
   state->time = 0;

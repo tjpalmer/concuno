@@ -5,6 +5,8 @@
 #include "mat.h"
 #include "tree.h"
 
+using namespace std;
+
 
 namespace concuno {
 
@@ -53,23 +55,26 @@ bool cnVarNodePropagateBindingBag(
 
 void cnBindingBagDispose(BindingBag* bindingBag) {
   bindingBag->bag = NULL;
-  cnListDispose(&bindingBag->bindings);
 }
 
 
-void cnBindingBagInit(
-  BindingBag* bindingBag, Bag* bag, Count entityCount
-) {
-  bindingBag->bag = bag;
-  bindingBag->entityCount = entityCount;
-  cnListInit(&bindingBag->bindings, entityCount * sizeof(void*));
+BindingBag::BindingBag(): bag(0), bindings(0), entityCount(0) {}
+
+
+BindingBag::BindingBag(Bag* $bag, Count $entityCount):
+    bag($bag), bindings($entityCount), entityCount($entityCount) {}
+
+
+void BindingBag::init(Bag* bag, Count entityCount) {
+  this->bag = bag;
+  this->bindings.init(entityCount * sizeof(Entity));
+  this->entityCount = entityCount;
 }
 
 
 BindingBagList* cnBindingBagListCreate(void) {
-  BindingBagList* list = cnAlloc(BindingBagList, 1);
+  BindingBagList* list = new BindingBagList;
   if (list) {
-    cnListInit(&list->bindingBags, sizeof(BindingBag));
     list->refCount = 1;
   }
   return list;
@@ -89,8 +94,7 @@ void cnBindingBagListDrop(BindingBagList** list) {
     cnListEachBegin(&direct->bindingBags, BindingBag, bindingBag) {
       cnBindingBagDispose(bindingBag);
     } cnEnd;
-    cnListDispose(&direct->bindingBags);
-    free(direct);
+    delete direct;
     *list = NULL;
   }
 }
@@ -106,7 +110,8 @@ bool cnBindingBagListPushBags(
   if (!bindingBag) return false;
   // Now init each one.
   cnListEachBegin(bags, Bag, bag) {
-    cnBindingBagInit(bindingBag, bag, 0);
+    // TODO Are such inits guaranteed to work?
+    bindingBag->init(bag, 0);
     // Have a fake empty binding. Note that this is abusive. Alternatives?
     bindingBag->bindings.count++;
     bindingBag++;
@@ -171,7 +176,7 @@ bool cnGroupLeafBindingBags(
     group =
       reinterpret_cast<LeafBindingBagGroup*>(leafBindingBagGroups->items);
     cnListEachBegin(leafBindingBags, LeafBindingBag, leafBindingBag) {
-      cnListInit(&group->bindingBags, sizeof(BindingBag));
+      group->bindingBags.init();
       group->leaf = leafBindingBag->leaf;
       group++;
     } cnEnd;
@@ -237,17 +242,14 @@ void cnLeafBindingBagGroupListLimits(
 }
 
 
-void cnLeafBindingBagGroupListDispose(
-  cnList(LeafBindingBagGroup)* groups
-) {
+void cnLeafBindingBagGroupListDispose(List<LeafBindingBagGroup>* groups) {
   cnListEachBegin(groups, LeafBindingBagGroup, group) {
     // TODO cnLeafBindingBagGroupDispose?
     cnListEachBegin(&group->bindingBags, BindingBag, bindingBag) {
+      // TODO Automate in some form?
       cnBindingBagDispose(bindingBag);
     } cnEnd;
-    cnListDispose(&group->bindingBags);
   } cnEnd;
-  cnListDispose(groups);
 }
 
 
@@ -315,9 +317,7 @@ bool cnLeafNodePropagateBindingBag(
 
   if (!binding) cnErrTo(DONE, "No leaf binding bag.");
   binding->leaf = leaf;
-  cnBindingBagInit(
-    &binding->bindingBag, bindingBag->bag, bindingBag->entityCount
-  );
+  binding->bindingBag.init(bindingBag->bag, bindingBag->entityCount);
   if (bindingBag->bindings.count) {
     if (!cnListPushAll(&binding->bindingBag.bindings, &bindingBag->bindings)) {
       // We couldn't really make the binding, so hide it.
@@ -450,34 +450,23 @@ bool cnNodePropagateBindingBag(
 }
 
 
-bool cnNodePropagateBindingBags(
-  Node* node, cnList(BindingBag)* bindingBags,
-  cnList(LeafBindingBagGroup)* leafBindingBagGroups
+void cnNodePropagateBindingBags(
+  Node* node, List<BindingBag>* bindingBags,
+  List<LeafBindingBagGroup>* leafBindingBagGroups
 ) {
-  cnList(LeafBindingBag) leafBindingBags;
-  bool result = false;
-
-  // Init.
-  cnListInit(&leafBindingBags, sizeof(LeafBindingBag));
+  List<LeafBindingBag> leafBindingBags;
 
   // Propagate for each bag.
   cnListEachBegin(bindingBags, BindingBag, bindingBag) {
     // Propagate.
     if (!cnNodePropagateBindingBag(node, bindingBag, &leafBindingBags)) {
-      cnErrTo(DONE, "No propagate.");
+      throw "No propagate.";
     }
     // Group.
     if (!cnGroupLeafBindingBags(leafBindingBagGroups, &leafBindingBags)) {
-      cnErrTo(DONE, "No grouping.");
+      throw "No grouping.";
     }
   } cnEnd;
-
-  // Winned!
-  result = true;
-
-  DONE:
-  cnListDispose(&leafBindingBags);
-  return result;
 }
 
 
@@ -683,15 +672,13 @@ PointBag* cnSplitNodePointBag(
 ) {
   Entity* args = NULL;
   bool makeOwnPointBag = !pointBag;
-  cnList(cnSplitNodePointBag_Binding) splitBindings;
-  BindingBag uniqueBag;
+  List<cnSplitNodePointBag_Binding> splitBindings;
   void* values;
   Count varDepth;
 
   // Init first.
-  cnListInit(&splitBindings, sizeof(cnSplitNodePointBag_Binding));
   varDepth = cnNodeVarDepth(&split->node);
-  cnBindingBagInit(&uniqueBag, NULL, varDepth);
+  BindingBag uniqueBag(0, varDepth);
   // Make a point bag id needed, and init either way.
   if (makeOwnPointBag) {
     if (!(pointBag = cnAlloc(PointBag, 1))) {
@@ -825,8 +812,6 @@ PointBag* cnSplitNodePointBag(
   pointBag = NULL;
 
   DONE:
-  cnListDispose(&splitBindings);
-  cnBindingBagDispose(&uniqueBag);
   cnStackFree(args);
   return pointBag;
 }
@@ -909,9 +894,7 @@ bool cnSplitNodePropagateBindingBag(
     splitIndex < static_cast<Index>(cnSplitCount);
     splitIndex++
   ) {
-    cnBindingBagInit(
-      bagsOut + splitIndex, bindingBag->bag, bindingBag->entityCount
-    );
+    (bagsOut + splitIndex)->init(bindingBag->bag, bindingBag->entityCount);
   }
 
   // Check error cases.
@@ -1102,18 +1085,11 @@ Node* cnTreeCopy(Node* node) {
 
 
 Float cnTreeLogMetric(RootNode* root, cnList(Bag)* bags) {
-  cnList(LeafCount) counts;
-  Float score = cnNaN();
-  cnListInit(&counts, sizeof(LeafCount));
-
+  List<LeafCount> counts;
   // Count positives and negatives in each leaf.
-  if (!cnTreeMaxLeafCounts(root, &counts, bags)) cnErrTo(DONE, "No counts.");
+  if (!cnTreeMaxLeafCounts(root, &counts, bags)) throw "No counts.";
   // Calculate the score.
-  score = cnCountsLogMetric(&counts);
-
-  DONE:
-  cnListDispose(&counts);
-  return score;
+  return cnCountsLogMetric(&counts);
 }
 
 
@@ -1130,30 +1106,23 @@ int cnTreeMaxLeafCounts_compareLeafProbsDown(const void* a, const void* b) {
 bool cnTreeMaxLeafCounts(
   RootNode* root, cnList(LeafCount)* counts, cnList(Bag)* bags
 ) {
-  Index b;
-  bool* bagsUsed = NULL;
-  cnList(LeafBindingBagGroup) groups;
+  List<LeafBindingBagGroup> groups;
   bool result = false;
 
   // First propagate bags, and gather leaves.
   // TODO Bindings out of leaves, then extra function to get the lists.
-  cnListInit(&groups, sizeof(LeafBindingBagGroup));
-  if (!cnTreePropagateBags(root, bags, &groups)) {
-    cnErrTo(DONE, "No propagate.");
-  }
+  cnTreePropagateBags(root, bags, &groups);
+
+  // Prepare space to track which bags have been used up already.
+  // TODO Could be bit-efficient, since bools, but don't stress it.
+  vector<bool> bagsUsed;
+  bagsUsed.resize(bags->count, false);
 
   // Prepare space for counts at one go for efficiency.
   cnListClear(counts);
   if (!cnListExpandMulti(counts, groups.count)) {
     cnErrTo(DONE, "No space for counts.");
   }
-
-  // Prepare space to track which bags have been used up already.
-  // TODO Could be bit-efficient, since bools, but don't stress it.
-  bagsUsed = cnAlloc(bool, bags->count);
-  if (!bagsUsed) cnErrTo(DONE, "No used tracking.");
-  // Clear it out manually, fearing bit representations.
-  for (b = 0; b < bags->count; b++) bagsUsed[b] = false;
 
   // Sort the leaves down by probability. Not too many leaves, so no worries.
   qsort(
@@ -1192,7 +1161,6 @@ bool cnTreeMaxLeafCounts(
   result = true;
 
   DONE:
-  free(bagsUsed);
   cnLeafBindingBagGroupListDispose(&groups);
   return result;
 }
@@ -1201,10 +1169,10 @@ bool cnTreeMaxLeafCounts(
 /**
  * For retaining original index.
  */
-typedef struct cnTreeMaxLeafBags_IndexedGroup {
+struct cnTreeMaxLeafBags_IndexedGroup {
   LeafBindingBagGroup* group;
   Index index;
-} cnTreeMaxLeafBags_IndexedGroup;
+};
 
 int cnTreeMaxLeafBags_compareLeafProbsDown(const void* a, const void* b) {
   LeafNode* leafA = ((cnTreeMaxLeafBags_IndexedGroup*)a)->group->leaf;
@@ -1224,19 +1192,19 @@ bool cnTreeMaxLeafBags(
   Count bagCount;
   Bag* bags = NULL;
   Bag* bagsEnd = NULL;
-  bool* bagsUsed = NULL;
   Index g;
   cnTreeMaxLeafBags_IndexedGroup* indexedGroupsIn = NULL;
   bool result = false;
 
   // TODO Can I generify this enough to unify max bags and max counts somewhat?
   // TODO That is, with callbacks in the later loops?
+  vector<bool> bagsUsed;
 
   // Prepare the groups out.
   if (groupsMaxOut->count) {
     // Just clear the old out for convience. Could error. TODO Document!
     cnListEachBegin(groupsMaxOut, cnList(Index), indices) {
-      cnListDispose(indices);
+      indices->dispose();
     } cnEnd;
     cnListClear(groupsMaxOut);
   }
@@ -1246,7 +1214,7 @@ bool cnTreeMaxLeafBags(
   }
   // And init for safety.
   cnListEachBegin(groupsMaxOut, cnList(Index), indices) {
-    cnListInit(indices, sizeof(Index));
+    indices->init();
   } cnEnd;
 
   // Make a list of groups with their indices.
@@ -1269,9 +1237,7 @@ bool cnTreeMaxLeafBags(
   // Init which bags used. First, we need to find how many and where they start.
   cnLeafBindingBagGroupListLimits(groupsIn, &bags, &bagsEnd);
   bagCount = bagsEnd - bags;
-  bagsUsed = cnAlloc(bool, bagCount);
-  if (!bagsUsed) cnErrTo(FAIL, "No bags used array.");
-  for (b = 0; b < bagCount; b++) bagsUsed[b] = false;
+  bagsUsed.resize(bagCount, false);
 
   // Loop through leaves from max prob to min, count bags and marking them used
   // along the way.
@@ -1306,12 +1272,11 @@ bool cnTreeMaxLeafBags(
   FAIL:
   // Clear these out on fail.
   cnListEachBegin(groupsMaxOut, cnList(Index), indices) {
-    cnListDispose(indices);
+    indices->dispose();
   } cnEnd;
   cnListClear(groupsMaxOut);
 
   DONE:
-  free(bagsUsed);
   free(indexedGroupsIn);
   return result;
 }
@@ -1320,48 +1285,29 @@ bool cnTreeMaxLeafBags(
 bool cnTreePropagateBag(
   RootNode* tree, Bag* bag, cnList(LeafBindingBag)* leafBindingBags
 ) {
-  BindingBag bindingBag;
-  bool result;
-
   // Init an empty binding bag (with an abusive 0-sized item), and propagate it.
-  cnBindingBagInit(&bindingBag, bag, 0);
+  BindingBag bindingBag(bag, 0);
   bindingBag.bindings.count = 1;
-  result = cnNodePropagateBindingBag(&tree->node, &bindingBag, leafBindingBags);
-  cnBindingBagDispose(&bindingBag);
-
-  // That was easy.
-  return result;
+  return cnNodePropagateBindingBag(&tree->node, &bindingBag, leafBindingBags);
 }
 
 
-bool cnTreePropagateBags(
+void cnTreePropagateBags(
   RootNode* tree, cnList(Bag)* bags,
   cnList(LeafBindingBagGroup)* leafBindingBagGroups
 ) {
-  cnList(LeafBindingBag) leafBindingBags;
-  bool result = false;
-
-  // Init.
-  cnListInit(&leafBindingBags, sizeof(LeafBindingBag));
-
   // Propagate for each bag.
+  List<LeafBindingBag> leafBindingBags;
   cnListEachBegin(bags, Bag, bag) {
     // Propagate.
     if (!cnTreePropagateBag(tree, bag, &leafBindingBags)) {
-      cnErrTo(DONE, "No propagate.");
+      throw "No propagate.";
     }
     // Group.
     if (!cnGroupLeafBindingBags(leafBindingBagGroups, &leafBindingBags)) {
-      cnErrTo(DONE, "No grouping.");
+      throw "No grouping.";
     }
   } cnEnd;
-
-  // Winned!
-  result = true;
-
-  DONE:
-  cnListDispose(&leafBindingBags);
-  return result;
 }
 
 bool cnTreeWrite_leaf(LeafNode* leaf, FILE* file, String* indent);
@@ -1496,10 +1442,8 @@ bool cnTreeWrite_var(VarNode* var, FILE* file, String* indent) {
 bool cnTreeWrite(RootNode* tree, FILE* file) {
   String indent;
   bool result = false;
-  cnStringInit(&indent);
   // TODO In future stream abstraction, store indent level directly.
   result = cnTreeWrite_any(&tree->node, file, &indent);
-  cnStringDispose(&indent);
   return result;
 }
 
@@ -1565,14 +1509,9 @@ bool cnVarNodePropagateBindingBag(
   cnList(LeafBindingBag)* leafBindingBags
 ) {
   Index b;
-  BindingBag bindingBagOut;
+  BindingBag bindingBagOut(bindingBag->bag, bindingBag->entityCount + 1);
   Count bindingsOutCount = 0;
   bool result = false;
-
-  // Init first.
-  cnBindingBagInit(
-    &bindingBagOut, bindingBag->bag, bindingBag->entityCount + 1
-  );
 
   // Do we have anything to do?
   if (!var->kid) goto DONE;
@@ -1636,7 +1575,6 @@ bool cnVarNodePropagateBindingBag(
   result = true;
 
   DONE:
-  cnBindingBagDispose(&bindingBagOut);
   return result;
 }
 

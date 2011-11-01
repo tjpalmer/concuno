@@ -15,8 +15,8 @@
  * TODO with other choose functions?
  */
 bool stAllBagsFalse(
-  concuno::cnList(stState)* states, concuno::cnList(concuno::Bag)* bags,
-  concuno::cnList(concuno::cnList(concuno::cnEntity)*)* entityLists
+  concuno::List<stState>* states, concuno::List<concuno::Bag>* bags,
+  concuno::List<concuno::List<concuno::Entity>*>* entityLists
 );
 
 
@@ -29,8 +29,8 @@ bool stAllBagsFalse(
  * do sub-state bags.
  */
 bool stChooseDropWhereLandOnOther(
-  concuno::cnList(stState)* states, concuno::cnList(concuno::Bag)* bags,
-  concuno::cnList(concuno::cnList(concuno::cnEntity)*)* entityLists
+  concuno::List<stState>* states, concuno::List<concuno::Bag>* bags,
+  concuno::List<concuno::List<concuno::Entity>*>* entityLists
 );
 
 
@@ -42,8 +42,8 @@ bool stChooseDropWhereLandOnOther(
  * sub-state bags.
  */
 bool stChooseWhereNotMoving(
-  concuno::cnList(stState)* states, concuno::cnList(concuno::Bag)* bags,
-  concuno::cnList(concuno::cnList(concuno::cnEntity)*)* entityLists
+  concuno::List<stState>* states, concuno::List<concuno::Bag>* bags,
+  concuno::List<concuno::List<concuno::Entity>*>* entityLists
 );
 
 

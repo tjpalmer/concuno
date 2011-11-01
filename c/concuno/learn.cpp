@@ -70,7 +70,9 @@ typedef struct cnExpansion {
  * Under the hood items needed for learning but which don't need exposed at the
  * API level.
  */
-typedef struct cnLearnerConfig {
+struct LearnerConfig {
+
+  ~LearnerConfig();
 
   /**
    * Need to keep track of the main info, too.
@@ -79,11 +81,17 @@ typedef struct cnLearnerConfig {
 
   RootNode* previous;
 
-  cnList(Bag) trainingBags;
+  /**
+   * Abusively referencing other list elsewhere.
+   */
+  List<Bag> trainingBags;
 
-  cnList(Bag) validationBags;
+  /**
+   * Abusively referencing other list elsewhere.
+   */
+  List<Bag> validationBags;
 
-} cnLearnerConfig;
+};
 
 
 /**
@@ -170,7 +178,7 @@ Float cnChooseThresholdWithDistances(
  *
  * TODO This might represent the best of multiple attempts at optimization.
  */
-RootNode* cnExpandedTree(cnLearnerConfig* config, cnExpansion* expansion);
+RootNode* cnExpandedTree(LearnerConfig* config, cnExpansion* expansion);
 
 
 bool cnExpansionRedundant(
@@ -197,7 +205,7 @@ bool cnPushExpansionsByIndices(
 );
 
 
-RootNode* cnTryExpansionsAtLeaf(cnLearnerConfig* config, LeafNode* leaf);
+RootNode* cnTryExpansionsAtLeaf(LearnerConfig* config, LeafNode* leaf);
 
 
 /**
@@ -221,8 +229,15 @@ bool cnUpdateLeafProbabilitiesWithBindingBags(
  * Returns true for non-error. The test result comes through the result param.
  */
 bool cnVerifyImprovement(
-  cnLearnerConfig* config, RootNode* candidate, Float* pValue
+  LearnerConfig* config, RootNode* candidate, Float* pValue
 );
+
+
+LearnerConfig::~LearnerConfig() {
+  // Does this happen before natural destruction?
+  trainingBags.items = 0;
+  validationBags.items = 0;
+}
 
 
 void cnBuildInitialKernel(Topology topology, cnList(PointBag)* pointBags) {
@@ -407,7 +422,6 @@ bool cnBestPointByScore(
 ) {
   Float bestScore = -HUGE_VAL, score = bestScore;
   Count negBagsLeft = 8, posBagsLeft = 8;
-  cnList(Float) posPointsIn;
   bool result = false;
   Float threshold;
   Count valueCount = pointBags->count ?
@@ -437,7 +451,7 @@ bool cnBestPointByScore(
   // TODO so long as we can at least finish fast.
 
   // Init point list.
-  cnListInit(&posPointsIn, valueCount * sizeof(Float));
+  List<Float> posPointsIn(valueCount);
 
   // No best yet.
   *bestFunction = NULL;
@@ -564,7 +578,6 @@ bool cnBestPointByScore(
   result = true;
 
   DONE:
-  cnListDispose(&posPointsIn);
   return result;
 }
 
@@ -914,18 +927,17 @@ Float cnChooseThresholdWithDistances(
 }
 
 
-RootNode* cnExpandedTree(cnLearnerConfig* config, cnExpansion* expansion) {
+RootNode* cnExpandedTree(LearnerConfig* config, cnExpansion* expansion) {
   // TODO Loop across multiple inits/attempts?
   cnList(BindingBag)* bindingBags = NULL;
   LeafNode* leaf;
-  cnList(LeafBindingBagGroup) leafBindingBagGroups;
   SplitNode* split;
   RootNode* root = NULL;
   Count varsAdded;
   printf("Expanding on "); cnPrintExpansion(expansion);
 
   // Init for safety.
-  cnListInit(&leafBindingBagGroups, sizeof(LeafBindingBagGroup));
+  List<LeafBindingBagGroup> leafBindingBagGroups(sizeof(LeafBindingBagGroup));
 
   // Create a copied tree to work with.
   if (!(
@@ -945,9 +957,7 @@ RootNode* cnExpandedTree(cnLearnerConfig* config, cnExpansion* expansion) {
   // Propagate training bags to get the bindings headed to our new leaf. We have
   // to do this after the var nodes, so we get the right bindings.
   // TODO Some way to specify that we only care about certain paths?
-  if (!cnTreePropagateBags(
-    root, &config->trainingBags, &leafBindingBagGroups
-  )) cnErrTo(FAIL, "Failed to propagate training bags.");
+  cnTreePropagateBags(root, &config->trainingBags, &leafBindingBagGroups);
   // Find the bindings we need from the to-be-replaced leaf.
   cnListEachBegin(&leafBindingBagGroups, LeafBindingBagGroup, group) {
     if (group->leaf == leaf) {
@@ -1066,10 +1076,9 @@ bool cnLearnSplitModel(
   Count outCount = split->function->outCount;
   Float threshold = 0.0;
   bool result = false;
-  cnList(PointBag) pointBags;
+  List<PointBag> pointBags;
 
   // Get point bags.
-  cnListInit(&pointBags, sizeof(PointBag));
   if (!cnSplitNodePointBags(split, bindingBags, &pointBags)) {
     goto DONE;
   }
@@ -1129,14 +1138,13 @@ bool cnLearnSplitModel(
   cnListEachBegin(&pointBags, PointBag, pointBag) {
     cnPointBagDispose(pointBag);
   } cnEnd;
-  cnListDispose(&pointBags);
   cnStackFree(center);
   return result;
 }
 
 
 RootNode* Learner::learnTree() {
-  cnLearnerConfig config;
+  LearnerConfig config;
   RootNode* initialTree;
   LeafNode* leaf;
   RootNode* result = NULL;
@@ -1160,11 +1168,9 @@ RootNode* Learner::learnTree() {
   // TODO Uses 2/3 for training. Parameterize this?
   // Abuse lists to point into the middle of the original list.
   // Training set.
-  cnListInit(&config.trainingBags, bags->itemSize);
   config.trainingBags.items = bags->items;
   config.trainingBags.count = bags->count * (2 / 3.0);
   // Validation set.
-  cnListInit(&config.validationBags, bags->itemSize);
   config.validationBags.items = cnListGet(bags, config.trainingBags.count);
   config.validationBags.count = bags->count - config.trainingBags.count;
   // Failsafe on having data here.
@@ -1230,22 +1236,18 @@ void cnLogPointBags(SplitNode* split, cnList(PointBag)* pointBags) {
   String name;
 
   // Prepare file name, and open/create output file.
-  cnStringInit(&name);
   if (!cnListPushAll(&name, &split->function->name)) {
-    cnStringDispose(&name);
     // TODO Error code.
     return;
   }
   // TODO Param indices.
   if (!cnStringPushStr(&name, ".log")) {
-    cnStringDispose(&name);
     // TODO Error code.
     return;
   }
   file = fopen(cnStr(&name), "w");
-  cnStringDispose(&name);
   if (!file) {
-    return;
+    throw "Couldn't open file.";
   }
 
   // Print out the data.
@@ -1270,27 +1272,19 @@ LeafNode* cnPickBestLeaf(RootNode* tree, cnList(Bag)* bags) {
   LeafNode* bestLeaf = NULL;
   LeafBindingBagGroup* bestGroup = NULL;
   Float bestScore = -HUGE_VAL;
-  cnList(LeafCount) counts;
-  cnList(LeafNode) fakeLeaves;
+  List<LeafCount> counts;
+  List<LeafNode> fakeLeaves;
   LeafNode* leaf;
   LeafBindingBagGroup* group;
-  cnList(LeafBindingBagGroup) groups;
-  cnList(cnList(Index)) maxGroups;
+  List<LeafBindingBagGroup> groups;
+  List<List<Index> > maxGroups;
   LeafBindingBagGroup* noGroup;
   LeafNode** realLeaves = NULL;
-
-  // Init.
-  cnListInit(&counts, sizeof(LeafCount));
-  cnListInit(&fakeLeaves, sizeof(LeafNode));
-  cnListInit(&groups, sizeof(LeafBindingBagGroup));
-  cnListInit(&maxGroups, sizeof(cnList(Index)));
 
   // Get all bindings, leaves.
   // TODO We don't actually care about the bindings themselves, but we had to
   // TODO make them to get past splits. Hrmm.
-  if (!cnTreePropagateBags(tree, bags, &groups)) {
-    cnErrTo(DONE, "No propagate.");
-  }
+  cnTreePropagateBags(tree, bags, &groups);
 
   // Now find the binding bags which are max for each leaf. We'll use those for
   // our split, to avoid making low prob branches compete with high prob
@@ -1305,7 +1299,6 @@ LeafNode* cnPickBestLeaf(RootNode* tree, cnList(Bag)* bags) {
   }
   // We shouldn't need a full real leaf to get by. Only the probability field
   // should end up used.
-  cnListInit(&noGroup->bindingBags, sizeof(BindingBag));
 
   // Prepare bogus leaves for storing fake probs.
   // Also remember the real ones, so we can return the right leaf.
@@ -1408,12 +1401,12 @@ LeafNode* cnPickBestLeaf(RootNode* tree, cnList(Bag)* bags) {
 
   DONE:
   cnListEachBegin(&maxGroups, cnList(Index), indices) {
-    cnListDispose(indices);
+    // TODO How to automate this? Special for list of lists?
+    indices->dispose();
   } cnEnd;
-  cnListDispose(&maxGroups);
+  // And how to automate this?
   cnLeafBindingBagGroupListDispose(&groups);
-  cnListDispose(&fakeLeaves);
-  cnListDispose(&counts);
+  // Autopointer on this.
   free(realLeaves);
   return bestLeaf;
 }
@@ -1509,19 +1502,17 @@ bool cnPushExpansionsByIndices(
 }
 
 
-RootNode* cnTryExpansionsAtLeaf(cnLearnerConfig* config, LeafNode* leaf) {
+RootNode* cnTryExpansionsAtLeaf(LearnerConfig* config, LeafNode* leaf) {
   Float bestPValue = 1;
   RootNode* bestTree = NULL;
-  cnList(EntityFunction)* entityFunctions = config->learner->entityFunctions;
-  cnList(cnExpansion) expansions;
+  List<EntityFunction*>* entityFunctions = config->learner->entityFunctions;
+  // Make a list of expansions. They can then be sorted, etc.
+  List<cnExpansion> expansions;
   Count maxArity = 0;
   Count minArity = LONG_MAX;
   Count minNewVarCount;
   Count newVarCount;
   Count varDepth = cnNodeVarDepth(&leaf->node);
-
-  // Make a list of expansions. They can then be sorted, etc.
-  cnListInit(&expansions, sizeof(cnExpansion));
 
   // Find the min and max arity.
   cnListEachBegin(entityFunctions, EntityFunction*, function) {
@@ -1643,20 +1634,16 @@ RootNode* cnTryExpansionsAtLeaf(cnLearnerConfig* config, LeafNode* leaf) {
   cnListEachBegin(&expansions, cnExpansion, expansion) {
     free(expansion->varIndices);
   } cnEnd;
-  cnListDispose(&expansions);
   return bestTree;
 }
 
 
 bool cnUpdateLeafProbabilities(RootNode* root, cnList(Bag)* bags) {
-  cnList(LeafBindingBagGroup) groups;
+  List<LeafBindingBagGroup> groups;
   bool result = false;
 
   // Get all leaf binding bag groups.
-  cnListInit(&groups, sizeof(LeafBindingBagGroup));
-  if (!cnTreePropagateBags(root, bags, &groups)) {
-    cnErrTo(DONE, "No propagate.");
-  }
+  cnTreePropagateBags(root, bags, &groups);
 
   // Update probs.
   if (!cnUpdateLeafProbabilitiesWithBindingBags(&groups, NULL)) {
@@ -1667,13 +1654,14 @@ bool cnUpdateLeafProbabilities(RootNode* root, cnList(Bag)* bags) {
   result = true;
 
   DONE:
+  // TODO Automate.
   cnLeafBindingBagGroupListDispose(&groups);
   return result;
 }
 
 
 bool cnUpdateLeafProbabilitiesWithBindingBags(
-  cnList(LeafBindingBagGroup)* groups, cnList(LeafCount)* counts
+  List<LeafBindingBagGroup>* groups, cnList(LeafCount)* counts
 ) {
   Index b;
   Count bagCount;
@@ -1681,12 +1669,11 @@ bool cnUpdateLeafProbabilitiesWithBindingBags(
   Bag* bagsEnd = NULL;
   bool* bagsUsed = NULL;
   Float bonus = 1.0;
-  cnList(LeafBindingBagGroup) groupsCopied;
+  List<LeafBindingBagGroup> groupsCopied;
   Float previousProb = 1.0;
   bool result = false;
 
   // Copy this list, because we're going to be clearing leaf pointers.
-  cnListInit(&groupsCopied, sizeof(LeafBindingBagGroup));
   if (!cnListPushAll(&groupsCopied, groups)) cnErrTo(DONE, "No groups copy.");
 
   // See if they want leaf counts, and get ready if they do.
@@ -1786,8 +1773,8 @@ bool cnUpdateLeafProbabilitiesWithBindingBags(
   result = true;
 
   DONE:
+  // TODO Autopointer.
   free(bagsUsed);
-  cnListDispose(&groupsCopied);
   return result;
 }
 
@@ -1818,13 +1805,11 @@ Float cnVerifyImprovement_BootScore(
 
 void cnVerifyImprovement_StatsInit(cnVerifyImprovement_Stats* stats) {
   stats->bootCounts = NULL;
-  cnListInit(&stats->leafCounts, sizeof(LeafCount));
   stats->multinomial = NULL;
 }
 
 void cnVerifyImprovement_StatsDispose(cnVerifyImprovement_Stats* stats) {
   free(stats->bootCounts);
-  cnListDispose(&stats->leafCounts);
   cnMultinomialDestroy(stats->multinomial);
   // Clean out.
   cnVerifyImprovement_StatsInit(stats);
@@ -1880,7 +1865,7 @@ bool cnVerifyImprovement_StatsPrepare(
 }
 
 bool cnVerifyImprovement(
-  cnLearnerConfig* config, RootNode* candidate, Float* pValue
+  LearnerConfig* config, RootNode* candidate, Float* pValue
 ) {
   // I don't know how to randomize across results from different trees.
   // Different probability assignments are possible.

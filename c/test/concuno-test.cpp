@@ -280,14 +280,13 @@ void testPropagate(void) {
   const char* data = "Hello!";
   EntityFunction* entityFunction = NULL;
   Index i;
-  cnList(LeafBindingBag) leafBindingBags;
+  List<LeafBindingBag> leafBindingBags;
   SplitNode* split;
   VarNode* vars[2];
   RootNode tree;
   Type* type = NULL;
 
   // Init stuff.
-  cnListInit(&leafBindingBags, sizeof(LeafBindingBag));
   if (!cnRootNodeInit(&tree, false)) cnErrTo(DONE, "Init failed.");
   // TODO Float required because of NaN convention. Fix this!
   if (!(type = cnTypeCreate("Float", sizeof(Float)))) {
@@ -362,7 +361,6 @@ void testPropagate(void) {
   cnListEachBegin(&leafBindingBags, LeafBindingBag, leafBindingBag) {
     cnLeafBindingBagDispose(leafBindingBag);
   } cnEnd;
-  cnListDispose(&leafBindingBags);
 }
 
 

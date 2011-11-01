@@ -108,7 +108,7 @@ struct cnrState {
    */
   bool newSession;
 
-  concuno::cnList(cnrPlayer) players;
+  concuno::List<cnrPlayer> players;
 
   /**
    * The secondary clock of the game that ticks during setup or after fouls.
@@ -125,17 +125,14 @@ struct cnrState {
 
 struct cnrGame {
 
-  concuno::cnList(cnrState) states;
+  concuno::List<cnrState> states;
 
-  concuno::cnList(cnString) teamNames;
+  concuno::List<concuno::String> teamNames;
 
 };
 
 
 void cnrGameDispose(cnrGame* game);
-
-
-void cnrGameInit(cnrGame* game);
 
 
 void cnrItemInit(cnrItem* item, cnrType type);

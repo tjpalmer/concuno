@@ -61,18 +61,67 @@ typedef void* cnRefAny;
 #define cnRef(Type) Type*
 
 
-typedef struct cnList {
+/**
+ * This automanaged list is more dynamic than what's done with vector.
+ */
+struct ListAny {
+
+  ListAny();
+
+  ListAny(Count itemSize);
+
+  /**
+   * Null out the items in advance if you don't want them freed.
+   */
+  ~ListAny();
+
+  /**
+   * Call this manually every time when done, sadly.
+   */
+  void dispose();
+
+  /**
+   * Call this manually if you didn't use the itemSize constructor.
+   */
+  void init(Count itemSize);
+
   Count count;
+
   Count itemSize;
+
   void* items;
+
   Count reservedCount;
-} cnListAny;
+
+};
+
+
+template<typename Item>
+struct List: ListAny {
+
+  /**
+   * Note count not item size here! This allows for vectors of elements as each
+   * item, rather than a single item.
+   *
+   * TODO Reconsider this! Go to grid or something!
+   */
+  List(Count vectorSize = 1): ListAny(vectorSize * sizeof(Item)) {}
+
+  void init(Count vectorSize = 1) {
+    ListAny::init(vectorSize * sizeof(Item));
+  }
+
+  Count vectorSize() {
+    return itemSize / sizeof(Item);
+  }
+
+};
 
 
 /**
  * Faux generics. Use this rather than cnListAny, when you can.
  */
-#define cnList(Type) cnListAny
+#define cnList(Type) List<Type>
 
 
 /**
@@ -114,7 +163,7 @@ typedef struct cnGridAny {
    * the dims can be maintained. Modifying the actual values should be
    * reasonably safe, however.
    */
-  cnListAny values;
+  ListAny values;
 
 } cnGridAny;
 
@@ -165,7 +214,7 @@ typedef struct cnHeapAny {
    * TODO After complaining about expanded forms, I want to use an expanded list
    * TODO here. I really like tying its life in here. Grr.
    */
-  cnList(cnRefAny) items;
+  List<cnRefAny> items;
 
   /**
    * Set to non-null if you want automatic info destruction.
@@ -252,27 +301,13 @@ bool cnIsNaN(Float x);
 /**
  * Sets the count to 0, but leaves space allocated.
  */
-void cnListClear(cnListAny* list);
-
-
-/**
- * Allocates and inits a list for items of the given size. Returns null on
- * error.
- */
-cnListAny* cnListCreate(Count itemSize);
+void cnListClear(ListAny* list);
 
 
 /**
  * Disposes of and frees the list.
  */
-void cnListDestroy(cnListAny* list);
-
-
-/**
- * Frees contents and resets the list to be usable as an empty list for items of
- * the same size as before.
- */
-void cnListDispose(cnListAny* list);
+void cnListDestroy(ListAny* list);
 
 
 /**
@@ -296,7 +331,7 @@ void cnListDispose(cnListAny* list);
  * The address right after the end of the list. Useful for iteration, but don't
  * try to store anything here.
  */
-void* cnListEnd(const cnListAny* list);
+void* cnListEnd(const ListAny* list);
 
 
 /**
@@ -305,7 +340,7 @@ void* cnListEnd(const cnListAny* list);
  *
  * Returns a pointer to the beginning of the new space.
  */
-void* cnListExpand(cnListAny* list);
+void* cnListExpand(ListAny* list);
 
 
 /**
@@ -318,20 +353,17 @@ void* cnListExpand(cnListAny* list);
  * space to use. However, it's still technically successful. That makes
  * usability awkward. TODO Consider changing the API here?
  */
-void* cnListExpandMulti(cnListAny* list, Count count);
+void* cnListExpandMulti(ListAny* list, Count count);
 
 
-void* cnListGet(cnListAny* list, Index index);
+void* cnListGet(ListAny* list, Index index);
 
 
 /**
  * Assumes this list holds pointers and returns the pointer value instead of
  * the pointer to the pointer.
  */
-void* cnListGetPointer(cnListAny* list, Index index);
-
-
-void cnListInit(cnListAny* list, Count itemSize);
+void* cnListGetPointer(ListAny* list, Index index);
 
 
 /**
@@ -339,7 +371,7 @@ void cnListInit(cnListAny* list, Count itemSize);
  *
  * Returns the destination pointer to the item just pushed, or NULL if failure.
  */
-void* cnListPush(cnListAny* list, void* item);
+void* cnListPush(ListAny* list, void* item);
 
 
 /**
@@ -348,7 +380,7 @@ void* cnListPush(cnListAny* list, void* item);
  * Returns the destination pointer to the first item just pushed, or NULL if
  * failure.
  */
-void* cnListPushAll(cnListAny* list, cnListAny* from);
+void* cnListPushAll(ListAny* list, ListAny* from);
 
 
 /**
@@ -357,17 +389,17 @@ void* cnListPushAll(cnListAny* list, cnListAny* from);
  * Returns the destination pointer to the first item just pushed, or NULL if
  * failure.
  */
-void* cnListPushMulti(cnListAny* list, void* items, Count count);
+void* cnListPushMulti(ListAny* list, void* items, Count count);
 
 
-void cnListPut(cnListAny* list, Index index, void* value);
+void cnListPut(ListAny* list, Index index, void* value);
 
 
 /**
  * Does not reduce memory usage nor change the address of items. The count is
  * reduced by one and the item at the index is deleted from the array.
  */
-void cnListRemove(cnListAny* list, Index index);
+void cnListRemove(ListAny* list, Index index);
 
 
 /**
@@ -377,7 +409,7 @@ void cnListRemove(cnListAny* list, Index index);
  *
  * TODO Simple unit test of this would be nice.
  */
-void cnListShuffle(cnListAny* list);
+void cnListShuffle(ListAny* list);
 
 
 /**
@@ -429,16 +461,7 @@ char* cnStr(String* string);
 void cnStringClear(String* string);
 
 
-void cnStringDispose(String* string);
-
-
 char cnStringGetChar(String* string, Index index);
-
-
-/**
- * Provides a pointer to an empty string, but not dynamically allocated.
- */
-void cnStringInit(String* string);
 
 
 bool cnStringPushChar(String* string, char c);

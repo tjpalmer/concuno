@@ -16,13 +16,25 @@ typedef Entity* Binding;
 
 struct BindingBag {
 
+  /**
+   * Nulls things out, assumes zero-length binding vectors, and so on.
+   */
+  BindingBag();
+
+  /**
+   * Creates binding bags where each binding references entityCount entities.
+   */
+  BindingBag(Bag* bag, Count entityCount);
+
+  void init(Bag* bag, Count entityCount);
+
   Bag* bag;
 
   /**
    * Actually, this is stored in compact form of equal numbers of entities per
    * binding.
    */
-  cnList(Entity) bindings;
+  List<Entity> bindings;
 
   Count entityCount;
 
@@ -38,7 +50,7 @@ struct BindingBag {
  */
 struct BindingBagList {
 
-  cnList(BindingBag) bindingBags;
+  List<BindingBag> bindingBags;
 
   /**
    * Reference counting because we'd like to share binding lists across lots of
@@ -126,10 +138,10 @@ struct PointBag {
 };
 
 
-typedef enum {
+enum NodeType {
   cnNodeTypeNone, cnNodeTypeRoot, cnNodeTypeLeaf, cnNodeTypeSplit,
   cnNodeTypeVar
-} NodeType;
+};
 
 
 /**
@@ -261,7 +273,7 @@ struct LeafBindingBag {
  */
 struct LeafBindingBagGroup {
 
-  cnList(BindingBag) bindingBags;
+  List<BindingBag> bindingBags;
 
   LeafNode* leaf;
 
@@ -295,14 +307,6 @@ struct LeafCount {
  * Disposes of the bindings but not the entities nor the bag.
  */
 void cnBindingBagDispose(BindingBag* bindingBag);
-
-
-/**
- * Creates binding bags where each binding references entityCount entities.
- */
-void cnBindingBagInit(
-  BindingBag* bindingBag, Bag* bag, Count entityCount
-);
 
 
 /**
@@ -432,7 +436,7 @@ bool cnNodePropagateBindingBag(
  * Propagates multiple binding bags to the leaves, storing a leaf bindings group
  * for each leaf.
  */
-bool cnNodePropagateBindingBags(
+void cnNodePropagateBindingBags(
   Node* node, cnList(BindingBag)* bindingBags,
   cnList(LeafBindingBagGroup)* leafBindingBagGroups
 );
@@ -566,7 +570,7 @@ bool cnTreePropagateBag(
  *
  * TODO Expose generic grouper function?
  */
-bool cnTreePropagateBags(
+void cnTreePropagateBags(
   RootNode* tree, cnList(Bag)* bags,
   cnList(LeafBindingBagGroup)* leafBindingBagGroups
 );

@@ -6,35 +6,35 @@ using namespace concuno;
 
 
 bool stClusterStuff(
-  cnList(stState)* states, cnList(EntityFunction*)* functions
+  List<stState>* states, List<EntityFunction*>* functions
 );
 
 
 void stDisposeSchemaAndEntityFunctions(
-  Schema* schema, cnList(EntityFunction*)* functions
+  Schema* schema, List<EntityFunction*>* functions
 );
 
 
 bool stInitSchemaAndEntityFunctions(
-  Schema* schema, cnList(EntityFunction*)* functions
+  Schema* schema, List<EntityFunction*>* functions
 );
 
 
 bool stLearnConcept(
-  cnList(stState)* states,
-  cnList(EntityFunction*)* functions,
+  List<stState>* states,
+  List<EntityFunction*>* functions,
   bool (*choose)(
-    cnList(stState)* states, cnList(Bag)* bags,
-    cnList(cnList(cnEntity)*)* entityLists
+    List<stState>* states, List<Bag>* bags,
+    List<List<Entity>*>* entityLists
   )
 );
 
 
 int main(int argc, char** argv) {
-  cnList(EntityFunction*) entityFunctions;
+  List<EntityFunction*> entityFunctions;
   Schema schema;
   stState* state;
-  cnList(stState) states;
+  List<stState> states;
   int status = EXIT_FAILURE;
 
   // Validate args.
@@ -44,7 +44,6 @@ int main(int argc, char** argv) {
   }
 
   // Load file and show stats.
-  cnListInit(&states, sizeof(stState));
   if (!stLoad(argv[1], &states)) {
     printf("Failed to load file.\n");
     goto DISPOSE_STATES;
@@ -88,9 +87,8 @@ int main(int argc, char** argv) {
 
   DISPOSE_STATES:
   cnListEachBegin(&states, stState, state) {
-    stStateDispose(state);
+    state->~stState();
   } cnEnd;
-  cnListDispose(&states);
 
   DONE:
   return status;
@@ -98,14 +96,13 @@ int main(int argc, char** argv) {
 
 
 bool stClusterStuff(
-  cnList(stState)* states, cnList(EntityFunction*)* functions
+  List<stState>* states, List<EntityFunction*>* functions
 ) {
-  cnList(Bag) bags;
+  List<Bag> bags;
   EntityFunction* function;
   bool result = false;
 
   // Choose out the states we want to focus on.
-  cnListInit(&bags, sizeof(Bag));
   if (!stAllBagsFalse(states, &bags, NULL)) {
     cnErrTo(DISPOSE_BAGS, "Failed to choose bags.");
   }
@@ -124,27 +121,25 @@ bool stClusterStuff(
   cnListEachBegin(&bags, Bag, bag) {
     bag->dispose();
   } cnEnd;
-  cnListDispose(&bags);
 
   return result;
 }
 
 
 void stDisposeSchemaAndEntityFunctions(
-  Schema* schema, cnList(EntityFunction*)* functions
+  Schema* schema, List<EntityFunction*>* functions
 ) {
   // Drop the functions.
   cnListEachBegin(functions, EntityFunction*, function) {
     cnEntityFunctionDrop(*function);
   } cnEnd;
   // Dispose of the list and schema.
-  cnListDispose(functions);
   cnSchemaDispose(schema);
 }
 
 
 bool stInitSchemaAndEntityFunctions(
-  Schema* schema, cnList(EntityFunction*)* functions
+  Schema* schema, List<EntityFunction*>* functions
 ) {
   EntityFunction* function;
   Type* itemType;
@@ -158,7 +153,6 @@ bool stInitSchemaAndEntityFunctions(
 
   // Set up entity functions.
   // TODO Extract this setup, and make it easier to do.
-  cnListInit(functions, sizeof(EntityFunction*));
   // TODO Look up the type by name.
   itemType = reinterpret_cast<Type*>(cnListGetPointer(&schema->types, 1));
 
@@ -233,23 +227,19 @@ bool stInitSchemaAndEntityFunctions(
 
 
 bool stLearnConcept(
-  cnList(stState)* states,
-  cnList(EntityFunction*)* functions,
+  List<stState>* states,
+  List<EntityFunction*>* functions,
   bool (*choose)(
-    cnList(stState)* states, cnList(Bag)* bags,
-    cnList(cnList(cnEntity)*)* entityLists
+    List<stState>* states, List<Bag>* bags,
+    List<List<Entity>*>* entityLists
   )
 ) {
-  cnList(Bag) bags;
-  cnList(cnList(cnEntity)*) entityLists;
+  List<Bag> bags;
+  List<List<Entity>*> entityLists;
   RootNode* learnedTree = NULL;
   Learner learner;
   bool result = false;
   Count trueCount;
-
-  // Init for safety.
-  cnListInit(&bags, sizeof(Bag));
-  cnListInit(&entityLists, sizeof(cnList(cnEntity)*));
 
   // Choose out the states we want to focus on.
   if (!choose(states, &bags, &entityLists)) {
