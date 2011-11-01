@@ -20,11 +20,6 @@ Bag::Bag(List<Entity>* $entities) {
 
 
 Bag::~Bag() {
-  dispose();
-}
-
-
-void Bag::dispose() {
   // If managed elsewhere, the list might be nulled, so check it.
   if (entities) {
     delete entities;
@@ -37,10 +32,6 @@ void Bag::dispose() {
     // form. Nothing knows they're being destroyed.
     list->dispose();
   } cnEnd;
-
-  // Other stuff.
-  label = false;
-  entities = NULL;
 }
 
 
@@ -61,7 +52,7 @@ void Bag::pushParticipant(Index depth, Entity participant) {
     ))) {
       throw Error("Failed to grow participant options.");
     }
-    participantOptions->init();
+    new(participantOptions) List<Entity>;
   }
 
   // Expand the one for the right depth.
@@ -81,7 +72,7 @@ void cnBagListDispose(
   cnListEachBegin(bags, Bag, bag) {
     // Dispose the bag, but first hide entities if we manage them separately.
     if (entityLists) bag->entities = NULL;
-    bag->dispose();
+    bag->~Bag();
   } cnEnd;
   // Lists in the bags.
   if (entityLists) {
@@ -587,24 +578,18 @@ Property::Property(
 Property::~Property() {}
 
 
-void cnSchemaDispose(Schema* schema) {
-  cnListEachBegin(&schema->types, Type*, type) {
+Schema::Schema(): floatType(NULL) {}
+
+
+Schema::~Schema() {
+  cnListEachBegin(&types, Type*, type) {
     cnTypeDrop(*type);
   } cnEnd;
-  cnSchemaInit(schema);
-}
-
-
-void cnSchemaInit(Schema* schema) {
-  schema->floatType = NULL;
-  schema->types.init(sizeof(Type*));
 }
 
 
 bool cnSchemaInitDefault(Schema* schema) {
   Type *type;
-  // Init schema.
-  cnSchemaInit(schema);
   // Create float type.
   if (!(type = cnTypeCreate("Float", sizeof(Float)))) {
     cnErrTo(FAIL, "No type.");
@@ -618,7 +603,6 @@ bool cnSchemaInitDefault(Schema* schema) {
 
   FAIL:
   cnTypeDrop(type);
-  cnSchemaDispose(schema);
   return false;
 }
 

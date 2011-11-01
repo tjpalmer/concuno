@@ -262,6 +262,10 @@ struct FieldProperty: Property {
  */
 struct Schema {
 
+  Schema();
+
+  ~Schema();
+
   /**
    * Corresponds to Float (double).
    *
@@ -417,18 +421,6 @@ EntityFunction* cnPushPropertyFunction(
 EntityFunction* cnPushValidFunction(
   cnList(EntityFunction*)* functions, Schema* schema, Count arity
 );
-
-
-/**
- * Disposes all contained types and properties, too.
- */
-void cnSchemaDispose(Schema* schema);
-
-
-/**
- * Inits just an empty schema.
- */
-void cnSchemaInit(Schema* schema);
 
 
 /**

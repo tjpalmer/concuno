@@ -445,7 +445,6 @@ void testReframe(void) {
   testReframe_case3d(0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0);
 
   DONE:
-  cnSchemaDispose(&schema);
   cnEntityFunctionDrop(reframe);
   cnEntityFunctionDrop(direct);
 }

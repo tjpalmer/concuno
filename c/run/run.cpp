@@ -106,7 +106,6 @@ int main(int argc, char** argv) {
 
   DONE:
   cnNodeDrop(&learnedTree->node);
-  cnSchemaDispose(&schema);
   cnListEachBegin(&functions, EntityFunction*, function) {
     cnEntityFunctionDrop(*function);
   } cnEnd;

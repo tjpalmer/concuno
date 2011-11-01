@@ -184,7 +184,6 @@ bool cnrSchemaInit(Schema* schema) {
   return true;
 
   FAIL:
-  cnSchemaDispose(schema);
   return false;
 }
 

@@ -10,9 +10,7 @@ bool stClusterStuff(
 );
 
 
-void stDisposeSchemaAndEntityFunctions(
-  Schema* schema, List<EntityFunction*>* functions
-);
+void stDisposeEntityFunctions(List<EntityFunction*>* functions);
 
 
 bool stInitSchemaAndEntityFunctions(
@@ -83,7 +81,7 @@ int main(int argc, char** argv) {
   status = EXIT_SUCCESS;
 
   DROP_FUNCTIONS:
-  stDisposeSchemaAndEntityFunctions(&schema, &entityFunctions);
+  stDisposeEntityFunctions(&entityFunctions);
 
   DISPOSE_STATES:
   cnListEachBegin(&states, stState, state) {
@@ -119,22 +117,18 @@ bool stClusterStuff(
 
   DISPOSE_BAGS:
   cnListEachBegin(&bags, Bag, bag) {
-    bag->dispose();
+    bag->~Bag();
   } cnEnd;
 
   return result;
 }
 
 
-void stDisposeSchemaAndEntityFunctions(
-  Schema* schema, List<EntityFunction*>* functions
-) {
+void stDisposeEntityFunctions(List<EntityFunction*>* functions) {
   // Drop the functions.
   cnListEachBegin(functions, EntityFunction*, function) {
     cnEntityFunctionDrop(*function);
   } cnEnd;
-  // Dispose of the list and schema.
-  cnSchemaDispose(schema);
 }
 
 
@@ -218,7 +212,7 @@ bool stInitSchemaAndEntityFunctions(
 
   FAIL:
   // Clean it all up if we fail.
-  stDisposeSchemaAndEntityFunctions(schema, functions);
+  stDisposeEntityFunctions(functions);
   return false;
 }
 

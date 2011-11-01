@@ -244,11 +244,12 @@ void cnLeafBindingBagGroupListLimits(
 
 void cnLeafBindingBagGroupListDispose(List<LeafBindingBagGroup>* groups) {
   cnListEachBegin(groups, LeafBindingBagGroup, group) {
-    // TODO cnLeafBindingBagGroupDispose?
+    // TODO Put this in ~LeafBindingBagGroup?
     cnListEachBegin(&group->bindingBags, BindingBag, bindingBag) {
       // TODO Automate in some form?
       bindingBag->~BindingBag();
     } cnEnd;
+    group->~LeafBindingBagGroup();
   } cnEnd;
 }
 

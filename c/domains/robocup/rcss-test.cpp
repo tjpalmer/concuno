@@ -277,7 +277,6 @@ bool cnrProcessLearn(cnList(Bag)* holdBags, cnList(Bag)* passBags) {
   cnListEachBegin(&functions, EntityFunction*, function) {
     cnEntityFunctionDrop(*function);
   } cnEnd;
-  cnSchemaDispose(&schema);
   return result;
 }
 
