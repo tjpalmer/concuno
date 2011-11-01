@@ -359,7 +359,7 @@ void testPropagate(void) {
   cnTypeDrop(type);
   cnNodeDispose(&tree.node);
   cnListEachBegin(&leafBindingBags, LeafBindingBag, leafBindingBag) {
-    cnLeafBindingBagDispose(leafBindingBag);
+    leafBindingBag->~LeafBindingBag();
   } cnEnd;
 }
 

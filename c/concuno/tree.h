@@ -259,6 +259,8 @@ struct VarNode {
  */
 struct LeafBindingBag {
 
+  LeafBindingBag();
+
   BindingBag bindingBag;
 
   LeafNode* leaf;
@@ -272,6 +274,8 @@ struct LeafBindingBag {
  * For binding bags grouped by leaf.
  */
 struct LeafBindingBagGroup {
+
+  LeafBindingBagGroup();
 
   List<BindingBag> bindingBags;
 
@@ -304,12 +308,6 @@ struct LeafCount {
 
 
 /**
- * Disposes of the bindings but not the entities nor the bag.
- */
-void cnBindingBagDispose(BindingBag* bindingBag);
-
-
-/**
  * Creates a new binding bag list, with a ref count of 1.
  *
  * TODO Generalize ref-counted types?
@@ -332,7 +330,7 @@ void cnBindingBagListDrop(BindingBagList** list);
  * Push on the bags as new empty bindings on the given list.
  */
 bool cnBindingBagListPushBags(
-  BindingBagList* bindingBags, const cnList(Bag)* bags
+  BindingBagList* bindingBags, const List<Bag>* bags
 );
 
 
@@ -348,10 +346,7 @@ bool cnBindingValid(Count entityCount, Entity* entities);
 /**
  * Calculate the score directly from a list of counts of max bags at leaves.
  */
-Float cnCountsLogMetric(cnList(LeafCount)* counts);
-
-
-void cnLeafBindingBagDispose(LeafBindingBag* leafBindingBag);
+Float cnCountsLogMetric(List<LeafCount>* counts);
 
 
 /**
@@ -361,11 +356,11 @@ void cnLeafBindingBagDispose(LeafBindingBag* leafBindingBag);
  * Utility assumes the bags are all in continguous memory order.
  */
 void cnLeafBindingBagGroupListLimits(
-  cnList(LeafBindingBagGroup)* groups, Bag** begin, Bag** end
+  List<LeafBindingBagGroup>* groups, Bag** begin, Bag** end
 );
 
 
-void cnLeafBindingBagGroupListDispose(cnList(LeafBindingBagGroup)* groupList);
+void cnLeafBindingBagGroupListDispose(List<LeafBindingBagGroup>* groupList);
 
 
 LeafNode* cnLeafNodeCreate(void);
@@ -417,7 +412,7 @@ void cnNodeInit(Node* node, NodeType type);
 /**
  * Stores all leaves under this node in the given list.
  */
-bool cnNodeLeaves(Node* node, cnList(LeafNode*)* leaves);
+bool cnNodeLeaves(Node* node, List<LeafNode*>* leaves);
 
 
 /**
@@ -428,7 +423,7 @@ bool cnNodeLeaves(Node* node, cnList(LeafNode*)* leaves);
  */
 bool cnNodePropagateBindingBag(
   Node* node, BindingBag* bindingBag,
-  cnList(LeafBindingBag)* leafBindingBags
+  List<LeafBindingBag>* leafBindingBags
 );
 
 
@@ -437,8 +432,8 @@ bool cnNodePropagateBindingBag(
  * for each leaf.
  */
 void cnNodePropagateBindingBags(
-  Node* node, cnList(BindingBag)* bindingBags,
-  cnList(LeafBindingBagGroup)* leafBindingBagGroups
+  Node* node, List<BindingBag>* bindingBags,
+  List<LeafBindingBagGroup>* leafBindingBagGroups
 );
 
 
@@ -511,8 +506,8 @@ PointBag* cnSplitNodePointBag(
  */
 bool cnSplitNodePointBags(
   SplitNode* split,
-  cnList(BindingBag)* bindingBags,
-  cnList(PointBag)* pointBags
+  List<BindingBag>* bindingBags,
+  List<PointBag>* pointBags
 );
 
 
@@ -523,7 +518,7 @@ bool cnSplitNodePointBags(
 Node* cnTreeCopy(Node* node);
 
 
-Float cnTreeLogMetric(RootNode* root, cnList(Bag)* bags);
+Float cnTreeLogMetric(RootNode* root, List<Bag>* bags);
 
 
 /**
@@ -534,7 +529,7 @@ Float cnTreeLogMetric(RootNode* root, cnList(Bag)* bags);
  * No guarantee is made on the order of the counts coming out.
  */
 bool cnTreeMaxLeafCounts(
-  RootNode* root, cnList(LeafCount)* counts, cnList(Bag)* bags
+  RootNode* root, List<LeafCount>* counts, List<Bag>* bags
 );
 
 
@@ -544,8 +539,8 @@ bool cnTreeMaxLeafCounts(
  * which are max for each leaf.
  */
 bool cnTreeMaxLeafBags(
-  cnList(LeafBindingBagGroup)* groupsIn,
-  cnList(cnList(Index))* groupsMaxOut
+  List<LeafBindingBagGroup>* groupsIn,
+  List<List<Index> >* groupsMaxOut
 );
 
 
@@ -560,7 +555,7 @@ bool cnTreeWrite(RootNode* tree, FILE* file);
  * Propagates a bags to the leaves, storing a leaf binding bag for each leaf.
  */
 bool cnTreePropagateBag(
-  RootNode* tree, Bag* bag, cnList(LeafBindingBag)* leafBindingBags
+  RootNode* tree, Bag* bag, List<LeafBindingBag>* leafBindingBags
 );
 
 
@@ -571,8 +566,8 @@ bool cnTreePropagateBag(
  * TODO Expose generic grouper function?
  */
 void cnTreePropagateBags(
-  RootNode* tree, cnList(Bag)* bags,
-  cnList(LeafBindingBagGroup)* leafBindingBagGroups
+  RootNode* tree, List<Bag>* bags,
+  List<LeafBindingBagGroup>* leafBindingBagGroups
 );
 
 

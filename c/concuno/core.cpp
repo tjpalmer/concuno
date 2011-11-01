@@ -12,9 +12,6 @@ namespace concuno {
 Error::Error(const std::string& what): runtime_error(what) {}
 
 
-Error::~Error() throw() {}
-
-
 /**
  * Bubbles the item at the given index down the heap.
  */

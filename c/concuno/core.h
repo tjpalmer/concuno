@@ -66,8 +66,6 @@ struct Error: std::runtime_error {
 
   Error(const std::string& what);
 
-  virtual ~Error() throw();
-
 };
 
 
