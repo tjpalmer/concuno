@@ -168,10 +168,9 @@ bool stInitSchemaAndEntityFunctions(
 
   // Color.
   if (true) {
-    if (!(function = cnPushPropertyFunction(
-      functions,
-      reinterpret_cast<Property*>(cnListGet(&itemType->properties, 0))
-    ))) {
+    if (!(
+      function = cnPushPropertyFunction(functions, itemType->properties[0])
+    )) {
       printf("Failed to push color function.\n");
       goto FAIL;
     }
@@ -185,10 +184,9 @@ bool stInitSchemaAndEntityFunctions(
   // Location.
   if (true) {
     // TODO Look up the property by name.
-    if (!(function = cnPushPropertyFunction(
-      functions,
-      reinterpret_cast<Property*>(cnListGet(&itemType->properties, 1))
-    ))) {
+    if (!(
+      function = cnPushPropertyFunction(functions, itemType->properties[1])
+    )) {
       printf("Failed to push location function.\n");
       goto FAIL;
     }
@@ -207,10 +205,9 @@ bool stInitSchemaAndEntityFunctions(
   // Velocity.
   if (false) {
     // TODO Look up the property by name.
-    if (!(function = cnPushPropertyFunction(
-      functions,
-      reinterpret_cast<Property*>(cnListGet(&itemType->properties, 2))
-    ))) {
+    if (!(
+      function = cnPushPropertyFunction(functions, itemType->properties[2])
+    )) {
       printf("Failed to push velocity function.\n");
       goto FAIL;
     }

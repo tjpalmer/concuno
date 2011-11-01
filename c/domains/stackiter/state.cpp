@@ -28,7 +28,6 @@ void stItemInit(stItem* item) {
 
 
 bool stSchemaInit(Schema* schema) {
-  Property* property;
   Type* type;
 
   if (!cnSchemaInitDefault(schema)) {
@@ -41,31 +40,19 @@ bool stSchemaInit(Schema* schema) {
   if (!cnListPush(&schema->types, &type)) goto FAIL;
 
   // Color property.
-  if (!(property =
-    reinterpret_cast<Property*>(cnListExpand(&type->properties))
-  )) goto FAIL;
-  if (!cnPropertyInitField(
-    property, type, schema->floatType, "Color",
-    offsetof(stItem, color), 3
-  )) goto FAIL;
+  type->properties.push_back(new FieldProperty(
+    type, schema->floatType, "Color", offsetof(stItem, color), 3
+  ));
 
   // Location property.
-  if (!(property =
-    reinterpret_cast<Property*>(cnListExpand(&type->properties))
-  )) goto FAIL;
-  if (!cnPropertyInitField(
-    property, type, schema->floatType, "Location",
-    offsetof(stItem, location), 2
-  )) goto FAIL;
+  type->properties.push_back(new FieldProperty(
+    type, schema->floatType, "Location", offsetof(stItem, location), 2
+  ));
 
   // Velocity property.
-  if (!(property =
-    reinterpret_cast<Property*>(cnListExpand(&type->properties))
-  )) goto FAIL;
-  if (!cnPropertyInitField(
-    property, type, schema->floatType, "Velocity",
-    offsetof(stItem, velocity), 2
-  )) goto FAIL;
+  type->properties.push_back(new FieldProperty(
+    type, schema->floatType, "Velocity", offsetof(stItem, velocity), 2
+  ));
 
   // Good to go.
   return true;

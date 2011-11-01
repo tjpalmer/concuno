@@ -50,7 +50,7 @@ bool cnvPickFunctions(cnList(EntityFunction*)* functions, Type* type);
 void cnvPrintType(Type* type);
 
 
-bool cnvPushOrExpandProperty(
+void cnvPushOrExpandProperty(
   Type* type, char* propertyName, cnvTypedOffset* offset
 );
 
@@ -126,13 +126,15 @@ bool cnvBuildBags(
   bool result = false;
 
   // Find the offset matching the label id.
-  cnListEachBegin(&labelType->properties, Property, property) {
-    if (!strcmp(labelId, cnStr(&property->name))) {
+  for (size_t p = 0; p < labelType->properties.size(); p++) {
+    FieldProperty* property =
+      dynamic_cast<FieldProperty*>(labelType->properties[p]);
+    if (property->name == labelId) {
       labelOffset = property->offset;
       printf("Label %s at offset %ld.\n", labelId, labelOffset);
       break;
     }
-  } cnEnd;
+  }
   if (labelOffset < 0) cnErrTo(DONE, "Label %s not found.", labelId);
 
   // Assume for now that the labels and features go in the same order.
@@ -195,9 +197,7 @@ Type* cnvLoadTable(
     if (!(offset = reinterpret_cast<cnvTypedOffset*>(cnListExpand(&offsets)))) {
       cnErrTo(FAIL, "No offset.");
     }
-    if (!cnvPushOrExpandProperty(type, next, offset)) {
-      cnErrTo(FAIL, "Property stuck.");
-    }
+    cnvPushOrExpandProperty(type, next, offset);
   }
   // Now that we have the full type, it's stable.
   items->itemSize = type->size;
@@ -246,12 +246,10 @@ bool cnvPickFunctions(cnList(EntityFunction*)* functions, Type* type) {
   if (!cnPushValidFunction(functions, type->schema, 2)) {
     cnErrTo(FAIL, "No valid 2.");
   }
-  cnListEachBegin(&type->properties, Property, property) {
+  // Loop on all but the first (the bag id).
+  for (size_t p = 1; p < type->properties.size(); p++) {
+    Property* property = type->properties[p];
     EntityFunction* function;
-    if (property == type->properties.items) {
-      // Skip the first (the bag id).
-      continue;
-    }
     if (!(function = cnEntityFunctionCreateProperty(property))) {
       cnErrTo(FAIL, "No function.");
     }
@@ -287,7 +285,7 @@ bool cnvPickFunctions(cnList(EntityFunction*)* functions, Type* type) {
         cnErrTo(FAIL, "Function %s not pushed.", distance->name.c_str());
       }
     }
-  } cnEnd;
+  }
 
   // We winned!
   return true;
@@ -300,42 +298,41 @@ bool cnvPickFunctions(cnList(EntityFunction*)* functions, Type* type) {
 
 void cnvPrintType(Type* type) {
   printf("type %s\n", type->name.c_str());
-  cnListEachBegin(&type->properties, Property, property) {
+  for (size_t p = 1; p < type->properties.size(); p++) {
+    Property* property = type->properties[p];
     printf(
       "  var %s: %s[%ld]\n",
-      cnStr(&property->name), property->type->name.c_str(), property->count
+      property->name.c_str(), property->type->name.c_str(), property->count
     );
-  } cnEnd;
+  }
   // TODO Audit type size?
 }
 
 
-bool cnvPushOrExpandProperty(
+void cnvPushOrExpandProperty(
   Type* type, char* propertyName, cnvTypedOffset* offset
 ) {
-  Property* property = NULL;
-  bool result = false;
+  FieldProperty* property = NULL;
 
   // Find the property with this name.
-  cnListEachBegin(&type->properties, Property, propertyToCheck) {
+  for (size_t p = 1; p < type->properties.size(); p++) {
+    FieldProperty* propertyToCheck =
+      dynamic_cast<FieldProperty*>(type->properties[p]);
     if (property) {
       // Found a previous property, so offset this following one.
       propertyToCheck->offset += property->type->size;
-    } else if (!strcmp(cnStr(&propertyToCheck->name), propertyName)) {
+    } else if (propertyToCheck->name == propertyName) {
       // Found it, so remember and expand it.
       property = propertyToCheck;
       property->count++;
     }
-  } cnEnd;
+  }
 
   if (!property) {
     // Didn't find anything, so push a new property.
-    property = reinterpret_cast<Property*>(cnListExpand(&type->properties));
-    if (!property) cnErrTo(DONE, "Failed to alloc %s property.", propertyName);
-    // TODO Assumed always float for now.
-    if (!cnPropertyInitField(
-      property, type, type->schema->floatType, propertyName, type->size, 1
-    )) cnErrTo(DONE, "Failed to init %s property.", propertyName);
+    type->properties.push_back(new FieldProperty(
+      type, type->schema->floatType, propertyName, type->size, 1
+    ));
   }
 
   // Update the type's overall size, too.
@@ -347,9 +344,4 @@ bool cnvPushOrExpandProperty(
       property->offset + (property->count - 1) * property->type->size;
     offset->type = property->type;
   }
-  // We winned.
-  result = true;
-
-  DONE:
-  return result;
 }

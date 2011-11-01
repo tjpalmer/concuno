@@ -141,7 +141,8 @@ bool cnrPickFunctions(cnList(EntityFunction*)* functions, Type* type) {
   if (!cnPushValidFunction(functions, type->schema, 2)) {
     cnErrTo(FAIL, "No valid 2.");
   }
-  cnListEachBegin(&type->properties, Property, property) {
+  for (size_t p = 0; p < type->properties.size(); p++) {
+    Property* property = type->properties[p];
     EntityFunction* function;
     if (!(function = cnEntityFunctionCreateProperty(property))) {
       cnErrTo(FAIL, "No function.");
@@ -187,7 +188,7 @@ bool cnrPickFunctions(cnList(EntityFunction*)* functions, Type* type) {
         cnErrTo(FAIL, "Function %s not pushed.", distance->name.c_str());
       }
     }
-  } cnEnd;
+  }
 
   // We winned!
   return true;
@@ -273,10 +274,10 @@ bool cnrProcessLearn(cnList(Bag)* holdBags, cnList(Bag)* passBags) {
 
   DONE:
   cnNodeDrop(&learnedTree->node);
-  cnSchemaDispose(&schema);
   cnListEachBegin(&functions, EntityFunction*, function) {
     cnEntityFunctionDrop(*function);
   } cnEnd;
+  cnSchemaDispose(&schema);
   return result;
 }
 

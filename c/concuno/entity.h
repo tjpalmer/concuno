@@ -207,11 +207,23 @@ struct PredicateThresholdInfo {
 
 struct Property {
 
+  Property(Type* containerType, Type* type, const char* name, Count count);
+
+  /**
+   * Doesn't dispose of nor free the type. Types manage properties, not vice
+   * versa.
+   */
+  virtual ~Property();
+
+  virtual void get(Entity entity, void* storage) = 0;
+
+  virtual void put(Entity entity, void* value) = 0;
+
   Type* containerType;
 
   Type* type;
 
-  String name;
+  std::string name;
 
   Topology topology;
 
@@ -224,28 +236,23 @@ struct Property {
    */
   Count count;
 
-  union {
+};
 
-    /**
-     * For more abstract properties, as needed.
-     */
-    void* data;
 
-    /**
-     * For the common case of struct field access.
-     */
-    Count offset;
+struct FieldProperty: Property {
 
-  };
+  FieldProperty(
+    Type* containerType, Type* type, const char* name, Count offset, Count count
+  );
+
+  virtual void get(Entity entity, void* storage);
+
+  virtual void put(Entity entity, void* value);
 
   /**
-   * If not null, call this before finishing generic disposal.
+   * For struct field access.
    */
-  void (*dispose)(Property* property);
-
-  void (*get)(Property* property, Entity entity, void* storage);
-
-  void (*put)(Property* property, Entity entity, void* value);
+  Count offset;
 
 };
 
@@ -285,7 +292,7 @@ struct Type {
    * TODO Store pointers instead of expanded, to keep later pointers here
    * TODO stable?
    */
-  List<Property> properties;
+  std::vector<Property*> properties;
 
   Schema* schema;
 
@@ -390,27 +397,6 @@ Predicate* cnPredicateCreateDistanceThreshold(
  * object.
  */
 bool cnPredicateWrite(Predicate* predicate, FILE* file, String* indent);
-
-
-/**
- * Just disposes of the name for now.
- *
- * Doesn't dispose of nor free the type. Types manage properties, not vice
- * versa.
- */
-void cnPropertyDispose(Property* property);
-
-
-/**
- * Provides simple struct field access by offset. The topology is defaulted to
- * Euclidean. Change after the fact for others.
- *
- * On failure, leaves the property in a stable (nulled out) state.
- */
-bool cnPropertyInitField(
-  Property* property, Type* containerType, Type* type, const char* name,
-  Count offset, Count count
-);
 
 
 EntityFunction* cnPushDifferenceFunction(

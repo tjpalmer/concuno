@@ -214,14 +214,14 @@ void cnEntityFunctionCreateProperty_get(
       }
     }
   } else {
-    property->get(property, *ins, outs);
+    property->get(*ins, outs);
   }
 }
 
 EntityFunction* cnEntityFunctionCreateProperty(Property* property) {
   EntityFunction* function = cnAlloc(EntityFunction, 1);
   if (!function) return NULL;
-  new(function) EntityFunction(cnStr(&property->name), 1, property->count);
+  new(function) EntityFunction(property->name.c_str(), 1, property->count);
   function->data = property;
   function->outTopology = property->topology;
   function->outType = property->type;
@@ -355,6 +355,21 @@ EntityFunction* cnEntityFunctionCreate(
   if (!function) throw Error("No function.");
   new(function) EntityFunction(name, inCount, outCount);
   return function;
+}
+
+
+FieldProperty::FieldProperty(
+  Type* containerType, Type* type, const char* name, Count $offset, Count count
+): Property(containerType, type, name, count), offset($offset) {}
+
+
+void FieldProperty::get(Entity entity, void* storage) {
+  memcpy(storage, ((char*)entity) + offset, count * type->size);
+}
+
+
+void FieldProperty::put(Entity entity, void* value) {
+  memcpy(((char*)entity) + offset, value, count * type->size);
 }
 
 
@@ -561,64 +576,15 @@ bool cnPredicateWrite(Predicate* predicate, FILE* file, String* indent) {
 }
 
 
-void cnPropertyDispose(Property* property) {
-  // Dispose of extra data, as needed.
-  if (property->dispose) {
-    property->dispose(property);
-    property->dispose = NULL;
-  }
-  // Also 0 out the offset. As a union, this might be unneeded and/or
-  // insufficient, but here goes.
-  property->offset = 0;
-  property->data = NULL;
-  // Clear out the simple things.
-  property->count = 0;
-  property->get = NULL;
-  property->put = NULL;
-  property->topology = TopologyEuclidean;
-  property->type = NULL;
-}
+Property::Property(
+  Type* $containerType, Type* $type, const char* $name, Count $count
+):
+  containerType($containerType), type($type), name($name),
+  topology(TopologyEuclidean), count($count)
+{}
 
 
-void cnPropertyFieldGet(Property* property, Entity entity, void* storage) {
-  memcpy(
-    storage,
-    ((char*)entity) + property->offset,
-    property->count * property->type->size
-  );
-}
-
-
-void cnPropertyFieldPut(Property* property, Entity entity, void* value) {
-  memcpy(
-    ((char*)entity) + property->offset,
-    value,
-    property->count * property->type->size
-  );
-}
-
-
-bool cnPropertyInitField(
-  Property* property, Type* containerType, Type* type, const char* name,
-  Count offset, Count count
-) {
-  // Safety items first.
-  property->name.init();
-  property->dispose = NULL;
-  // Now other things.
-  if (!cnStringPushStr(&property->name, name)) {
-    cnPropertyDispose(property);
-    return false;
-  }
-  property->containerType = containerType;
-  property->count = count;
-  property->get = cnPropertyFieldGet;
-  property->offset = offset;
-  property->put = cnPropertyFieldPut;
-  property->topology = TopologyEuclidean;
-  property->type = type;
-  return true;
-}
+Property::~Property() {}
 
 
 void cnSchemaDispose(Schema* schema) {
@@ -666,9 +632,9 @@ Type::Type(const char* $name, Count $size):
 
 
 Type::~Type() {
-  cnListEachBegin(&properties, Property, property) {
-    cnPropertyDispose(property);
-  } cnEnd;
+  for (size_t p = 0; p < properties.size(); p++) {
+    delete properties[p];
+  }
 }
 
 
