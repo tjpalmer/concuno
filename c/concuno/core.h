@@ -2,6 +2,7 @@
 #define concuno_core_h
 
 // TODO Abstract out standard libraries?
+#include <stdexcept>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -59,6 +60,15 @@ typedef void* cnRefAny;
  * Pointer to one thing of a particular type.
  */
 #define cnRef(Type) Type*
+
+
+struct Error: std::runtime_error {
+
+  Error(const std::string& what);
+
+  virtual ~Error() throw();
+
+};
 
 
 /**

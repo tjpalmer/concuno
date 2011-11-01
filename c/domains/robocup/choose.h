@@ -5,12 +5,20 @@
 #include "domain.h"
 
 
+namespace ccndomain {
+namespace rcss {
+
+
 bool cnrChooseHoldsAndPasses(
-  cnrGame* game,
+  Game* game,
   concuno::List<concuno::Bag>* holdBags,
   concuno::List<concuno::Bag>* passBags,
   concuno::List<concuno::List<concuno::Entity>*>* entityLists
 );
+
+
+}
+}
 
 
 #endif

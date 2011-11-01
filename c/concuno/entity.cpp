@@ -14,7 +14,7 @@ Bag::Bag() {
 }
 
 
-Bag::Bag(cnList(Entity)* $entities) {
+Bag::Bag(List<Entity>* $entities) {
   init($entities);
 }
 
@@ -44,7 +44,7 @@ void Bag::dispose() {
 }
 
 
-void Bag::init(cnList(Entity)* $entities) {
+void Bag::init(List<Entity>* $entities) {
   // Safety first.
   label = false;
   entities = $entities ? $entities : new List<Entity>;
@@ -52,30 +52,30 @@ void Bag::init(cnList(Entity)* $entities) {
 
 
 void Bag::pushParticipant(Index depth, Entity participant) {
-  cnList(Entity)* participantOptions;
+  List<Entity>* participantOptions;
 
   // Grow more lists if needed.
   while (depth >= this->participantOptions.count) {
-    if (!(participantOptions = reinterpret_cast<cnList(Entity)*>(
+    if (!(participantOptions = reinterpret_cast<List<Entity>*>(
       cnListExpand(&this->participantOptions)
     ))) {
-      throw "Failed to grow participant options.";
+      throw Error("Failed to grow participant options.");
     }
-    participantOptions->init(sizeof(Entity));
+    participantOptions->init();
   }
 
   // Expand the one for the right depth.
-  participantOptions = reinterpret_cast<cnList(Entity)*>(
+  participantOptions = reinterpret_cast<List<Entity>*>(
     cnListGet(&this->participantOptions, depth)
   );
   if (!cnListPush(participantOptions, &participant)) {
-    throw "Failed to push participant.";
+    throw Error("Failed to push participant.");
   }
 }
 
 
 void cnBagListDispose(
-  cnList(Bag)* bags, cnList(cnList(Entity)*)* entityLists
+  List<Bag>* bags, List<List<Entity>*>* entityLists
 ) {
   // Bags.
   cnListEachBegin(bags, Bag, bag) {
@@ -85,7 +85,7 @@ void cnBagListDispose(
   } cnEnd;
   // Lists in the bags.
   if (entityLists) {
-    cnListEachBegin(entityLists, cnList(Entity)*, list) {
+    cnListEachBegin(entityLists, List<Entity>*, list) {
       cnListDestroy(*list);
     } cnEnd;
   }
@@ -428,7 +428,7 @@ bool cnFunctionWrite(Function* function, FILE* file, String* indent) {
  * A helper for various composite entity functions.
  */
 EntityFunction* cnPushCompositeFunction(
-  cnList(EntityFunction*)* functions,
+  List<EntityFunction*>* functions,
   EntityFunction* (*wrapper)(EntityFunction* base),
   EntityFunction* base
 ) {
@@ -446,7 +446,7 @@ EntityFunction* cnPushCompositeFunction(
 
 
 EntityFunction* cnPushDifferenceFunction(
-  cnList(EntityFunction*)* functions, EntityFunction* base
+  List<EntityFunction*>* functions, EntityFunction* base
 ) {
   return
     cnPushCompositeFunction(functions, cnEntityFunctionCreateDifference, base);
@@ -454,7 +454,7 @@ EntityFunction* cnPushDifferenceFunction(
 
 
 EntityFunction* cnPushDistanceFunction(
-  cnList(EntityFunction*)* functions, EntityFunction* base
+  List<EntityFunction*>* functions, EntityFunction* base
 ) {
   return
     cnPushCompositeFunction(functions, cnEntityFunctionCreateDistance, base);
@@ -462,7 +462,7 @@ EntityFunction* cnPushDistanceFunction(
 
 
 EntityFunction* cnPushPropertyFunction(
-  cnList(EntityFunction*)* functions, Property* property
+  List<EntityFunction*>* functions, Property* property
 ) {
   EntityFunction* function;
   if ((function = cnEntityFunctionCreateProperty(property))) {
@@ -478,7 +478,7 @@ EntityFunction* cnPushPropertyFunction(
 
 
 EntityFunction* cnPushValidFunction(
-  cnList(EntityFunction*)* functions, Schema* schema, Count arity
+  List<EntityFunction*>* functions, Schema* schema, Count arity
 ) {
   EntityFunction* function;
   if ((function = cnEntityFunctionCreateValid(schema, arity))) {
@@ -539,7 +539,7 @@ bool cnPredicateCreateDistanceThreshold_Evaluate(
   if (
     !info->distanceFunction->evaluate(info->distanceFunction, in, &distance)
   ) {
-    throw "Failed to evaluate distance function.";
+    throw Error("Failed to evaluate distance function.");
   }
   // TODO I'd prefer <, but need better a handling of bulks of equal distances
   // TODO in threshold choosing. I've hit the problem before.

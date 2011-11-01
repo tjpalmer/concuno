@@ -320,9 +320,9 @@ void stPushState(stParser* parser) {
   // Save a copy of the current state.
   stState* state;
   if (!(state = reinterpret_cast<stState*>(cnListExpand(parser->states)))) {
-    throw "Failed to expand states for copy.";
+    throw Error("Failed to expand states for copy.");
   }
   if (!stStateCopy(state, &parser->state)) {
-    throw "Failed state copy.";
+    throw Error("Failed state copy.");
   }
 }

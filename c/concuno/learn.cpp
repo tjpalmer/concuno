@@ -1053,7 +1053,7 @@ Learner::Learner(Random $random):
   // Prepare a random, if requested (via NULL).
   if (!random) {
     if (!(random = cnRandomCreate())) {
-      throw "No default random.";
+      throw Error("No default random.");
     }
     randomOwned = true;
   }
@@ -1247,7 +1247,7 @@ void cnLogPointBags(SplitNode* split, cnList(PointBag)* pointBags) {
   }
   file = fopen(cnStr(&name), "w");
   if (!file) {
-    throw "Couldn't open file.";
+    throw Error("Couldn't open file.");
   }
 
   // Print out the data.
@@ -1297,6 +1297,7 @@ LeafNode* cnPickBestLeaf(RootNode* tree, cnList(Bag)* bags) {
   )) {
     cnErrTo(DONE, "No space for bogus groups.");
   }
+  new(noGroup) LeafBindingBagGroup();
   // We shouldn't need a full real leaf to get by. Only the probability field
   // should end up used.
 

@@ -3,20 +3,12 @@
 
 
 #include <concuno.h>
+#include <string>
+#include <vector>
 
 
-enum cnrType {
-
-  /**
-   * The matter in question works for any type of cnrItem.
-   */
-  cnrTypeAny,
-
-  cnrTypeBall,
-
-  cnrTypePlayer,
-
-};
+namespace ccndomain {
+namespace rcss {
 
 
 /**
@@ -24,7 +16,7 @@ enum cnrType {
  * although perhaps not in RoboCup, there also could technically be more than
  * two teams.
  */
-typedef concuno::Index cnrTeam;
+typedef size_t Team;
 
 #define cnrTeamLeft 0
 #define cnrTeamRight 1
@@ -34,12 +26,27 @@ typedef concuno::Index cnrTeam;
 #define cnrTeamTakers 1
 
 
-typedef concuno::Index cnrTime;
+typedef concuno::Index Time;
 
 
-struct cnrItem {
+struct Item {
 
-  cnrType type;
+  enum Type {
+
+    /**
+     * The matter in question works for any type of Item.
+     */
+    TypeAny,
+
+    TypeBall,
+
+    TypePlayer,
+
+  };
+
+  Item(Type type);
+
+  Type type;
 
   concuno::Float location[2];
 
@@ -48,18 +55,18 @@ struct cnrItem {
 };
 
 
-struct cnrBall {
+struct Ball: Item {
 
-  cnrItem item;
+  Ball();
 
-  // Probably that's all we'll ever have in here.
+  // Probably nothing else to add ever?
 
 };
 
 
-struct cnrPlayer {
+struct Player: Item {
 
-  struct cnrItem item;
+  Player();
 
   // TODO Better action representation?
 
@@ -91,14 +98,16 @@ struct cnrPlayer {
    */
   concuno::Float orientation;
 
-  cnrTeam team;
+  Team team;
 
 };
 
 
-struct cnrState {
+struct State {
 
-  cnrBall ball;
+  State();
+
+  Ball ball;
 
   /**
    * This state is the beginning of a new session. In keepaway, that means the
@@ -108,37 +117,33 @@ struct cnrState {
    */
   bool newSession;
 
-  concuno::List<cnrPlayer> players;
+  concuno::List<Player> players;
 
   /**
    * The secondary clock of the game that ticks during setup or after fouls.
    */
-  cnrTime subtime;
+  Time subtime;
 
   /**
    * The primary clock of the game.
    */
-  cnrTime time;
+  Time time;
 
 };
 
 
-struct cnrGame {
+struct Game {
 
-  concuno::List<cnrState> states;
+  ~Game();
 
-  concuno::List<concuno::String> teamNames;
+  concuno::List<State> states;
+
+  std::vector<std::string> teamNames;
 
 };
 
 
-void cnrGameDispose(cnrGame* game);
-
-
-void cnrItemInit(cnrItem* item, cnrType type);
-
-
-void cnrPlayerInit(cnrPlayer* player);
+void cnrItemInit(Item* item, Item::Type type);
 
 
 /**
@@ -150,14 +155,8 @@ void cnrPlayerInit(cnrPlayer* player);
 bool cnrSchemaInit(concuno::Schema* schema);
 
 
-/**
- * Currently, after state disposal, it's actually reinit'd.
- * TODO Will this always hold?
- */
-void cnrStateDispose(cnrState* state);
 
-
-void cnrStateInit(cnrState* state);
-
+}
+}
 
 #endif

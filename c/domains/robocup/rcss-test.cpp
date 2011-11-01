@@ -12,6 +12,10 @@ using namespace concuno;
 using namespace std;
 
 
+namespace ccndomain {
+namespace rcss {
+
+
 bool cnrGenColumnVector(yajl_gen gen, Count count, Float* x);
 
 
@@ -28,7 +32,7 @@ bool cnrPickFunctions(cnList(EntityFunction*)* functions, Type* type);
 
 
 bool cnrProcess(
-  cnrGame* game,
+  Game* game,
   bool (*process)(cnList(Bag)* holdBags, cnList(Bag)* passBags)
 );
 
@@ -42,8 +46,13 @@ bool cnrProcessLearn(cnList(Bag)* holdBags, cnList(Bag)* passBags);
 bool cnrSaveBags(const char* name, cnList(Bag)* bags);
 
 
+}
+}
+
+
 int main(int argc, char** argv) {
-  cnrGame game;
+  using namespace ccndomain::rcss;
+  Game game;
   char* name;
   int result = EXIT_FAILURE;
 
@@ -57,9 +66,9 @@ int main(int argc, char** argv) {
     if (!cnrLoadGameLog(&game, name)) cnErrTo(DONE, "Failed to load: %s", name);
 
     // Show all team names.
-    cnListEachBegin(&game.teamNames, String, name) {
-      printf("Team: %s\n", cnStr(name));
-    } cnEnd;
+    for (size_t n = 0; n < game.teamNames.size(); n++) {
+      cout << "Team: " << game.teamNames[n] << endl;
+    }
 
     // Now look at the command log to see what actions were taken.
     // Assume the file is in the same place but named rcl instead of rcg.
@@ -81,14 +90,17 @@ int main(int argc, char** argv) {
 
     // Winned.
     result = EXIT_SUCCESS;
-  } catch (const char* message) {
-    cout << message << endl;
+  } catch (const Error& error) {
+    cout << error.what() << endl;
   }
 
   DONE:
-  cnrGameDispose(&game);
   return result;
 }
+
+
+namespace ccndomain {
+namespace rcss {
 
 
 bool cnrGenColumnVector(yajl_gen gen, Count count, Float* x) {
@@ -187,7 +199,7 @@ bool cnrPickFunctions(cnList(EntityFunction*)* functions, Type* type) {
 
 
 bool cnrProcess(
-  cnrGame* game,
+  Game* game,
   bool (*process)(cnList(Bag)* holdBags, cnList(Bag)* passBags)
 ) {
   List<Bag> holdBags;
@@ -278,7 +290,7 @@ bool cnrSaveBags(const char* name, cnList(Bag)* bags) {
   printf("Writing %s\n", name);
   if (!(gen = yajl_gen_alloc(NULL))) cnErrTo(DONE, "No json formatter.");
   // TODO How to get custom info (like file names) on error message?
-  file.open(name); if (!file) throw "Failed to open output file.";
+  file.open(name); if (!file) throw Error("Failed to open output file.");
 
   if (!(
     yajl_gen_config(gen, yajl_gen_beautify, true) &&
@@ -292,14 +304,14 @@ bool cnrSaveBags(const char* name, cnList(Bag)* bags) {
     // Write each item (ball or player).
     cnListEachBegin(bag->entities, Entity, entity) {
       Index depth = 0;
-      cnrItem* item = reinterpret_cast<cnrItem*>(*entity);
+      Item* item = reinterpret_cast<Item*>(*entity);
       if (yajl_gen_map_open(gen)) cnFailTo(DONE);
       // Type as ball, left (team), or right (team).
       if (!cnrGenStr(gen, "type")) cnFailTo(DONE);
-      if (item->type == cnrTypeBall) {
+      if (item->type == Item::TypeBall) {
         if (!cnrGenStr(gen, "ball")) cnFailTo(DONE);
       } else {
-        cnrPlayer* player = (cnrPlayer*)item;
+        Player* player = (Player*)item;
         if (!cnrGenStr(gen, player->team ? "right" : "left")) cnFailTo(DONE);
       }
       // Location.
@@ -313,7 +325,7 @@ bool cnrSaveBags(const char* name, cnList(Bag)* bags) {
           );
         }
         // Skip out if we found the player pinned.
-        if (item == *reinterpret_cast<cnrItem**>(options->items)) break;
+        if (item == *reinterpret_cast<Item**>(options->items)) break;
         depth++;
       } cnEnd;
       if (!cnrGenStr(gen, "__instantiable_depth__")) cnFailTo(DONE);
@@ -344,11 +356,11 @@ bool cnrSaveBags(const char* name, cnList(Bag)* bags) {
   if (!file.write(
     reinterpret_cast<const char*>(buffer),
     static_cast<streamsize>(bufferSize)
-  )) throw "Failed to write to file.";
+  )) throw Error("Failed to write to file.");
 
   // Only bother with manual close if we didn't have other errors.
   file.close();
-  if (!file) throw "Failed to close file.";
+  if (!file) throw Error("Failed to close file.");
 
   // Winned.
   result = true;
@@ -356,4 +368,8 @@ bool cnrSaveBags(const char* name, cnList(Bag)* bags) {
   DONE:
   if (gen) yajl_gen_free(gen);
   return result;
+}
+
+
+}
 }

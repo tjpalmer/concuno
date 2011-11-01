@@ -67,7 +67,7 @@ BindingBag::BindingBag(Bag* $bag, Count $entityCount):
 
 void BindingBag::init(Bag* bag, Count entityCount) {
   this->bag = bag;
-  this->bindings.init(entityCount * sizeof(Entity));
+  this->bindings.init(entityCount);
   this->entityCount = entityCount;
 }
 
@@ -460,11 +460,11 @@ void cnNodePropagateBindingBags(
   cnListEachBegin(bindingBags, BindingBag, bindingBag) {
     // Propagate.
     if (!cnNodePropagateBindingBag(node, bindingBag, &leafBindingBags)) {
-      throw "No propagate.";
+      throw Error("No propagate.");
     }
     // Group.
     if (!cnGroupLeafBindingBags(leafBindingBagGroups, &leafBindingBags)) {
-      throw "No grouping.";
+      throw Error("No grouping.");
     }
   } cnEnd;
 }
@@ -1087,7 +1087,7 @@ Node* cnTreeCopy(Node* node) {
 Float cnTreeLogMetric(RootNode* root, cnList(Bag)* bags) {
   List<LeafCount> counts;
   // Count positives and negatives in each leaf.
-  if (!cnTreeMaxLeafCounts(root, &counts, bags)) throw "No counts.";
+  if (!cnTreeMaxLeafCounts(root, &counts, bags)) throw Error("No counts.");
   // Calculate the score.
   return cnCountsLogMetric(&counts);
 }
@@ -1301,11 +1301,11 @@ void cnTreePropagateBags(
   cnListEachBegin(bags, Bag, bag) {
     // Propagate.
     if (!cnTreePropagateBag(tree, bag, &leafBindingBags)) {
-      throw "No propagate.";
+      throw Error("No propagate.");
     }
     // Group.
     if (!cnGroupLeafBindingBags(leafBindingBagGroups, &leafBindingBags)) {
-      throw "No grouping.";
+      throw Error("No grouping.");
     }
   } cnEnd;
 }

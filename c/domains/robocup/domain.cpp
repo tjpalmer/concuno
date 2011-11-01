@@ -5,6 +5,10 @@
 using namespace concuno;
 
 
+namespace ccndomain {
+namespace rcss {
+
+
 enum cnrFieldType {
 
   /**
@@ -25,54 +29,50 @@ enum cnrFieldType {
 };
 
 
-struct cnrFieldInfo {
+struct FieldInfo {
 
   cnrFieldType fieldType;
 
-  cnrType itemType;
+  Item::Type itemType;
 
   Count offset;
 
 };
 
 
-void cnrGameDispose(cnrGame* game) {
+Ball::Ball(): Item(Item::TypeBall) {}
+
+
+Game::~Game() {
   // Dispose states.
-  cnListEachBegin(&game->states, cnrState, state) {
-    cnrStateDispose(state);
-  } cnEnd;
-
-  // Dispose team names.
-  cnListEachBegin(&game->teamNames, String, name) {
-    name->dispose();
+  cnListEachBegin(&states, State, state) {
+    state->~State();
   } cnEnd;
 }
 
 
-void cnrItemInit(cnrItem* item, cnrType type) {
-  item->location[0] = 0.0;
-  item->location[1] = 0.0;
-  item->type = type;
+Item::Item(Item::Type $type): type($type) {
+  // TODO Any way to construct this array to zeros?
+  location[0] = 0.0;
+  location[1] = 0.0;
 }
 
 
-void cnrPlayerInit(cnrPlayer* player) {
-  // Generic item stuff.
-  cnrItemInit(&player->item, cnrTypePlayer);
+Player::Player():
+  Item(Item::TypePlayer),
   // No kick to start with.
-  player->kickAngle = cnNaN();
-  player->kickPower = cnNaN();
+  kickAngle(cnNaN()), kickPower(cnNaN()),
   // Actual players start from 1, so 0 is a good invalid value.
-  player->index = 0;
+  index(0),
   // On the other hand, I expect 0 and 1 both for teams, so use -1 for bogus.
-  player->team = -1;
-}
+  team(-1)
+{}
 
 
 void cnrPropertyFieldGet(Property* property, Entity entity, void* storage) {
-  cnrFieldInfo* info = (cnrFieldInfo*)property->data;
-  cnrItem* item = reinterpret_cast<cnrItem*>(entity);
-  if (info->itemType != cnrTypeAny && item->type != info->itemType) {
+  FieldInfo* info = (FieldInfo*)property->data;
+  Item* item = reinterpret_cast<Item*>(entity);
+  if (info->itemType != Item::TypeAny && item->type != info->itemType) {
     // Types don't match. Give NaNs.
     // TODO If we were more explicit, could we be more efficient in learning?
     Float* out = reinterpret_cast<Float*>(storage);
@@ -108,9 +108,9 @@ void cnrPropertyFieldGet(Property* property, Entity entity, void* storage) {
 
 
 void cnrPropertyFieldPut(Property* property, Entity entity, void* value) {
-  cnrFieldInfo* info = (cnrFieldInfo*)property->data;
-  cnrItem* item = reinterpret_cast<cnrItem*>(entity);
-  if (info->itemType != cnrTypeAny && item->type != info->itemType) {
+  FieldInfo* info = (FieldInfo*)property->data;
+  Item* item = reinterpret_cast<Item*>(entity);
+  if (info->itemType != Item::TypeAny && item->type != info->itemType) {
     // Types don't match. Nothing to do here.
     // TODO Any way to indicate error?
   } else if (info->fieldType == cnrFieldTypeEnum) {
@@ -147,18 +147,18 @@ void cnrPropertyFieldInfoDispose(Property* property) {
 
 
 bool cnrPropertyInitTypedField(
-  Property* property, Type* containerType, cnrType itemType,
+  Property* property, Type* containerType, Item::Type itemType,
   Type* type, cnrFieldType fieldType,
   const char* name, Count offset, Count count
 ) {
-  cnrFieldInfo* info;
+  FieldInfo* info;
   // Safety items first.
   property->name.init();
   property->dispose = NULL;
   // Failing things.
   if (!cnStringPushStr(&property->name, name)) cnFailTo(FAIL);
   if (!(
-    info = reinterpret_cast<cnrFieldInfo*>(malloc(sizeof(struct cnrFieldInfo)))
+    info = reinterpret_cast<FieldInfo*>(malloc(sizeof(struct FieldInfo)))
   )) {
     cnErrTo(FAIL, "Failed to allocate field info.");
   }
@@ -190,7 +190,7 @@ bool cnrSchemaInit(Schema* schema) {
 
   // Item type. Say it's the size of a player, since they are bigger than balls.
   // TODO Can I really support multiple types at present??? What's best?
-  if (!(type = cnTypeCreate("Item", sizeof(cnrPlayer)))) cnFailTo(FAIL);
+  if (!(type = cnTypeCreate("Item", sizeof(Player)))) cnFailTo(FAIL);
   type->schema = schema;
   if (!cnListPush(&schema->types, &type)) cnFailTo(FAIL);
 
@@ -200,7 +200,7 @@ bool cnrSchemaInit(Schema* schema) {
   )) cnFailTo(FAIL);
   if (!cnPropertyInitField(
     property, type, schema->floatType, "Location",
-    offsetof(struct cnrItem, location), 2
+    offsetof(Item, location), 2
   )) cnFailTo(FAIL);
 
   // Team property.
@@ -208,8 +208,11 @@ bool cnrSchemaInit(Schema* schema) {
     property = reinterpret_cast<Property*>(cnListExpand(&type->properties))
   )) cnFailTo(FAIL);
   if (!cnrPropertyInitTypedField(
-    property, type, cnrTypePlayer, schema->floatType, cnrFieldTypeEnum, "Team",
-    offsetof(struct cnrPlayer, team), 1
+    property, type, Item::TypePlayer, schema->floatType, cnrFieldTypeEnum,
+    // TODO By C++11 standards, this offsetof should be okay, but I don't want
+    // TODO to turn off warnings generally, since that could mask legitimate
+    // TODO uses. Find a different solution here?
+    "Team", offsetof(Player, team), 1
   )) cnFailTo(FAIL);
 
   // Type property.
@@ -217,8 +220,8 @@ bool cnrSchemaInit(Schema* schema) {
     property = reinterpret_cast<Property*>(cnListExpand(&type->properties))
   )) cnFailTo(FAIL);
   if (!cnrPropertyInitTypedField(
-    property, type, cnrTypeAny, schema->floatType, cnrFieldTypeEnum, "Type",
-    offsetof(struct cnrItem, type), 1
+    property, type, Item::TypeAny, schema->floatType, cnrFieldTypeEnum, "Type",
+    offsetof(Item, type), 1
   )) cnFailTo(FAIL);
 
   // Good to go.
@@ -230,15 +233,9 @@ bool cnrSchemaInit(Schema* schema) {
 }
 
 
-void cnrStateDispose(cnrState* state) {
-  cnrStateInit(state);
+// Seems first times are 0 1, so 0 0 should be an okay bogus.
+State::State(): newSession(false), subtime(0), time(0) {}
+
+
 }
-
-
-void cnrStateInit(cnrState* state) {
-  cnrItemInit(&state->ball.item, cnrTypeBall);
-  state->newSession = false;
-  // Seems first times are 0 1, so 0 0 should be an okay bogus.
-  state->subtime = 0;
-  state->time = 0;
 }

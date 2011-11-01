@@ -3,11 +3,15 @@
 using namespace concuno;
 
 
+namespace ccndomain {
+namespace rcss {
+
+
 /**
  * Only call this function if there is a next state available, too.
  */
 bool cnrExtractHoldOrPass(
-  cnrGame* game, cnrState* state, cnrPlayer* kicker,
+  Game* game, State* state, Player* kicker,
   cnList(Bag)* holdBags, cnList(Bag)* passBags,
   cnList(cnList(Entity)*)* entityLists,
   bool label
@@ -15,7 +19,7 @@ bool cnrExtractHoldOrPass(
 
 
 bool cnrChooseHoldsAndPasses(
-  cnrGame* game,
+  Game* game,
   cnList(Bag)* holdBags, cnList(Bag)* passBags,
   cnList(cnList(Entity)*)* entityLists
 ) {
@@ -29,13 +33,13 @@ bool cnrChooseHoldsAndPasses(
   bool result = false;
 
   // Loop through states.
-  cnListEachBegin(&game->states, cnrState, state) {
+  cnListEachBegin(&game->states, State, state) {
     // Look through players in each state to find kicks.
-    cnrPlayer* kicker = NULL;
+    Player* kicker = NULL;
     //    if (state->newSession) {
     //      printf("New session at %ld.\n", state->time);
     //    }
-    cnListEachBegin(&state->players, cnrPlayer, player) {
+    cnListEachBegin(&state->players, Player, player) {
       if (player->team == cnrTeamKeepers && !cnIsNaN(player->kickPower)) {
         if (kicker) {
           cnErrTo(DONE, "Multiple kickers at %ld.", state->time);
@@ -57,11 +61,11 @@ bool cnrChooseHoldsAndPasses(
       // Ooh. We have a next state. Look even further to see if keepers keep.
       bool anyLaterKick = false;
       bool label = true;
-      cnrState* next;
-      cnrState* lookaheadEnd = state + failureLookahead;
+      State* next;
+      State* lookaheadEnd = state + failureLookahead;
       for (next = state + 1; next < end; next++) {
         if (!anyLaterKick) {
-          cnListEachBegin(&next->players, cnrPlayer, player) {
+          cnListEachBegin(&next->players, Player, player) {
             if (player->team == cnrTeamKeepers && !cnIsNaN(player->kickPower)) {
               // Found another keeper kick. Still a positive label.
               anyLaterKick = true;
@@ -103,21 +107,21 @@ bool cnrChooseHoldsAndPasses(
 
 
 bool cnrExtractHoldOrPass(
-  cnrGame* game, cnrState* state, cnrPlayer* kicker,
+  Game* game, State* state, Player* kicker,
   cnList(Bag)* holdBags, cnList(Bag)* passBags,
   cnList(cnList(Entity)*)* entityLists,
   bool label
 ) {
   bool result = false;
   Bag* bag = NULL;
-  cnrPlayer* receiver = NULL;
-  cnrBall* ball = &state->ball;
-  Float* ballLocation = ball->item.location;
+  Player* receiver = NULL;
+  Ball* ball = &state->ball;
+  Float* ballLocation = ball->location;
   List<Entity>* entities;
   bool kickedAgain = false;
-  Float* kickerLocation = kicker->item.location;
-  cnrState* next = state + 1;
-  Float* nextBallLocation = next->ball.item.location;
+  Float* kickerLocation = kicker->location;
+  State* next = state + 1;
+  Float* nextBallLocation = next->ball.location;
   Float ballVelocity[] = {
     nextBallLocation[0] - ballLocation[0],
     nextBallLocation[1] - ballLocation[1]
@@ -134,7 +138,7 @@ bool cnrExtractHoldOrPass(
   // Push the ball.
   if (!cnListPush(entities, &ball)) cnErrTo(DONE, "No ball for list.");
   // And the players.
-  cnListEachBegin(&state->players, struct cnrPlayer, player) {
+  cnListEachBegin(&state->players, struct Player, player) {
     if (!cnListPush(entities, &player)) {
       cnErrTo(DONE, "No player for entity list.");
     }
@@ -148,7 +152,7 @@ bool cnrExtractHoldOrPass(
 
   // Now see if we have a pass or a hold. First see if the same player kicks
   // again at the next time step.
-  cnListEachBegin(&next->players, cnrPlayer, player) {
+  cnListEachBegin(&next->players, Player, player) {
     if (player->index == kicker->index && player->team == kicker->team) {
       // Same player. Do we kick?
       if (!cnIsNaN(player->kickPower)) {
@@ -167,11 +171,11 @@ bool cnrExtractHoldOrPass(
     // Presume it's a pass for now. Find the receiver, if within pi/10.
     Radian minDiff = 0.1 * cnPi;
     Radian passAngle = atan2(ballVelocity[1], ballVelocity[0]);
-    cnListEachBegin(&state->players, struct cnrPlayer, player) {
+    cnListEachBegin(&state->players, Player, player) {
       // Actually, for the same state, pointer equality for player and kicker
       // should be good enough, but check indices to be more general.
       if (player->index != kicker->index && player->team == kicker->team) {
-        Float* playerLocation = player->item.location;
+        Float* playerLocation = player->location;
         Float playerDelta[] = {
           playerLocation[0] - kickerLocation[0],
           playerLocation[1] - kickerLocation[1]
@@ -186,10 +190,8 @@ bool cnrExtractHoldOrPass(
     } cnEnd;
     if (receiver) {
       if (!(bag = reinterpret_cast<Bag*>(cnListExpand(passBags)))) {
-        cnErrTo(DONE, "No pass bag pushed.");
+        throw Error("No pass bag pushed.");
       }
-      // With provided entities, bag init doesn't fail.
-      bag->init(entities);
       //      printf(
       //        "Pass at %ld by %ld to %ld.%s\n",
       //        state->time, kicker->index, receiver->index, label ? "" : " :("
@@ -201,10 +203,8 @@ bool cnrExtractHoldOrPass(
   if (!bag) {
     // Must be, since we didn't already define a bag for passing.
     if (!(bag = reinterpret_cast<Bag*>(cnListExpand(holdBags)))) {
-      cnErrTo(DONE, "No pass bag pushed.");
+      throw Error("No pass bag pushed.");
     }
-    // With provided entities, bag init doesn't fail.
-    bag->init(entities);
     //    printf(
     //      "Hold at %ld by %ld.%s\n",
     //      state->time, kicker->index, label ? "" : " :("
@@ -212,6 +212,7 @@ bool cnrExtractHoldOrPass(
   }
 
   // We should have a bag by now. Pin the participants.
+  new(bag) Bag(entities);
   bag->pushParticipant(0, kicker);
   bag->pushParticipant(1, receiver);
 
@@ -225,4 +226,8 @@ bool cnrExtractHoldOrPass(
 
   DONE:
   return result;
+}
+
+
+}
 }
