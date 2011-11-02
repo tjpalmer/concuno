@@ -6,7 +6,7 @@ namespace concuno {
 
 struct cnSearcherSelf: cnSearcher {
 
-  cnHeap(cnSearchOption)* options;
+  Heap<cnSearchOption>* options;
 
 };
 
@@ -94,7 +94,9 @@ cnSearcher* cnSearcherCreate(void) {
   searcher->step = NULL;
 
   // Now possible failures.
-  if (!(searcher->options = cnHeapCreate(cnSearcherCreate_less))) {
+  if (!(searcher->options =
+    reinterpret_cast<Heap<cnSearchOption>*>(cnHeapCreate(cnSearcherCreate_less))
+  )) {
     cnErrTo(FAIL, "No options heap.");
   }
   searcher->options->info = searcher;

@@ -38,7 +38,7 @@ void testVariance(void);
 
 
 int main(void) {
-  switch ('r') {
+  switch ('h') {
   case 'b':
     testBinomial();
     break;
@@ -110,13 +110,13 @@ void testBinomial(void) {
 }
 
 
-void testHeap_destroyItem(cnRefAny unused, cnRefAny item) {
+void testHeap_destroyItem(RefAny unused, RefAny item) {
   free(item);
 }
 
-bool testHeap_greater(cnRefAny unused, cnRefAny a, cnRefAny b) {
-  Float indexA = *(cnRef(Float))a;
-  Float indexB = *(cnRef(Float))b;
+bool testHeap_greater(RefAny unused, RefAny a, RefAny b) {
+  Float indexA = *(Float*)a;
+  Float indexB = *(Float*)b;
   // Make it a max heap for kicks.
   return indexA > indexB;
 }
@@ -124,7 +124,8 @@ bool testHeap_greater(cnRefAny unused, cnRefAny a, cnRefAny b) {
 #define testHeap_COUNT 10
 
 void testHeap(void) {
-  cnHeap(Index)* heap = cnHeapCreate(testHeap_greater);
+  Heap<Index>* heap =
+    reinterpret_cast<Heap<Index>*>(cnHeapCreate(testHeap_greater));
   Index i;
   if (!heap) cnErrTo(DONE, "No heap.");
 

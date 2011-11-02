@@ -39,27 +39,9 @@ typedef Int Index;
 
 
 /**
- * Pointer to an array of unknown count of anything.
- */
-typedef void* cnArrAny;
-
-
-/**
- * Pointer to an array of unknown count of a particular type.
- */
-#define cnArr(Type) Type*
-
-
-/**
  * Pointer to a single anything.
  */
-typedef void* cnRefAny;
-
-
-/**
- * Pointer to one thing of a particular type.
- */
-#define cnRef(Type) Type*
+typedef void* RefAny;
 
 
 struct Error: std::runtime_error {
@@ -145,7 +127,7 @@ typedef List<char> String;
  * TODO It would actually be good to use this sometime. For now, I just hack
  * TODO Lists into submission.
  */
-typedef struct cnGridAny {
+struct GridAny {
 
   /**
    * The count for each dimension, and dims.count is the number of dimensions.
@@ -167,13 +149,7 @@ typedef struct cnGridAny {
    */
   ListAny values;
 
-} cnGridAny;
-
-
-/**
- * Faux generics. Use this rather than cnGridAny, when you can.
- */
-#define cnGrid(Type) cnGridAny
+};
 
 
 /**
@@ -203,12 +179,12 @@ typedef struct cnGridAny {
  * I'm experimenting with providing this only in pointer form, as I've more than
  * once needed to change from expanded to pointer form,
  */
-typedef struct cnHeapAny {
+struct HeapAny {
 
   /**
    * Set this if you need extra information for comparing items.
    */
-  cnRefAny info;
+  RefAny info;
 
   /**
    * The items in the heap. Note that items are always pointers.
@@ -216,26 +192,26 @@ typedef struct cnHeapAny {
    * TODO After complaining about expanded forms, I want to use an expanded list
    * TODO here. I really like tying its life in here. Grr.
    */
-  List<cnRefAny> items;
+  List<RefAny> items;
 
   /**
    * Set to non-null if you want automatic info destruction.
    */
-  bool (*destroyInfo)(cnRefAny info);
+  bool (*destroyInfo)(RefAny info);
 
   /**
    * Set to non-null if you want automatic item destruction.
    *
    * Called before destroyInfo.
    */
-  void (*destroyItem)(cnRefAny info, cnRefAny item);
+  void (*destroyItem)(RefAny info, RefAny item);
 
   /**
    * Says whether a is less than b.
    */
-  bool (*less)(cnRefAny info, cnRefAny a, cnRefAny b);
+  bool (*less)(RefAny info, RefAny a, RefAny b);
 
-} cnHeapAny;
+};
 
 
 /**
@@ -244,33 +220,34 @@ typedef struct cnHeapAny {
  * It's just convention, and saying cnHeap(cnRef(cnIndex)) or even just
  * cnHeap(cnIndex*) could be a bother.
  */
-#define cnHeap(Type) cnHeapAny
+template<typename Item>
+struct Heap: HeapAny {};
 
 
 /**
  * Inits the dims and values to empty lists.
  */
-void cnGridInit(cnGridAny* grid);
+void cnGridInit(GridAny* grid);
 
 
 /**
  * Inits the dims to the number of rows and columns specified, and preallocates
  * the space requested.
  */
-bool cnGridInit2d(cnGridAny* grid, Count nrows, Count ncols);
+bool cnGridInit2d(GridAny* grid, Count nrows, Count ncols);
 
 
 /**
  * Inits the dims to a copy of the dims given, and preallocates the space
  * requested.
  */
-bool cnGridInitNd(cnGridAny* grid, const List<Count>* dims);
+bool cnGridInitNd(GridAny* grid, const List<Count>* dims);
 
 
 /**
  * Clears out the heap contents, destroying the items if destroyItem is set.
  */
-void cnHeapClear(cnHeapAny* heap);
+void cnHeapClear(HeapAny* heap);
 
 
 /**
@@ -279,19 +256,19 @@ void cnHeapClear(cnHeapAny* heap);
  *
  * TODO An option for initial contents for O(n) heapify?
  */
-cnHeapAny* cnHeapCreate(bool (*less)(cnRefAny info, cnRefAny a, cnRefAny b));
+HeapAny* cnHeapCreate(bool (*less)(RefAny info, RefAny a, RefAny b));
 
 
-void cnHeapDestroy(cnHeapAny* heap);
+void cnHeapDestroy(HeapAny* heap);
 
 
-cnRefAny cnHeapPeek(cnHeapAny* heap);
+RefAny cnHeapPeek(HeapAny* heap);
 
 
-cnRefAny cnHeapPull(cnHeapAny* heap);
+RefAny cnHeapPull(HeapAny* heap);
 
 
-bool cnHeapPush(cnHeapAny* heap, cnRefAny item);
+bool cnHeapPush(HeapAny* heap, RefAny item);
 
 
 /**
