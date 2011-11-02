@@ -1289,7 +1289,7 @@ LeafNode* cnPickBestLeaf(RootNode* tree, List<Bag>* bags) {
   // Now find the binding bags which are max for each leaf. We'll use those for
   // our split, to avoid making low prob branches compete with high prob
   // branches that already selected the bags they like.
-  if (!cnTreeMaxLeafBags(&groups, &maxGroups)) cnErrTo(DONE, "No max bags.");
+  treeMaxLeafBags(&groups, &maxGroups);
 
   // Prepare for bogus "no" group. Error leaves with no bags are irrelevant.
   if (!(

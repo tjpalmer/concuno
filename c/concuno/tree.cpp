@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <assert.h>
 #include <string.h>
 
@@ -217,6 +218,14 @@ LeafBindingBag::LeafBindingBag(): leaf(NULL) {}
 LeafBindingBagGroup::LeafBindingBagGroup(): leaf(NULL) {}
 
 
+LeafBindingBagGroup::~LeafBindingBagGroup() {
+  cnListEachBegin(&bindingBags, BindingBag, bindingBag) {
+    // TODO Automate in some form?
+    bindingBag->~BindingBag();
+  } cnEnd;
+}
+
+
 void cnLeafBindingBagGroupListLimits(
   List<LeafBindingBagGroup>* groups, Bag** begin, Bag** end
 ) {
@@ -244,11 +253,6 @@ void cnLeafBindingBagGroupListLimits(
 
 void cnLeafBindingBagGroupListDispose(List<LeafBindingBagGroup>* groups) {
   cnListEachBegin(groups, LeafBindingBagGroup, group) {
-    // TODO Put this in ~LeafBindingBagGroup?
-    cnListEachBegin(&group->bindingBags, BindingBag, bindingBag) {
-      // TODO Automate in some form?
-      bindingBag->~BindingBag();
-    } cnEnd;
     group->~LeafBindingBagGroup();
   } cnEnd;
 }
@@ -1170,32 +1174,26 @@ bool cnTreeMaxLeafCounts(
 /**
  * For retaining original index.
  */
-struct cnTreeMaxLeafBags_IndexedGroup {
+struct treeMaxLeafBags_IndexedGroup {
   LeafBindingBagGroup* group;
   Index index;
 };
 
-int cnTreeMaxLeafBags_compareLeafProbsDown(const void* a, const void* b) {
-  LeafNode* leafA = ((cnTreeMaxLeafBags_IndexedGroup*)a)->group->leaf;
-  LeafNode* leafB = ((cnTreeMaxLeafBags_IndexedGroup*)b)->group->leaf;
-  return
-    // Smaller is higher here for downward sort.
-    leafA->probability < leafB->probability ? 1 :
-    leafA->probability == leafB->probability ? 0 :
-    -1;
+bool treeMaxLeafBags_compareLeafProbsDown(
+  const treeMaxLeafBags_IndexedGroup& a,
+  const treeMaxLeafBags_IndexedGroup& b
+) {
+  // Smaller is higher here for downward sort.
+  return a.group->leaf->probability > b.group->leaf->probability;
 }
 
-bool cnTreeMaxLeafBags(
-  List<LeafBindingBagGroup>* groupsIn,
-  List<List<Index> >* groupsMaxOut
+void treeMaxLeafBags(
+  List<LeafBindingBagGroup>* groupsIn, List<List<Index> >* groupsMaxOut
 ) {
   Index b;
   Count bagCount;
   Bag* bags = NULL;
   Bag* bagsEnd = NULL;
-  Index g;
-  cnTreeMaxLeafBags_IndexedGroup* indexedGroupsIn = NULL;
-  bool result = false;
 
   // TODO Can I generify this enough to unify max bags and max counts somewhat?
   // TODO That is, with callbacks in the later loops?
@@ -1205,81 +1203,75 @@ bool cnTreeMaxLeafBags(
   if (groupsMaxOut->count) {
     // Just clear the old out for convience. Could error. TODO Document!
     cnListEachBegin(groupsMaxOut, List<Index>, indices) {
-      indices->dispose();
+      indices->~List<Index>();
     } cnEnd;
     cnListClear(groupsMaxOut);
   }
   // Allocate space right away.
   if (!cnListExpandMulti(groupsMaxOut, groupsIn->count)) {
-    cnErrTo(FAIL, "No groups out.");
+    throw Error("No groups out.");
   }
   // And init for safety.
   cnListEachBegin(groupsMaxOut, List<Index>, indices) {
-    indices->init();
+    new(indices) List<Index>;
   } cnEnd;
 
-  // Make a list of groups with their indices.
-  if (!(
-    indexedGroupsIn = cnAlloc(cnTreeMaxLeafBags_IndexedGroup, groupsIn->count)
-  )) cnErrTo(FAIL, "No indexed groups.");
-  g = 0;
-  cnListEachBegin(groupsIn, LeafBindingBagGroup, groupIn) {
-    indexedGroupsIn[g].group = groupIn;
-    indexedGroupsIn[g].index = g;
-    g++;
-  } cnEnd;
+  try {
+    // Make a list of groups with their indices.
+    // TODO Auto array pointer?
+    vector<treeMaxLeafBags_IndexedGroup> indexedGroupsIn;
+    cnListEachBegin(groupsIn, LeafBindingBagGroup, groupIn) {
+      treeMaxLeafBags_IndexedGroup indexedGroup;
+      indexedGroup.group = groupIn;
+      indexedGroup.index = indexedGroupsIn.size();
+      indexedGroupsIn.push_back(indexedGroup);
+    } cnEnd;
 
-  // Sort the leaves down by probability.
-  qsort(
-    indexedGroupsIn, groupsIn->count, sizeof(cnTreeMaxLeafBags_IndexedGroup),
-    cnTreeMaxLeafBags_compareLeafProbsDown
-  );
-
-  // Init which bags used. First, we need to find how many and where they start.
-  cnLeafBindingBagGroupListLimits(groupsIn, &bags, &bagsEnd);
-  bagCount = bagsEnd - bags;
-  bagsUsed.resize(bagCount, false);
-
-  // Loop through leaves from max prob to min, count bags and marking them used
-  // along the way.
-  for (g = 0; g < groupsIn->count; g++) {
-    // Group in and out, where out retains original order.
-    cnTreeMaxLeafBags_IndexedGroup* groupIn = indexedGroupsIn + g;
-    List<Index>* indices = reinterpret_cast<List<Index>*>(
-      cnListGet(groupsMaxOut, groupIn->index)
+    // Sort the leaves down by probability.
+    sort(
+      indexedGroupsIn.begin(), indexedGroupsIn.end(),
+      treeMaxLeafBags_compareLeafProbsDown
     );
 
-    // Loop through bags.
-    b = 0;
-    cnListEachBegin(&groupIn->group->bindingBags, BindingBag, bindingBag) {
-      // TODO This subtraction only works if bags is an array of Bag and not
-      // TODO Bag*, because we'd otherwise have no reference point. Should I
-      // TODO consider explicit ids/indices at some point?
-      Index bagIndex = bindingBag->bag - bags;
-      if (!bagsUsed[bagIndex]) {
-        if (!cnListPush(indices, &b)) {
-          cnErrTo(FAIL, "No binding bag ref.")
+    // Init which bags used.
+    // First, we need to find how many and where they start.
+    cnLeafBindingBagGroupListLimits(groupsIn, &bags, &bagsEnd);
+    bagCount = bagsEnd - bags;
+    bagsUsed.resize(bagCount, false);
+
+    // Loop through leaves from max prob to min, count bags and marking them
+    // used along the way.
+    for (Index g = 0; g < groupsIn->count; g++) {
+      // Group in and out, where out retains original order.
+      treeMaxLeafBags_IndexedGroup& groupIn = indexedGroupsIn[g];
+      List<Index>* indices = reinterpret_cast<List<Index>*>(
+        cnListGet(groupsMaxOut, groupIn.index)
+      );
+
+      // Loop through bags.
+      b = 0;
+      cnListEachBegin(&groupIn.group->bindingBags, BindingBag, bindingBag) {
+        // TODO This subtraction only works if bags is an array of Bag and not
+        // TODO Bag*, because we'd otherwise have no reference point. Should I
+        // TODO consider explicit ids/indices at some point?
+        Index bagIndex = bindingBag->bag - bags;
+        if (!bagsUsed[bagIndex]) {
+          if (!cnListPush(indices, &b)) {
+            throw Error("No binding bag ref.");
+          }
+          bagsUsed[bagIndex] = true;
         }
-        bagsUsed[bagIndex] = true;
-      }
-      b++;
+        b++;
+      } cnEnd;
+    }
+  } catch (const exception& error) {
+    // Clear these out on fail.
+    cnListEachBegin(groupsMaxOut, List<Index>, indices) {
+      indices->~List<Index>();
     } cnEnd;
+    cnListClear(groupsMaxOut);
+    throw;
   }
-
-  // All done!
-  result = true;
-  goto DONE;
-
-  FAIL:
-  // Clear these out on fail.
-  cnListEachBegin(groupsMaxOut, List<Index>, indices) {
-    indices->dispose();
-  } cnEnd;
-  cnListClear(groupsMaxOut);
-
-  DONE:
-  free(indexedGroupsIn);
-  return result;
 }
 
 

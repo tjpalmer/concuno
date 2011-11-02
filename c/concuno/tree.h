@@ -277,6 +277,8 @@ struct LeafBindingBagGroup {
 
   LeafBindingBagGroup();
 
+  ~LeafBindingBagGroup();
+
   List<BindingBag> bindingBags;
 
   LeafNode* leaf;
@@ -538,9 +540,8 @@ bool cnTreeMaxLeafCounts(
  * outbound list with indices of the binding bags, but retaining only those
  * which are max for each leaf.
  */
-bool cnTreeMaxLeafBags(
-  List<LeafBindingBagGroup>* groupsIn,
-  List<List<Index> >* groupsMaxOut
+void treeMaxLeafBags(
+  List<LeafBindingBagGroup>* groupsIn, List<List<Index> >* groupsMaxOut
 );
 
 
