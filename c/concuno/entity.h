@@ -27,7 +27,7 @@ struct Bag {
   /**
    * Uses the given entity list.
    */
-  Bag(cnList(Entity)* entities);
+  Bag(List<Entity>* entities);
 
   ~Bag();
 
@@ -315,7 +315,7 @@ struct Type {
  * ignored. Otherwise, entities in bags will be disposed with the bags.
  */
 void cnBagListDispose(
-  cnList(Bag)* bags, cnList(cnList(Entity)*)* entityLists
+  List<Bag>* bags, List<List<Entity>*>* entityLists
 );
 
 
@@ -408,22 +408,22 @@ bool cnPredicateWrite(Predicate* predicate, FILE* file, String* indent);
 
 
 EntityFunction* cnPushDifferenceFunction(
-  cnList(EntityFunction*)* functions, EntityFunction* base
+  List<EntityFunction*>* functions, EntityFunction* base
 );
 
 
 EntityFunction* cnPushDistanceFunction(
-  cnList(EntityFunction*)* functions, EntityFunction* base
+  List<EntityFunction*>* functions, EntityFunction* base
 );
 
 
 EntityFunction* cnPushPropertyFunction(
-  cnList(EntityFunction*)* functions, Property* property
+  List<EntityFunction*>* functions, Property* property
 );
 
 
 EntityFunction* cnPushValidFunction(
-  cnList(EntityFunction*)* functions, Schema* schema, Count arity
+  List<EntityFunction*>* functions, Schema* schema, Count arity
 );
 
 

@@ -35,7 +35,7 @@ bool cnCluster(Count size, Count count, Float* points) {
 }
 
 
-bool cnClusterOnFunction(cnList(Bag)* bags, EntityFunction* function) {
+bool cnClusterOnFunction(List<Bag>* bags, EntityFunction* function) {
   bool result = false;
   Float* point;
   Float* points;

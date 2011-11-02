@@ -127,15 +127,9 @@ struct List: ListAny {
 
 
 /**
- * Faux generics. Use this rather than cnListAny, when you can.
- */
-#define cnList(Type) List<Type>
-
-
-/**
  * Null-terminated UTF-8 string.
  */
-typedef cnList(char) String;
+typedef List<char> String;
 
 
 /**
@@ -161,7 +155,7 @@ typedef struct cnGridAny {
    *
    * TODO Matlab style or Numpy style?
    */
-  cnList(Count) dims;
+  List<Count> dims;
 
   /**
    * Value item storage. Note that values.count must equal the product of the
@@ -270,7 +264,7 @@ bool cnGridInit2d(cnGridAny* grid, Count nrows, Count ncols);
  * Inits the dims to a copy of the dims given, and preallocates the space
  * requested.
  */
-bool cnGridInitNd(cnGridAny* grid, const cnList(Count)* dims);
+bool cnGridInitNd(cnGridAny* grid, const List<Count>* dims);
 
 
 /**

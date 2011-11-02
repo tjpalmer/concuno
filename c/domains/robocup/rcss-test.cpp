@@ -28,22 +28,22 @@ bool cnrGenStr(yajl_gen gen, const char* str);
 /**
  * TODO This is duped from run's cnvPickFunctions. Perhaps centralize.
  */
-bool cnrPickFunctions(cnList(EntityFunction*)* functions, Type* type);
+bool cnrPickFunctions(List<EntityFunction*>* functions, Type* type);
 
 
 bool cnrProcess(
   Game* game,
-  bool (*process)(cnList(Bag)* holdBags, cnList(Bag)* passBags)
+  bool (*process)(List<Bag>* holdBags, List<Bag>* passBags)
 );
 
 
-bool cnrProcessExport(cnList(Bag)* holdBags, cnList(Bag)* passBags);
+bool cnrProcessExport(List<Bag>* holdBags, List<Bag>* passBags);
 
 
-bool cnrProcessLearn(cnList(Bag)* holdBags, cnList(Bag)* passBags);
+bool cnrProcessLearn(List<Bag>* holdBags, List<Bag>* passBags);
 
 
-bool cnrSaveBags(const char* name, cnList(Bag)* bags);
+bool cnrSaveBags(const char* name, List<Bag>* bags);
 
 
 }
@@ -133,7 +133,7 @@ bool cnrGenStr(yajl_gen gen, const char* str) {
 }
 
 
-bool cnrPickFunctions(cnList(EntityFunction*)* functions, Type* type) {
+bool cnrPickFunctions(List<EntityFunction*>* functions, Type* type) {
   // For now, just put in valid and common functions for each property.
   if (!cnPushValidFunction(functions, type->schema, 1)) {
     cnErrTo(FAIL, "No valid 1.");
@@ -201,7 +201,7 @@ bool cnrPickFunctions(cnList(EntityFunction*)* functions, Type* type) {
 
 bool cnrProcess(
   Game* game,
-  bool (*process)(cnList(Bag)* holdBags, cnList(Bag)* passBags)
+  bool (*process)(List<Bag>* holdBags, List<Bag>* passBags)
 ) {
   List<Bag> holdBags;
   List<List<Entity>*> entityLists;
@@ -231,7 +231,7 @@ bool cnrProcess(
 }
 
 
-bool cnrProcessExport(cnList(Bag)* holdBags, cnList(Bag)* passBags) {
+bool cnrProcessExport(List<Bag>* holdBags, List<Bag>* passBags) {
   // Export stuff.
   // TODO Allow specifying file names? Choose automatically by date?
   // TODO Option for learning in concuno rather than saving?
@@ -244,7 +244,7 @@ bool cnrProcessExport(cnList(Bag)* holdBags, cnList(Bag)* passBags) {
 }
 
 
-bool cnrProcessLearn(cnList(Bag)* holdBags, cnList(Bag)* passBags) {
+bool cnrProcessLearn(List<Bag>* holdBags, List<Bag>* passBags) {
   List<EntityFunction*> functions;
   RootNode* learnedTree = NULL;
   Learner learner;
@@ -281,7 +281,7 @@ bool cnrProcessLearn(cnList(Bag)* holdBags, cnList(Bag)* passBags) {
 }
 
 
-bool cnrSaveBags(const char* name, cnList(Bag)* bags) {
+bool cnrSaveBags(const char* name, List<Bag>* bags) {
   const unsigned char* buffer;
   size_t bufferSize;
   ofstream file;
@@ -321,7 +321,7 @@ bool cnrSaveBags(const char* name, cnList(Bag)* bags) {
       if (!cnrGenStr(gen, locationKey)) cnFailTo(DONE);
       if (!cnrGenColumnVector(gen, 2, item->location)) cnFailTo(DONE);
       // Pinning.
-      cnListEachBegin(&bag->participantOptions, cnList(Entity), options) {
+      cnListEachBegin(&bag->participantOptions, List<Entity>, options) {
         if (options->count > 1) {
           cnErrTo(
             DONE, "%ld > 1 options at depth %ld.", options->count, depth

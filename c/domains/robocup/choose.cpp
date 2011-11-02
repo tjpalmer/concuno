@@ -12,16 +12,16 @@ namespace rcss {
  */
 bool cnrExtractHoldOrPass(
   Game* game, State* state, Player* kicker,
-  cnList(Bag)* holdBags, cnList(Bag)* passBags,
-  cnList(cnList(Entity)*)* entityLists,
+  List<Bag>* holdBags, List<Bag>* passBags,
+  List<List<Entity>*>* entityLists,
   bool label
 );
 
 
 bool cnrChooseHoldsAndPasses(
   Game* game,
-  cnList(Bag)* holdBags, cnList(Bag)* passBags,
-  cnList(cnList(Entity)*)* entityLists
+  List<Bag>* holdBags, List<Bag>* passBags,
+  List<List<Entity>*>* entityLists
 ) {
   // Assume that failure withing a certain number of timesteps means the action
   // was a bad choice. This isn't always true. Holding might be good but the
@@ -108,8 +108,8 @@ bool cnrChooseHoldsAndPasses(
 
 bool cnrExtractHoldOrPass(
   Game* game, State* state, Player* kicker,
-  cnList(Bag)* holdBags, cnList(Bag)* passBags,
-  cnList(cnList(Entity)*)* entityLists,
+  List<Bag>* holdBags, List<Bag>* passBags,
+  List<List<Entity>*>* entityLists,
   bool label
 ) {
   bool result = false;

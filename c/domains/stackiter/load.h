@@ -7,7 +7,7 @@
 /**
  * The states list should have been previously init'd.
  */
-bool stLoad(char* name, concuno::cnList(stState)* states);
+bool stLoad(char* name, concuno::List<stState>* states);
 
 
 #endif

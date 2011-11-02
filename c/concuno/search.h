@@ -87,7 +87,7 @@ struct cnSearcher {
    * The step function must be thread safe when using threaded search.
    */
   bool (*step)(
-    cnSearcher* searcher, cnSearchOption option, cnList(cnSearchOption)* nexts
+    cnSearcher* searcher, cnSearchOption option, List<cnSearchOption>* nexts
   );
 
 };
