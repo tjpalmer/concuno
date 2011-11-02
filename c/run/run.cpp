@@ -329,9 +329,10 @@ void cnvPushOrExpandProperty(
 
   if (!property) {
     // Didn't find anything, so push a new property.
-    type->properties.push_back(new FieldProperty(
+    property = new FieldProperty(
       type, type->schema->floatType, propertyName, type->size, 1
-    ));
+    );
+    type->properties.push_back(property);
   }
 
   // Update the type's overall size, too.
