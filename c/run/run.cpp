@@ -4,14 +4,15 @@
 
 #include "run.h"
 
-using namespace concuno;
+
+namespace concuno {namespace run {
 
 
 /**
  * For ultra simple pointers into structs, saying where to put data and what
  * type goes there (including the size in bytes).
  */
-typedef struct cnvTypedOffset {
+struct TypedOffset {
 
   /**
    * Offset in bytes.
@@ -23,14 +24,14 @@ typedef struct cnvTypedOffset {
    */
   Type* type;
 
-} cnvTypedOffset;
+};
 
 
 /**
  * Fills in the bags with the given label information and data.
  */
-bool cnvBuildBags(
-  cnList(Bag)* bags,
+bool buildBags(
+  List<Bag>* bags,
   char* labelId, Type* labelType, ListAny* labels,
   Type* featureType, ListAny* features
 );
@@ -39,23 +40,28 @@ bool cnvBuildBags(
 /**
  * Returns the created item type or null for failure.
  */
-Type* cnvLoadTable(
+Type* loadTable(
   const char* fileName, const char* typeName, Schema* schema, ListAny* items
 );
 
 
-bool cnvPickFunctions(cnList(EntityFunction*)* functions, Type* type);
+bool pickFunctions(List<EntityFunction*>* functions, Type* type);
 
 
-void cnvPrintType(Type* type);
+void printType(Type* type);
 
 
-void cnvPushOrExpandProperty(
-  Type* type, char* propertyName, cnvTypedOffset* offset
+void pushOrExpandProperty(
+  Type* type, char* propertyName, TypedOffset* offset
 );
 
 
+}}
+
+
 int main(int argc, char** argv) {
+  using namespace concuno;
+  using namespace concuno::run;
   int result = EXIT_FAILURE;
   List<Bag> bags;
   ListAny features;
@@ -75,17 +81,17 @@ int main(int argc, char** argv) {
   );
 
   // Load all the data.
-  featureType = cnvLoadTable(argv[1], "Feature", &schema, &features);
+  featureType = loadTable(argv[1], "Feature", &schema, &features);
   if (!featureType) cnErrTo(DONE, "Failed feature load.");
-  labelType = cnvLoadTable(argv[2], "Label", &schema, &labels);
+  labelType = loadTable(argv[2], "Label", &schema, &labels);
   if (!labelType) cnErrTo(DONE, "Failed label load.");
 
   // Build labeled bags.
   if (
-    !cnvBuildBags(&bags, argv[3], labelType, &labels, featureType, &features)
+    !buildBags(&bags, argv[3], labelType, &labels, featureType, &features)
   ) cnErrTo(DONE, "No bags.");
   // Choose some functions. TODO How to specify which??
-  if (!cnvPickFunctions(&functions, featureType)) {
+  if (!pickFunctions(&functions, featureType)) {
     cnErrTo(DONE, "No functions.");
   }
   printf("\n");
@@ -114,8 +120,11 @@ int main(int argc, char** argv) {
 }
 
 
-bool cnvBuildBags(
-  cnList(Bag)* bags,
+namespace concuno {namespace run {
+
+
+bool buildBags(
+  List<Bag>* bags,
   char* labelId, Type* labelType, ListAny* labels,
   Type* featureType, ListAny* features
 ) {
@@ -162,15 +171,15 @@ bool cnvBuildBags(
 }
 
 
-Type* cnvLoadTable(
+Type* loadTable(
   const char* fileName, const char* typeName, Schema* schema, ListAny* items
 ) {
   Count countRead;
   FILE* file = NULL;
   String line;
   char* remaining;
-  List<cnvTypedOffset> offsets;
-  cnvTypedOffset* offsetsEnd;
+  List<TypedOffset> offsets;
+  TypedOffset* offsetsEnd;
   Type* type = NULL;
 
   // Create the type.
@@ -186,23 +195,23 @@ Type* cnvLoadTable(
   if (cnReadLine(file, &line) <= 0) cnErrTo(FAIL, "No headers.");
   remaining = cnStr(&line);
   while (true) {
-    cnvTypedOffset* offset;
+    TypedOffset* offset;
     char* next = cnParseStr(remaining, &remaining);
     if (!*next) break;
     if (next == (char*)line.items && *next == '%') {
       // Strip % prefix, used there for Matlab convenience.
       next++;
     }
-    if (!(offset = reinterpret_cast<cnvTypedOffset*>(cnListExpand(&offsets)))) {
+    if (!(offset = reinterpret_cast<TypedOffset*>(cnListExpand(&offsets)))) {
       cnErrTo(FAIL, "No offset.");
     }
-    cnvPushOrExpandProperty(type, next, offset);
+    pushOrExpandProperty(type, next, offset);
   }
   // Now that we have the full type, it's stable.
   items->itemSize = type->size;
-  offsetsEnd = reinterpret_cast<cnvTypedOffset*>(cnListEnd(&offsets));
+  offsetsEnd = reinterpret_cast<TypedOffset*>(cnListEnd(&offsets));
   // Report it for now, too.
-  cnvPrintType(type);
+  printType(type);
 
   // Read the lines. Each is a separate item.
   while ((countRead = cnReadLine(file, &line)) > 0) {
@@ -210,7 +219,7 @@ Type* cnvLoadTable(
     // Allocate then read the fields on this line.
     if (!(item = cnListExpand(items))) cnErrTo(FAIL, "No item.");
     remaining = cnStr(&line);
-    cnListEachBegin(&offsets, cnvTypedOffset, offset) {
+    cnListEachBegin(&offsets, TypedOffset, offset) {
       // TODO Don't assume all are floats! Need custom parsing?
       char* former = remaining;
       Float value = strtod(remaining, &remaining);
@@ -237,7 +246,7 @@ Type* cnvLoadTable(
 }
 
 
-bool cnvPickFunctions(cnList(EntityFunction*)* functions, Type* type) {
+bool pickFunctions(List<EntityFunction*>* functions, Type* type) {
   // For now, just put in valid and common functions for each property.
   if (!cnPushValidFunction(functions, type->schema, 1)) {
     cnErrTo(FAIL, "No valid 1.");
@@ -295,7 +304,7 @@ bool cnvPickFunctions(cnList(EntityFunction*)* functions, Type* type) {
 }
 
 
-void cnvPrintType(Type* type) {
+void printType(Type* type) {
   printf("type %s\n", type->name.c_str());
   for (size_t p = 1; p < type->properties.size(); p++) {
     Property* property = type->properties[p];
@@ -308,8 +317,8 @@ void cnvPrintType(Type* type) {
 }
 
 
-void cnvPushOrExpandProperty(
-  Type* type, char* propertyName, cnvTypedOffset* offset
+void pushOrExpandProperty(
+  Type* type, char* propertyName, TypedOffset* offset
 ) {
   FieldProperty* property = NULL;
 
@@ -345,3 +354,6 @@ void cnvPushOrExpandProperty(
     offset->type = property->type;
   }
 }
+
+
+}}
