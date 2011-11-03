@@ -247,6 +247,16 @@ void ListAny::dispose() {
 }
 
 
+void* ListAny::get(Index index) {
+  // TODO Support negative indexes from back?
+  if (index < 0 || index >= count) {
+    // TODO Say which index?
+    throw Error("Bad list index.");
+  }
+  return ((char*)items) + (index * itemSize);
+}
+
+
 void ListAny::init(Count itemSize) {
   count = 0;
   this->itemSize = itemSize;
@@ -266,17 +276,8 @@ void cnListDestroy(ListAny* list) {
 }
 
 
-void* cnListGet(ListAny* list, Index index) {
-  // TODO Support negative indexes from back?
-  if (index < 0 || index >= list->count) {
-    return NULL;
-  }
-  return ((char*)list->items) + (index * list->itemSize);
-}
-
-
 void* cnListGetPointer(ListAny* list, Index index) {
-  return *(void**)cnListGet(list, index);
+  return *(void**)list->get(index);
 }
 
 
@@ -325,12 +326,12 @@ void* cnListExpandMulti(ListAny* list, Count count) {
 }
 
 
-void* cnListPush(ListAny* list, void* item) {
+void* cnListPush(ListAny* list, const void* item) {
   return cnListPushMulti(list, item, 1);
 }
 
 
-void* cnListPushAll(ListAny* list, ListAny* from) {
+void* cnListPushAll(ListAny* list, const ListAny* from) {
   if (list->itemSize != from->itemSize) {
     printf(
       "list itemSize %ld != from itemSize %ld\n",
@@ -342,7 +343,7 @@ void* cnListPushAll(ListAny* list, ListAny* from) {
 }
 
 
-void* cnListPushMulti(ListAny* list, void* items, Count count) {
+void* cnListPushMulti(ListAny* list, const void* items, Count count) {
   void* formerEnd = cnListExpandMulti(list, count);
   if (formerEnd) {
     memcpy(formerEnd, items, list->itemSize * count);
@@ -352,7 +353,7 @@ void* cnListPushMulti(ListAny* list, void* items, Count count) {
 
 
 void cnListRemove(ListAny* list, Index index) {
-  char *begin = reinterpret_cast<char*>(cnListGet(list, index));
+  char *begin = reinterpret_cast<char*>(list->get(index));
   if (!begin) {
     printf("Bad index for remove: %ld\n", index);
     return;
@@ -411,7 +412,7 @@ void cnStringClear(String* string) {
 
 
 char cnStringGetChar(String* string, Index index) {
-  return *(char*)cnListGet(string, index);
+  return *reinterpret_cast<char*>(string->get(index));
 }
 
 

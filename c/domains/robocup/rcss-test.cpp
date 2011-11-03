@@ -253,7 +253,7 @@ bool cnrProcessLearn(List<Bag>* holdBags, List<Bag>* passBags) {
 
   // Inits.
   if (!cnrSchemaInit(&schema)) cnFailTo(DONE);
-  cnrPickFunctions(&functions, *(Type**)cnListGet(&schema.types, 1));
+  cnrPickFunctions(&functions, schema.types[1]);
 
   // Learn something.
   // TODO How to choose pass vs. hold?

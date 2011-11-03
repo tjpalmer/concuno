@@ -5,9 +5,7 @@
 using namespace concuno;
 
 
-bool stClusterStuff(
-  List<stState>* states, List<EntityFunction*>* functions
-);
+void stClusterStuff(List<stState>& states, List<EntityFunction*>& functions);
 
 
 void stDisposeEntityFunctions(List<EntityFunction*>* functions);
@@ -31,7 +29,6 @@ bool stLearnConcept(
 int main(int argc, char** argv) {
   List<EntityFunction*> entityFunctions;
   Schema schema;
-  stState* state;
   List<stState> states;
   int status = EXIT_FAILURE;
 
@@ -47,8 +44,7 @@ int main(int argc, char** argv) {
     goto DISPOSE_STATES;
   }
   printf("At end:\n");
-  state = reinterpret_cast<stState*>(cnListGet(&states, states.count - 1));
-  printf("%ld items\n", state->items.count);
+  printf("%ld items\n", states[states.count - 1].items.count);
   printf("%ld states\n", states.count);
 
   // Set up schema.
@@ -68,10 +64,7 @@ int main(int argc, char** argv) {
     }
     break;
   case 2:
-    if (!stClusterStuff(&states, &entityFunctions)) {
-      printf("Clustering failed.\n");
-      goto DROP_FUNCTIONS;
-    }
+    stClusterStuff(states, entityFunctions);
     break;
   default:
     printf("Didn't do anything!\n");
@@ -93,34 +86,25 @@ int main(int argc, char** argv) {
 }
 
 
-bool stClusterStuff(
-  List<stState>* states, List<EntityFunction*>* functions
-) {
+void stClusterStuff(List<stState>& states, List<EntityFunction*>& functions) {
   List<Bag> bags;
-  EntityFunction* function;
-  bool result = false;
 
   // Choose out the states we want to focus on.
-  if (!stAllBagsFalse(states, &bags, NULL)) {
-    cnErrTo(DISPOSE_BAGS, "Failed to choose bags.");
+  if (!stAllBagsFalse(&states, &bags, NULL)) {
+    throw Error("Failed to choose bags.");
   }
 
   // The last function right now should be velocity. TODO Watch out for changes!
   // TODO Be more thorough about clustering. Try it all as for tree learning.
-  function = *(EntityFunction**)cnListGet(functions, functions->count - 1);
+  EntityFunction* function = functions[functions.count - 1];
   if (!cnClusterOnFunction(&bags, function)) {
-    goto DISPOSE_BAGS;
+    throw Error("Clustering failed.");
   }
 
-  // TODO Cluster!
-  result = true;
-
-  DISPOSE_BAGS:
+  // TODO Auto!
   cnListEachBegin(&bags, Bag, bag) {
     bag->~Bag();
   } cnEnd;
-
-  return result;
 }
 
 

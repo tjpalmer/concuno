@@ -218,7 +218,7 @@ bool cnUpdateLeafProbabilities(RootNode* root, List<Bag>* bags);
  * Updates leaf probabilities working directly from counts.
  */
 bool cnUpdateLeafProbabilitiesWithBindingBags(
-  List<LeafBindingBagGroup>* groups, List<LeafCount>* counts
+  const List<LeafBindingBagGroup>& groups, List<LeafCount>* counts
 );
 
 
@@ -1171,7 +1171,7 @@ RootNode* Learner::learnTree() {
   config.trainingBags.items = bags->items;
   config.trainingBags.count = bags->count * (2 / 3.0);
   // Validation set.
-  config.validationBags.items = cnListGet(bags, config.trainingBags.count);
+  config.validationBags.items = &bags[config.trainingBags.count];
   config.validationBags.count = bags->count - config.trainingBags.count;
   // Failsafe on having data here.
   if (!config.validationBags.count) cnErrTo(DONE, "No validation bags!");
@@ -1289,7 +1289,7 @@ LeafNode* cnPickBestLeaf(RootNode* tree, List<Bag>* bags) {
   // Now find the binding bags which are max for each leaf. We'll use those for
   // our split, to avoid making low prob branches compete with high prob
   // branches that already selected the bags they like.
-  treeMaxLeafBags(&groups, &maxGroups);
+  treeMaxLeafBags(groups, maxGroups);
 
   // Prepare for bogus "no" group. Error leaves with no bags are irrelevant.
   if (!(
@@ -1367,12 +1367,11 @@ LeafNode* cnPickBestLeaf(RootNode* tree, List<Bag>* bags) {
 
     // Update leaf probabilities, and find the score.
     if (
-      !cnUpdateLeafProbabilitiesWithBindingBags(&groups, &counts)
+      !cnUpdateLeafProbabilitiesWithBindingBags(groups, &counts)
     ) cnErrTo(DONE, "No fake leaf probs.");
     score = cnCountsLogMetric(&counts);
     printf(
-      "Score at %ld: %lg",
-      (Index)(group - (LeafBindingBagGroup*)groups.items), score
+      "Score at %ld: %lg", static_cast<Index>(group - &groups.first()), score
     );
     if (score > bestScore) {
       bestGroup = group;
@@ -1647,7 +1646,7 @@ bool cnUpdateLeafProbabilities(RootNode* root, List<Bag>* bags) {
   cnTreePropagateBags(root, bags, &groups);
 
   // Update probs.
-  if (!cnUpdateLeafProbabilitiesWithBindingBags(&groups, NULL)) {
+  if (!cnUpdateLeafProbabilitiesWithBindingBags(groups, NULL)) {
     cnErrTo(DONE, "No probs.");
   }
 
@@ -1662,7 +1661,7 @@ bool cnUpdateLeafProbabilities(RootNode* root, List<Bag>* bags) {
 
 
 bool cnUpdateLeafProbabilitiesWithBindingBags(
-  List<LeafBindingBagGroup>* groups, List<LeafCount>* counts
+  const List<LeafBindingBagGroup>& groups, List<LeafCount>* counts
 ) {
   Index b;
   Count bagCount;
@@ -1675,12 +1674,12 @@ bool cnUpdateLeafProbabilitiesWithBindingBags(
   bool result = false;
 
   // Copy this list, because we're going to be clearing leaf pointers.
-  if (!cnListPushAll(&groupsCopied, groups)) cnErrTo(DONE, "No groups copy.");
+  if (!cnListPushAll(&groupsCopied, &groups)) cnErrTo(DONE, "No groups copy.");
 
   // See if they want leaf counts, and get ready if they do.
   if (counts) {
     cnListClear(counts);
-    if (!cnListExpandMulti(counts, groups->count)) cnErrTo(DONE, "No counts.");
+    if (!cnListExpandMulti(counts, groups.count)) cnErrTo(DONE, "No counts.");
   }
 
   // Init which bags used. First, we need to find how many and where they start.
@@ -1756,11 +1755,10 @@ bool cnUpdateLeafProbabilitiesWithBindingBags(
 
     // Record the counts, if wanted.
     if (counts) {
-      LeafCount* count =
-        reinterpret_cast<LeafCount*>(cnListGet(counts, maxGroupIndex));
-      count->leaf = maxGroup->leaf;
-      count->negCount = maxTotal - maxPosCount;
-      count->posCount = maxPosCount;
+      LeafCount& count = (*counts)[maxGroupIndex];
+      count.leaf = maxGroup->leaf;
+      count.negCount = maxTotal - maxPosCount;
+      count.posCount = maxPosCount;
     }
 
     // Mark the leaf and its bags as used.
@@ -1826,7 +1824,7 @@ bool cnVerifyImprovement_StatsPrepare(
   bool result = false;
 
   // Gather up the original counts for each leaf.
-  if (!cnTreeMaxLeafCounts(tree, &stats->leafCounts, bags)) {
+  if (!cnTreeMaxLeafCounts(tree, stats->leafCounts, bags)) {
     cnErrTo(DONE, "No counts.");
   }
 
@@ -1840,15 +1838,14 @@ bool cnVerifyImprovement_StatsPrepare(
 
   // Calculate probabilities.
   for (i = 0; i < stats->leafCounts.count; i++) {
-    LeafCount* count =
-      reinterpret_cast<LeafCount*>(cnListGet(&stats->leafCounts, i));
+    LeafCount& count = stats->leafCounts[i];
     // Neg first, then pos.
     // TODO Apply the same beta prior as for updating probabilities? Otherwise,
     // TODO we might have inappropriate zeros (or even ones) in validation.
     // TODO Well, I guess it would be a Dirichlet prior, but it should be
     // TODO equivalent to the beta prior at the single leaf level.
-    probs[2 * i] = count->negCount / (Float)bags->count;
-    probs[2 * i + 1] = count->posCount / (Float)bags->count;
+    probs[2 * i] = count.negCount / (Float)bags->count;
+    probs[2 * i + 1] = count.posCount / (Float)bags->count;
   }
 
   // Create the multinomial distribution.

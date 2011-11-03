@@ -71,6 +71,11 @@ struct ListAny {
   void dispose();
 
   /**
+   * Get a pointer into the items array at a given index.
+   */
+  void* get(Index index);
+
+  /**
    * Call this manually if you didn't use the itemSize constructor.
    */
   void init(Count itemSize);
@@ -97,8 +102,16 @@ struct List: ListAny {
    */
   List(Count vectorSize = 1): ListAny(vectorSize * sizeof(Item)) {}
 
+  Item& first() {
+    return *reinterpret_cast<Item*>(items);
+  }
+
   void init(Count vectorSize = 1) {
     ListAny::init(vectorSize * sizeof(Item));
+  }
+
+  Item& operator[](Index index) {
+    return *reinterpret_cast<Item*>(get(index));
   }
 
   Count vectorSize() {
@@ -335,9 +348,6 @@ void* cnListExpand(ListAny* list);
 void* cnListExpandMulti(ListAny* list, Count count);
 
 
-void* cnListGet(ListAny* list, Index index);
-
-
 /**
  * Assumes this list holds pointers and returns the pointer value instead of
  * the pointer to the pointer.
@@ -350,7 +360,7 @@ void* cnListGetPointer(ListAny* list, Index index);
  *
  * Returns the destination pointer to the item just pushed, or NULL if failure.
  */
-void* cnListPush(ListAny* list, void* item);
+void* cnListPush(ListAny* list, const void* item);
 
 
 /**
@@ -359,7 +369,7 @@ void* cnListPush(ListAny* list, void* item);
  * Returns the destination pointer to the first item just pushed, or NULL if
  * failure.
  */
-void* cnListPushAll(ListAny* list, ListAny* from);
+void* cnListPushAll(ListAny* list, const ListAny* from);
 
 
 /**
@@ -368,7 +378,7 @@ void* cnListPushAll(ListAny* list, ListAny* from);
  * Returns the destination pointer to the first item just pushed, or NULL if
  * failure.
  */
-void* cnListPushMulti(ListAny* list, void* items, Count count);
+void* cnListPushMulti(ListAny* list, const void* items, Count count);
 
 
 void cnListPut(ListAny* list, Index index, void* value);

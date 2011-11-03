@@ -119,32 +119,26 @@ bool stHandleColor(stParser* parser, char* args) {
 
 bool stHandleDestroy(stParser* parser, char* args) {
   stId id = strtol(args, &args, 10);
-  Index* index = (Index*)cnListGet(&parser->indices, id);
-  Index* indices = reinterpret_cast<Index*>(parser->indices.items);
-  List<stItem>* items;
+  Index& index = parser->indices[id];
   if (!index) {
-    printf("Bad id: %ld\n", id);
-    return false;
-  }
-  if (!*index) {
     printf("Already destroyed: %ld\n", id);
     return false;
   }
   // Remove the destroyed item.
-  items = &parser->state.items;
-  cnListRemove(items, *index);
-  if (*index < items->count) {
+  List<stItem>& items = parser->state.items;
+  cnListRemove(&items, index);
+  if (index < items.count) {
     // It wasn't last, so reduce the index of successive items.
-    stItem* endItem = reinterpret_cast<stItem*>(cnListEnd(items));
-    stItem* item = reinterpret_cast<stItem*>(cnListGet(items, *index));
+    stItem* endItem = reinterpret_cast<stItem*>(cnListEnd(&items));
+    stItem* item = &items[index];
     for (; item < endItem; item++) {
       // All items ids in our list should be valid, so index directly.
       // TODO Could optimize further if we assume seeing items always in
       // TODO increasing order.
-      indices[item->id]--;
+      parser->indices[item->id]--;
     }
   }
-  *index = 0;
+  index = 0;
   return true;
 }
 
@@ -311,8 +305,8 @@ bool stParseLine(stParser* parser, String* line) {
 stItem* stParserItem(stParser* parser, char* begin, char** end) {
   // TODO Better validation?
   stId id = strtol(begin, end, 10);
-  Index* index = (Index*)cnListGet(&parser->indices, id);
-  return reinterpret_cast<stItem*>(cnListGet(&parser->state.items, *index));
+  Index index = parser->indices[id];
+  return &parser->state.items[index];
 }
 
 

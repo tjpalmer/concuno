@@ -45,9 +45,7 @@ void Bag::pushParticipant(Index depth, Entity participant) {
   }
 
   // Expand the one for the right depth.
-  participantOptions = reinterpret_cast<List<Entity>*>(
-    cnListGet(&this->participantOptions, depth)
-  );
+  participantOptions = &this->participantOptions[depth];
   if (!cnListPush(participantOptions, &participant)) {
     throw Error("Failed to push participant.");
   }

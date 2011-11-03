@@ -358,7 +358,7 @@ Float cnCountsLogMetric(List<LeafCount>* counts);
  * Utility assumes the bags are all in continguous memory order.
  */
 void cnLeafBindingBagGroupListLimits(
-  List<LeafBindingBagGroup>* groups, Bag** begin, Bag** end
+  const List<LeafBindingBagGroup>& groups, Bag** begin, Bag** end
 );
 
 
@@ -531,7 +531,7 @@ Float cnTreeLogMetric(RootNode* root, List<Bag>* bags);
  * No guarantee is made on the order of the counts coming out.
  */
 bool cnTreeMaxLeafCounts(
-  RootNode* root, List<LeafCount>* counts, List<Bag>* bags
+  RootNode* root, List<LeafCount>& counts, List<Bag>* bags
 );
 
 
@@ -541,7 +541,7 @@ bool cnTreeMaxLeafCounts(
  * which are max for each leaf.
  */
 void treeMaxLeafBags(
-  List<LeafBindingBagGroup>* groupsIn, List<List<Index> >* groupsMaxOut
+  const List<LeafBindingBagGroup>& groupsIn, List<List<Index> >& groupsMaxOut
 );
 
 

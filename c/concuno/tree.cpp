@@ -227,13 +227,13 @@ LeafBindingBagGroup::~LeafBindingBagGroup() {
 
 
 void cnLeafBindingBagGroupListLimits(
-  List<LeafBindingBagGroup>* groups, Bag** begin, Bag** end
+  const List<LeafBindingBagGroup>& groups, Bag** begin, Bag** end
 ) {
   Bag* bags = NULL;
   Bag* bagsEnd = NULL;
 
   // Search the list.
-  cnListEachBegin(groups, LeafBindingBagGroup, group) {
+  cnListEachBegin(&groups, LeafBindingBagGroup, group) {
     cnListEachBegin(&group->bindingBags, BindingBag, bindingBag) {
       if (bindingBag->bag < bags || !bags) {
         bags = bindingBag->bag;
@@ -1092,7 +1092,7 @@ Node* cnTreeCopy(Node* node) {
 Float cnTreeLogMetric(RootNode* root, List<Bag>* bags) {
   List<LeafCount> counts;
   // Count positives and negatives in each leaf.
-  if (!cnTreeMaxLeafCounts(root, &counts, bags)) throw Error("No counts.");
+  if (!cnTreeMaxLeafCounts(root, counts, bags)) throw Error("No counts.");
   // Calculate the score.
   return cnCountsLogMetric(&counts);
 }
@@ -1109,7 +1109,7 @@ int cnTreeMaxLeafCounts_compareLeafProbsDown(const void* a, const void* b) {
 }
 
 bool cnTreeMaxLeafCounts(
-  RootNode* root, List<LeafCount>* counts, List<Bag>* bags
+  RootNode* root, List<LeafCount>& counts, List<Bag>* bags
 ) {
   List<LeafBindingBagGroup> groups;
   bool result = false;
@@ -1124,8 +1124,8 @@ bool cnTreeMaxLeafCounts(
   bagsUsed.resize(bags->count, false);
 
   // Prepare space for counts at one go for efficiency.
-  cnListClear(counts);
-  if (!cnListExpandMulti(counts, groups.count)) {
+  cnListClear(&counts);
+  if (!cnListExpandMulti(&counts, groups.count)) {
     cnErrTo(DONE, "No space for counts.");
   }
 
@@ -1140,12 +1140,10 @@ bool cnTreeMaxLeafCounts(
   cnListEachBegin(&groups, LeafBindingBagGroup, group) {
     // Init the count.
     // TODO Loop providing item and index?
-    LeafCount* count = reinterpret_cast<LeafCount*>(
-      cnListGet(counts, group - (LeafBindingBagGroup*)groups.items)
-    );
-    count->leaf = group->leaf;
-    count->negCount = 0;
-    count->posCount = 0;
+    LeafCount& count = counts[group - &groups.first()];
+    count.leaf = group->leaf;
+    count.negCount = 0;
+    count.posCount = 0;
     // Loop through bags, if any.
     cnListEachBegin(&group->bindingBags, BindingBag, bindingBag) {
       // TODO This subtraction only works if bags is an array of Bag and not
@@ -1155,9 +1153,9 @@ bool cnTreeMaxLeafCounts(
       if (bagsUsed[bagIndex]) continue;
       // Add to the proper count.
       if (bindingBag->bag->label) {
-        count->posCount++;
+        count.posCount++;
       } else {
-        count->negCount++;
+        count.negCount++;
       }
       bagsUsed[bagIndex] = true;
     } cnEnd;
@@ -1188,7 +1186,7 @@ bool treeMaxLeafBags_compareLeafProbsDown(
 }
 
 void treeMaxLeafBags(
-  List<LeafBindingBagGroup>* groupsIn, List<List<Index> >* groupsMaxOut
+  const List<LeafBindingBagGroup>& groupsIn, List<List<Index> >& groupsMaxOut
 ) {
   Index b;
   Count bagCount;
@@ -1200,19 +1198,19 @@ void treeMaxLeafBags(
   vector<bool> bagsUsed;
 
   // Prepare the groups out.
-  if (groupsMaxOut->count) {
+  if (groupsMaxOut.count) {
     // Just clear the old out for convience. Could error. TODO Document!
-    cnListEachBegin(groupsMaxOut, List<Index>, indices) {
+    cnListEachBegin(&groupsMaxOut, List<Index>, indices) {
       indices->~List<Index>();
     } cnEnd;
-    cnListClear(groupsMaxOut);
+    cnListClear(&groupsMaxOut);
   }
   // Allocate space right away.
-  if (!cnListExpandMulti(groupsMaxOut, groupsIn->count)) {
+  if (!cnListExpandMulti(&groupsMaxOut, groupsIn.count)) {
     throw Error("No groups out.");
   }
   // And init for safety.
-  cnListEachBegin(groupsMaxOut, List<Index>, indices) {
+  cnListEachBegin(&groupsMaxOut, List<Index>, indices) {
     new(indices) List<Index>;
   } cnEnd;
 
@@ -1220,7 +1218,7 @@ void treeMaxLeafBags(
     // Make a list of groups with their indices.
     // TODO Auto array pointer?
     vector<treeMaxLeafBags_IndexedGroup> indexedGroupsIn;
-    cnListEachBegin(groupsIn, LeafBindingBagGroup, groupIn) {
+    cnListEachBegin(&groupsIn, LeafBindingBagGroup, groupIn) {
       treeMaxLeafBags_IndexedGroup indexedGroup;
       indexedGroup.group = groupIn;
       indexedGroup.index = indexedGroupsIn.size();
@@ -1241,12 +1239,10 @@ void treeMaxLeafBags(
 
     // Loop through leaves from max prob to min, count bags and marking them
     // used along the way.
-    for (Index g = 0; g < groupsIn->count; g++) {
+    for (Index g = 0; g < groupsIn.count; g++) {
       // Group in and out, where out retains original order.
       treeMaxLeafBags_IndexedGroup& groupIn = indexedGroupsIn[g];
-      List<Index>* indices = reinterpret_cast<List<Index>*>(
-        cnListGet(groupsMaxOut, groupIn.index)
-      );
+      List<Index>& indices = groupsMaxOut[groupIn.index];
 
       // Loop through bags.
       b = 0;
@@ -1256,7 +1252,7 @@ void treeMaxLeafBags(
         // TODO consider explicit ids/indices at some point?
         Index bagIndex = bindingBag->bag - bags;
         if (!bagsUsed[bagIndex]) {
-          if (!cnListPush(indices, &b)) {
+          if (!cnListPush(&indices, &b)) {
             throw Error("No binding bag ref.");
           }
           bagsUsed[bagIndex] = true;
@@ -1266,10 +1262,10 @@ void treeMaxLeafBags(
     }
   } catch (const exception& error) {
     // Clear these out on fail.
-    cnListEachBegin(groupsMaxOut, List<Index>, indices) {
+    cnListEachBegin(&groupsMaxOut, List<Index>, indices) {
       indices->~List<Index>();
     } cnEnd;
-    cnListClear(groupsMaxOut);
+    cnListClear(&groupsMaxOut);
     throw;
   }
 }
@@ -1496,7 +1492,6 @@ bool cnVarNodePropagate_pushBinding(
   return true;
 }
 
-
 bool cnVarNodePropagateBindingBag(
   VarNode* var, BindingBag* bindingBag,
   List<LeafBindingBag>* leafBindingBags
@@ -1513,13 +1508,16 @@ bool cnVarNodePropagateBindingBag(
   // Use custom looping because of our abusive 2D-ish array.
   // TODO Normal looping really won't work here???
   for (b = 0; b < bindingBag->bindings.count; b++) {
-    Entity* entitiesIn =
-      reinterpret_cast<Entity*>(cnListGet(&bindingBag->bindings, b));
+    Entity* entitiesIn = b < bindingBag->bindings.count ?
+      &bindingBag->bindings[b] : NULL;
     bool anyLeft = false;
     // Figure out if we have constrained options.
-    List<Entity>* entitiesOut = reinterpret_cast<List<Entity>*>(
-      cnListGet(&bindingBag->bag->participantOptions, bindingBag->entityCount)
-    );
+    List<Entity>* entitiesOut = NULL;
+    if (bindingBag->entityCount < bindingBag->bag->participantOptions.count) {
+      // We have this many participant lists available. Get our list.
+      entitiesOut =
+        &bindingBag->bag->participantOptions[bindingBag->entityCount];
+    }
     if (!(entitiesOut && entitiesOut->count)) {
       // No constraints after all.
       entitiesOut = bindingBag->bag->entities;
