@@ -850,7 +850,7 @@ bool cnrRclParseLine(Parser* parser, char* line) {
       parser->item = player;
     }
   } cnEnd;
-  if (!parser->item) cnErrTo(DONE, "No player %ld/%ld.", team, playerIndex);
+  if (!parser->item) cnErrTo(DONE, "No player %zu/%ld.", team, playerIndex);
 
   // Parse deeper for kicks (literally).
   parser->mode = cnrParseModeTopCommand;

@@ -1,5 +1,5 @@
 #include <algorithm>
-#include <assert.h>
+#include <iostream>
 #include <string.h>
 
 #include "io.h"
@@ -385,8 +385,7 @@ Node** cnNodeKids(Node* node) {
   case cnNodeTypeVar:
     return &((VarNode*)node)->kid;
   default:
-    assert(false);
-    return NULL; // to avoid warnings.
+    throw Error("Unknown node type.");
   }
 }
 
@@ -401,8 +400,7 @@ Count cnNodeKidCount(Node* node) {
   case cnNodeTypeSplit:
     return 3;
   default:
-    assert(false);
-    return 0; // to avoid warnings.
+    throw Error("Unknown node type.");
   }
 }
 

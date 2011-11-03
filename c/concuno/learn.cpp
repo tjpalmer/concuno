@@ -1171,7 +1171,7 @@ RootNode* Learner::learnTree() {
   config.trainingBags.items = bags->items;
   config.trainingBags.count = bags->count * (2 / 3.0);
   // Validation set.
-  config.validationBags.items = &bags[config.trainingBags.count];
+  config.validationBags.items = &(*bags)[config.trainingBags.count];
   config.validationBags.count = bags->count - config.trainingBags.count;
   // Failsafe on having data here.
   if (!config.validationBags.count) cnErrTo(DONE, "No validation bags!");
