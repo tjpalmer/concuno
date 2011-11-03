@@ -89,7 +89,7 @@ struct PointMatrix {
    *
    * TODO Support other than Euclidean.
    */
-  Topology topology;
+  Topology::Type topology;
 
   /**
    * Number of homogeneous values per point.
@@ -138,18 +138,20 @@ struct PointBag {
 };
 
 
-enum NodeType {
-  cnNodeTypeNone, cnNodeTypeRoot, cnNodeTypeLeaf, cnNodeTypeSplit,
-  cnNodeTypeVar
-};
-
-
 /**
  * Abstract node base type.
  */
 struct Node {
 
-  NodeType type;
+  enum Type {
+    TypeNone,
+    TypeRoot,
+    TypeLeaf,
+    TypeSplit,
+    TypeVar,
+  };
+
+  Type type;
 
   /**
    * We need to find these guys easily across clones, hence the ids to go with.
@@ -202,27 +204,21 @@ struct RootNode {
 };
 
 
-typedef enum {
-
-  cnSplitYes,
-
-  cnSplitNo,
-
-  cnSplitErr,
-
-  cnSplitCount,
-
-} SplitIndex;
-
-
 /**
  * A node for making decisions about where to propagate bindings.
  */
 struct SplitNode {
 
+  enum SplitIndex {
+    Yes,
+    No,
+    Err,
+    SplitCount,
+  };
+
   Node node;
 
-  Node* kids[cnSplitCount];
+  Node* kids[SplitCount];
 
   /**
    * Not owned by this node.
@@ -408,7 +404,7 @@ Count cnNodeKidCount(Node* node);
 /**
  * You don't usually need to call this directly.
  */
-void cnNodeInit(Node* node, NodeType type);
+void cnNodeInit(Node* node, Node::Type type);
 
 
 /**

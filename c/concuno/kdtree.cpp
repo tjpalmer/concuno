@@ -5,7 +5,7 @@ namespace concuno {
 
 
 RootNode* cnKdSplit(cnKdSplitter* splitter) {
-  if (splitter->pointMatrix->topology != TopologyEuclidean) {
+  if (splitter->pointMatrix->topology != Topology::Euclidean) {
     cnErrTo(DONE, "Only Euclidean for now.");
   }
   DONE:

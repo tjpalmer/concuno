@@ -307,7 +307,7 @@ EntityFunction::EntityFunction(
   const char* $name, Count $inCount, Count $outCount
 ):
   data(NULL), inCount($inCount), name($name), outCount($outCount),
-  outTopology(TopologyEuclidean), outType(NULL), dispose(NULL), get(NULL)
+  outTopology(Topology::Euclidean), outType(NULL), dispose(NULL), get(NULL)
 {}
 
 
@@ -558,7 +558,7 @@ Property::Property(
   Type* $containerType, Type* $type, const char* $name, Count $count
 ):
   containerType($containerType), type($type), name($name),
-  topology(TopologyEuclidean), count($count)
+  topology(Topology::Euclidean), count($count)
 {}
 
 

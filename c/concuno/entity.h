@@ -74,23 +74,30 @@ struct Bag {
 };
 
 
-typedef enum {
+/**
+ * TODO Do we really need a topology struct? For now, makes Eclipse happier.
+ */
+struct Topology {
 
-  /**
-   * Also called standard or real product topology or such like. Just presumed
-   * open (to machine limits) R^N space here.
-   */
-  TopologyEuclidean,
+  enum Type {
 
-  // TODO Use general SpecialOrthogonal and SpecialEuclidean across different
-  // TODO dimensionalities?
-  //TopologyCircle,
+    /**
+     * Also called standard or real product topology or such like. Just presumed
+     * open (to machine limits) R^N space here.
+     */
+    Euclidean,
 
-  // TODO The following is the power set, actually, but for discrete space
-  // TODO allows what we want for discrete properties, I think.
-  //TopologyDiscrete,
+    // TODO Use general SpecialOrthogonal and SpecialEuclidean across different
+    // TODO dimensionalities?
+    //Circle,
 
-} Topology;
+    // TODO The following is the power set, actually, but for discrete space
+    // TODO allows what we want for discrete properties, I think.
+    //Discrete,
+
+  };
+
+};
 
 
 // Necessary forward declaration.
@@ -116,7 +123,7 @@ struct EntityFunction {
 
   Count outCount;
 
-  Topology outTopology;
+  Topology::Type outTopology;
 
   Type* outType;
 
@@ -229,7 +236,7 @@ struct Property {
 
   std::string name;
 
-  Topology topology;
+  Topology::Type topology;
 
   /**
    * If this is an array/list property, says how many there are.

@@ -240,7 +240,7 @@ LearnerConfig::~LearnerConfig() {
 }
 
 
-void cnBuildInitialKernel(Topology topology, List<PointBag>* pointBags) {
+void cnBuildInitialKernel(Topology::Type topology, List<PointBag>* pointBags) {
   Float* positivePoint;
   Float* positivePoints = NULL;
   Count positivePointCount;
@@ -248,7 +248,7 @@ void cnBuildInitialKernel(Topology topology, List<PointBag>* pointBags) {
   Count valueCount = 0; // per point.
   Float* point;
 
-  if (topology != TopologyEuclidean) {
+  if (topology != Topology::Euclidean) {
     printf("I handle only Euclidean right now, not %u.\n", topology);
     return;
   }
@@ -421,7 +421,8 @@ bool cnBestPointByScore(
   Function** bestFunction, Float* bestThreshold
 ) {
   Float bestScore = -HUGE_VAL, score = bestScore;
-  Count negBagsLeft = 8, posBagsLeft = 8;
+  // TODO Allow looking at negatives???
+  Count negBagsLeft = 0, posBagsLeft = 8;
   bool result = false;
   Float threshold;
   Count valueCount = pointBags->count ?

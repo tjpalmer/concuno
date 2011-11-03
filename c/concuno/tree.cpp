@@ -278,16 +278,16 @@ void cnNodeDispose(Node* node) {
   }
   // Disposes of child nodes in sub-dispose.
   switch (node->type) {
-  case cnNodeTypeLeaf:
+  case Node::TypeLeaf:
     cnLeafNodeDispose((LeafNode*)node);
     break;
-  case cnNodeTypeSplit:
+  case Node::TypeSplit:
     cnSplitNodeDispose((SplitNode*)node);
     break;
-  case cnNodeTypeRoot:
+  case Node::TypeRoot:
     cnRootNodeDispose((RootNode*)node);
     break;
-  case cnNodeTypeVar:
+  case Node::TypeVar:
     cnVarNodeDispose((VarNode*)node);
     break;
   default:
@@ -306,7 +306,7 @@ void cnNodeDrop(Node* node) {
 
 
 void cnLeafNodeInit(LeafNode* leaf) {
-  cnNodeInit(&leaf->node, cnNodeTypeLeaf);
+  cnNodeInit(&leaf->node, Node::TypeLeaf);
   leaf->probability = 0;
   leaf->strength = 0;
 }
@@ -367,7 +367,7 @@ Node* cnNodeFindById(Node* node, Index id) {
 }
 
 
-void cnNodeInit(Node* node, NodeType type) {
+void cnNodeInit(Node* node, Node::Type type) {
   node->id = -1;
   node->parent = NULL;
   node->type = type;
@@ -376,13 +376,13 @@ void cnNodeInit(Node* node, NodeType type) {
 
 Node** cnNodeKids(Node* node) {
   switch (node->type) {
-  case cnNodeTypeLeaf:
+  case Node::TypeLeaf:
     return NULL;
-  case cnNodeTypeRoot:
+  case Node::TypeRoot:
     return &((RootNode*)node)->kid;
-  case cnNodeTypeSplit:
+  case Node::TypeSplit:
     return ((SplitNode*)node)->kids;
-  case cnNodeTypeVar:
+  case Node::TypeVar:
     return &((VarNode*)node)->kid;
   default:
     throw Error("Unknown node type.");
@@ -392,12 +392,12 @@ Node** cnNodeKids(Node* node) {
 
 Count cnNodeKidCount(Node* node) {
   switch (node->type) {
-  case cnNodeTypeLeaf:
+  case Node::TypeLeaf:
     return 0;
-  case cnNodeTypeRoot:
-  case cnNodeTypeVar:
+  case Node::TypeRoot:
+  case Node::TypeVar:
     return 1;
-  case cnNodeTypeSplit:
+  case Node::TypeSplit:
     return 3;
   default:
     throw Error("Unknown node type.");
@@ -410,7 +410,7 @@ bool cnNodeLeaves(Node* node, List<LeafNode*>* leaves) {
   Node** kid = cnNodeKids(node);
   Node** end = kid + count;
   for (; kid < end; kid++) {
-    if ((*kid)->type == cnNodeTypeLeaf) {
+    if ((*kid)->type == Node::TypeLeaf) {
       if (!cnListPush(leaves, kid)) {
         return false;
       }
@@ -430,19 +430,19 @@ bool cnNodePropagateBindingBag(
 ) {
   // Sub-propagate. TODO Function pointers of some form instead of this?
   switch (node->type) {
-  case cnNodeTypeLeaf:
+  case Node::TypeLeaf:
     return cnLeafNodePropagateBindingBag(
       (LeafNode*)node, bindingBag, leafBindingBags
     );
-  case cnNodeTypeSplit:
+  case Node::TypeSplit:
     return cnSplitNodePropagateBindingBag(
       (SplitNode*)node, bindingBag, leafBindingBags
     );
-  case cnNodeTypeRoot:
+  case Node::TypeRoot:
     return cnRootNodePropagateBindingBag(
       (RootNode*)node, bindingBag, leafBindingBags
     );
-  case cnNodeTypeVar:
+  case Node::TypeVar:
     return cnVarNodePropagateBindingBag(
       (VarNode*)node, bindingBag, leafBindingBags
     );
@@ -506,7 +506,7 @@ RootNode* cnNodeRoot(Node* node) {
   while (node->parent) {
     node = node->parent;
   }
-  if (node->type == cnNodeTypeRoot) {
+  if (node->type == Node::TypeRoot) {
     return (RootNode*)node;
   }
   return NULL;
@@ -517,7 +517,7 @@ Count cnNodeVarDepth(Node* node) {
   Count depth = 0;
   while (node->parent) {
     node = node->parent;
-    depth += node->type == cnNodeTypeVar;
+    depth += node->type == Node::TypeVar;
   }
   return depth;
 }
@@ -555,7 +555,7 @@ void cnRootNodeDispose(RootNode* root) {
 
 
 bool cnRootNodeInit(RootNode* root, bool addLeaf) {
-  cnNodeInit(&root->node, cnNodeTypeRoot);
+  cnNodeInit(&root->node, Node::TypeRoot);
   root->node.id = 0;
   root->kid = NULL;
   root->nextId = 1;
@@ -595,7 +595,7 @@ SplitNode* cnSplitNodeCreate(bool addLeaves) {
 void cnSplitNodeDispose(SplitNode* split) {
   // Dispose of the kids.
   Node** kid = split->kids;
-  Node** end = split->kids + cnSplitCount;
+  Node** end = split->kids + SplitNode::SplitCount;
   for (; kid < end; kid++) {
     cnNodeDrop(*kid);
   }
@@ -611,8 +611,8 @@ void cnSplitNodeDispose(SplitNode* split) {
 
 bool cnSplitNodeInit(SplitNode* split, bool addLeaves) {
   Node** kid;
-  Node** end = split->kids + cnSplitCount;
-  cnNodeInit(&split->node, cnNodeTypeSplit);
+  Node** end = split->kids + SplitNode::SplitCount;
+  cnNodeInit(&split->node, Node::TypeSplit);
   // Init to null for convenience and safety.
   split->function = NULL;
   split->predicate = NULL;
@@ -880,21 +880,21 @@ bool cnSplitNodePropagateBindingBag(
 ) {
   bool allToErr = false;
   Index b;
-  BindingBag bagsOut[cnSplitCount];
+  BindingBag bagsOut[SplitNode::SplitCount];
   Index p;
   Float* point;
   PointBag* pointBag = NULL;
   Float* pointsEnd;
   BindingBag** pointBindingBagOuts = NULL;
   bool result = false;
-  Node* yes = split->kids[cnSplitYes];
-  Node* no = split->kids[cnSplitNo];
-  Node* err = split->kids[cnSplitErr];
+  Node* yes = split->kids[SplitNode::Yes];
+  Node* no = split->kids[SplitNode::No];
+  Node* err = split->kids[SplitNode::Err];
 
   // Init first.
   for (
     Index splitIndex = 0;
-    splitIndex < static_cast<Index>(cnSplitCount);
+    splitIndex < static_cast<Index>(SplitNode::SplitCount);
     splitIndex++
   ) {
     (bagsOut + splitIndex)->init(bindingBag->bag, bindingBag->entityCount);
@@ -943,14 +943,14 @@ bool cnSplitNodePropagateBindingBag(
     }
 
     // Choose the bag this point goes to.
-    SplitIndex splitIndex;
+    SplitNode::SplitIndex splitIndex;
     if (!allGood) {
-      splitIndex = cnSplitErr;
+      splitIndex = SplitNode::Err;
     } else {
       splitIndex = split->predicate->evaluate(split->predicate, point) ?
-        cnSplitYes : cnSplitNo;
+        SplitNode::Yes : SplitNode::No;
       // I hack -1 (turned unsigned) into this for errors at this point.
-      if (splitIndex >= cnSplitCount) cnErrTo(DONE, "Bad evaluate.");
+      if (splitIndex >= SplitNode::SplitCount) cnErrTo(DONE, "Bad evaluate.");
     }
 
     // Remember this choice for later, when we go through the bindings.
@@ -974,12 +974,12 @@ bool cnSplitNodePropagateBindingBag(
   // Now that we have the bindings split, push them down.
   for (
     Index splitIndex = 0;
-    splitIndex < static_cast<Index>(cnSplitCount);
+    splitIndex < static_cast<Index>(SplitNode::SplitCount);
     splitIndex++
   ) {
     // Use the original instead of an empty if going to allToErr.
     BindingBag* bagOut =
-      allToErr && splitIndex == static_cast<Index>(cnSplitErr) ?
+      allToErr && splitIndex == static_cast<Index>(SplitNode::Err) ?
         bindingBag : bagsOut + splitIndex;
     if (!cnNodePropagateBindingBag(
       split->kids[splitIndex], bagOut, leafBindingBags
@@ -997,7 +997,7 @@ bool cnSplitNodePropagateBindingBag(
   }
   for (
     Index splitIndex = 0;
-    splitIndex < static_cast<Index>(cnSplitCount);
+    splitIndex < static_cast<Index>(SplitNode::SplitCount);
     splitIndex++
   ) {
     (bagsOut + splitIndex)->~BindingBag();
@@ -1040,16 +1040,16 @@ Node* cnTreeCopy(Node* node) {
   // TODO Extract node size to separate function?
   Count nodeSize;
   switch (node->type) {
-  case cnNodeTypeLeaf:
+  case Node::TypeLeaf:
     nodeSize = sizeof(LeafNode);
     break;
-  case cnNodeTypeRoot:
+  case Node::TypeRoot:
     nodeSize = sizeof(RootNode);
     break;
-  case cnNodeTypeSplit:
+  case Node::TypeSplit:
     nodeSize = sizeof(SplitNode);
     break;
-  case cnNodeTypeVar:
+  case Node::TypeVar:
     nodeSize = sizeof(VarNode);
     break;
   default:
@@ -1069,7 +1069,7 @@ Node* cnTreeCopy(Node* node) {
     }
     (*kid)->parent = copy;
   }
-  if (node->type == cnNodeTypeSplit) {
+  if (node->type == Node::TypeSplit) {
     // Custom handling for split nodes.
     anyFailed = !cnTreeCopy_handleSplit(
       reinterpret_cast<SplitNode*>(node), reinterpret_cast<SplitNode*>(copy)
@@ -1311,22 +1311,22 @@ bool cnTreeWrite_any(Node* node, FILE* file, String* indent) {
 
   // Handle each node type.
   switch (node->type) {
-  case cnNodeTypeLeaf:
+  case Node::TypeLeaf:
     if (!cnTreeWrite_leaf((LeafNode*)node, file, indent)) {
       cnErrTo(DONE, "No leaf.");
     }
     break;
-  case cnNodeTypeRoot:
+  case Node::TypeRoot:
     if (!cnTreeWrite_root((RootNode*)node, file, indent)) {
       cnErrTo(DONE, "No root.");
     }
     break;
-  case cnNodeTypeSplit:
+  case Node::TypeSplit:
     if (!cnTreeWrite_split((SplitNode*)node, file, indent)) {
       cnErrTo(DONE, "No split.");
     }
     break;
-  case cnNodeTypeVar:
+  case Node::TypeVar:
     if (!cnTreeWrite_var((VarNode*)node, file, indent)) {
       cnErrTo(DONE, "No var.");
     }
@@ -1457,7 +1457,7 @@ void cnVarNodeDispose(VarNode* var) {
 
 
 bool cnVarNodeInit(VarNode* var, bool addLeaf) {
-  cnNodeInit(&var->node, cnNodeTypeVar);
+  cnNodeInit(&var->node, Node::TypeVar);
   var->kid = NULL;
   if (addLeaf) {
     LeafNode* leaf = cnLeafNodeCreate();
