@@ -24,10 +24,11 @@ Float cnNorm(Count size, Float* x) {
 void reframe(
   Count size, Float* origin, Float* target, Float* result
 ) {
-  Index i;
+  // Some work here based on the stable computation technique for Givens
+  // rotations at Wikipedia: http://en.wikipedia.org/wiki/Givens_rotation
 
   // Translate. This is the first easy part.
-  for (i = 0; i < size; i++) {
+  for (Index i = 0; i < size; i++) {
     target[i] -= origin[i];
     result[i] -= origin[i];
   }
@@ -51,7 +52,7 @@ void reframe(
   // TODO to matter? How to coordinate such caching? Thread-local blackboards?
   // TODO Meanwhile, the operations for calculation here are few.
   //
-  for (i = 1; i < size; i++) {
+  for (Index i = 1; i < size; i++) {
     // Focus just on the (0, i) plane.
     //
     // This part is what uses the stable calculation recommendations at
@@ -104,7 +105,7 @@ void reframe(
   }
 
   // Scale. This is the other easy part.
-  for (i = 0; i < size; i++) {
+  for (Index i = 0; i < size; i++) {
     result[i] /= target[0];
   }
   target[0] = 1.0;

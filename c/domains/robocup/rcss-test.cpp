@@ -143,17 +143,9 @@ bool cnrPickFunctions(List<EntityFunction*>* functions, Type* type) {
   }
   for (size_t p = 0; p < type->properties.size(); p++) {
     Property* property = type->properties[p];
-    EntityFunction* function;
-    if (!(function = cnEntityFunctionCreateProperty(property))) {
-      cnErrTo(FAIL, "No function.");
-    }
-    if (!cnListPush(functions, &function)) {
-      cnEntityFunctionDrop(function);
-      cnErrTo(FAIL, "Function not pushed.");
-    }
+    EntityFunction* function = cnPushPropertyFunction(functions, property);
     // TODO Distance (and difference?) angle, too?
     if (true || function->name == "Location") {
-      EntityFunction* distance;
       if (true) {
         // Actually, skip this N^2 thing for now. For many items per bag and few
         // bags, this is both extremely slow and allows overfit, since there are
@@ -161,31 +153,15 @@ bool cnrPickFunctions(List<EntityFunction*>* functions, Type* type) {
         //continue;
       }
 
-      // Distance.
-      if (!(distance = cnEntityFunctionCreateDistance(function))) {
-        cnErrTo(FAIL, "No distance %s.", function->name.c_str());
-      }
-      if (!cnListPush(functions, &distance)) {
-        cnEntityFunctionDrop(distance);
-        cnErrTo(FAIL, "Function %s not pushed.", distance->name.c_str());
-      }
+      // Distance and difference.
+      cnPushDistanceFunction(functions, function);
+      cnPushDifferenceFunction(functions, function);
 
-      // Difference.
-      if (!(distance = cnEntityFunctionCreateDifference(function))) {
-        cnErrTo(FAIL, "No distance %s.", function->name.c_str());
-      }
-      if (!cnListPush(functions, &distance)) {
-        cnEntityFunctionDrop(distance);
-        cnErrTo(FAIL, "Function %s not pushed.", distance->name.c_str());
-      }
-
-      // Reframe.
-      if (!(distance = cnEntityFunctionCreateReframe(function))) {
-        cnErrTo(FAIL, "No reframe %s.", function->name.c_str());
-      }
-      if (!cnListPush(functions, &distance)) {
-        cnEntityFunctionDrop(distance);
-        cnErrTo(FAIL, "Function %s not pushed.", distance->name.c_str());
+      // Reframe has no convenience. TODO Expose lower-level convenience.
+      EntityFunction* composed = new ReframeEntityFunction(*function);
+      if (!cnListPush(functions, &composed)) {
+        delete composed;
+        throw Error("Function not pushed.");
       }
     }
   }

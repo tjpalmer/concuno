@@ -64,7 +64,7 @@ bool cnClusterOnFunction(List<Bag>* bags, EntityFunction* function) {
   point = points;
   cnListEachBegin(bags, Bag, bag) {
     cnListEachBegin(bag->entities, void*, entity) {
-      function->get(function, entity, point);
+      function->get(entity, point);
       point += function->outCount;
     } cnEnd;
   } cnEnd;

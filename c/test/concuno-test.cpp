@@ -38,7 +38,7 @@ void testVariance(void);
 
 
 int main(void) {
-  switch ('h') {
+  switch ('r') {
   case 'b':
     testBinomial();
     break;
@@ -239,20 +239,6 @@ void testPermutations(void) {
 }
 
 
-void testPropagate_charsDiffGet(
-  EntityFunction* function, Entity* ins, void* outs
-) {
-  char a = *(char*)(ins[0]);
-  char b = *(char*)(ins[1]);
-  if (a < 'A' || b < 'A') {
-    // Give a NaN for non-letters, just for kicks.
-    // TODO Non-float error convention!
-    *(Float*)outs = cnNaN();
-  } else {
-    *(Float*)outs = a - b;
-  }
-}
-
 bool testPropagate_equalEvaluate(Predicate* predicate, void* in) {
   return !*(Float*)in;
 }
@@ -277,9 +263,25 @@ bool testPropagate_write(
 }
 
 void testPropagate(void) {
+  struct CharsDiffEntityFunction: EntityFunction {
+    CharsDiffEntityFunction(Type& type): EntityFunction("CharsDiff", 2, 1) {
+      this->outType = &type;
+    }
+    virtual void get(Entity* ins, void* outs) {
+      char a = *(char*)(ins[0]);
+      char b = *(char*)(ins[1]);
+      if (a < 'A' || b < 'A') {
+        // Give a NaN for non-letters, just for kicks.
+        // TODO Non-float error convention!
+        *(Float*)outs = cnNaN();
+      } else {
+        *(Float*)outs = a - b;
+      }
+    }
+  };
+
   Bag bag;
   const char* data = "Hello!";
-  EntityFunction* entityFunction = NULL;
   Index i;
   List<LeafBindingBag> leafBindingBags;
   SplitNode* split;
@@ -288,16 +290,12 @@ void testPropagate(void) {
   Type* type = NULL;
 
   // Init stuff.
-  if (!cnRootNodeInit(&tree, false)) cnErrTo(DONE, "Init failed.");
+  if (!cnRootNodeInit(&tree, false)) throw Error("Init failed.");
   // TODO Float required because of NaN convention. Fix this!
   if (!(type = cnTypeCreate("Float", sizeof(Float)))) {
-    cnErrTo(DONE, "No type.");
+    throw Error("No type.");
   }
-  if (!(entityFunction = cnEntityFunctionCreate("CharsDiff", 2, 1))) {
-    cnErrTo(DONE, "No function.");
-  }
-  entityFunction->get = testPropagate_charsDiffGet;
-  entityFunction->outType = type;
+  EntityFunction* entityFunction = new CharsDiffEntityFunction(*type);
 
   // Add var nodes.
   // Create and add nodes one at a time, so destruction will be automatic.
@@ -313,11 +311,11 @@ void testPropagate(void) {
   // Var indices.
   if (!(
     split->varIndices = cnAlloc(Index, entityFunction->inCount)
-  )) cnErrTo(DONE, "No var indices.");
+  )) throw Error("No var indices.");
   for (i = 0; i < entityFunction->inCount; i++) split->varIndices[i] = i;
   // Predicate.
   if (!(split->predicate = cnAlloc(Predicate, 1))) {
-    cnErrTo(DONE, "No predicate.");
+    throw Error("No predicate.");
   }
   split->predicate->copy = NULL;
   split->predicate->dispose = NULL;
@@ -338,7 +336,7 @@ void testPropagate(void) {
 
   // Propagate.
   if (!cnTreePropagateBag(&tree, &bag, &leafBindingBags)) {
-    cnErrTo(DONE, "No propagate.");
+    throw Error("No propagate.");
   }
 
   // And see what bindings we have.
@@ -365,15 +363,6 @@ void testPropagate(void) {
 }
 
 
-void testReframe_get(EntityFunction* function, Entity* ins, void* outs) {
-  Float* in = *(Float**)ins;
-  Float* inEnd = in + function->outCount;
-  Float* out = reinterpret_cast<Float*>(outs);
-  for (; in < inEnd; in++, out++) {
-    *out = *in;
-  }
-}
-
 void testReframe_case(
   EntityFunction* reframe,
   Float x0, Float y0, Float x1, Float y1, Float x2, Float y2
@@ -383,7 +372,7 @@ void testReframe_case(
   double* points[] = {pointsData[0], pointsData[1], pointsData[2]};
   double result[2];
   // Reframe and check result.
-  reframe->get(reframe, (void**)points, result);
+  reframe->get((void**)points, result);
   printf(
     "From (%g, %g) to (%g, %g) reframes (%g, %g) as: (%g, %g)\n",
     points[0][0], points[0][1],
@@ -415,16 +404,25 @@ void testReframe_case3d(
 }
 
 void testReframe(void) {
-  EntityFunction* direct = NULL;
-  EntityFunction* reframe = NULL;
-  Schema schema;
+  struct DirectEntityFunction: EntityFunction {
+    DirectEntityFunction(Schema& schema): EntityFunction("Direct", 1, 2) {
+      outType = schema.floatType;
+    }
+    virtual void get(Entity* ins, void* outs) {
+      Float* in = *(Float**)ins;
+      Float* inEnd = in + outCount;
+      Float* out = reinterpret_cast<Float*>(outs);
+      for (; in < inEnd; in++, out++) {
+        *out = *in;
+      }
+    }
+  };
 
   // Init.
-  if (!cnSchemaInitDefault(&schema)) cnFailTo(DONE);
-  if (!(direct = cnEntityFunctionCreate("Direct", 1, 2))) cnFailTo(DONE);
-  direct->outType = schema.floatType;
-  direct->get = testReframe_get;
-  if (!(reframe = cnEntityFunctionCreateReframe(direct))) cnFailTo(DONE);
+  Schema schema;
+  if (!cnSchemaInitDefault(&schema)) throw Error("No schema.");
+  EntityFunction* direct = new DirectEntityFunction(schema);
+  EntityFunction* reframe = new ReframeEntityFunction(*direct);
 
   // Test reframe.
   testReframe_case(reframe, 0.0, 0.0, 1.0, 1.0, 0.0, 1.0);
@@ -445,7 +443,7 @@ void testReframe(void) {
   testReframe_case3d(0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0);
   testReframe_case3d(0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0);
 
-  DONE:
+  // Clean up.
   cnEntityFunctionDrop(reframe);
   cnEntityFunctionDrop(direct);
 }

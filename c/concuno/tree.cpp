@@ -795,7 +795,7 @@ PointBag* cnSplitNodePointBag(
     }
     // Call the function.
     // TODO Check for errors once we provide such things.
-    split->function->get(split->function, args, values);
+    split->function->get(args, values);
     // Move to the next vector.
     values =
       ((char*)values) +

@@ -257,41 +257,18 @@ bool pickFunctions(List<EntityFunction*>* functions, Type* type) {
   // Loop on all but the first (the bag id).
   for (size_t p = 1; p < type->properties.size(); p++) {
     Property* property = type->properties[p];
-    EntityFunction* function;
-    if (!(function = cnEntityFunctionCreateProperty(property))) {
-      cnErrTo(FAIL, "No function.");
-    }
-    if (!cnListPush(functions, &function)) {
-      cnEntityFunctionDrop(function);
-      cnErrTo(FAIL, "Function not pushed.");
-    }
+    EntityFunction* function = cnPushPropertyFunction(functions, property);
     // TODO Distance (and difference?) angle, too?
     if (true || function->name == "Location") {
-      EntityFunction* distance;
       if (true) {
         // Actually, skip this N^2 thing for now. For many items per bag and few
         // bags, this is both extremely slow and allows overfit, since there are
         // so many options to consider.
         //continue;
       }
-
-      // Distance.
-      if (!(distance = cnEntityFunctionCreateDistance(function))) {
-        cnErrTo(FAIL, "No distance %s.", function->name.c_str());
-      }
-      if (!cnListPush(functions, &distance)) {
-        cnEntityFunctionDrop(distance);
-        cnErrTo(FAIL, "Function %s not pushed.", distance->name.c_str());
-      }
-
-      // Difference.
-      if (!(distance = cnEntityFunctionCreateDifference(function))) {
-        cnErrTo(FAIL, "No distance %s.", function->name.c_str());
-      }
-      if (!cnListPush(functions, &distance)) {
-        cnEntityFunctionDrop(distance);
-        cnErrTo(FAIL, "Function %s not pushed.", distance->name.c_str());
-      }
+      // Distance and difference.
+      cnPushDistanceFunction(functions, function);
+      cnPushDifferenceFunction(functions, function);
     }
   }
 

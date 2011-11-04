@@ -100,7 +100,9 @@ struct Topology {
 };
 
 
-// Necessary forward declaration.
+// Necessary forward declarations.
+struct Property;
+struct Schema;
 struct Type;
 
 
@@ -115,7 +117,11 @@ struct EntityFunction {
 
   virtual ~EntityFunction();
 
-  void* data;
+  /**
+   * Receives an array of pointers to entities, and provides an array of values
+   * whose individual sizes are given by outType.
+   */
+  virtual void get(Entity* ins, void* outs) = 0;
 
   Count inCount;
 
@@ -127,16 +133,95 @@ struct EntityFunction {
 
   Type* outType;
 
-  /**
-   * If not null, call this before finishing generic disposal.
-   */
-  void (*dispose)(const EntityFunction* function);
+};
+
+
+/**
+ * Abstract base type for entity functions working with the results of a base
+ * function.
+ */
+struct ComposedEntityFunction: EntityFunction {
+
+  ComposedEntityFunction(
+    EntityFunction& base, const char* name, Count inCount, Count outCount
+  );
+
+  EntityFunction& base;
+
+};
+
+
+struct DifferenceEntityFunction: ComposedEntityFunction {
 
   /**
-   * Receives an array of pointers to entities, and provides an array of values
-   * whose individual sizes are given by outType.
+   * The handy static form is useful to third parties like distance.
    */
-  void (*get)(EntityFunction* function, Entity* ins, void* outs);
+  static void get(EntityFunction& base, Entity* ins, void* outs);
+
+  DifferenceEntityFunction(EntityFunction& base);
+
+  virtual void get(Entity* ins, void* outs);
+
+};
+
+
+struct DistanceEntityFunction: ComposedEntityFunction {
+
+  DistanceEntityFunction(EntityFunction& base);
+
+  virtual void get(Entity* ins, void* outs);
+
+};
+
+
+/**
+ * An entity function that just performs a property get.
+ */
+struct PropertyEntityFunction: EntityFunction {
+
+  PropertyEntityFunction(Property& property);
+
+  virtual void get(Entity* ins, void* outs);
+
+  Property& property;
+
+};
+
+
+/**
+ * A ternary function needing one representing an origin, another representing
+ * one unit down the x (first) axis, and another who's coordinate in the new
+ * frame is the output value.
+ *
+ * Beyond two dimensions, the solution is underconstrained. For the moment, no
+ * promises are made as to what rotation is applied.
+ *
+ * TODO Allow greater arity for extra constraints in higher dimensions? High
+ * TODO arity is trouble.
+ */
+struct ReframeEntityFunction: ComposedEntityFunction {
+
+  ReframeEntityFunction(EntityFunction& base);
+
+  virtual void get(Entity* ins, void* outs);
+
+};
+
+
+/**
+ * An entity function that determines merely whether all the arguments actually
+ * have bindings.
+ *
+ * These functions should be considered before others, if the aim is for simple
+ * and comprehensible trees.
+ *
+ * TODO Consider error branches off var nodes?
+ */
+struct ValidityEntityFunction: EntityFunction {
+
+  ValidityEntityFunction(Schema* schema, Count arity);
+
+  virtual void get(Entity* ins, void* outs);
 
 };
 
@@ -326,53 +411,7 @@ void cnBagListDispose(
 );
 
 
-EntityFunction* cnEntityFunctionCreateDifference(EntityFunction* base);
-
-
-EntityFunction* cnEntityFunctionCreateDistance(EntityFunction* base);
-
-
-/**
- * Creates an entity function that just performs a property get.
- */
-EntityFunction* cnEntityFunctionCreateProperty(Property* property);
-
-
-/**
- * A ternary function needing one representing an origin, another representing
- * one unit down the x (first) axis, and another who's coordinate in the new
- * frame is the output value.
- *
- * Beyond two dimensions, the solution is underconstrained. For the moment, no
- * promises are made as to what rotation is applied.
- *
- * TODO Allow greater arity for extra constraints in higher dimensions? High
- * TODO arity is trouble.
- */
-EntityFunction* cnEntityFunctionCreateReframe(EntityFunction* base);
-
-
-/**
- * Creates an entity function that determines merely whether all the arguments
- * actually have bindings.
- *
- * These functions should be considered before others, if the aim is for simple
- * and comprehensible trees.
- *
- * TODO Consider error branches off var nodes?
- */
-EntityFunction* cnEntityFunctionCreateValid(Schema* schema, Count arity);
-
-
 void cnEntityFunctionDrop(EntityFunction* function);
-
-
-/**
- * Just a basic create for if you want to fill in your own and start out clean.
- */
-EntityFunction* cnEntityFunctionCreate(
-  const char* name, Count inCount, Count outCount
-);
 
 
 /**
