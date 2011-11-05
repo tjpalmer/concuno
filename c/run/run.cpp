@@ -58,7 +58,7 @@ void printType(Type* type);
 
 
 void pushOrExpandProperty(
-  Type* type, char* propertyName, TypedOffset* offset
+  Type* type, const std::string& propertyName, TypedOffset* offset
 );
 
 
@@ -175,11 +175,6 @@ bool buildBags(
 Type* loadTable(
   const char* fileName, const char* typeName, Schema* schema, ListAny* items
 ) {
-  Count countRead;
-  // TODO ifstream!
-  FILE* file = NULL;
-  String line;
-  char* remaining;
   List<TypedOffset> offsets;
   TypedOffset* offsetsEnd;
   Type* type = NULL;
@@ -190,23 +185,20 @@ Type* loadTable(
   pushOrDelete(*schema->types, type);
 
   // Open the file.
-  file = fopen(fileName, "r");
-  //ifstream file(fileName);
+  ifstream file(fileName);
+  // TODO Need to check is_open?
   if (!file) throw Error("Couldn't open '%s'.");//, fileName);
 
   // Read the headers.
-  if (cnReadLine(file, &line) <= 0) throw Error("No headers.");
-  //string line;
-  //getline(file, line);
-  //stringstream remaining(line);
-  remaining = cnStr(&line);
-  while (true) {
+  string line;
+  if (!getline(file, line)) throw Error("No headers.");
+  stringstream remaining(line);
+  string next;
+  while (remaining >> next) {
     TypedOffset* offset;
-    char* next = cnParseStr(remaining, &remaining);
-    if (!*next) break;
-    if (next == (char*)line.items && *next == '%') {
+    if (type->properties->empty() && next[0] == '%') {
       // Strip % prefix, used there for Matlab convenience.
-      next++;
+      next.erase(0, 1);
     }
     if (!(offset = reinterpret_cast<TypedOffset*>(cnListExpand(&offsets)))) {
       throw Error("No offset.");
@@ -220,23 +212,24 @@ Type* loadTable(
   printType(type);
 
   // Read the lines. Each is a separate item.
-  while ((countRead = cnReadLine(file, &line)) > 0) {
+  Count i = 0;
+  while (getline(file, line)) {
+    i++;
     Entity item;
     // Allocate then read the fields on this line.
     if (!(item = cnListExpand(items))) throw Error("No item.");
-    remaining = cnStr(&line);
+    // For some reason, reuse with remaining.str(line) leaves fail/bad bits.
+    stringstream remaining(line);
     cnListEachBegin(&offsets, TypedOffset, offset) {
       // TODO Don't assume all are floats! Need custom parsing?
-      char* former = remaining;
-      Float value = strtod(remaining, &remaining);
-      if (remaining == former) throw Error("No data to read?");
+      Float value;
+      if (!(remaining >> value)) throw Error("No data to read?");
       *(Float*)(((char*)item) + offset->offset) = value;
     } cnEnd;
   }
-  if (countRead < 0) throw Error("Error reading line.");
+  if (file.bad() || !file.eof()) throw Error("Error reading line.");
 
   // We winned!
-  if (file) fclose(file);
   return type;
 }
 
@@ -280,7 +273,7 @@ void printType(Type* type) {
 
 
 void pushOrExpandProperty(
-  Type* type, char* propertyName, TypedOffset* offset
+  Type* type, const std::string& propertyName, TypedOffset* offset
 ) {
   FieldProperty* property = NULL;
 
@@ -301,7 +294,7 @@ void pushOrExpandProperty(
   if (!property) {
     // Didn't find anything, so push a new property.
     property = new FieldProperty(
-      type, type->schema->floatType, propertyName, type->size, 1
+      type, type->schema->floatType, propertyName.c_str(), type->size, 1
     );
     type->properties.push(property);
   }
