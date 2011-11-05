@@ -63,7 +63,7 @@ struct Learner {
    *
    * Managed separately from the learner itself. No disposal here.
    */
-  List<EntityFunction*>* entityFunctions;
+  std::vector<EntityFunction*>* entityFunctions;
 
   /**
    * The tree to work from for learning.

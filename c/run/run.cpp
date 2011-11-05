@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <vector>
 
 #include "run.h"
 
@@ -45,7 +46,7 @@ Type* loadTable(
 );
 
 
-bool pickFunctions(List<EntityFunction*>* functions, Type* type);
+void pickFunctions(std::vector<EntityFunction*>& functions, Type* type);
 
 
 void printType(Type* type);
@@ -66,7 +67,7 @@ int main(int argc, char** argv) {
   List<Bag> bags;
   ListAny features;
   Type* featureType;
-  List<EntityFunction*> functions;
+  AutoVec<EntityFunction*> functions;
   ListAny labels;
   Type* labelType;
   RootNode* learnedTree = NULL;
@@ -91,15 +92,13 @@ int main(int argc, char** argv) {
     !buildBags(&bags, argv[3], labelType, &labels, featureType, &features)
   ) cnErrTo(DONE, "No bags.");
   // Choose some functions. TODO How to specify which??
-  if (!pickFunctions(&functions, featureType)) {
-    cnErrTo(DONE, "No functions.");
-  }
+  pickFunctions(*functions, featureType);
   printf("\n");
 
   // Learn something.
   cnListShuffle(&bags);
   learner.bags = &bags;
-  learner.entityFunctions = &functions;
+  learner.entityFunctions = &*functions;
   learnedTree = learner.learnTree();
   if (!learnedTree) cnErrTo(DONE, "No learned tree.");
 
@@ -112,9 +111,6 @@ int main(int argc, char** argv) {
 
   DONE:
   cnNodeDrop(&learnedTree->node);
-  cnListEachBegin(&functions, EntityFunction*, function) {
-    cnEntityFunctionDrop(*function);
-  } cnEnd;
   cnBagListDispose(&bags, NULL);
   return result;
 }
@@ -246,18 +242,15 @@ Type* loadTable(
 }
 
 
-bool pickFunctions(List<EntityFunction*>* functions, Type* type) {
+void pickFunctions(std::vector<EntityFunction*>& functions, Type* type) {
   // For now, just put in valid and common functions for each property.
-  if (!cnPushValidFunction(functions, type->schema, 1)) {
-    cnErrTo(FAIL, "No valid 1.");
-  }
-  if (!cnPushValidFunction(functions, type->schema, 2)) {
-    cnErrTo(FAIL, "No valid 2.");
-  }
+  (new ValidityEntityFunction(type->schema, 1))->pushOrDelete(functions);
+  (new ValidityEntityFunction(type->schema, 2))->pushOrDelete(functions);
   // Loop on all but the first (the bag id).
   for (size_t p = 1; p < type->properties->size(); p++) {
-    Property* property = type->properties[p];
-    EntityFunction* function = cnPushPropertyFunction(functions, property);
+    Property& property = *type->properties[p];
+    EntityFunction* function = new PropertyEntityFunction(property);
+    function->pushOrDelete(functions);
     // TODO Distance (and difference?) angle, too?
     if (true || function->name == "Location") {
       if (true) {
@@ -267,17 +260,10 @@ bool pickFunctions(List<EntityFunction*>* functions, Type* type) {
         //continue;
       }
       // Distance and difference.
-      cnPushDistanceFunction(functions, function);
-      cnPushDifferenceFunction(functions, function);
+      (new DistanceEntityFunction(*function))->pushOrDelete(functions);
+      (new DifferenceEntityFunction(*function))->pushOrDelete(functions);
     }
   }
-
-  // We winned!
-  return true;
-
-  FAIL:
-  // TODO Remove all added functions?
-  return false;
 }
 
 

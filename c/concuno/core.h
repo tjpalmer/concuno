@@ -169,6 +169,17 @@ private:
 };
 
 
+template<typename Item>
+void pushOrDelete(std::vector<Item>& container, Item item) {
+  try {
+    container.push_back(item);
+  } catch (std::exception& e) {
+    delete item;
+    throw;
+  }
+}
+
+
 /**
  * Null-terminated UTF-8 string.
  */

@@ -359,7 +359,7 @@ void testPropagate(void) {
 
 
 void testReframe_case(
-  EntityFunction* reframe,
+  EntityFunction& reframe,
   Float x0, Float y0, Float x1, Float y1, Float x2, Float y2
 ) {
   // Set up data.
@@ -367,7 +367,7 @@ void testReframe_case(
   double* points[] = {pointsData[0], pointsData[1], pointsData[2]};
   double result[2];
   // Reframe and check result.
-  reframe->get((void**)points, result);
+  reframe.get((void**)points, result);
   printf(
     "From (%g, %g) to (%g, %g) reframes (%g, %g) as: (%g, %g)\n",
     points[0][0], points[0][1],
@@ -416,8 +416,8 @@ void testReframe(void) {
   // Init.
   Schema schema;
   cnSchemaInitDefault(&schema);
-  EntityFunction* direct = new DirectEntityFunction(schema);
-  EntityFunction* reframe = new ReframeEntityFunction(*direct);
+  DirectEntityFunction direct(schema);
+  ReframeEntityFunction reframe(direct);
 
   // Test reframe.
   testReframe_case(reframe, 0.0, 0.0, 1.0, 1.0, 0.0, 1.0);
@@ -437,10 +437,6 @@ void testReframe(void) {
   testReframe_case3d(0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0);
   testReframe_case3d(0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0);
   testReframe_case3d(0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0);
-
-  // Clean up.
-  cnEntityFunctionDrop(reframe);
-  cnEntityFunctionDrop(direct);
 }
 
 

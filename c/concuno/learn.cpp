@@ -1,9 +1,13 @@
 #include <limits.h>
 #include <math.h>
 #include <string.h>
+#include <vector>
 #include "learn.h"
 #include "mat.h"
 #include "stats.h"
+
+
+using namespace std;
 
 
 namespace concuno {
@@ -1506,7 +1510,7 @@ bool cnPushExpansionsByIndices(
 RootNode* cnTryExpansionsAtLeaf(LearnerConfig* config, LeafNode* leaf) {
   Float bestPValue = 1;
   RootNode* bestTree = NULL;
-  List<EntityFunction*>* entityFunctions = config->learner->entityFunctions;
+  vector<EntityFunction*>& entityFunctions = *config->learner->entityFunctions;
   // Make a list of expansions. They can then be sorted, etc.
   List<cnExpansion> expansions;
   Count maxArity = 0;
@@ -1516,14 +1520,15 @@ RootNode* cnTryExpansionsAtLeaf(LearnerConfig* config, LeafNode* leaf) {
   Count varDepth = cnNodeVarDepth(&leaf->node);
 
   // Find the min and max arity.
-  cnListEachBegin(entityFunctions, EntityFunction*, function) {
-    if ((*function)->inCount < minArity) {
-      minArity = (*function)->inCount;
+  for (size_t f = 0; f < entityFunctions.size(); f++) {
+    EntityFunction& function = *entityFunctions[f];
+    if (function.inCount < minArity) {
+      minArity = function.inCount;
     }
-    if ((*function)->inCount > maxArity) {
-      maxArity = (*function)->inCount;
+    if (function.inCount > maxArity) {
+      maxArity = function.inCount;
     }
-  } cnEnd;
+  }
   if (minArity > maxArity) {
     // Should cover cases with no functions, at least.
     // TODO Just assert at least one function to start with?
@@ -1546,15 +1551,16 @@ RootNode* cnTryExpansionsAtLeaf(LearnerConfig* config, LeafNode* leaf) {
   ) {
     cnExpansion expansion;
 
-    cnListEachBegin(entityFunctions, EntityFunction*, function) {
-      if ((*function)->inCount > varDepth) {
+    for (size_t f = 0; f < entityFunctions.size(); f++) {
+      EntityFunction& function = *entityFunctions[f];
+      if (function.inCount > varDepth) {
         //printf(
         //  "Need %ld more vars for %s.\n",
         //  function->inCount - varDepth, cnStr(&function->name)
         //);
         continue;
       }
-      if ((*function)->inCount < newVarCount) {
+      if (function.inCount < newVarCount) {
         // We've already added more vars than we need for this one.
         //printf(
         //  "Added %ld too many vars for %s.\n",
@@ -1563,7 +1569,7 @@ RootNode* cnTryExpansionsAtLeaf(LearnerConfig* config, LeafNode* leaf) {
         continue;
       }
       // Init a prototype expansion, then push index permutations.
-      expansion.function = *function;
+      expansion.function = &function;
       expansion.leaf = leaf;
       expansion.newVarCount = newVarCount;
       expansion.varIndices = NULL;
@@ -1571,7 +1577,7 @@ RootNode* cnTryExpansionsAtLeaf(LearnerConfig* config, LeafNode* leaf) {
         printf("Failed to push expansions.\n");
         goto DONE;
       }
-    } cnEnd;
+    }
 
     // TODO Error check expansions with just two leaves? Or always an error
     // TODO branch on var nodes? Is it better or worse to ask extra questions

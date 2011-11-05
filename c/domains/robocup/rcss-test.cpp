@@ -28,7 +28,7 @@ bool cnrGenStr(yajl_gen gen, const char* str);
 /**
  * TODO This is duped from run's cnvPickFunctions. Perhaps centralize.
  */
-bool cnrPickFunctions(List<EntityFunction*>* functions, Type* type);
+void cnrPickFunctions(std::vector<EntityFunction*>& functions, Type* type);
 
 
 bool cnrProcess(
@@ -133,17 +133,14 @@ bool cnrGenStr(yajl_gen gen, const char* str) {
 }
 
 
-bool cnrPickFunctions(List<EntityFunction*>* functions, Type* type) {
+void cnrPickFunctions(vector<EntityFunction*>& functions, Type* type) {
   // For now, just put in valid and common functions for each property.
-  if (!cnPushValidFunction(functions, type->schema, 1)) {
-    cnErrTo(FAIL, "No valid 1.");
-  }
-  if (!cnPushValidFunction(functions, type->schema, 2)) {
-    cnErrTo(FAIL, "No valid 2.");
-  }
+  (new ValidityEntityFunction(type->schema, 1))->pushOrDelete(functions);
+  (new ValidityEntityFunction(type->schema, 2))->pushOrDelete(functions);
   for (size_t p = 0; p < type->properties->size(); p++) {
-    Property* property = type->properties[p];
-    EntityFunction* function = cnPushPropertyFunction(functions, property);
+    Property& property = *type->properties[p];
+    EntityFunction* function = new PropertyEntityFunction(property);
+    function->pushOrDelete(functions);
     // TODO Distance (and difference?) angle, too?
     if (true || function->name == "Location") {
       if (true) {
@@ -152,26 +149,12 @@ bool cnrPickFunctions(List<EntityFunction*>* functions, Type* type) {
         // so many options to consider.
         //continue;
       }
-
-      // Distance and difference.
-      cnPushDistanceFunction(functions, function);
-      cnPushDifferenceFunction(functions, function);
-
-      // Reframe has no convenience. TODO Expose lower-level convenience.
-      EntityFunction* composed = new ReframeEntityFunction(*function);
-      if (!cnListPush(functions, &composed)) {
-        delete composed;
-        throw Error("Function not pushed.");
-      }
+      // Distance, difference, and reframe.
+      (new DistanceEntityFunction(*function))->pushOrDelete(functions);
+      (new DifferenceEntityFunction(*function))->pushOrDelete(functions);
+      (new ReframeEntityFunction(*function))->pushOrDelete(functions);
     }
   }
-
-  // We winned!
-  return true;
-
-  FAIL:
-  // TODO Remove all added functions?
-  return false;
 }
 
 
@@ -221,7 +204,7 @@ bool cnrProcessExport(List<Bag>* holdBags, List<Bag>* passBags) {
 
 
 bool cnrProcessLearn(List<Bag>* holdBags, List<Bag>* passBags) {
-  List<EntityFunction*> functions;
+  AutoVec<EntityFunction*> functions;
   RootNode* learnedTree = NULL;
   Learner learner;
   bool result = false;
@@ -229,14 +212,14 @@ bool cnrProcessLearn(List<Bag>* holdBags, List<Bag>* passBags) {
 
   // Inits.
   if (!cnrSchemaInit(&schema)) cnFailTo(DONE);
-  cnrPickFunctions(&functions, schema.types[1]);
+  cnrPickFunctions(*functions, schema.types[1]);
 
   // Learn something.
   // TODO How to choose pass vs. hold?
   cnListShuffle(holdBags);
   cnListShuffle(passBags);
   learner.bags = passBags;
-  learner.entityFunctions = &functions;
+  learner.entityFunctions = &*functions;
   learnedTree = learner.learnTree();
   if (!learnedTree) cnErrTo(DONE, "No learned tree.");
 
@@ -250,9 +233,6 @@ bool cnrProcessLearn(List<Bag>* holdBags, List<Bag>* passBags) {
 
   DONE:
   cnNodeDrop(&learnedTree->node);
-  cnListEachBegin(&functions, EntityFunction*, function) {
-    cnEntityFunctionDrop(*function);
-  } cnEnd;
   return result;
 }
 

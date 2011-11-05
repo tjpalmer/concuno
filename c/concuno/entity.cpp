@@ -154,8 +154,8 @@ EntityFunction::EntityFunction(
 EntityFunction::~EntityFunction() {}
 
 
-void cnEntityFunctionDrop(EntityFunction* function) {
-  delete function;
+void EntityFunction::pushOrDelete(std::vector<EntityFunction*>& functions) {
+  concuno::pushOrDelete(functions, this);
 }
 
 
@@ -271,51 +271,6 @@ void cnFunctionDrop(Function* function) {
 
 bool cnFunctionWrite(Function* function, FILE* file, String* indent) {
   return function->write ? function->write(function, file, indent) : false;
-}
-
-
-/**
- * A helper for various composite entity functions.
- */
-EntityFunction* pushOrDeleteFunction(
-  List<EntityFunction*>* functions, EntityFunction* function
-) {
-  // So far, so good.
-  if (!cnListPush(functions, &function)) {
-    // Nope, we failed.
-    delete function;
-    throw Error("Failed to push function.");
-  }
-  return function;
-}
-
-
-EntityFunction* cnPushDifferenceFunction(
-  List<EntityFunction*>* functions, EntityFunction* base
-) {
-  return pushOrDeleteFunction(functions, new DifferenceEntityFunction(*base));
-}
-
-
-EntityFunction* cnPushDistanceFunction(
-  List<EntityFunction*>* functions, EntityFunction* base
-) {
-  return pushOrDeleteFunction(functions, new DistanceEntityFunction(*base));
-}
-
-
-EntityFunction* cnPushPropertyFunction(
-  List<EntityFunction*>* functions, Property* property
-) {
-  return pushOrDeleteFunction(functions, new PropertyEntityFunction(*property));
-}
-
-
-EntityFunction* cnPushValidFunction(
-  List<EntityFunction*>* functions, Schema* schema, Count arity
-) {
-  return
-    pushOrDeleteFunction(functions, new ValidityEntityFunction(schema, arity));
 }
 
 

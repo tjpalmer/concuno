@@ -123,6 +123,11 @@ struct EntityFunction {
    */
   virtual void get(Entity* ins, void* outs) = 0;
 
+  /**
+   * Pushes this onto functions or deletes this.
+   */
+  void pushOrDelete(std::vector<EntityFunction*>& functions);
+
   Count inCount;
 
   std::string name;
@@ -405,9 +410,6 @@ void cnBagListDispose(
 );
 
 
-void cnEntityFunctionDrop(EntityFunction* function);
-
-
 /**
  * Disposes of and frees the function if not null.
  */
@@ -447,26 +449,6 @@ Predicate* cnPredicateCreateDistanceThreshold(
 bool cnPredicateWrite(Predicate* predicate, FILE* file, String* indent);
 
 
-EntityFunction* cnPushDifferenceFunction(
-  List<EntityFunction*>* functions, EntityFunction* base
-);
-
-
-EntityFunction* cnPushDistanceFunction(
-  List<EntityFunction*>* functions, EntityFunction* base
-);
-
-
-EntityFunction* cnPushPropertyFunction(
-  List<EntityFunction*>* functions, Property* property
-);
-
-
-EntityFunction* cnPushValidFunction(
-  List<EntityFunction*>* functions, Schema* schema, Count arity
-);
-
-
 /**
  * Provides just float (double) type for now.
  *
@@ -483,20 +465,6 @@ void cnSchemaInitDefault(Schema* schema);
  * TODO Actually keep this here, or just stick to init default above?
  */
 bool cnSchemaDefineStandardTypes(Schema* schema);
-
-
-/**
- * On failure, returns null.
- */
-Type* cnTypeCreate(const char* name, Count size);
-
-
-/**
- * Disposes of all contained properties, and so on, and frees the type.
- *
- * Doesn't dispose of the schema. Schemas manage types, not vice versa.
- */
-void cnTypeDrop(Type* type);
 
 
 }

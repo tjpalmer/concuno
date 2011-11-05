@@ -3,22 +3,22 @@
 #include "stackiter-learn.h"
 
 using namespace concuno;
+using namespace std;
 
 
-void stClusterStuff(List<stState>& states, List<EntityFunction*>& functions);
+void stClusterStuff(
+  List<stState>& states, std::vector<EntityFunction*>& functions
+);
 
 
-void stDisposeEntityFunctions(List<EntityFunction*>* functions);
-
-
-bool stInitSchemaAndEntityFunctions(
-  Schema* schema, List<EntityFunction*>* functions
+void stInitSchemaAndEntityFunctions(
+  Schema* schema, std::vector<EntityFunction*>& functions
 );
 
 
 bool stLearnConcept(
   List<stState>* states,
-  List<EntityFunction*>* functions,
+  std::vector<EntityFunction*>* functions,
   bool (*choose)(
     List<stState>* states, List<Bag>* bags,
     List<List<Entity>*>* entityLists
@@ -27,7 +27,7 @@ bool stLearnConcept(
 
 
 int main(int argc, char** argv) {
-  List<EntityFunction*> entityFunctions;
+  AutoVec<EntityFunction*> entityFunctions;
   Schema schema;
   List<stState> states;
   int status = EXIT_FAILURE;
@@ -40,31 +40,26 @@ int main(int argc, char** argv) {
 
   // Load file and show stats.
   if (!stLoad(argv[1], &states)) {
-    printf("Failed to load file.\n");
-    goto DISPOSE_STATES;
+    throw Error("Failed to load file.");
   }
   printf("At end:\n");
   printf("%ld items\n", states[states.count - 1].items.count);
   printf("%ld states\n", states.count);
 
   // Set up schema.
-  if (!stInitSchemaAndEntityFunctions(&schema, &entityFunctions)) {
-    printf("Failed to init schema and functions.\n");
-    goto DISPOSE_STATES;
-  }
+  stInitSchemaAndEntityFunctions(&schema, *entityFunctions);
 
   switch (1) {
   case 1:
     // Attempt learning the "falls on" predictive concept.
     if (!stLearnConcept(
-      &states, &entityFunctions, stChooseDropWhereLandOnOther
+      &states, &*entityFunctions, stChooseDropWhereLandOnOther
     )) {
-      printf("No learned tree.\n");
-      goto DROP_FUNCTIONS;
+      throw Error("No learned tree.");
     }
     break;
   case 2:
-    stClusterStuff(states, entityFunctions);
+    stClusterStuff(states, *entityFunctions);
     break;
   default:
     printf("Didn't do anything!\n");
@@ -73,20 +68,17 @@ int main(int argc, char** argv) {
   // We winned it all!
   status = EXIT_SUCCESS;
 
-  DROP_FUNCTIONS:
-  stDisposeEntityFunctions(&entityFunctions);
-
-  DISPOSE_STATES:
+  DONE:
   cnListEachBegin(&states, stState, state) {
     state->~stState();
   } cnEnd;
-
-  DONE:
   return status;
 }
 
 
-void stClusterStuff(List<stState>& states, List<EntityFunction*>& functions) {
+void stClusterStuff(
+  List<stState>& states, std::vector<EntityFunction*>& functions
+) {
   List<Bag> bags;
 
   // Choose out the states we want to focus on.
@@ -96,7 +88,7 @@ void stClusterStuff(List<stState>& states, List<EntityFunction*>& functions) {
 
   // The last function right now should be velocity. TODO Watch out for changes!
   // TODO Be more thorough about clustering. Try it all as for tree learning.
-  EntityFunction* function = functions[functions.count - 1];
+  EntityFunction* function = functions[functions.size() - 1];
   if (!cnClusterOnFunction(&bags, function)) {
     throw Error("Clustering failed.");
   }
@@ -108,18 +100,9 @@ void stClusterStuff(List<stState>& states, List<EntityFunction*>& functions) {
 }
 
 
-void stDisposeEntityFunctions(List<EntityFunction*>* functions) {
-  // Drop the functions.
-  cnListEachBegin(functions, EntityFunction*, function) {
-    cnEntityFunctionDrop(*function);
-  } cnEnd;
-}
-
-
-bool stInitSchemaAndEntityFunctions(
-  Schema* schema, List<EntityFunction*>* functions
+void stInitSchemaAndEntityFunctions(
+  Schema* schema, std::vector<EntityFunction*>& functions
 ) {
-  EntityFunction* function;
   Type* itemType;
 
   // Set up schema.
@@ -132,74 +115,43 @@ bool stInitSchemaAndEntityFunctions(
 
   // Valid.
   if (true) {
-    if (!cnPushValidFunction(functions, schema, 1)) {
-      cnErrTo(FAIL, "Failed to push Valid1.");
-    }
-    if (!cnPushValidFunction(functions, schema, 2)) {
-      cnErrTo(FAIL, "Failed to push Valid2.");
-    }
+    (new ValidityEntityFunction(schema, 1))->pushOrDelete(functions);
+    (new ValidityEntityFunction(schema, 2))->pushOrDelete(functions);
   }
 
   // Color.
   if (true) {
-    if (!(
-      function = cnPushPropertyFunction(functions, itemType->properties[0])
-    )) {
-      printf("Failed to push color function.\n");
-      goto FAIL;
-    }
+    Property& property = *itemType->properties[0];
+    EntityFunction* function = new PropertyEntityFunction(property);
+    function->pushOrDelete(functions);
     // DifferenceColor
-    if (!cnPushDifferenceFunction(functions, function)) {
-      printf("Failed to push difference color function.\n");
-      goto FAIL;
-    }
+    (new DifferenceEntityFunction(*function))->pushOrDelete(functions);
   }
 
   // Location.
   if (true) {
     // TODO Look up the property by name.
-    if (!(
-      function = cnPushPropertyFunction(functions, itemType->properties[1])
-    )) {
-      printf("Failed to push location function.\n");
-      goto FAIL;
-    }
-    // DifferenceLocation
-    if (!cnPushDifferenceFunction(functions, function)) {
-      printf("Failed to push difference location function.\n");
-      goto FAIL;
-    }
-    // DistanceLocation
-    if (!cnPushDistanceFunction(functions, function)) {
-      printf("Failed to push distance location function.\n");
-      goto FAIL;
-    }
+    Property& property = *itemType->properties[1];
+    EntityFunction* function = new PropertyEntityFunction(property);
+    function->pushOrDelete(functions);
+    // Distance and difference.
+    (new DistanceEntityFunction(*function))->pushOrDelete(functions);
+    (new DifferenceEntityFunction(*function))->pushOrDelete(functions);
   }
 
   // Velocity.
   if (false) {
     // TODO Look up the property by name.
-    if (!(
-      function = cnPushPropertyFunction(functions, itemType->properties[2])
-    )) {
-      printf("Failed to push velocity function.\n");
-      goto FAIL;
-    }
+    Property& property = *itemType->properties[2];
+    EntityFunction* function = new PropertyEntityFunction(property);
+    function->pushOrDelete(functions);
   }
-
-  // We made it!
-  return true;
-
-  FAIL:
-  // Clean it all up if we fail.
-  stDisposeEntityFunctions(functions);
-  return false;
 }
 
 
 bool stLearnConcept(
   List<stState>* states,
-  List<EntityFunction*>* functions,
+  std::vector<EntityFunction*>* functions,
   bool (*choose)(
     List<stState>* states, List<Bag>* bags,
     List<List<Entity>*>* entityLists
@@ -228,7 +180,7 @@ bool stLearnConcept(
 
   // Learn a tree.
   learner.bags = &bags;
-  learner.entityFunctions = functions;
+  learner.entityFunctions = &*functions;
   learnedTree = learner.learnTree();
   if (!learnedTree) cnErrTo(DONE, "No learned tree.");
 
