@@ -600,7 +600,7 @@ void cnSplitNodeDispose(SplitNode* split) {
     cnNodeDrop(*kid);
   }
   if (split->predicate) {
-    cnPredicateDrop(split->predicate);
+    delete split->predicate;
     split->predicate = NULL;
   }
   free(split->varIndices);
@@ -947,7 +947,7 @@ bool cnSplitNodePropagateBindingBag(
     if (!allGood) {
       splitIndex = SplitNode::Err;
     } else {
-      splitIndex = split->predicate->evaluate(split->predicate, point) ?
+      splitIndex = split->predicate->evaluate(point) ?
         SplitNode::Yes : SplitNode::No;
       // I hack -1 (turned unsigned) into this for errors at this point.
       if (splitIndex >= SplitNode::SplitCount) cnErrTo(DONE, "Bad evaluate.");
@@ -1019,7 +1019,7 @@ bool cnTreeCopy_handleSplit(SplitNode* source, SplitNode* copy) {
     }
   }
   if (source->predicate) {
-    copy->predicate = cnPredicateCopy(source->predicate);
+    copy->predicate = source->predicate->copy();
     if (!copy->predicate) {
       // Failed!
       if (copy->varIndices) {
@@ -1299,7 +1299,7 @@ void cnTreePropagateBags(
 
 bool cnTreeWrite_leaf(LeafNode* leaf, FILE* file, String* indent);
 bool cnTreeWrite_root(RootNode* root, FILE* file, String* indent);
-bool cnTreeWrite_split(SplitNode* split, FILE* file, String* indent);
+void cnTreeWrite_split(SplitNode* split, FILE* file, String* indent);
 bool cnTreeWrite_var(VarNode* var, FILE* file, String* indent);
 
 bool cnTreeWrite_any(Node* node, FILE* file, String* indent) {
@@ -1322,9 +1322,7 @@ bool cnTreeWrite_any(Node* node, FILE* file, String* indent) {
     }
     break;
   case Node::TypeSplit:
-    if (!cnTreeWrite_split((SplitNode*)node, file, indent)) {
-      cnErrTo(DONE, "No split.");
-    }
+    cnTreeWrite_split((SplitNode*)node, file, indent);
     break;
   case Node::TypeVar:
     if (!cnTreeWrite_var((VarNode*)node, file, indent)) {
@@ -1382,9 +1380,7 @@ bool cnTreeWrite_root(RootNode* root, FILE* file, String* indent) {
   return true;
 }
 
-bool cnTreeWrite_split(SplitNode* split, FILE* file, String* indent) {
-  bool result = false;
-
+void cnTreeWrite_split(SplitNode* split, FILE* file, String* indent) {
   // TODO Check error states?
   fprintf(file, "%s\"type\": \"Split\",\n", cnStr(indent));
   if (split->function) {
@@ -1407,17 +1403,9 @@ bool cnTreeWrite_split(SplitNode* split, FILE* file, String* indent) {
     fprintf(file, "],\n");
 
     fprintf(file, "%s\"predicate\": ", cnStr(indent));
-    if (!cnPredicateWrite(split->predicate, file, indent)) {
-      cnErrTo(DONE, "No predicate write.");
-    }
+    split->predicate->write(file, indent);
     fprintf(file, ",\n");
   }
-
-  // Winned!
-  result = true;
-
-  DONE:
-  return result;
 }
 
 bool cnTreeWrite_var(VarNode* var, FILE* file, String* indent) {

@@ -239,30 +239,8 @@ void testPermutations(void) {
 }
 
 
-bool testPropagate_equalEvaluate(Predicate* predicate, void* in) {
-  return !*(Float*)in;
-}
-
-bool testPropagate_write(
-  Predicate* predicate, FILE* file, String* indent
-) {
-  bool result = false;
-
-  // TODO Check error state?
-  fprintf(file, "{");
-  if (predicate->evaluate == testPropagate_equalEvaluate) {
-    fprintf(file, "\"evaluate\": \"Equal\"");
-  } else cnErrTo(DONE, "Unknown evaluate.");
-  fprintf(file, "}");
-
-  // Winned!
-  result = true;
-
-  DONE:
-  return result;
-}
-
 void testPropagate(void) {
+
   struct CharsDiffEntityFunction: EntityFunction {
     CharsDiffEntityFunction(Type& type): EntityFunction("CharsDiff", 2, 1) {
       this->outType = &type;
@@ -277,6 +255,18 @@ void testPropagate(void) {
       } else {
         *(Float*)outs = a - b;
       }
+    }
+  };
+
+  struct EqualPredicate: Predicate {
+    virtual Predicate* copy() {
+      return new EqualPredicate;
+    }
+    virtual bool evaluate(void* in) {
+      return !*(Float*)in;
+    }
+    virtual void write(FILE* file, String* indent) {
+      fprintf(file, "{\"evaluate\": \"Equal\"}");
     }
   };
 
@@ -311,14 +301,7 @@ void testPropagate(void) {
   )) throw Error("No var indices.");
   for (i = 0; i < entityFunction.inCount; i++) split->varIndices[i] = i;
   // Predicate.
-  if (!(split->predicate = cnAlloc(Predicate, 1))) {
-    throw Error("No predicate.");
-  }
-  split->predicate->copy = NULL;
-  split->predicate->dispose = NULL;
-  split->predicate->info = NULL;
-  split->predicate->evaluate = testPropagate_equalEvaluate;
-  split->predicate->write = testPropagate_write;
+  split->predicate = new EqualPredicate;
 
   // Print the tree while we're at it.
   cnTreeWrite(&tree, stdout);

@@ -1128,13 +1128,12 @@ bool cnLearnSplitModel(
   }
 
   // We have an answer. Record it.
-  split->predicate = cnPredicateCreateDistanceThreshold(
-    distanceFunction, threshold
-  );
-  if (!split->predicate) {
-    // Cleans the Gaussian automatically.
+  try {
+    split->predicate =
+      new DistanceThresholdPredicate(distanceFunction, threshold);
+  } catch (const exception& e) {
     cnFunctionDrop(distanceFunction);
-    goto DONE;
+    throw;
   }
   // Good to go. Skip to the "do always" cleanup.
   result = true;

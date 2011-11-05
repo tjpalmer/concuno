@@ -143,6 +143,61 @@ void DistanceEntityFunction::get(Entity* ins, void* outs) {
 }
 
 
+DistanceThresholdPredicate::DistanceThresholdPredicate(
+  Function* $distanceFunction, Float $threshold
+): distanceFunction($distanceFunction), threshold($threshold) {}
+
+
+DistanceThresholdPredicate::~DistanceThresholdPredicate() {
+  cnFunctionDrop(distanceFunction);
+}
+
+
+Predicate* DistanceThresholdPredicate::copy() {
+  // Copy even the function because there could be mutable data inside.
+  Function* function = cnFunctionCopy(distanceFunction);
+  if (!function) return NULL;
+  try {
+    return new DistanceThresholdPredicate(function, threshold);
+  } catch (const std::exception& e) {
+    cnFunctionDrop(function);
+    throw;
+  }
+}
+
+
+bool DistanceThresholdPredicate::evaluate(void* in) {
+  Float distance;
+  if (!distanceFunction->evaluate(distanceFunction, in, &distance)) {
+    throw Error("Failed to evaluate distance function.");
+  }
+  // TODO I'd prefer <, but need better a handling of bulks of equal distances
+  // TODO in threshold choosing. I've hit the problem before.
+  return distance <= threshold;
+}
+
+
+void DistanceThresholdPredicate::write(FILE* file, String* indent) {
+  // TODO Check error state?
+  fprintf(file, "{\n");
+  cnIndent(indent);
+  fprintf(file, "%s\"name\": \"DistanceThreshold\",\n", cnStr(indent));
+
+  // Distance function.
+  fprintf(file, "%s\"function\": ", cnStr(indent));
+  // TODO Check error!
+  distanceFunction->write(distanceFunction, file, indent);
+  fprintf(file, ",\n");
+
+  // Threshold.
+  fprintf(file, "%s\"threshold\": %lg\n", cnStr(indent), threshold);
+
+  cnDedent(indent);
+  // TODO The real work.
+  fprintf(file, "%s}", cnStr(indent));
+}
+
+
 EntityFunction::EntityFunction(
   const char* $name, Count $inCount, Count $outCount
 ):
@@ -284,123 +339,7 @@ void cnFunctionDrop(Function* function) {
 }
 
 
-bool cnFunctionWrite(Function* function, FILE* file, String* indent) {
-  return function->write ? function->write(function, file, indent) : false;
-}
-
-
-Predicate* cnPredicateCopy(Predicate* predicate) {
-  return predicate ? predicate->copy(predicate) : NULL;
-}
-
-
-void cnPredicateDrop(Predicate* predicate) {
-  if (predicate) {
-    if (predicate->dispose) {
-      predicate->dispose(predicate);
-    }
-    free(predicate);
-  }
-}
-
-
-Predicate* cnPredicateCreateDistanceThreshold_Copy(Predicate* predicate) {
-  PredicateThresholdInfo* info =
-    reinterpret_cast<PredicateThresholdInfo*>(predicate->info);
-  Function* function = cnFunctionCopy(info->distanceFunction);
-  Predicate* copy;
-  // Copy even the function because there could be mutable data inside.
-  if (!function) return NULL;
-  copy = cnPredicateCreateDistanceThreshold(function, info->threshold);
-  if (!copy) cnFunctionDrop(function);
-  return copy;
-}
-
-void cnPredicateCreateDistanceThreshold_Dispose(Predicate* predicate) {
-  PredicateThresholdInfo* info =
-    reinterpret_cast<PredicateThresholdInfo*>(predicate->info);
-  cnFunctionDrop(info->distanceFunction);
-  free(info);
-  predicate->info = NULL;
-  predicate->dispose = NULL;
-  predicate->evaluate = NULL;
-}
-
-bool cnPredicateCreateDistanceThreshold_Evaluate(
-  Predicate* predicate, void* in
-) {
-  PredicateThresholdInfo* info =
-    reinterpret_cast<PredicateThresholdInfo*>(predicate->info);
-  Float distance;
-  if (
-    !info->distanceFunction->evaluate(info->distanceFunction, in, &distance)
-  ) {
-    throw Error("Failed to evaluate distance function.");
-  }
-  // TODO I'd prefer <, but need better a handling of bulks of equal distances
-  // TODO in threshold choosing. I've hit the problem before.
-  return distance <= info->threshold;
-}
-
-bool cnPredicateCreateDistanceThreshold_write(
-  Predicate* predicate, FILE* file, String* indent
-) {
-  PredicateThresholdInfo* info =
-    reinterpret_cast<PredicateThresholdInfo*>(predicate->info);
-  bool result = false;
-
-  // TODO Check error state?
-  fprintf(file, "{\n");
-  cnIndent(indent);
-  fprintf(file, "%s\"name\": \"DistanceThreshold\",\n", cnStr(indent));
-
-  // Distance function.
-  fprintf(file, "%s\"function\": ", cnStr(indent));
-  // TODO Check error!
-  cnFunctionWrite(info->distanceFunction, file, indent);
-  fprintf(file, ",\n");
-
-  // Threshold.
-  fprintf(file, "%s\"threshold\": %lg\n", cnStr(indent), info->threshold);
-
-  cnDedent(indent);
-  // TODO The real work.
-  fprintf(file, "%s}", cnStr(indent));
-
-  // Winned!
-  result = true;
-
-  return result;
-}
-
-Predicate* cnPredicateCreateDistanceThreshold(
-  Function* distanceFunction, Float threshold
-) {
-  Predicate* predicate = cnAlloc(Predicate, 1);
-  PredicateThresholdInfo* info;
-  if (!predicate) {
-    return NULL;
-  }
-  info = cnAlloc(PredicateThresholdInfo, 1);
-  if (!info) {
-    free(predicate);
-    return NULL;
-  }
-  // Good to go.
-  info->distanceFunction = distanceFunction;
-  info->threshold = threshold;
-  predicate->info = info;
-  predicate->copy = cnPredicateCreateDistanceThreshold_Copy;
-  predicate->dispose = cnPredicateCreateDistanceThreshold_Dispose;
-  predicate->evaluate = cnPredicateCreateDistanceThreshold_Evaluate;
-  predicate->write = cnPredicateCreateDistanceThreshold_write;
-  return predicate;
-}
-
-
-bool cnPredicateWrite(Predicate* predicate, FILE* file, String* indent) {
-  return predicate->write ? predicate->write(predicate, file, indent) : false;
-}
+Predicate::~Predicate() {}
 
 
 Property::Property(
@@ -426,12 +365,6 @@ Type::Type(Schema& $schema, const char* $name, Count $size):
   schema(&$schema),
   size($size)
 {}
-
-
-void cnTypeDrop(Type* type) {
-  if (!type) return;
-  free(type);
-}
 
 
 }

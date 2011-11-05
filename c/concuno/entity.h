@@ -267,7 +267,7 @@ struct Function {
  */
 struct Predicate {
 
-  void* info;
+  virtual ~Predicate();
 
   //  Count inCount;
   //
@@ -275,16 +275,14 @@ struct Predicate {
   //
   //  Type* inType;
 
-  Predicate* (*copy)(Predicate* predicate);
-
-  void (*dispose)(Predicate* predicate);
+  virtual Predicate* copy() = 0;
 
   /**
    * Classify the given value (point, bag, ...) as true or false.
    *
    * TODO Error indicated by result other than true or false? Maybe too sneaky.
    */
-  bool (*evaluate)(Predicate* predicate, void* in);
+  virtual bool evaluate(void* in) = 0;
 
   /**
    * Writes the predicate in JSON format without surrounding whitespace.
@@ -292,12 +290,36 @@ struct Predicate {
    * TODO Instead provide structured, reflective access (such as via property
    * TODO metadata or hashtables), and have various IO elsewhere?
    */
-  bool (*write)(Predicate* predicate, FILE* file, String* indent);
+  virtual void write(FILE* file, String* indent) = 0;
 
 };
 
 
-struct PredicateThresholdInfo {
+struct DistanceThresholdPredicate: Predicate {
+
+  /**
+   * The distanceFunction will be deleted with this predicate.
+   */
+  DistanceThresholdPredicate(Function* distanceFunction, Float threshold);
+
+  virtual ~DistanceThresholdPredicate();
+
+  virtual Predicate* copy();
+
+  /**
+   * Classify the given value (point, bag, ...) as true or false.
+   *
+   * TODO Error indicated by result other than true or false? Maybe too sneaky.
+   */
+  virtual bool evaluate(void* in);
+
+  /**
+   * Writes the predicate in JSON format without surrounding whitespace.
+   *
+   * TODO Instead provide structured, reflective access (such as via property
+   * TODO metadata or hashtables), and have various IO elsewhere?
+   */
+  virtual void write(FILE* file, String* indent);
 
   Function* distanceFunction;
 
@@ -442,33 +464,6 @@ Function* cnFunctionCopy(Function* function);
  * Disposes of and frees the function if not null.
  */
 void cnFunctionDrop(Function* function);
-
-
-/**
- * Copies the predicate.
- */
-Predicate* cnPredicateCopy(Predicate* predicate);
-
-
-/**
- * Disposes of and frees the predicate if not null.
- */
-void cnPredicateDrop(Predicate* predicate);
-
-
-/**
- * The distanceFunction will be dropped with this predicate.
- */
-Predicate* cnPredicateCreateDistanceThreshold(
-  Function* distanceFunction, Float threshold
-);
-
-
-/**
- * Uses the predicate's write function to write itself to the file as a JSON
- * object.
- */
-bool cnPredicateWrite(Predicate* predicate, FILE* file, String* indent);
 
 
 }
