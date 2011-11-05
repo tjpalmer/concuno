@@ -134,7 +134,7 @@ void stInitSchemaAndEntityFunctions(
     Property& property = *itemType->properties[1];
     EntityFunction* function = new PropertyEntityFunction(property);
     function->pushOrDelete(functions);
-    // Distance and difference.
+    // Difference and distance (in that order for now).
     (new DifferenceEntityFunction(*function))->pushOrDelete(functions);
     (new DistanceEntityFunction(*function))->pushOrDelete(functions);
   }
