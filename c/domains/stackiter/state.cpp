@@ -27,27 +27,20 @@ void stItemInit(stItem* item) {
 }
 
 
-void stSchemaInit(Schema* schema) {
-  cnSchemaInitDefault(schema);
-
+void stSchemaInit(Schema& schema) {
   // Item type.
-  Type* type = new Type("Item", sizeof(stItem));
-  type->schema = schema;
-  pushOrDelete(*schema->types, type);
+  Type* type = new Type(schema, "Item", sizeof(stItem));
+  pushOrDelete(*schema.types, type);
 
-  // Color property.
+  // Properties.
   type->properties.push(new OffsetProperty(
-    type, schema->floatType, "Color", offsetof(stItem, color), 3
+    type, schema.floatType, "Color", offsetof(stItem, color), 3
   ));
-
-  // Location property.
   type->properties.push(new OffsetProperty(
-    type, schema->floatType, "Location", offsetof(stItem, location), 2
+    type, schema.floatType, "Location", offsetof(stItem, location), 2
   ));
-
-  // Velocity property.
   type->properties.push(new OffsetProperty(
-    type, schema->floatType, "Velocity", offsetof(stItem, velocity), 2
+    type, schema.floatType, "Velocity", offsetof(stItem, velocity), 2
   ));
 }
 

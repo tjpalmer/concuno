@@ -246,10 +246,10 @@ void ReframeEntityFunction::get(Entity* ins, void* outs) {
 }
 
 
-ValidityEntityFunction::ValidityEntityFunction(Schema* schema, Count arity):
+ValidityEntityFunction::ValidityEntityFunction(Schema& schema, Count arity):
   EntityFunction("Valid", arity, 1)
 {
-  outType = schema->floatType; // TODO Integer or some such?
+  outType = schema.floatType; // TODO Integer or some such?
 }
 
 
@@ -414,23 +414,16 @@ Property::Property(
 Property::~Property() {}
 
 
-Schema::Schema(): floatType(NULL) {}
-
-
-void cnSchemaInitDefault(Schema* schema) {
-  // Create float type.
-  Type* type = new Type("Float", sizeof(Float));
-  type->schema = schema;
-  // Push it on, and keep a nice reference.
-  pushOrDelete(*schema->types, type);
-  schema->floatType = type;
+Schema::Schema(): floatType(new Type(*this, "Float", sizeof(Float))) {
+  // Also push on the floatType for proper management.
+  pushOrDelete(*types, floatType);
 }
 
 
-Type::Type(const char* $name, Count $size):
+Type::Type(Schema& $schema, const char* $name, Count $size):
   name($name),
   // Let schema be set later, if wanted.
-  schema(NULL),
+  schema(&$schema),
   size($size)
 {}
 

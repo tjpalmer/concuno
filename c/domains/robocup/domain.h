@@ -152,7 +152,7 @@ void cnrItemInit(Item* item, Item::Type type);
  *
  * Dispose with cnSchemaDispose (since nothing special needed here).
  */
-void schemaInit(concuno::Schema* schema);
+void schemaInit(concuno::Schema& schema);
 
 
 

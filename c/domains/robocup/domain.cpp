@@ -151,14 +151,11 @@ void TypedFieldProperty::put(Entity entity, void* value) {
 }
 
 
-void schemaInit(Schema* schema) {
-  cnSchemaInitDefault(schema);
-
+void schemaInit(Schema& schema) {
   // Item type. Say it's the size of a player, since they are bigger than balls.
   // TODO Can I really support multiple types at present??? What's best?
-  Type* type = new Type("Item", sizeof(Player));
-  type->schema = schema;
-  pushOrDelete(*schema->types, type);
+  Type* type = new Type(schema, "Item", sizeof(Player));
+  pushOrDelete(*schema.types, type);
 
   // Location property.
   struct LocationProperty: FieldProperty {
@@ -168,7 +165,7 @@ void schemaInit(Schema* schema) {
       return reinterpret_cast<Item*>(entity)->location;
     }
   };
-  type->properties.push(new LocationProperty(type, schema->floatType));
+  type->properties.push(new LocationProperty(type, schema.floatType));
 
   // Team property.
   struct TeamProperty: TypedFieldProperty {
@@ -181,7 +178,7 @@ void schemaInit(Schema* schema) {
       return &reinterpret_cast<Player*>(entity)->team;
     }
   };
-  type->properties.push(new TeamProperty(type, schema->floatType));
+  type->properties.push(new TeamProperty(type, schema.floatType));
 
   // Type property.
   struct TypeProperty: TypedFieldProperty {

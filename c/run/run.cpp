@@ -47,7 +47,7 @@ bool buildBags(
  * Returns the created item type or null for failure.
  */
 Type* loadTable(
-  const char* fileName, const char* typeName, Schema* schema, ListAny* items
+  const char* fileName, const char* typeName, Schema& schema, ListAny* items
 );
 
 
@@ -79,17 +79,14 @@ int main(int argc, char** argv) {
   Learner learner;
   Schema schema;
 
-  // Init first for safety.
-  cnSchemaInitDefault(&schema);
-
   if (argc < 4) cnErrTo(
     DONE, "Usage: %s <features-file> <labels-file> <label-id>", argv[0]
   );
 
   // Load all the data.
-  featureType = loadTable(argv[1], "Feature", &schema, &features);
+  featureType = loadTable(argv[1], "Feature", schema, &features);
   if (!featureType) cnErrTo(DONE, "Failed feature load.");
-  labelType = loadTable(argv[2], "Label", &schema, &labels);
+  labelType = loadTable(argv[2], "Label", schema, &labels);
   if (!labelType) cnErrTo(DONE, "Failed label load.");
 
   // Build labeled bags.
@@ -173,16 +170,14 @@ bool buildBags(
 
 
 Type* loadTable(
-  const char* fileName, const char* typeName, Schema* schema, ListAny* items
+  const char* fileName, const char* typeName, Schema& schema, ListAny* items
 ) {
   List<TypedOffset> offsets;
   TypedOffset* offsetsEnd;
-  Type* type = NULL;
 
   // Create the type.
-  type = new Type(typeName, 0);
-  type->schema = schema;
-  pushOrDelete(*schema->types, type);
+  Type* type = new Type(schema, typeName, 0);
+  pushOrDelete(*schema.types, type);
 
   // Open the file.
   ifstream file(fileName);
@@ -236,8 +231,8 @@ Type* loadTable(
 
 void pickFunctions(std::vector<EntityFunction*>& functions, Type* type) {
   // For now, just put in valid and common functions for each property.
-  (new ValidityEntityFunction(type->schema, 1))->pushOrDelete(functions);
-  (new ValidityEntityFunction(type->schema, 2))->pushOrDelete(functions);
+  (new ValidityEntityFunction(*type->schema, 1))->pushOrDelete(functions);
+  (new ValidityEntityFunction(*type->schema, 2))->pushOrDelete(functions);
   // Loop on all but the first (the bag id).
   for (size_t p = 1; p < type->properties->size(); p++) {
     Property& property = *type->properties[p];

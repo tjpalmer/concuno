@@ -77,7 +77,7 @@ void stItemInit(stItem* item);
  *
  * Dispose with cnSchemaDispose (since nothing special needed here).
  */
-void stSchemaInit(concuno::Schema* schema);
+void stSchemaInit(concuno::Schema& schema);
 
 
 void stStateDispose(stState* state);

@@ -12,7 +12,7 @@ void stClusterStuff(
 
 
 void stInitSchemaAndEntityFunctions(
-  Schema* schema, std::vector<EntityFunction*>& functions
+  Schema& schema, std::vector<EntityFunction*>& functions
 );
 
 
@@ -47,7 +47,7 @@ int main(int argc, char** argv) {
   printf("%ld states\n", states.count);
 
   // Set up schema.
-  stInitSchemaAndEntityFunctions(&schema, *entityFunctions);
+  stInitSchemaAndEntityFunctions(schema, *entityFunctions);
 
   switch (1) {
   case 1:
@@ -101,7 +101,7 @@ void stClusterStuff(
 
 
 void stInitSchemaAndEntityFunctions(
-  Schema* schema, std::vector<EntityFunction*>& functions
+  Schema& schema, std::vector<EntityFunction*>& functions
 ) {
   Type* itemType;
 
@@ -111,7 +111,7 @@ void stInitSchemaAndEntityFunctions(
   // Set up entity functions.
   // TODO Extract this setup, and make it easier to do.
   // TODO Look up the type by name.
-  itemType = schema->types[1];
+  itemType = schema.types[1];
 
   // Valid.
   if (true) {

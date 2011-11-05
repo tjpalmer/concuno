@@ -286,13 +286,13 @@ void testPropagate(void) {
   List<LeafBindingBag> leafBindingBags;
   SplitNode* split;
   VarNode* vars[2];
+  Schema schema;
   RootNode tree;
-  Type type("Float", sizeof(Float));
 
   // Init stuff.
   if (!cnRootNodeInit(&tree, false)) throw Error("Init failed.");
   // TODO Float required because of NaN convention. Fix this!
-  CharsDiffEntityFunction entityFunction(type);
+  CharsDiffEntityFunction entityFunction(*schema.floatType);
 
   // Add var nodes.
   // Create and add nodes one at a time, so destruction will be automatic.
@@ -415,7 +415,6 @@ void testReframe(void) {
 
   // Init.
   Schema schema;
-  cnSchemaInitDefault(&schema);
   DirectEntityFunction direct(schema);
   ReframeEntityFunction reframe(direct);
 

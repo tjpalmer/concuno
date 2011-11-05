@@ -224,7 +224,7 @@ struct ReframeEntityFunction: ComposedEntityFunction {
  */
 struct ValidityEntityFunction: EntityFunction {
 
-  ValidityEntityFunction(Schema* schema, Count arity);
+  ValidityEntityFunction(Schema& schema, Count arity);
 
   virtual void get(Entity* ins, void* outs);
 
@@ -406,7 +406,10 @@ struct Schema {
 
 struct Type {
 
-  Type(const char* name, Count size);
+  /**
+   * Provides float (double) type by default for now.
+   */
+  Type(Schema& schema, const char* name, Count size);
 
   std::string name;
 
@@ -466,24 +469,6 @@ Predicate* cnPredicateCreateDistanceThreshold(
  * object.
  */
 bool cnPredicateWrite(Predicate* predicate, FILE* file, String* indent);
-
-
-/**
- * Provides just float (double) type for now.
- *
- * On failure, leaves the schema in a stable (nulled out) state.
- */
-void cnSchemaInitDefault(Schema* schema);
-
-
-/**
- * Provides just float (double) type for now.
- *
- * On failure, leaves the schema in the original state.
- *
- * TODO Actually keep this here, or just stick to init default above?
- */
-bool cnSchemaDefineStandardTypes(Schema* schema);
 
 
 }

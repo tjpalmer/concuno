@@ -28,7 +28,7 @@ bool cnrGenStr(yajl_gen gen, const char* str);
 /**
  * TODO This is duped from run's cnvPickFunctions. Perhaps centralize.
  */
-void cnrPickFunctions(std::vector<EntityFunction*>& functions, Type* type);
+void pickFunctions(std::vector<EntityFunction*>& functions, Type* type);
 
 
 bool cnrProcess(
@@ -133,10 +133,10 @@ bool cnrGenStr(yajl_gen gen, const char* str) {
 }
 
 
-void cnrPickFunctions(vector<EntityFunction*>& functions, Type* type) {
+void pickFunctions(vector<EntityFunction*>& functions, Type* type) {
   // For now, just put in valid and common functions for each property.
-  (new ValidityEntityFunction(type->schema, 1))->pushOrDelete(functions);
-  (new ValidityEntityFunction(type->schema, 2))->pushOrDelete(functions);
+  (new ValidityEntityFunction(*type->schema, 1))->pushOrDelete(functions);
+  (new ValidityEntityFunction(*type->schema, 2))->pushOrDelete(functions);
   for (size_t p = 0; p < type->properties->size(); p++) {
     Property& property = *type->properties[p];
     EntityFunction* function = new PropertyEntityFunction(property);
@@ -211,8 +211,8 @@ bool cnrProcessLearn(List<Bag>* holdBags, List<Bag>* passBags) {
   Schema schema;
 
   // Inits.
-  schemaInit(&schema);
-  cnrPickFunctions(*functions, schema.types[1]);
+  schemaInit(schema);
+  pickFunctions(*functions, schema.types[1]);
 
   // Learn something.
   // TODO How to choose pass vs. hold?
