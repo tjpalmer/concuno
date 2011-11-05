@@ -33,7 +33,7 @@ void stSchemaInit(Schema* schema) {
   // Item type.
   Type* type = new Type("Item", sizeof(stItem));
   type->schema = schema;
-  schema->types.pushOrDelete(type);
+  pushOrDelete(*schema->types, type);
 
   // Color property.
   type->properties.push(new FieldProperty(

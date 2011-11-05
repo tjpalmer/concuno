@@ -155,8 +155,7 @@ bool cnrSchemaInit(Schema* schema) {
   // Item type. Say it's the size of a player, since they are bigger than balls.
   // TODO Can I really support multiple types at present??? What's best?
   Type* type = new Type("Item", sizeof(Player));
-  type->schema = schema;
-  if (!cnListPush(&schema->types, &type)) cnFailTo(FAIL);
+  pushOrDelete(*schema->types, type);
 
   // Location property.
   type->properties.push(new FieldProperty(
@@ -177,12 +176,6 @@ bool cnrSchemaInit(Schema* schema) {
     type, Item::TypeAny, schema->floatType, cnrFieldTypeEnum, "Type",
     offsetof(Item, type), 1
   ));
-
-  // Good to go.
-  return true;
-
-  FAIL:
-  return false;
 }
 
 

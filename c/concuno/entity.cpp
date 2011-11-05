@@ -402,19 +402,12 @@ Property::~Property() {}
 Schema::Schema(): floatType(NULL) {}
 
 
-Schema::~Schema() {
-  cnListEachBegin(&types, Type*, type) {
-    delete *type;
-  } cnEnd;
-}
-
-
 void cnSchemaInitDefault(Schema* schema) {
   // Create float type.
   Type* type = new Type("Float", sizeof(Float));
   type->schema = schema;
   // Push it on, and keep a nice reference.
-  schema->types.pushOrDelete(type);
+  pushOrDelete(*schema->types, type);
   schema->floatType = type;
 }
 

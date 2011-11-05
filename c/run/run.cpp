@@ -1,9 +1,14 @@
+#include <fstream>
+#include <iostream>
+#include <sstream>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <vector>
 
 #include "run.h"
+
+using namespace std;
 
 
 namespace concuno {namespace run {
@@ -171,6 +176,7 @@ Type* loadTable(
   const char* fileName, const char* typeName, Schema* schema, ListAny* items
 ) {
   Count countRead;
+  // TODO ifstream!
   FILE* file = NULL;
   String line;
   char* remaining;
@@ -181,14 +187,18 @@ Type* loadTable(
   // Create the type.
   type = new Type(typeName, 0);
   type->schema = schema;
-  schema->types.pushOrDelete(type);
+  pushOrDelete(*schema->types, type);
 
   // Open the file.
   file = fopen(fileName, "r");
-  if (!file) cnErrTo(FAIL, "Couldn't open '%s'.", fileName);
+  //ifstream file(fileName);
+  if (!file) throw Error("Couldn't open '%s'.");//, fileName);
 
   // Read the headers.
-  if (cnReadLine(file, &line) <= 0) cnErrTo(FAIL, "No headers.");
+  if (cnReadLine(file, &line) <= 0) throw Error("No headers.");
+  //string line;
+  //getline(file, line);
+  //stringstream remaining(line);
   remaining = cnStr(&line);
   while (true) {
     TypedOffset* offset;
@@ -199,7 +209,7 @@ Type* loadTable(
       next++;
     }
     if (!(offset = reinterpret_cast<TypedOffset*>(cnListExpand(&offsets)))) {
-      cnErrTo(FAIL, "No offset.");
+      throw Error("No offset.");
     }
     pushOrExpandProperty(type, next, offset);
   }
@@ -213,30 +223,19 @@ Type* loadTable(
   while ((countRead = cnReadLine(file, &line)) > 0) {
     Entity item;
     // Allocate then read the fields on this line.
-    if (!(item = cnListExpand(items))) cnErrTo(FAIL, "No item.");
+    if (!(item = cnListExpand(items))) throw Error("No item.");
     remaining = cnStr(&line);
     cnListEachBegin(&offsets, TypedOffset, offset) {
       // TODO Don't assume all are floats! Need custom parsing?
       char* former = remaining;
       Float value = strtod(remaining, &remaining);
-      if (remaining == former) cnErrTo(FAIL, "No data to read?");
+      if (remaining == former) throw Error("No data to read?");
       *(Float*)(((char*)item) + offset->offset) = value;
     } cnEnd;
   }
-  if (countRead < 0) cnErrTo(FAIL, "Error reading line.");
+  if (countRead < 0) throw Error("Error reading line.");
 
   // We winned!
-  goto DONE;
-
-  FAIL:
-  if (type) {
-    // Make the type go away, for tidiness.
-    delete type;
-    schema->types.count--;
-    type = NULL;
-  }
-
-  DONE:
   if (file) fclose(file);
   return type;
 }

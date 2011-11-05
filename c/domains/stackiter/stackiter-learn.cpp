@@ -111,7 +111,7 @@ void stInitSchemaAndEntityFunctions(
   // Set up entity functions.
   // TODO Extract this setup, and make it easier to do.
   // TODO Look up the type by name.
-  itemType = reinterpret_cast<Type*>(cnListGetPointer(&schema->types, 1));
+  itemType = schema->types[1];
 
   // Valid.
   if (true) {

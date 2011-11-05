@@ -365,8 +365,6 @@ struct Schema {
 
   Schema();
 
-  ~Schema();
-
   /**
    * Corresponds to Float (double).
    *
@@ -380,7 +378,7 @@ struct Schema {
    * TODO
    * TODO Make more things typedef'd to pointers all around? More opaque, too?
    */
-  List<Type*> types;
+  AutoVec<Type*> types;
 
 };
 
