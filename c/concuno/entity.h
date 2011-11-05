@@ -238,18 +238,13 @@ struct ValidityEntityFunction: EntityFunction {
  */
 struct Function {
 
-  void* info;
-
   // TODO Name or types or anything?
 
-  Function* (*copy)(Function* predicate);
+  virtual ~Function();
 
-  void (*dispose)(Function* function);
+  virtual Function* copy() = 0;
 
-  /**
-   * Return value indicates status.
-   */
-  bool (*evaluate)(Function* function, void* in, void* out);
+  virtual void evaluate(void* in, void* out) = 0;
 
   /**
    * Writes the predicate in JSON format without surrounding whitespace.
@@ -257,7 +252,7 @@ struct Function {
    * TODO Instead provide structured, reflective access (such as via property
    * TODO metadata or hashtables), and have various IO elsewhere?
    */
-  bool (*write)(Function* function, FILE* file, String* indent);
+  virtual void write(FILE* file, String* indent) = 0;
 
 };
 
@@ -452,18 +447,6 @@ struct Type {
 void cnBagListDispose(
   List<Bag>* bags, List<List<Entity>*>* entityLists
 );
-
-
-/**
- * Disposes of and frees the function if not null.
- */
-Function* cnFunctionCopy(Function* function);
-
-
-/**
- * Disposes of and frees the function if not null.
- */
-void cnFunctionDrop(Function* function);
 
 
 }

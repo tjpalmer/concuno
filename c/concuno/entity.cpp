@@ -149,18 +149,17 @@ DistanceThresholdPredicate::DistanceThresholdPredicate(
 
 
 DistanceThresholdPredicate::~DistanceThresholdPredicate() {
-  cnFunctionDrop(distanceFunction);
+  delete distanceFunction;
 }
 
 
 Predicate* DistanceThresholdPredicate::copy() {
   // Copy even the function because there could be mutable data inside.
-  Function* function = cnFunctionCopy(distanceFunction);
-  if (!function) return NULL;
+  Function* function = distanceFunction->copy();
   try {
     return new DistanceThresholdPredicate(function, threshold);
   } catch (const std::exception& e) {
-    cnFunctionDrop(function);
+    delete function;
     throw;
   }
 }
@@ -168,9 +167,7 @@ Predicate* DistanceThresholdPredicate::copy() {
 
 bool DistanceThresholdPredicate::evaluate(void* in) {
   Float distance;
-  if (!distanceFunction->evaluate(distanceFunction, in, &distance)) {
-    throw Error("Failed to evaluate distance function.");
-  }
+  distanceFunction->evaluate(in, &distance);
   // TODO I'd prefer <, but need better a handling of bulks of equal distances
   // TODO in threshold choosing. I've hit the problem before.
   return distance <= threshold;
@@ -186,7 +183,7 @@ void DistanceThresholdPredicate::write(FILE* file, String* indent) {
   // Distance function.
   fprintf(file, "%s\"function\": ", cnStr(indent));
   // TODO Check error!
-  distanceFunction->write(distanceFunction, file, indent);
+  distanceFunction->write(file, indent);
   fprintf(file, ",\n");
 
   // Threshold.
@@ -227,6 +224,9 @@ void FieldProperty::get(Entity entity, void* storage) {
 void FieldProperty::put(Entity entity, void* value) {
   memcpy(reinterpret_cast<char*>(field(entity)), value, count * type->size);
 }
+
+
+Function::~Function() {}
 
 
 OffsetProperty::OffsetProperty(
@@ -321,21 +321,6 @@ void ValidityEntityFunction::get(Entity* ins, void* outs) {
   }
   // All clear.
   *out = 1.0;
-}
-
-
-Function* cnFunctionCopy(Function* function) {
-  return function ? function->copy(function) : NULL;
-}
-
-
-void cnFunctionDrop(Function* function) {
-  if (function) {
-    if (function->dispose) {
-      function->dispose(function);
-    }
-    free(function);
-  }
 }
 
 

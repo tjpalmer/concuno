@@ -9,6 +9,8 @@
 #include "numpy-mtrand/randomkit.h"
 #include "stats.h"
 
+using namespace std;
+
 
 namespace concuno {
 
@@ -93,46 +95,41 @@ Count cnBinomialSample(Binomial binomial) {
 }
 
 
-bool cnFunctionEvaluateMahalanobisDistance(
-  Function* function, void* in, void* out
-) {
-  *((Float*)out) = cnMahalanobisDistance(
-    reinterpret_cast<Gaussian*>(function->info),
-    reinterpret_cast<Float*>(in)
-  );
-  // Always good.
-  return true;
+MahalanobisDistanceFunction::MahalanobisDistanceFunction(Gaussian* $gaussian):
+  gaussian($gaussian)
+{}
+
+
+MahalanobisDistanceFunction::~MahalanobisDistanceFunction() {
+  cnGaussianDispose(gaussian);
+  free(gaussian);
 }
 
 
-Function* cnFunctionCreateMahalanobisDistance_copy(Function* function) {
-  Gaussian* other = reinterpret_cast<Gaussian*>(function->info);
+Function* MahalanobisDistanceFunction::copy() {
   Gaussian* gaussian = cnAlloc(Gaussian, 1);
-  Function* copy;
-  if (!gaussian) return NULL;
-  if (!cnGaussianInit(gaussian, other->dims, other->mean)) {
+  if (!gaussian) throw Error("No Gaussian copy.");
+  if (!cnGaussianInit(gaussian, this->gaussian->dims, this->gaussian->mean)) {
     free(gaussian);
-    return NULL;
+    throw Error("No Gaussian init.");
   }
-  copy = cnFunctionCreateMahalanobisDistance(gaussian);
-  if (!copy) {
+  try {
+    return new MahalanobisDistanceFunction(gaussian);
+  } catch (const exception& e) {
     cnGaussianDispose(gaussian);
     free(gaussian);
+    throw;
   }
-  return copy;
 }
 
-void cnFunctionCreateMahalanobisDistance_dispose(Function* function) {
-  cnGaussianDispose(reinterpret_cast<Gaussian*>(function->info));
-  free(function->info);
+
+void MahalanobisDistanceFunction::evaluate(void* in, void* out) {
+  *(reinterpret_cast<Float*>(out)) =
+    cnMahalanobisDistance(gaussian, reinterpret_cast<Float*>(in));
 }
 
-bool cnFunctionCreateMahalanobisDistance_write(
-  Function* function, FILE* file, String* indent
-) {
-  Gaussian* gaussian = reinterpret_cast<Gaussian*>(function->info);
-  bool result = false;
 
+void MahalanobisDistanceFunction::write(FILE* file, String* indent) {
   // TODO Check error state?
   fprintf(file, "{\n");
   cnIndent(indent);
@@ -144,22 +141,6 @@ bool cnFunctionCreateMahalanobisDistance_write(
   // TODO Strength (for use as later prior)!
   cnDedent(indent);
   fprintf(file, "%s}", cnStr(indent));
-
-  // Winned!
-  result = true;
-
-  return result;
-}
-
-Function* cnFunctionCreateMahalanobisDistance(Gaussian* gaussian) {
-  Function* function = cnAlloc(Function, 1);
-  if (!function) return NULL;
-  function->info = gaussian;
-  function->copy = cnFunctionCreateMahalanobisDistance_copy;
-  function->dispose = cnFunctionCreateMahalanobisDistance_dispose;
-  function->evaluate = cnFunctionEvaluateMahalanobisDistance;
-  function->write = cnFunctionCreateMahalanobisDistance_write;
-  return function;
 }
 
 

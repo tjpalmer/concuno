@@ -515,9 +515,7 @@ bool cnBestPointByScore(
         // TODO This is dangerous until we can also climb means and fit!
         // TODO Check whether inside or outside is positive!!!
         Float distance;
-        if (!distanceFunction->evaluate(distanceFunction, point, &distance)) {
-          cnErrTo(DONE, "No distance for point.");
-        }
+        distanceFunction->evaluate(point, &distance);
         // TODO Don't duplicate <= from the threshold predicate!
         if (distance <= threshold) goto SKIP_POINT;
       }
@@ -559,10 +557,8 @@ bool cnBestPointByScore(
         bestScore = score;
 
         // TODO Track multiple bests.
-        cnFunctionDrop(*bestFunction);
-        if (!(*bestFunction = cnFunctionCopy(distanceFunction))) {
-          cnErrTo(DONE, "No best copy.");
-        }
+        delete *bestFunction;
+        *bestFunction = distanceFunction->copy();
         *bestThreshold = threshold;
       }
 
@@ -629,7 +625,7 @@ bool cnChooseThreshold(
     for (; point < pointsEnd; point += valueCount) {
       // Find the distance and compare.
       Float currentDistance;
-      distanceFunction->evaluate(distanceFunction, point, &currentDistance);
+      distanceFunction->evaluate(point, &currentDistance);
       if (currentDistance > distance->far) {
         // New max found.
         // If currentDistance were NaN, the above > should fail, so we don't
@@ -1102,12 +1098,13 @@ bool cnLearnSplitModel(
     free(gaussian);
     goto DONE;
   }
-  distanceFunction = cnFunctionCreateMahalanobisDistance(gaussian);
-  if (!distanceFunction) {
+  try {
+    distanceFunction = new MahalanobisDistanceFunction(gaussian);
+  } catch (const exception& e) {
     // The Gaussian can't be automatically cleaned if its container is defunct.
     cnGaussianDispose(gaussian);
     free(gaussian);
-    goto DONE;
+    throw;
   }
 
   // We got points and a distance function. Try to learn something.
@@ -1119,7 +1116,7 @@ bool cnLearnSplitModel(
   )) cnErrTo(DONE, "Best point failure.");
   if (bestFunction) {
     // Replace the initial with the best found.
-    cnFunctionDrop(distanceFunction);
+    delete distanceFunction;
     distanceFunction = bestFunction;
   } else {
     // Nothing was any good. Any mean and threshold is arbitrary, so just let
@@ -1132,7 +1129,7 @@ bool cnLearnSplitModel(
     split->predicate =
       new DistanceThresholdPredicate(distanceFunction, threshold);
   } catch (const exception& e) {
-    cnFunctionDrop(distanceFunction);
+    delete distanceFunction;
     throw;
   }
   // Good to go. Skip to the "do always" cleanup.

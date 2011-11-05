@@ -78,7 +78,26 @@ Count cnBinomialSample(Binomial binomial);
 /**
  * Provides a Mahalanobis distance metric based on a Gaussian distribution.
  */
-Function* cnFunctionCreateMahalanobisDistance(Gaussian* gaussian);
+struct MahalanobisDistanceFunction: Function {
+
+  /**
+   * The Gaussian passed in will be owned by this function.
+   *
+   * TODO Use an expanded Gaussian instead with copy construction?
+   */
+  MahalanobisDistanceFunction(Gaussian* gaussian);
+
+  virtual ~MahalanobisDistanceFunction();
+
+  virtual Function* copy();
+
+  virtual void evaluate(void* in, void* out);
+
+  virtual void write(FILE* file, String* indent);
+
+  Gaussian* gaussian;
+
+};
 
 
 /**
