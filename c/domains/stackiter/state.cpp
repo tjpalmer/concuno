@@ -27,38 +27,28 @@ void stItemInit(stItem* item) {
 }
 
 
-bool stSchemaInit(Schema* schema) {
-  Type* type;
-
-  if (!cnSchemaInitDefault(schema)) {
-    return false;
-  }
+void stSchemaInit(Schema* schema) {
+  cnSchemaInitDefault(schema);
 
   // Item type.
-  if (!(type = cnTypeCreate("Item", sizeof(stItem)))) goto FAIL;
+  Type* type = new Type("Item", sizeof(stItem));
   type->schema = schema;
-  if (!cnListPush(&schema->types, &type)) goto FAIL;
+  schema->types.pushOrDelete(type);
 
   // Color property.
-  type->properties.push_back(new FieldProperty(
+  type->properties.push(new FieldProperty(
     type, schema->floatType, "Color", offsetof(stItem, color), 3
   ));
 
   // Location property.
-  type->properties.push_back(new FieldProperty(
+  type->properties.push(new FieldProperty(
     type, schema->floatType, "Location", offsetof(stItem, location), 2
   ));
 
   // Velocity property.
-  type->properties.push_back(new FieldProperty(
+  type->properties.push(new FieldProperty(
     type, schema->floatType, "Velocity", offsetof(stItem, velocity), 2
   ));
-
-  // Good to go.
-  return true;
-
-  FAIL:
-  return false;
 }
 
 

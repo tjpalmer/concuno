@@ -150,23 +150,21 @@ TypedFieldProperty::TypedFieldProperty(
 
 
 bool cnrSchemaInit(Schema* schema) {
-  Type* type;
-
-  if (!cnSchemaInitDefault(schema)) cnFailTo(FAIL);
+  cnSchemaInitDefault(schema);
 
   // Item type. Say it's the size of a player, since they are bigger than balls.
   // TODO Can I really support multiple types at present??? What's best?
-  if (!(type = cnTypeCreate("Item", sizeof(Player)))) cnFailTo(FAIL);
+  Type* type = new Type("Item", sizeof(Player));
   type->schema = schema;
   if (!cnListPush(&schema->types, &type)) cnFailTo(FAIL);
 
   // Location property.
-  type->properties.push_back(new FieldProperty(
+  type->properties.push(new FieldProperty(
     type, schema->floatType, "Location", offsetof(Item, location), 2
   ));
 
   // Team property.
-  type->properties.push_back(new TypedFieldProperty(
+  type->properties.push(new TypedFieldProperty(
     type, Item::TypePlayer, schema->floatType, cnrFieldTypeEnum, "Team",
     // TODO By C++11 standards, this offsetof should be okay, but I don't want
     // TODO to turn off warnings generally, since that could mask legitimate
@@ -175,7 +173,7 @@ bool cnrSchemaInit(Schema* schema) {
   ));
 
   // Type property.
-  type->properties.push_back(new TypedFieldProperty(
+  type->properties.push(new TypedFieldProperty(
     type, Item::TypeAny, schema->floatType, cnrFieldTypeEnum, "Type",
     offsetof(Item, type), 1
   ));

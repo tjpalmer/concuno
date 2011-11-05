@@ -384,15 +384,9 @@ struct Type {
 
   Type(const char* name, Count size);
 
-  ~Type();
-
   std::string name;
 
-  /**
-   * TODO Store pointers instead of expanded, to keep later pointers here
-   * TODO stable?
-   */
-  std::vector<Property*> properties;
+  AutoVec<Property*> properties;
 
   Schema* schema;
 
@@ -478,7 +472,7 @@ EntityFunction* cnPushValidFunction(
  *
  * On failure, leaves the schema in a stable (nulled out) state.
  */
-bool cnSchemaInitDefault(Schema* schema);
+void cnSchemaInitDefault(Schema* schema);
 
 
 /**

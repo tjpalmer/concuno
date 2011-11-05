@@ -141,7 +141,7 @@ bool cnrPickFunctions(List<EntityFunction*>* functions, Type* type) {
   if (!cnPushValidFunction(functions, type->schema, 2)) {
     cnErrTo(FAIL, "No valid 2.");
   }
-  for (size_t p = 0; p < type->properties.size(); p++) {
+  for (size_t p = 0; p < type->properties->size(); p++) {
     Property* property = type->properties[p];
     EntityFunction* function = cnPushPropertyFunction(functions, property);
     // TODO Distance (and difference?) angle, too?

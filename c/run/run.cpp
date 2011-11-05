@@ -74,7 +74,7 @@ int main(int argc, char** argv) {
   Schema schema;
 
   // Init first for safety.
-  if (!cnSchemaInitDefault(&schema)) cnErrTo(DONE, "Init failed.");
+  cnSchemaInitDefault(&schema);
 
   if (argc < 4) cnErrTo(
     DONE, "Usage: %s <features-file> <labels-file> <label-id>", argv[0]
@@ -134,7 +134,7 @@ bool buildBags(
   bool result = false;
 
   // Find the offset matching the label id.
-  for (size_t p = 0; p < labelType->properties.size(); p++) {
+  for (size_t p = 0; p < labelType->properties->size(); p++) {
     FieldProperty* property =
       dynamic_cast<FieldProperty*>(labelType->properties[p]);
     if (property->name == labelId) {
@@ -183,9 +183,9 @@ Type* loadTable(
   Type* type = NULL;
 
   // Create the type.
-  if (!(type = cnTypeCreate(typeName, 0))) cnErrTo(FAIL, "No type create.");
+  type = new Type(typeName, 0);
   type->schema = schema;
-  if (!cnListPush(&schema->types, &type)) cnErrTo(FAIL, "No type for schema.");
+  schema->types.pushOrDelete(type);
 
   // Open the file.
   file = fopen(fileName, "r");
@@ -235,7 +235,7 @@ Type* loadTable(
   FAIL:
   if (type) {
     // Make the type go away, for tidiness.
-    cnTypeDrop(type);
+    delete type;
     schema->types.count--;
     type = NULL;
   }
@@ -255,7 +255,7 @@ bool pickFunctions(List<EntityFunction*>* functions, Type* type) {
     cnErrTo(FAIL, "No valid 2.");
   }
   // Loop on all but the first (the bag id).
-  for (size_t p = 1; p < type->properties.size(); p++) {
+  for (size_t p = 1; p < type->properties->size(); p++) {
     Property* property = type->properties[p];
     EntityFunction* function = cnPushPropertyFunction(functions, property);
     // TODO Distance (and difference?) angle, too?
@@ -283,7 +283,7 @@ bool pickFunctions(List<EntityFunction*>* functions, Type* type) {
 
 void printType(Type* type) {
   printf("type %s\n", type->name.c_str());
-  for (size_t p = 1; p < type->properties.size(); p++) {
+  for (size_t p = 1; p < type->properties->size(); p++) {
     Property* property = type->properties[p];
     printf(
       "  var %s: %s[%ld]\n",
@@ -300,7 +300,7 @@ void pushOrExpandProperty(
   FieldProperty* property = NULL;
 
   // Find the property with this name.
-  for (size_t p = 1; p < type->properties.size(); p++) {
+  for (size_t p = 1; p < type->properties->size(); p++) {
     FieldProperty* propertyToCheck =
       dynamic_cast<FieldProperty*>(type->properties[p]);
     if (property) {
@@ -318,7 +318,7 @@ void pushOrExpandProperty(
     property = new FieldProperty(
       type, type->schema->floatType, propertyName, type->size, 1
     );
-    type->properties.push_back(property);
+    type->properties.push(property);
   }
 
   // Update the type's overall size, too.

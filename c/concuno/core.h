@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <stdio.h>
 #include <stdlib.h>
+#include <vector>
 
 
 #ifdef __cplusplus
@@ -114,9 +115,56 @@ struct List: ListAny {
     return *reinterpret_cast<Item*>(get(index));
   }
 
+  /**
+   * TODO This only applies for pointers. More to a pointer-specific something?
+   */
+  void pushOrDelete(Item& item) {
+    if (!cnListPush(this, &item)) {
+      delete item;
+      throw Error("Push failed.");
+    }
+  }
+
   Count vectorSize() {
     return itemSize / sizeof(Item);
   }
+
+};
+
+
+/**
+ * A vector only for pointer items, whose items are deleted automatically on
+ * destruct.
+ */
+template<typename Item>
+struct AutoVec {
+
+  ~AutoVec() {
+    // TODO Iterators here, I guess.
+    for (size_t i = 0; i < items.size(); i++) {
+      delete items[i];
+    }
+  }
+
+  Item& operator[](size_t i) {
+    return items[i];
+  }
+
+  std::vector<Item>& operator*() {
+    return items;
+  }
+
+  std::vector<Item>* operator->() {
+    return &items;
+  }
+
+  void push(const Item& item) {
+    items.push_back(item);
+  }
+
+private:
+
+  std::vector<Item> items;
 
 };
 

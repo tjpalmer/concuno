@@ -287,15 +287,12 @@ void testPropagate(void) {
   SplitNode* split;
   VarNode* vars[2];
   RootNode tree;
-  Type* type = NULL;
+  Type type("Float", sizeof(Float));
 
   // Init stuff.
   if (!cnRootNodeInit(&tree, false)) throw Error("Init failed.");
   // TODO Float required because of NaN convention. Fix this!
-  if (!(type = cnTypeCreate("Float", sizeof(Float)))) {
-    throw Error("No type.");
-  }
-  EntityFunction* entityFunction = new CharsDiffEntityFunction(*type);
+  CharsDiffEntityFunction entityFunction(type);
 
   // Add var nodes.
   // Create and add nodes one at a time, so destruction will be automatic.
@@ -307,12 +304,12 @@ void testPropagate(void) {
   // Add split node.
   if (!(split = cnSplitNodeCreate(true))) cnErrTo(DONE, "No split.");
   cnNodePutKid(&vars[1]->node, 0, &split->node);
-  split->function = entityFunction;
+  split->function = &entityFunction;
   // Var indices.
   if (!(
-    split->varIndices = cnAlloc(Index, entityFunction->inCount)
+    split->varIndices = cnAlloc(Index, entityFunction.inCount)
   )) throw Error("No var indices.");
-  for (i = 0; i < entityFunction->inCount; i++) split->varIndices[i] = i;
+  for (i = 0; i < entityFunction.inCount; i++) split->varIndices[i] = i;
   // Predicate.
   if (!(split->predicate = cnAlloc(Predicate, 1))) {
     throw Error("No predicate.");
@@ -354,8 +351,6 @@ void testPropagate(void) {
   } cnEnd;
 
   DONE:
-  cnEntityFunctionDrop(entityFunction);
-  cnTypeDrop(type);
   cnNodeDispose(&tree.node);
   cnListEachBegin(&leafBindingBags, LeafBindingBag, leafBindingBag) {
     leafBindingBag->~LeafBindingBag();
@@ -420,7 +415,7 @@ void testReframe(void) {
 
   // Init.
   Schema schema;
-  if (!cnSchemaInitDefault(&schema)) throw Error("No schema.");
+  cnSchemaInitDefault(&schema);
   EntityFunction* direct = new DirectEntityFunction(schema);
   EntityFunction* reframe = new ReframeEntityFunction(*direct);
 

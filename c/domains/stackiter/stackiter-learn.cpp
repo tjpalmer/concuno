@@ -123,11 +123,7 @@ bool stInitSchemaAndEntityFunctions(
   Type* itemType;
 
   // Set up schema.
-  if (!stSchemaInit(schema)) {
-    printf("Failed to init schema.\n");
-    // Nothing to clean up yet.
-    return false;
-  }
+  stSchemaInit(schema);
 
   // Set up entity functions.
   // TODO Extract this setup, and make it easier to do.

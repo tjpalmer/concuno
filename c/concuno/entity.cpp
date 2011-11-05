@@ -449,27 +449,18 @@ Schema::Schema(): floatType(NULL) {}
 
 Schema::~Schema() {
   cnListEachBegin(&types, Type*, type) {
-    cnTypeDrop(*type);
+    delete *type;
   } cnEnd;
 }
 
 
-bool cnSchemaInitDefault(Schema* schema) {
-  Type *type;
+void cnSchemaInitDefault(Schema* schema) {
   // Create float type.
-  if (!(type = cnTypeCreate("Float", sizeof(Float)))) {
-    cnErrTo(FAIL, "No type.");
-  }
+  Type* type = new Type("Float", sizeof(Float));
   type->schema = schema;
   // Push it on, and keep a nice reference.
-  if (!cnListPush(&schema->types, &type)) cnErrTo(FAIL, "Can't push type.");
+  schema->types.pushOrDelete(type);
   schema->floatType = type;
-  // We winned!
-  return true;
-
-  FAIL:
-  cnTypeDrop(type);
-  return false;
 }
 
 
@@ -481,24 +472,8 @@ Type::Type(const char* $name, Count $size):
 {}
 
 
-Type::~Type() {
-  for (size_t p = 0; p < properties.size(); p++) {
-    delete properties[p];
-  }
-}
-
-
-Type* cnTypeCreate(const char* name, Count size) {
-  Type* type = cnAlloc(Type, 1);
-  if (!type) throw Error("No type.");
-  new(type) Type(name, size);
-  return type;
-}
-
-
 void cnTypeDrop(Type* type) {
   if (!type) return;
-  type->~Type();
   free(type);
 }
 
