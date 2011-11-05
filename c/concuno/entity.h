@@ -340,9 +340,30 @@ struct Property {
 };
 
 
+/**
+ * For fields where offsets don't work.
+ */
 struct FieldProperty: Property {
 
   FieldProperty(
+    Type* containerType, Type* type, const char* name, Count count
+  );
+
+  virtual void get(Entity entity, void* storage);
+
+  virtual void put(Entity entity, void* value);
+
+  /**
+   * Implement this method to provide field access.
+   */
+  virtual void* field(Entity entity) = 0;
+
+};
+
+
+struct OffsetProperty: Property {
+
+  OffsetProperty(
     Type* containerType, Type* type, const char* name, Count offset, Count count
   );
 

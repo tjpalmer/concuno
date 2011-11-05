@@ -36,17 +36,17 @@ void stSchemaInit(Schema* schema) {
   pushOrDelete(*schema->types, type);
 
   // Color property.
-  type->properties.push(new FieldProperty(
+  type->properties.push(new OffsetProperty(
     type, schema->floatType, "Color", offsetof(stItem, color), 3
   ));
 
   // Location property.
-  type->properties.push(new FieldProperty(
+  type->properties.push(new OffsetProperty(
     type, schema->floatType, "Location", offsetof(stItem, location), 2
   ));
 
   // Velocity property.
-  type->properties.push(new FieldProperty(
+  type->properties.push(new OffsetProperty(
     type, schema->floatType, "Velocity", offsetof(stItem, velocity), 2
   ));
 }

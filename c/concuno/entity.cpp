@@ -159,6 +159,36 @@ void EntityFunction::pushOrDelete(std::vector<EntityFunction*>& functions) {
 }
 
 
+FieldProperty::FieldProperty(
+  Type* containerType, Type* type, const char* name, Count count
+): Property(containerType, type, name, count) {}
+
+
+void FieldProperty::get(Entity entity, void* storage) {
+  memcpy(storage, reinterpret_cast<char*>(field(entity)), count * type->size);
+}
+
+
+void FieldProperty::put(Entity entity, void* value) {
+  memcpy(reinterpret_cast<char*>(field(entity)), value, count * type->size);
+}
+
+
+OffsetProperty::OffsetProperty(
+  Type* containerType, Type* type, const char* name, Count $offset, Count count
+): Property(containerType, type, name, count), offset($offset) {}
+
+
+void OffsetProperty::get(Entity entity, void* storage) {
+  memcpy(storage, ((char*)entity) + offset, count * type->size);
+}
+
+
+void OffsetProperty::put(Entity entity, void* value) {
+  memcpy(((char*)entity) + offset, value, count * type->size);
+}
+
+
 PropertyEntityFunction::PropertyEntityFunction(Property& $property):
   EntityFunction($property.name.c_str(), 1, $property.count),
   property($property)
@@ -236,21 +266,6 @@ void ValidityEntityFunction::get(Entity* ins, void* outs) {
   }
   // All clear.
   *out = 1.0;
-}
-
-
-FieldProperty::FieldProperty(
-  Type* containerType, Type* type, const char* name, Count $offset, Count count
-): Property(containerType, type, name, count), offset($offset) {}
-
-
-void FieldProperty::get(Entity entity, void* storage) {
-  memcpy(storage, ((char*)entity) + offset, count * type->size);
-}
-
-
-void FieldProperty::put(Entity entity, void* value) {
-  memcpy(((char*)entity) + offset, value, count * type->size);
 }
 
 

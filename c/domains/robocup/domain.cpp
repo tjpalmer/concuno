@@ -34,7 +34,7 @@ struct TypedFieldProperty: FieldProperty {
   TypedFieldProperty(
     Type* containerType, Item::Type itemType,
     Type* type, cnrFieldType fieldType,
-    const char* name, Count offset, Count count
+    const char* name, Count count
   );
 
   virtual void get(Entity entity, void* storage);
@@ -77,8 +77,19 @@ Player::Player():
 {}
 
 
+TypedFieldProperty::TypedFieldProperty(
+    Type* containerType, Item::Type $itemType,
+    Type* type, cnrFieldType $fieldType,
+    const char* name, Count count
+):
+  FieldProperty(containerType, type, name, count),
+  fieldType($fieldType), itemType($itemType)
+{}
+
+
 void TypedFieldProperty::get(Entity entity, void* storage) {
   Item* item = reinterpret_cast<Item*>(entity);
+  char* fieldAddress = reinterpret_cast<char*>(field(entity));
   if (itemType != Item::TypeAny && item->type != itemType) {
     // Types don't match. Give NaNs.
     // TODO If we were more explicit, could we be more efficient in learning?
@@ -90,7 +101,7 @@ void TypedFieldProperty::get(Entity entity, void* storage) {
   } else if (fieldType == cnrFieldTypeEnum) {
     // Out must be float.
     // TODO Make each of these cases a different subtype of Property?
-    unsigned int* in = (unsigned int*)(((char*)entity) + offset);
+    unsigned int* in = reinterpret_cast<unsigned int*>(fieldAddress);
     Float* out = reinterpret_cast<Float*>(storage);
     Float* outEnd = out + count;
     for (; out < outEnd; in++, out++) {
@@ -98,7 +109,7 @@ void TypedFieldProperty::get(Entity entity, void* storage) {
     }
   } else if (fieldType == cnrFieldTypeInt) {
     // Out must be float.
-    Int* in = (Int*)(((char*)entity) + offset);
+    Int* in = reinterpret_cast<Int*>(fieldAddress);
     Float* out = reinterpret_cast<Float*>(storage);
     Float* outEnd = out + count;
     for (; out < outEnd; in++, out++) {
@@ -113,13 +124,14 @@ void TypedFieldProperty::get(Entity entity, void* storage) {
 
 void TypedFieldProperty::put(Entity entity, void* value) {
   Item* item = reinterpret_cast<Item*>(entity);
+  char* fieldAddress = reinterpret_cast<char*>(field(entity));
   if (itemType != Item::TypeAny && item->type != itemType) {
     // Types don't match. Nothing to do here.
     // TODO Any way to indicate error?
   } else if (fieldType == cnrFieldTypeEnum) {
     // In must be float.
     Float* in = reinterpret_cast<Float*>(value);
-    unsigned int* out = (unsigned int*)(((char*)entity) + offset);
+    unsigned int* out = reinterpret_cast<unsigned int*>(fieldAddress);
     unsigned int* outEnd = out + count;
     for (; out < outEnd; in++, out++) {
       *out = (unsigned int)*in;
@@ -127,7 +139,7 @@ void TypedFieldProperty::put(Entity entity, void* value) {
   } else if (fieldType == cnrFieldTypeInt) {
     // In must be float.
     Float* in = reinterpret_cast<Float*>(value);
-    Int* out = (Int*)(((char*)entity) + offset);
+    Int* out = reinterpret_cast<Int*>(fieldAddress);
     Int* outEnd = out + count;
     for (; out < outEnd; in++, out++) {
       *out = (Int)*in;
@@ -139,43 +151,47 @@ void TypedFieldProperty::put(Entity entity, void* value) {
 }
 
 
-TypedFieldProperty::TypedFieldProperty(
-    Type* containerType, Item::Type $itemType,
-    Type* type, cnrFieldType $fieldType,
-    const char* name, Count offset, Count count
-):
-  FieldProperty(containerType, type, name, offset, count),
-  fieldType($fieldType), itemType($itemType)
-{}
-
-
-bool cnrSchemaInit(Schema* schema) {
+void schemaInit(Schema* schema) {
   cnSchemaInitDefault(schema);
 
   // Item type. Say it's the size of a player, since they are bigger than balls.
   // TODO Can I really support multiple types at present??? What's best?
   Type* type = new Type("Item", sizeof(Player));
+  type->schema = schema;
   pushOrDelete(*schema->types, type);
 
   // Location property.
-  type->properties.push(new FieldProperty(
-    type, schema->floatType, "Location", offsetof(Item, location), 2
-  ));
+  struct LocationProperty: FieldProperty {
+    LocationProperty(Type* containerType, Type* type):
+      FieldProperty(containerType, type, "Location", 2) {}
+    virtual void* field(Entity entity) {
+      return reinterpret_cast<Item*>(entity)->location;
+    }
+  };
+  type->properties.push(new LocationProperty(type, schema->floatType));
 
   // Team property.
-  type->properties.push(new TypedFieldProperty(
-    type, Item::TypePlayer, schema->floatType, cnrFieldTypeEnum, "Team",
-    // TODO By C++11 standards, this offsetof should be okay, but I don't want
-    // TODO to turn off warnings generally, since that could mask legitimate
-    // TODO uses. Find a different solution here?
-    offsetof(Player, team), 1
-  ));
+  struct TeamProperty: TypedFieldProperty {
+    TeamProperty(Type* containerType, Type* type):
+      TypedFieldProperty(
+        // TODO Really this is a size_t and not an enum. Fix!
+        // TODO A template approach is probably better than this, anyway.
+        containerType, Item::TypePlayer, type, cnrFieldTypeEnum, "Team", 1) {}
+    virtual void* field(Entity entity) {
+      return &reinterpret_cast<Player*>(entity)->team;
+    }
+  };
+  type->properties.push(new TeamProperty(type, schema->floatType));
 
   // Type property.
-  type->properties.push(new TypedFieldProperty(
-    type, Item::TypeAny, schema->floatType, cnrFieldTypeEnum, "Type",
-    offsetof(Item, type), 1
-  ));
+  struct TypeProperty: TypedFieldProperty {
+    TypeProperty(Type* containerType, Type* type):
+      TypedFieldProperty(
+        containerType, Item::TypeAny, type, cnrFieldTypeEnum, "Type", 1) {}
+    virtual void* field(Entity entity) {
+      return &reinterpret_cast<Item*>(entity)->type;
+    }
+  };
 }
 
 

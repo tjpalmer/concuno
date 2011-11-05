@@ -211,7 +211,7 @@ bool cnrProcessLearn(List<Bag>* holdBags, List<Bag>* passBags) {
   Schema schema;
 
   // Inits.
-  if (!cnrSchemaInit(&schema)) cnFailTo(DONE);
+  schemaInit(&schema);
   cnrPickFunctions(*functions, schema.types[1]);
 
   // Learn something.

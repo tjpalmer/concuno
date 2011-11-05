@@ -136,8 +136,8 @@ bool buildBags(
 
   // Find the offset matching the label id.
   for (size_t p = 0; p < labelType->properties->size(); p++) {
-    FieldProperty* property =
-      dynamic_cast<FieldProperty*>(labelType->properties[p]);
+    OffsetProperty* property =
+      dynamic_cast<OffsetProperty*>(labelType->properties[p]);
     if (property->name == labelId) {
       labelOffset = property->offset;
       printf("Label %s at offset %ld.\n", labelId, labelOffset);
@@ -275,12 +275,12 @@ void printType(Type* type) {
 void pushOrExpandProperty(
   Type* type, const std::string& propertyName, TypedOffset* offset
 ) {
-  FieldProperty* property = NULL;
+  OffsetProperty* property = NULL;
 
   // Find the property with this name.
   for (size_t p = 1; p < type->properties->size(); p++) {
-    FieldProperty* propertyToCheck =
-      dynamic_cast<FieldProperty*>(type->properties[p]);
+    OffsetProperty* propertyToCheck =
+      dynamic_cast<OffsetProperty*>(type->properties[p]);
     if (property) {
       // Found a previous property, so offset this following one.
       propertyToCheck->offset += property->type->size;
@@ -293,7 +293,7 @@ void pushOrExpandProperty(
 
   if (!property) {
     // Didn't find anything, so push a new property.
-    property = new FieldProperty(
+    property = new OffsetProperty(
       type, type->schema->floatType, propertyName.c_str(), type->size, 1
     );
     type->properties.push(property);
