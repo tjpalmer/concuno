@@ -2,34 +2,43 @@
 
 #include "stackiter-learn.h"
 
-using namespace concuno;
-using namespace std;
+
+namespace ccndomain {namespace stackiter {
 
 
-void stClusterStuff(
-  List<stState>& states, std::vector<EntityFunction*>& functions
+void clusterStuff(
+  concuno::List<State>& states,
+  std::vector<concuno::EntityFunction*>& functions
 );
 
 
-void stInitSchemaAndEntityFunctions(
-  Schema& schema, std::vector<EntityFunction*>& functions
+void initSchemaAndEntityFunctions(
+  concuno::Schema& schema, std::vector<concuno::EntityFunction*>& functions
 );
 
 
-bool stLearnConcept(
-  List<stState>* states,
-  std::vector<EntityFunction*>* functions,
+bool learnConcept(
+  concuno::List<State>* states,
+  std::vector<concuno::EntityFunction*>* functions,
   bool (*choose)(
-    List<stState>* states, List<Bag>* bags,
-    List<List<Entity>*>* entityLists
+    concuno::List<State>* states, concuno::List<concuno::Bag>* bags,
+    concuno::List<concuno::List<concuno::Entity>*>* entityLists
   )
 );
+
+
+}}
+
+
+using namespace ccndomain::stackiter;
+using namespace concuno;
+using namespace std;
 
 
 int main(int argc, char** argv) {
   AutoVec<EntityFunction*> entityFunctions;
   Schema schema;
-  List<stState> states;
+  List<State> states;
   int status = EXIT_FAILURE;
 
   // Validate args.
@@ -39,7 +48,7 @@ int main(int argc, char** argv) {
   }
 
   // Load file and show stats.
-  if (!stLoad(argv[1], &states)) {
+  if (!load(argv[1], &states)) {
     throw Error("Failed to load file.");
   }
   printf("At end:\n");
@@ -47,19 +56,19 @@ int main(int argc, char** argv) {
   printf("%ld states\n", states.count);
 
   // Set up schema.
-  stInitSchemaAndEntityFunctions(schema, *entityFunctions);
+  initSchemaAndEntityFunctions(schema, *entityFunctions);
 
   switch (1) {
   case 1:
     // Attempt learning the "falls on" predictive concept.
-    if (!stLearnConcept(
-      &states, &*entityFunctions, stChooseDropWhereLandOnOther
+    if (!learnConcept(
+      &states, &*entityFunctions, chooseDropWhereLandOnOther
     )) {
       throw Error("No learned tree.");
     }
     break;
   case 2:
-    stClusterStuff(states, *entityFunctions);
+    clusterStuff(states, *entityFunctions);
     break;
   default:
     printf("Didn't do anything!\n");
@@ -69,20 +78,23 @@ int main(int argc, char** argv) {
   status = EXIT_SUCCESS;
 
   DONE:
-  cnListEachBegin(&states, stState, state) {
-    state->~stState();
+  cnListEachBegin(&states, State, state) {
+    state->~State();
   } cnEnd;
   return status;
 }
 
 
-void stClusterStuff(
-  List<stState>& states, std::vector<EntityFunction*>& functions
+namespace ccndomain {namespace stackiter {
+
+
+void clusterStuff(
+  List<State>& states, vector<EntityFunction*>& functions
 ) {
   List<Bag> bags;
 
   // Choose out the states we want to focus on.
-  if (!stAllBagsFalse(&states, &bags, NULL)) {
+  if (!allBagsFalse(&states, &bags, NULL)) {
     throw Error("Failed to choose bags.");
   }
 
@@ -100,13 +112,13 @@ void stClusterStuff(
 }
 
 
-void stInitSchemaAndEntityFunctions(
-  Schema& schema, std::vector<EntityFunction*>& functions
+void initSchemaAndEntityFunctions(
+  Schema& schema, vector<EntityFunction*>& functions
 ) {
   Type* itemType;
 
   // Set up schema.
-  stSchemaInit(schema);
+  schemaInit(schema);
 
   // Set up entity functions.
   // TODO Extract this setup, and make it easier to do.
@@ -149,11 +161,11 @@ void stInitSchemaAndEntityFunctions(
 }
 
 
-bool stLearnConcept(
-  List<stState>* states,
-  std::vector<EntityFunction*>* functions,
+bool learnConcept(
+  List<State>* states,
+  vector<EntityFunction*>* functions,
   bool (*choose)(
-    List<stState>* states, List<Bag>* bags,
+    List<State>* states, List<Bag>* bags,
     List<List<Entity>*>* entityLists
   )
 ) {
@@ -202,3 +214,6 @@ bool stLearnConcept(
   // Result.
   return result;
 }
+
+
+}}

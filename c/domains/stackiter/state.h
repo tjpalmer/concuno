@@ -5,23 +5,25 @@
 #include <concuno.h>
 
 
-typedef enum {
-  stTypeNone,
-  stTypeBlock,
-  stTypeTool,
-  stTypeTray,
-  stTypeView,
-  stTypeWorld,
-} stType;
+namespace ccndomain {namespace stackiter {
 
 
-typedef concuno::Index stId;
+typedef concuno::Index Id;
 
 
-typedef int stTypeId;
+typedef int TypeId;
 
 
-struct stItem {
+struct Item {
+
+  enum Type {
+    TypeNone,
+    TypeBlock,
+    TypeTool,
+    TypeTray,
+    TypeView,
+    TypeWorld,
+  };
 
   bool alive;
 
@@ -41,7 +43,7 @@ struct stItem {
    */
   bool grasping;
 
-  stId id;
+  Id id;
 
   concuno::Float location[2];
 
@@ -49,27 +51,27 @@ struct stItem {
 
   concuno::Float orientationVelocity;
 
-  stType type;
+  Type type;
 
   concuno::Float velocity[2];
 
 };
 
 
-struct stState {
+struct State {
 
-  stState();
+  State();
 
   bool cleared;
 
-  concuno::List<stItem> items;
+  concuno::List<Item> items;
 
   double time;
 
 };
 
 
-void stItemInit(stItem* item);
+void stItemInit(Item* item);
 
 
 /**
@@ -77,16 +79,19 @@ void stItemInit(stItem* item);
  *
  * Dispose with cnSchemaDispose (since nothing special needed here).
  */
-void stSchemaInit(concuno::Schema& schema);
+void schemaInit(concuno::Schema& schema);
 
 
-void stStateDispose(stState* state);
+void stateDispose(State* state);
 
 
-stItem* stStateFindItem(stState* state, stId id);
+Item* stateFindItem(State* state, Id id);
 
 
-bool stStateCopy(stState* to, stState* from);
+bool stateCopy(State* to, State* from);
+
+
+}}
 
 
 #endif

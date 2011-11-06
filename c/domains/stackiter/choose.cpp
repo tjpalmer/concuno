@@ -5,30 +5,33 @@
 using namespace concuno;
 
 
+namespace ccndomain {namespace stackiter {
+
+
 /**
  * Finds items grasped in the state, and returns whether any were found.
  */
-bool stFindGraspedItems(const stState* state, List<stItem*>* items);
+bool stFindGraspedItems(const State* state, List<Item*>* items);
 
 
-bool stOnGround(const stItem* item);
+bool stOnGround(const Item* item);
 
 
 /**
  * Place pointers to alive items into the entities vector.
  */
 bool stPlaceLiveItems(
-  const List<stItem>* items, List<Entity>* entities
+  const List<Item>* items, List<Entity>* entities
 );
 
 
-bool stAllBagsFalse(
-  List<stState>* states, List<Bag>* bags,
+bool allBagsFalse(
+  List<State>* states, List<Bag>* bags,
   List<List<Entity>*>* entityLists
 ) {
   bool result = false;
 
-  cnListEachBegin(states, stState, state) {
+  cnListEachBegin(states, State, state) {
     // Every state gets a bag.
     Bag* bag;
     if (!(bag = reinterpret_cast<Bag*>(cnListExpand(bags)))) {
@@ -49,16 +52,16 @@ bool stAllBagsFalse(
 }
 
 
-bool stChooseDropWhereLandOnOther(
-  List<stState>* states, List<Bag>* bags,
+bool chooseDropWhereLandOnOther(
+  List<State>* states, List<Bag>* bags,
   List<List<Entity>*>* entityLists
 ) {
   bool result = false;
   bool formerHadGrasp = false;
-  stId graspedId = -1;
-  const stState* ungraspState = NULL;
-  List<stItem*> graspedItems;
-  cnListEachBegin(states, stState, state) {
+  Id graspedId = -1;
+  const State* ungraspState = NULL;
+  List<Item*> graspedItems;
+  cnListEachBegin(states, State, state) {
     if (ungraspState) {
       // Look for stable state.
       int label = -1;
@@ -67,7 +70,7 @@ bool stChooseDropWhereLandOnOther(
         // World cleared. Say it's settled, but don't assign a label.
         settled = true;
       } else {
-        stItem* item = stStateFindItem(state, graspedId);
+        Item* item = stateFindItem(state, graspedId);
         if (item) {
           // Still here. See if it's moving.
           if (cnNorm(2, item->velocity) < 0.01) {
@@ -111,7 +114,7 @@ bool stChooseDropWhereLandOnOther(
         // TODO more than one.
         // TODO What if more than one ungrasp occurs at the same state and
         // TODO each has a different result?
-        graspedId = (((stItem**)graspedItems.items)[0])->id;
+        graspedId = (((Item**)graspedItems.items)[0])->id;
         cnListClear(&graspedItems);
       } else if (formerHadGrasp && !state->cleared) {
         ungraspState = state;
@@ -128,22 +131,22 @@ bool stChooseDropWhereLandOnOther(
 }
 
 
-bool stChooseWhereNotMoving(
-  List<stState>* states, List<Bag>* bags,
+bool chooseWhereNotMoving(
+  List<State>* states, List<Bag>* bags,
   List<List<Entity>*>* entityLists
 ) {
   Float epsilon = 1e-2;
   bool result = false;
 
   // Find bags.
-  cnListEachBegin(states, stState, state) {
+  cnListEachBegin(states, State, state) {
     // Every state gets a bag.
     List<Entity>* entities = NULL;
     bool keep = true;
     // Assume bags have none moving by default.
 
     // Label based on whether any are moving.
-    cnListEachBegin(&state->items, stItem, item) {
+    cnListEachBegin(&state->items, Item, item) {
       if (item->grasped) {
         // Ignore cases where items are grasped until we have support for
         // discrete topologies.
@@ -180,7 +183,7 @@ bool stChooseWhereNotMoving(
     cnListEachBegin(entities, Entity, entity) {
       Bag* bag;
       List<Entity>* participant;
-      stItem* item = *(stItem**)entity;
+      Item* item = *(Item**)entity;
       Float speed;
 
       // Bag.
@@ -222,8 +225,8 @@ bool stChooseWhereNotMoving(
 }
 
 
-bool stFindGraspedItems(const stState* state, List<stItem*>* items) {
-  cnListEachBegin(&state->items, stItem, item) {
+bool stFindGraspedItems(const State* state, List<Item*>* items) {
+  cnListEachBegin(&state->items, Item, item) {
     if (item->grasped) {
       if (items) {
         if (!cnListPush(items, &item)) {
@@ -236,7 +239,7 @@ bool stFindGraspedItems(const stState* state, List<stItem*>* items) {
 }
 
 
-bool stOnGround(const stItem* item) {
+bool stOnGround(const Item* item) {
   Float angle = item->orientation;
   // Angles go from -1 to 1.
   // Here, dim 1 is upright, and 0 sideways.
@@ -246,9 +249,9 @@ bool stOnGround(const stItem* item) {
 
 
 bool stPlaceLiveItems(
-  const List<stItem>* items, List<Entity>* entities
+  const List<Item>* items, List<Entity>* entities
 ) {
-  cnListEachBegin(items, stItem, item) {
+  cnListEachBegin(items, Item, item) {
     // Make sure it's alive and not the ground.
     if (item->alive && item->location[1] >= 0) {
       // Store the address of the item, not a copy.
@@ -259,3 +262,6 @@ bool stPlaceLiveItems(
   } cnEnd;
   return true;
 }
+
+
+}}

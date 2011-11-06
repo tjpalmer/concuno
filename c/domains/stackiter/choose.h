@@ -5,6 +5,9 @@
 #include "state.h"
 
 
+namespace ccndomain {namespace stackiter {
+
+
 /**
  * Turn all states into bags, keeping only alive items.
  *
@@ -14,8 +17,8 @@
  * TODO On the other hand, do I care about this function being interchangeable
  * TODO with other choose functions?
  */
-bool stAllBagsFalse(
-  concuno::List<stState>* states, concuno::List<concuno::Bag>* bags,
+bool allBagsFalse(
+  concuno::List<State>* states, concuno::List<concuno::Bag>* bags,
   concuno::List<concuno::List<concuno::Entity>*>* entityLists
 );
 
@@ -28,8 +31,8 @@ bool stAllBagsFalse(
  * The entity lists from the bags are provided separately, because sometimes we
  * do sub-state bags.
  */
-bool stChooseDropWhereLandOnOther(
-  concuno::List<stState>* states, concuno::List<concuno::Bag>* bags,
+bool chooseDropWhereLandOnOther(
+  concuno::List<State>* states, concuno::List<concuno::Bag>* bags,
   concuno::List<concuno::List<concuno::Entity>*>* entityLists
 );
 
@@ -41,10 +44,13 @@ bool stChooseDropWhereLandOnOther(
  * The entity lists from the bags are provided separately, because here we do
  * sub-state bags.
  */
-bool stChooseWhereNotMoving(
-  concuno::List<stState>* states, concuno::List<concuno::Bag>* bags,
+bool chooseWhereNotMoving(
+  concuno::List<State>* states, concuno::List<concuno::Bag>* bags,
   concuno::List<concuno::List<concuno::Entity>*>* entityLists
 );
+
+
+}}
 
 
 #endif

@@ -4,10 +4,16 @@
 #include "state.h"
 
 
+namespace ccndomain {namespace stackiter {
+
+
 /**
  * The states list should have been previously init'd.
  */
-bool stLoad(char* name, concuno::List<stState>* states);
+bool load(char* name, concuno::List<State>* states);
+
+
+}}
 
 
 #endif
