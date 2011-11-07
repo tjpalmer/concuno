@@ -9,15 +9,18 @@ Converts smrf2 JSON files to concuno-readable data and label table files.
 def main():
     import json
     from os.path import join
+    from re import sub
     from sys import argv
     from time import strftime
-    base = '../temp'
+    #base = '../temp'
     name = argv[1]
-    case = argv[2]
+    #case = argv[2]
     time = strftime('%Y%m%d')
-    with open(join(base, 'smrf', name, case) + '.json') as file:
+    #with open(join(base, 'smrf', name, case) + '.json') as file:
+    with open(name) as file:
         bags, fields = json.load(file)
-        out_name = join(base, name) + '_' + case;
+        #out_name = join(base, name) + '_' + case;
+        out_name = sub(r"\.json$", "", name)
         features_name = out_name + '_features_' + time + '.txt'
         labels_name = out_name + '_labels_' + time + '.txt'
         with open(features_name, 'w') as features_out:
@@ -49,16 +52,24 @@ def process(features_out, labels_out, bags, fields):
             if first:
                 # Output column headers.
                 for field in fields:
-                    for value in item[field]:
+                    try:
+                        for value in item[field]:
+                            print >>features_out, field.capitalize(),
+                    except TypeError:
+                        # Must not be iterable. Go direct.
                         print >>features_out, field.capitalize(),
                 print >>features_out
                 first = False
             print >>features_out, bag_id,
             for field in fields:
                 values = item[field]
-                for value in values:
-                    # SMRF uses column vectors represented as nested arrays.
-                    print >>features_out, value[0],
+                try:
+                    for value in values:
+                        # SMRF uses column vectors represented as nested arrays.
+                        print >>features_out, value[0],
+                except TypeError:
+                    # Must not be iterable. Go direct.
+                    print >>features_out, values,
             print >>features_out
 
         # Label. Concuno uses 0 and 1 for False and True.

@@ -12,17 +12,29 @@ using namespace concuno;
 using namespace std;
 
 
-namespace ccndomain {
-namespace rcss {
+namespace ccndomain {namespace rcss {
 
 
 bool cnrGenColumnVector(yajl_gen gen, Count count, Float* x);
 
 
-bool cnrGenFloat(yajl_gen gen, Float x);
+void generate(yajl_gen gen, bool b);
 
 
-bool cnrGenStr(yajl_gen gen, const char* str);
+void generate(yajl_gen gen, Float x);
+
+
+void generate(yajl_gen gen, const char* str);
+
+
+/**
+ * Name-value pair.
+ */
+template<typename Value>
+void generate(yajl_gen gen, const char* str, Value value) {
+  generate(gen, str);
+  generate(gen, value);
+}
 
 
 /**
@@ -46,8 +58,7 @@ bool cnrProcessLearn(List<Bag>* holdBags, List<Bag>* passBags);
 bool cnrSaveBags(const char* name, List<Bag>* bags);
 
 
-}
-}
+}}
 
 
 int main(int argc, char** argv) {
@@ -99,8 +110,7 @@ int main(int argc, char** argv) {
 }
 
 
-namespace ccndomain {
-namespace rcss {
+namespace ccndomain {namespace rcss {
 
 
 bool cnrGenColumnVector(yajl_gen gen, Count count, Float* x) {
@@ -108,7 +118,7 @@ bool cnrGenColumnVector(yajl_gen gen, Count count, Float* x) {
   if (yajl_gen_array_open(gen)) cnFailTo(FAIL);
   for (; x < end; x++) {
     if (yajl_gen_array_open(gen)) cnFailTo(FAIL);
-    if (!cnrGenFloat(gen, *x)) cnFailTo(FAIL);
+    generate(gen, *x);
     if (yajl_gen_array_close(gen)) cnFailTo(FAIL);
   }
   if (yajl_gen_array_close(gen)) cnFailTo(FAIL);
@@ -121,15 +131,22 @@ bool cnrGenColumnVector(yajl_gen gen, Count count, Float* x) {
 }
 
 
-bool cnrGenFloat(yajl_gen gen, Float x) {
-  // TODO Fancierness to get nicer results.
-  return yajl_gen_double(gen, x) ? false : true;
+void generate(yajl_gen gen, bool b) {
+  if (yajl_gen_bool(gen, b)) throw Error("Json write failure.");
 }
 
 
-bool cnrGenStr(yajl_gen gen, const char* str) {
-  return yajl_gen_string(gen, (unsigned char*)str, strlen(str)) ?
-    false : true;
+void generate(yajl_gen gen, Float x) {
+  // TODO Fancierness to get nicer results.
+  if (yajl_gen_double(gen, x)) throw Error("Json write failure.");
+}
+
+
+void generate(yajl_gen gen, const char* str) {
+  yajl_gen_status status =
+    yajl_gen_string(gen, (unsigned char*)str, strlen(str));
+  // TODO More precise error.
+  if (status) throw Error("Json write failure.");
 }
 
 
@@ -139,6 +156,7 @@ void pickFunctions(vector<EntityFunction*>& functions, Type* type) {
   (new ValidityEntityFunction(*type->schema, 2))->pushOrDelete(functions);
   for (size_t p = 0; p < type->properties->size(); p++) {
     Property& property = *type->properties[p];
+    if (property.name != "Location") continue;
     EntityFunction* function = new PropertyEntityFunction(property);
     function->pushOrDelete(functions);
     // TODO Distance (and difference?) angle, too?
@@ -218,7 +236,7 @@ bool cnrProcessLearn(List<Bag>* holdBags, List<Bag>* passBags) {
   // TODO How to choose pass vs. hold?
   cnListShuffle(holdBags);
   cnListShuffle(passBags);
-  learner.bags = passBags;
+  learner.bags = holdBags;
   learner.entityFunctions = &*functions;
   learnedTree = learner.learnTree();
   if (!learnedTree) cnErrTo(DONE, "No learned tree.");
@@ -239,6 +257,7 @@ bool cnrProcessLearn(List<Bag>* holdBags, List<Bag>* passBags) {
 
 bool cnrSaveBags(const char* name, List<Bag>* bags) {
   const unsigned char* buffer;
+  Index b = 0;
   size_t bufferSize;
   ofstream file;
   yajl_gen gen = NULL;
@@ -258,7 +277,7 @@ bool cnrSaveBags(const char* name, List<Bag>* bags) {
   if (yajl_gen_array_open(gen) || yajl_gen_array_open(gen)) cnFailTo(DONE);
   cnListEachBegin(bags, Bag, bag) {
     if (yajl_gen_map_open(gen)) cnFailTo(DONE);
-    if (!cnrGenStr(gen, itemsKey)) cnFailTo(DONE);
+    generate(gen, itemsKey);
     if (yajl_gen_array_open(gen)) cnFailTo(DONE);
     // Write each item (ball or player).
     cnListEachBegin(bag->entities, Entity, entity) {
@@ -266,17 +285,17 @@ bool cnrSaveBags(const char* name, List<Bag>* bags) {
       Item* item = reinterpret_cast<Item*>(*entity);
       if (yajl_gen_map_open(gen)) cnFailTo(DONE);
       // Type as ball, left (team), or right (team).
-      if (!cnrGenStr(gen, "type")) cnFailTo(DONE);
+      generate(gen, "type");
       if (item->type == Item::TypeBall) {
-        if (!cnrGenStr(gen, "ball")) cnFailTo(DONE);
+        generate(gen, "ball");
       } else {
         Player* player = (Player*)item;
-        if (!cnrGenStr(gen, player->team ? "right" : "left")) cnFailTo(DONE);
+        generate(gen, player->team ? "right" : "left");
       }
       // Location.
-      if (!cnrGenStr(gen, locationKey)) cnFailTo(DONE);
+      generate(gen, locationKey);
       if (!cnrGenColumnVector(gen, 2, item->location)) cnFailTo(DONE);
-      // Pinning.
+      // Pinning (and passer/receiver).
       cnListEachBegin(&bag->participantOptions, List<Entity>, options) {
         if (options->count > 1) {
           cnErrTo(
@@ -287,26 +306,34 @@ bool cnrSaveBags(const char* name, List<Bag>* bags) {
         if (item == *reinterpret_cast<Item**>(options->items)) break;
         depth++;
       } cnEnd;
-      if (!cnrGenStr(gen, "__instantiable_depth__")) cnFailTo(DONE);
+      generate(gen, "__instantiable_depth__");
       if (yajl_gen_integer(gen, depth)) cnFailTo(DONE);
+      // Passer and receiver.
+      // Explicit handling of passer/receiver makes later management of data
+      // conversion a bit more straightforward.
+      generate(gen, "passer", static_cast<Float>(depth == 0));
+      generate(gen, "receiver", static_cast<Float>(depth == 1));
       // SMRF Python class.
-      if (!cnrGenStr(gen, "__json_class__")) cnFailTo(DONE);
-      if (!cnrGenStr(gen, "Item")) cnFailTo(DONE);
+      generate(gen, "__json_class__", "Item");
       // End item.
       if (yajl_gen_map_close(gen)) cnFailTo(DONE);
     } cnEnd;
     if (yajl_gen_array_close(gen)) cnFailTo(DONE);
+    // Bag id.
+    generate(gen, "__label__");
+    if (yajl_gen_integer(gen, b)) cnFailTo(DONE);
     // Bag label.
-    if (!cnrGenStr(gen, "label")) cnFailTo(DONE);
-    if (yajl_gen_bool(gen, bag->label)) cnFailTo(DONE);
+    generate(gen, "label", bag->label);
     // SMRF Python class.
-    if (!cnrGenStr(gen, "__json_class__")) cnFailTo(DONE);
-    if (!cnrGenStr(gen, "Graph")) cnFailTo(DONE);
+    generate(gen, "__json_class__", "Graph");
     // End bag.
     if (yajl_gen_map_close(gen)) cnFailTo(DONE);
+    b++;
   } cnEnd;
   if (yajl_gen_array_close(gen) || yajl_gen_array_open(gen)) cnFailTo(DONE);
-  if (!cnrGenStr(gen, locationKey)) cnFailTo(DONE);
+  generate(gen, locationKey);
+  generate(gen, "passer");
+  generate(gen, "receiver");
   if (yajl_gen_array_close(gen) || yajl_gen_array_close(gen)) cnFailTo(DONE);
 
   // Output.
@@ -330,5 +357,4 @@ bool cnrSaveBags(const char* name, List<Bag>* bags) {
 }
 
 
-}
-}
+}}
