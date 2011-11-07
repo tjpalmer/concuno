@@ -215,7 +215,7 @@ bool cnrExtractHoldOrPass(
   // We should have a bag by now. Pin the participants.
   new(bag) Bag(entities);
   bag->pushParticipant(0, kicker);
-  bag->pushParticipant(1, receiver);
+  if (receiver) bag->pushParticipant(1, receiver);
 
   // And provide the given bag label already determined before the call.
   // Well, invert the label because "fail" can be determined existentially, but
