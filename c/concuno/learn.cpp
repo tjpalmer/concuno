@@ -1,6 +1,8 @@
 #include <limits.h>
 #include <math.h>
 #include <string.h>
+#include <fstream>
+#include <sstream>
 #include <vector>
 #include "learn.h"
 #include "mat.h"
@@ -13,10 +15,15 @@ using namespace std;
 namespace concuno {
 
 
+bool logIt;
+
+string pointLogName;
+
+
 /**
  * Tracks the distance to a bag from some point.
  */
-typedef struct cnBagDistance {
+struct BagDistance {
 
   /**
    * The bag in question, in case you want details (like the label).
@@ -38,14 +45,14 @@ typedef struct cnBagDistance {
    */
   Float* nearPoint;
 
-} cnBagDistance;
+};
 
 
 /**
  * An expansion that replaces a leaf in the tree, adding a split that
  * optionally follows multiple new vars.
  */
-typedef struct cnExpansion {
+struct Expansion {
 
   /**
    * The function to use at the split node.
@@ -67,7 +74,7 @@ typedef struct cnExpansion {
    */
   Index* varIndices;
 
-} cnExpansion;
+};
 
 
 /**
@@ -171,7 +178,7 @@ bool cnChooseThreshold(
  */
 Float cnChooseThresholdWithDistances(
   bool yesLabel,
-  cnBagDistance* distances, cnBagDistance* distancesEnd, Float* score,
+  BagDistance* distances, BagDistance* distancesEnd, Float* score,
   List<Float>* nearPosPoints, List<Float>* nearNegPoints
 );
 
@@ -182,11 +189,11 @@ Float cnChooseThresholdWithDistances(
  *
  * TODO This might represent the best of multiple attempts at optimization.
  */
-RootNode* cnExpandedTree(LearnerConfig* config, cnExpansion* expansion);
+RootNode* cnExpandedTree(LearnerConfig* config, Expansion* expansion);
 
 
 bool cnExpansionRedundant(
-  List<cnExpansion>* expansions, EntityFunction* function, Index* indices
+  List<Expansion>* expansions, EntityFunction* function, Index* indices
 );
 
 
@@ -201,11 +208,11 @@ void cnLogPointBags(SplitNode* split, List<PointBag>* pointBags);
 LeafNode* cnPickBestLeaf(RootNode* tree, List<Bag>* bags);
 
 
-void cnPrintExpansion(cnExpansion* expansion);
+void cnPrintExpansion(Expansion* expansion);
 
 
 bool cnPushExpansionsByIndices(
-  List<cnExpansion>* expansions, cnExpansion* prototype, Count varDepth
+  List<Expansion>* expansions, Expansion* prototype, Count varDepth
 );
 
 
@@ -461,6 +468,7 @@ bool cnBestPointByScore(
   // No best yet.
   *bestFunction = NULL;
   *bestThreshold = cnNaN();
+  ofstream out; if (logIt) out.open(pointLogName.c_str());
 
   printf("Score-ish: ");
   cnListEachBegin(pointBags, PointBag, pointBag) {
@@ -528,6 +536,13 @@ bool cnBestPointByScore(
         distanceFunction, pointBags, &score, &threshold, &posPointsIn, NULL
       )) cnErrTo(DONE, "Search failed.");
 
+      if (logIt) {
+        for (value = point; value < pointEnd; value++) {
+          out << *value << ' ';
+        }
+        out << threshold << ' ' << score << ' ' << endl;
+      }
+
       // Check if best. TODO Check if better than any of the list of best.
       if (score > bestScore) {
         Float fittedScore = -HUGE_VAL;
@@ -579,6 +594,7 @@ bool cnBestPointByScore(
   result = true;
 
   DONE:
+  if (logIt) out.close();
   return result;
 }
 
@@ -591,9 +607,9 @@ bool cnChooseThreshold(
 ) {
   Count valueCount = pointBags->count ?
     ((PointBag*)pointBags->items)->pointMatrix.valueCount : 0;
-  cnBagDistance* distance;
-  cnBagDistance* distances = cnAlloc(cnBagDistance, pointBags->count);
-  cnBagDistance* distancesEnd = distances + pointBags->count;
+  BagDistance* distance;
+  BagDistance* distances = cnAlloc(BagDistance, pointBags->count);
+  BagDistance* distancesEnd = distances + pointBags->count;
   bool result = false;
   Float thresholdStorage;
 
@@ -671,7 +687,7 @@ typedef enum {
 } cnChooseThreshold_Edge;
 
 typedef struct {
-  cnBagDistance* distance;
+  BagDistance* distance;
   cnChooseThreshold_Edge edge;
 } cnChooseThreshold_Distance;
 
@@ -693,13 +709,13 @@ int cnChooseThreshold_compare(const void* a, const void* b) {
 
 Float cnChooseThresholdWithDistances(
   bool yesLabel,
-  cnBagDistance* distances, cnBagDistance* distancesEnd, Float* score,
+  BagDistance* distances, BagDistance* distancesEnd, Float* score,
   List<Float>* nearPosPoints, List<Float>* nearNegPoints
 ) {
   //  FILE* file = fopen("cnChooseThreshold.log", "w");
   // TODO Just allow sorting the original data instead of malloc here?
   Count bagCount = distancesEnd - distances;
-  cnBagDistance* distance;
+  BagDistance* distance;
   cnChooseThreshold_Distance* dists =
     cnAlloc(cnChooseThreshold_Distance, 2 * bagCount);
   cnChooseThreshold_Distance* dist;
@@ -722,7 +738,7 @@ Float cnChooseThresholdWithDistances(
   Float threshold = 0;
 
   // Starting out assuming the worst. This actually log score, by the way.
-  bestScore = score ? *score : -HUGE_VAL;
+  bestScore = -HUGE_VAL;//score ? *score : -HUGE_VAL;
   //if (score) *score = bestScore;
 
   if (!dists) {
@@ -928,7 +944,7 @@ Float cnChooseThresholdWithDistances(
 }
 
 
-RootNode* cnExpandedTree(LearnerConfig* config, cnExpansion* expansion) {
+RootNode* cnExpandedTree(LearnerConfig* config, Expansion* expansion) {
   // TODO Loop across multiple inits/attempts?
   List<BindingBag>* bindingBags = NULL;
   LeafNode* leaf;
@@ -1009,7 +1025,7 @@ RootNode* cnExpandedTree(LearnerConfig* config, cnExpansion* expansion) {
 
 
 bool cnExpansionRedundant(
-  List<cnExpansion>* expansions, EntityFunction* function, Index* indices
+  List<Expansion>* expansions, EntityFunction* function, Index* indices
 ) {
   // Hack assuming all things are symmetric, and we only want increasing order.
   // TODO Formalize this. Delegate to the functions themselves!
@@ -1413,25 +1429,38 @@ LeafNode* cnPickBestLeaf(RootNode* tree, List<Bag>* bags) {
 }
 
 
-void cnPrintExpansion(cnExpansion* expansion) {
+void cnPrintExpansion(Expansion* expansion) {
   Index i;
+  stringstream stream;
+  logIt = true;
+  //  logIt =
+  //    expansion->function->name == "DistanceLocation" &&
+  //    expansion->varIndices[0] == 0 &&
+  //    expansion->varIndices[1] == 1;
+  stream << expansion->function->name << "(";
   printf("%s(", expansion->function->name.c_str());
   for (i = 0; i < expansion->function->inCount; i++) {
     if (i > 0) {
+      stream << ", ";
       printf(", ");
     }
+    stream << expansion->varIndices[i];
     printf("%ld", expansion->varIndices[i]);
   }
+  stream
+    << "; " << expansion->newVarCount
+    << "; " << expansion->leaf->node.id << ")";
   printf(
     ") at node %ld with %ld new vars.\n",
     expansion->leaf->node.id, expansion->newVarCount
   );
+  pointLogName = stream.str();
 }
 
 
 typedef struct cnPushExpansionsByIndices_Data {
-  List<cnExpansion>* expansions;
-  cnExpansion* prototype;
+  List<Expansion>* expansions;
+  Expansion* prototype;
   Count varDepth;
 } cnPushExpansionsByIndices_Data;
 
@@ -1490,7 +1519,7 @@ bool cnPushExpansionsByIndices_Push(
 }
 
 bool cnPushExpansionsByIndices(
-  List<cnExpansion>* expansions, cnExpansion* prototype, Count varDepth
+  List<Expansion>* expansions, Expansion* prototype, Count varDepth
 ) {
   cnPushExpansionsByIndices_Data data;
   data.expansions = expansions;
@@ -1508,7 +1537,7 @@ RootNode* cnTryExpansionsAtLeaf(LearnerConfig* config, LeafNode* leaf) {
   RootNode* bestTree = NULL;
   vector<EntityFunction*>& entityFunctions = *config->learner->entityFunctions;
   // Make a list of expansions. They can then be sorted, etc.
-  List<cnExpansion> expansions;
+  List<Expansion> expansions;
   Count maxArity = 0;
   Count minArity = LONG_MAX;
   Count minNewVarCount;
@@ -1545,7 +1574,7 @@ RootNode* cnTryExpansionsAtLeaf(LearnerConfig* config, LeafNode* leaf) {
     newVarCount <= maxArity;
     newVarCount++, varDepth++
   ) {
-    cnExpansion expansion;
+    Expansion expansion;
 
     for (size_t f = 0; f < entityFunctions.size(); f++) {
       EntityFunction& function = *entityFunctions[f];
@@ -1583,7 +1612,7 @@ RootNode* cnTryExpansionsAtLeaf(LearnerConfig* config, LeafNode* leaf) {
   // TODO Sort by arity? Or assume priority given by order? Some kind of
   // TODO heuristic?
   printf("Need to try %ld expansions.\n\n", expansions.count);
-  cnListEachBegin(&expansions, cnExpansion, expansion) {
+  cnListEachBegin(&expansions, Expansion, expansion) {
     Float pValue;
     RootNode* expanded;
 
@@ -1634,7 +1663,7 @@ RootNode* cnTryExpansionsAtLeaf(LearnerConfig* config, LeafNode* leaf) {
   bestTree = NULL;
 
   DONE:
-  cnListEachBegin(&expansions, cnExpansion, expansion) {
+  cnListEachBegin(&expansions, Expansion, expansion) {
     free(expansion->varIndices);
   } cnEnd;
   return bestTree;
