@@ -1,6 +1,7 @@
 #include "choose.h"
 
 using namespace concuno;
+using namespace std;
 
 
 namespace ccndomain {
@@ -122,6 +123,7 @@ bool cnrExtractHoldOrPass(
   Float* kickerLocation = kicker->location;
   State* next = state + 1;
   Float* nextBallLocation = next->ball.location;
+  vector<Player*> takers;
   Float ballVelocity[] = {
     nextBallLocation[0] - ballLocation[0],
     nextBallLocation[1] - ballLocation[1]
@@ -133,22 +135,25 @@ bool cnrExtractHoldOrPass(
 
   // We'll need an entity list for the state, whether it's a hold or a pass.
   if (!(entities = cnAlloc(List<Entity>, 1))) {
-    cnErrTo(DONE, "No entities.");
+    throw Error("No entities.");
   }
   new(entities) List<Entity>;
   // Push the ball.
   if (!cnListPush(entities, &ball)) cnErrTo(DONE, "No ball for list.");
   // And the players.
-  cnListEachBegin(&state->players, struct Player, player) {
+  cnListEachBegin(&state->players, Player, player) {
     if (!cnListPush(entities, &player)) {
-      cnErrTo(DONE, "No player for entity list.");
+      throw Error("No player for entity list.");
+    }
+    if (player->team == cnrTeamTakers) {
+      takers.push_back(player);
     }
   } cnEnd;
   if (!cnListPush(entityLists, &entities)) {
     // Clean up before fail.
     // TODO Wrap now with catch for thise cleanup?
     delete entities;
-    cnErrTo(DONE, "Can't push entities list.");
+    throw Error("Can't push entities list.");
   }
 
   // Now see if we have a pass or a hold. First see if the same player kicks
@@ -215,7 +220,15 @@ bool cnrExtractHoldOrPass(
   // We should have a bag by now. Pin the participants.
   new(bag) Bag(entities);
   bag->pushParticipant(0, kicker);
-  if (receiver) bag->pushParticipant(1, receiver);
+  if (receiver) {
+    // Pass. Pin receiving keeper.
+    bag->pushParticipant(1, receiver);
+  } else {
+    // Hold. Pin takers.
+    for (size_t t = 0; t < takers.size(); t++) {
+      bag->pushParticipant(1, takers[t]);
+    }
+  }
 
   // And provide the given bag label already determined before the call.
   // Well, invert the label because "fail" can be determined existentially, but

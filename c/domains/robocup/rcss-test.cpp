@@ -236,7 +236,7 @@ bool cnrProcessLearn(List<Bag>* holdBags, List<Bag>* passBags) {
   // TODO How to choose pass vs. hold?
   cnListShuffle(holdBags);
   cnListShuffle(passBags);
-  learner.bags = passBags;
+  learner.bags = holdBags;
   learner.entityFunctions = &*functions;
   learnedTree = learner.learnTree();
   if (!learnedTree) cnErrTo(DONE, "No learned tree.");
@@ -297,13 +297,15 @@ bool cnrSaveBags(const char* name, List<Bag>* bags) {
       if (!cnrGenColumnVector(gen, 2, item->location)) cnFailTo(DONE);
       // Pinning (and passer/receiver).
       cnListEachBegin(&bag->participantOptions, List<Entity>, options) {
-        if (options->count > 1) {
-          cnErrTo(
-            DONE, "%ld > 1 options at depth %ld.", options->count, depth
-          );
-        }
+        bool found = false;
+        cnListEachBegin(options, Entity, entity) {
+          if (item == *entity) {
+            found = true;
+            break;
+          }
+        } cnEnd;
         // Skip out if we found the player pinned.
-        if (item == *reinterpret_cast<Item**>(options->items)) break;
+        if (found) break;
         depth++;
       } cnEnd;
       generate(gen, "__instantiable_depth__");
@@ -312,6 +314,7 @@ bool cnrSaveBags(const char* name, List<Bag>* bags) {
       // Explicit handling of passer/receiver makes later management of data
       // conversion a bit more straightforward.
       generate(gen, "passer", static_cast<Float>(depth == 0));
+      // TODO Actually, for hold, second pinneds are now takers. Fix how?
       generate(gen, "receiver", static_cast<Float>(depth == 1));
       // SMRF Python class.
       generate(gen, "__json_class__", "Item");

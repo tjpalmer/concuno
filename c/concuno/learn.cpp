@@ -433,7 +433,7 @@ bool cnBestPointByScore(
 ) {
   Float bestScore = -HUGE_VAL, score = bestScore;
   // TODO Allow looking at negatives???
-  Count negBagsLeft = 0, posBagsLeft = 8;
+  Count negBagsLeft = 0, posBagsLeft = 128;
   bool result = false;
   Float threshold;
   Count valueCount = pointBags->count ?
@@ -902,7 +902,7 @@ Float cnChooseThresholdWithDistances(
       bestYesCount = yesCount;
     }
   }
-  if (true && !cnIsNaN(bestYesProb)) {
+  if (false && !cnIsNaN(bestYesProb)) {
     printf(
       "Best thresh: %.9lg (%.2lg of %ld, %.2lg of %ld: %.4lg)\n",
       threshold, bestYesProb, bestYesCount, bestNoProb, bestNoCount,
