@@ -1,8 +1,10 @@
 #include <concuno.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sstream>
 
 using namespace concuno;
+using namespace std;
 
 
 // TODO Split stuff out.
@@ -10,35 +12,38 @@ using namespace concuno;
 // TODO Make a better test harness, too.
 
 
-void testBinomial(void);
+void testBinomial();
 
 
-void testHeap(void);
+void testHeap();
 
 
-void testMultinomial(void);
+void testLog();
 
 
-void testPermutations(void);
+void testMultinomial();
 
 
-void testPropagate(void);
+void testPermutations();
 
 
-void testRadians(void);
+void testPropagate();
 
 
-void testReframe(void);
+void testRadians();
 
 
-void testUnitRand(void);
+void testReframe();
 
 
-void testVariance(void);
+void testUnitRand();
 
 
-int main(void) {
-  switch ('r') {
+void testVariance();
+
+
+int main() {
+  switch ('l') {
   case 'b':
     testBinomial();
     break;
@@ -47,6 +52,9 @@ int main(void) {
     break;
   case 'h':
     testHeap();
+    break;
+  case 'l':
+    testLog();
     break;
   case 'm':
     testMultinomial();
@@ -74,7 +82,7 @@ int main(void) {
 }
 
 
-void testBinomial(void) {
+void testBinomial() {
   Binomial binomial = NULL;
   Count countPerSample = 1000;
   Index i;
@@ -123,7 +131,7 @@ bool testHeap_greater(RefAny unused, RefAny a, RefAny b) {
 
 #define testHeap_COUNT 10
 
-void testHeap(void) {
+void testHeap() {
   Heap<Index>* heap =
     reinterpret_cast<Heap<Index>*>(cnHeapCreate(testHeap_greater));
   Index i;
@@ -170,9 +178,41 @@ void testHeap(void) {
 }
 
 
+void testLog() {
+  // My own test of object lifecycle.
+  struct LifeCycle {
+    static void report(const LifeCycle& thing) {
+      cout << &thing << " says: " << thing.message.str() << endl;
+    }
+    LifeCycle() {
+      message << "Alive";
+      cout << "Constructor running." << endl;
+    }
+    ~LifeCycle() {
+      *this << "Dead";
+      cout << "Destructor done." << endl;
+    }
+    LifeCycle& operator<<(const char* state) {
+      message << ", " << state;
+      return *this;
+    }
+    stringstream message;
+    //const char* message;
+  };
+  LifeCycle::report(LifeCycle() << "Running");
+
+  // Now tests of logging with stringstream.
+  try {
+    throw Error(Buf() << "I say " << 4 << ", don't you?");
+  } catch (const exception& e) {
+    log(Buf() << "Error says: " << e.what());
+  }
+}
+
+
 #define testMultinomial_CLASS_COUNT 4
 
-void testMultinomial(void) {
+void testMultinomial() {
   Count countPerSample = 1000;
   Index i;
   Index j;
@@ -230,7 +270,7 @@ bool testPermutations_handle(
   return true;
 }
 
-void testPermutations(void) {
+void testPermutations() {
   Count count = 2;
   Count options = 4;
   printf("Permutations of %ld, taken %ld at a time:\n", options, count);
@@ -239,7 +279,7 @@ void testPermutations(void) {
 }
 
 
-void testPropagate(void) {
+void testPropagate() {
 
   struct CharsDiffEntityFunction: EntityFunction {
     CharsDiffEntityFunction(Type& type): EntityFunction("CharsDiff", 2, 1) {
@@ -381,7 +421,7 @@ void testReframe_case3d(
   );
 }
 
-void testReframe(void) {
+void testReframe() {
   struct DirectEntityFunction: EntityFunction {
     DirectEntityFunction(Schema& schema): EntityFunction("Direct", 1, 2) {
       outType = schema.floatType;
@@ -422,7 +462,7 @@ void testReframe(void) {
 }
 
 
-void testRadians(void) {
+void testRadians() {
   Radian a = cnPi - 0.01;
   Radian b = -cnPi + 0.01;
   printf(
@@ -444,7 +484,7 @@ void testRadians(void) {
 }
 
 
-void testUnitRand(void) {
+void testUnitRand() {
   Index i;
   // TODO Assert stuff, calculate statistics, and so on, instead of printing.
   printf("testUnitRand:\n");
@@ -455,7 +495,7 @@ void testUnitRand(void) {
 }
 
 
-void testVariance(void) {
+void testVariance() {
   Float a[] = {1.5, 3.2, -0.1, 4.1, 12.3};
   Float b[] = {6.7, 1.8, 0.2, 4.5, 4.3};
   Float variance = cnScalarVariance(5, 1, a);

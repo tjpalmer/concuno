@@ -236,7 +236,7 @@ bool cnrProcessLearn(List<Bag>* holdBags, List<Bag>* passBags) {
   // TODO How to choose pass vs. hold?
   cnListShuffle(holdBags);
   cnListShuffle(passBags);
-  learner.bags = holdBags;
+  learner.bags = passBags;
   learner.entityFunctions = &*functions;
   learnedTree = learner.learnTree();
   if (!learnedTree) cnErrTo(DONE, "No learned tree.");

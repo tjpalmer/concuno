@@ -1,8 +1,9 @@
 #ifndef concuno_core_h
 #define concuno_core_h
 
-// TODO Abstract out standard libraries?
+#include <iostream>
 #include <stdexcept>
+#include <sstream>
 #include <stdio.h>
 #include <stdlib.h>
 #include <vector>
@@ -48,6 +49,13 @@ typedef void* RefAny;
 struct Error: std::runtime_error {
 
   Error(const std::string& what);
+
+
+  /**
+   * Assumes that the ostream represents a stringstream. Don't try calling this
+   * function otherwise.
+   */
+  Error(const std::basic_ostream<char>& what);
 
 };
 
@@ -516,6 +524,36 @@ bool cnStringPushChar(String* string, char c);
 
 
 bool cnStringPushStr(String* string, const char* str);
+
+
+/**
+ * Convenience for inline string streams.
+ */
+class Buf: public std::stringstream {
+public:
+  /**
+   * The << with void* param seems to take over char* on newly constructed
+   * stringstreams (as in for 'stringstream() << message'), so we put this in
+   * here to take over and get us to ostream land where << acts sane.
+   */
+  std::ostream& operator<<(const char* message);
+};
+
+
+/**
+ * Log an informational message.
+ */
+void log(const char* message);
+
+
+void log(const std::string& message);
+
+
+/**
+ * Assumes that the ostream represents a stringstream. Don't try calling this
+ * function otherwise.
+ */
+void log(const std::basic_ostream<char>& buffer);
 
 
 }

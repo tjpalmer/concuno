@@ -139,10 +139,10 @@ Float cnCountsLogMetric(List<LeafCount>* counts) {
   cnListEachBegin(counts, LeafCount, count) {
     // Add to the metric.
     if (count->posCount) {
-      score += count->posCount * log(count->leaf->probability);
+      score += count->posCount * ::log(count->leaf->probability);
     }
     if (count->negCount) {
-      score += count->negCount * log(1 - count->leaf->probability);
+      score += count->negCount * ::log(1 - count->leaf->probability);
     }
   } cnEnd;
   return score;

@@ -406,7 +406,7 @@ Float* cnBestPointByDiverseDensity(
             sumPosMin += minDistance;
           } else {
             // Further is better for negatives.
-            minDistance = -log(1 - exp(-minDistance));
+            minDistance = -::log(1 - exp(-minDistance));
             sumNegMin += minDistance;
           }
         }
@@ -879,10 +879,10 @@ Float cnChooseThresholdWithDistances(
     }
     // Calculate our log metric.
     currentScore = 0;
-    if (posAsYesCount) currentScore += posAsYesCount * log(yesProb);
-    if (negAsYesCount) currentScore += negAsYesCount * log(1 - yesProb);
-    if (posAsNoCount) currentScore += posAsNoCount * log(noProb);
-    if (negAsNoCount) currentScore += negAsNoCount * log(1 - noProb);
+    if (posAsYesCount) currentScore += posAsYesCount * ::log(yesProb);
+    if (negAsYesCount) currentScore += negAsYesCount * ::log(1 - yesProb);
+    if (posAsNoCount) currentScore += posAsNoCount * ::log(noProb);
+    if (negAsNoCount) currentScore += negAsNoCount * ::log(1 - noProb);
     //    fprintf(file,
     //      "%lg %lg %ld %lg %ld %lg\n",
     //      sqrt(cnChooseThreshold_edgeDist(dist)),

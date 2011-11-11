@@ -1,5 +1,7 @@
+#include <iostream>
 #include <limits>
 #include <math.h>
+#include <sstream>
 #include <string.h>
 #include "core.h"
 
@@ -9,7 +11,12 @@ using namespace std;
 namespace concuno {
 
 
-Error::Error(const std::string& what): runtime_error(what) {}
+Error::Error(const string& what): runtime_error(what) {}
+
+
+Error::Error(const basic_ostream<char>& what):
+  runtime_error(dynamic_cast<const stringstream&>(what).str())
+{}
 
 
 /**
@@ -459,6 +466,26 @@ bool cnStringPushStr(String* string, const char* str) {
   // Copy including the null char, and we're done.
   strcpy(formerEnd, str);
   return true;
+}
+
+
+ostream& Buf::operator<<(const char* message) {
+  return dynamic_cast<ostream&>(*this) << message;
+}
+
+
+void log(const char* message) {
+  cout << message << endl;
+}
+
+
+void log(const std::string& message) {
+  cout << message << endl;
+}
+
+
+void log(const std::basic_ostream<char>& buffer) {
+  log(dynamic_cast<const stringstream&>(buffer).str());
 }
 
 
