@@ -531,12 +531,18 @@ bool cnStringPushStr(String* string, const char* str);
  */
 class Buf: public std::stringstream {
 public:
+
   /**
    * The << with void* param seems to take over char* on newly constructed
    * stringstreams (as in for 'stringstream() << message'), so we put this in
    * here to take over and get us to ostream land where << acts sane.
    */
-  std::ostream& operator<<(const char* message);
+  std::ostream& operator<<(const char* str);
+
+  std::ostream& operator<<(Float $float);
+
+  std::ostream& operator<<(const std::string& str);
+
 };
 
 
@@ -554,6 +560,13 @@ void log(const std::string& message);
  * function otherwise.
  */
 void log(const std::basic_ostream<char>& buffer);
+
+
+/**
+ * Assumes that the ostream represents a stringstream. Don't try calling this
+ * function otherwise.
+ */
+std::string str(const std::basic_ostream<char>& buffer);
 
 
 }

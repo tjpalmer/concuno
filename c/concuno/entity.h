@@ -252,7 +252,7 @@ struct Function {
    * TODO Instead provide structured, reflective access (such as via property
    * TODO metadata or hashtables), and have various IO elsewhere?
    */
-  virtual void write(FILE* file, String* indent) = 0;
+  virtual void write(std::ostream& out, String* indent) = 0;
 
 };
 
@@ -285,7 +285,7 @@ struct Predicate {
    * TODO Instead provide structured, reflective access (such as via property
    * TODO metadata or hashtables), and have various IO elsewhere?
    */
-  virtual void write(FILE* file, String* indent) = 0;
+  virtual void write(std::ostream& out, String* indent) = 0;
 
 };
 
@@ -314,7 +314,7 @@ struct DistanceThresholdPredicate: Predicate {
    * TODO Instead provide structured, reflective access (such as via property
    * TODO metadata or hashtables), and have various IO elsewhere?
    */
-  virtual void write(FILE* file, String* indent);
+  virtual void write(std::ostream& out, String* indent);
 
   Function* distanceFunction;
 

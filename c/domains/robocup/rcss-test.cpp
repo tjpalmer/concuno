@@ -243,7 +243,7 @@ bool cnrProcessLearn(List<Bag>* holdBags, List<Bag>* passBags) {
 
   // Display the learned tree.
   printf("\n");
-  cnTreeWrite(learnedTree, stdout);
+  cnTreeWrite(learnedTree, cout);
   printf("\n");
 
   // Winned.

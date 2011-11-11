@@ -260,17 +260,16 @@ void cnBuildInitialKernel(Topology::Type topology, List<PointBag>* pointBags) {
   Float* point;
 
   if (topology != Topology::Euclidean) {
-    printf("I handle only Euclidean right now, not %u.\n", topology);
-    return;
+    throw Error(Buf() << "I handle only Euclidean right now, not " << topology);
   }
 
   // Count good, positive points.
   positivePointCount = 0;
-  printf("pointBags->count: %ld\n", pointBags->count);
+  log(Buf() << "pointBags->count: " << pointBags->count);
   if (pointBags->count > 0) {
     valueCount = ((PointBag*)pointBags->items)->pointMatrix.valueCount;
   }
-  printf("valueCount: %ld\n", valueCount);
+  log(Buf() << "valueCount: " << valueCount);
   cnListEachBegin(pointBags, PointBag, pointBag) {
     // Just use the positives for the initial kernel.
     if (!pointBag->bag->label) continue;
@@ -291,8 +290,7 @@ void cnBuildInitialKernel(Topology::Type topology, List<PointBag>* pointBags) {
   } cnEnd;
 
   if (!positivePointCount) {
-    printf("I need points to work with!\n");
-    return;
+    throw Error("I need points to work with!");
   }
 
   // Make a matrix of the positive, good points.
@@ -324,25 +322,26 @@ void cnBuildInitialKernel(Topology::Type topology, List<PointBag>* pointBags) {
     }
   } cnEnd;
 
-  printf(
-    "Got a %ld by %ld matrix of positive points.\n",
-    valueCount, positivePointCount
+  log(
+    Buf() << "Got a " << valueCount << " by " << positivePointCount
+    << " matrix of positive points.\n"
   );
   {
     // TODO Actually create a Gaussian PDF.
     Float* stat = cnAlloc(Float, valueCount);
     if (!stat) goto DONE;
-    printf("Max, mean of positives: ");
-    cnVectorPrint(stdout,
+    Buf line;
+    line << "Max, mean of positives: ";
+    vectorPrint(cout,
       valueCount,
       vectorMax(valueCount, stat, positivePointCount, positivePoints)
     );
-    printf(", ");
-    cnVectorPrint(stdout,
+    line << ", ";
+    vectorPrint(cout,
       valueCount,
       vectorMean(valueCount, stat, positivePointCount, positivePoints)
     );
-    printf("\n");
+    log(line);
     free(stat);
   }
 
@@ -359,13 +358,14 @@ Float* cnBestPointByDiverseDensity(
   Count posBagCount = 0, maxPosBags = 4;
   Count valueCount = pointBags->count ?
     ((PointBag*)pointBags->items)->pointMatrix.valueCount : 0;
-  printf("DD-ish: ");
+  Buf line;
+  line << "DD-ish: ";
   cnListEachBegin(pointBags, PointBag, pointBag) {
     Float* point = pointBag->pointMatrix.points;
     Float* matrixEnd = point + pointBag->pointMatrix.pointCount * valueCount;
     if (!pointBag->bag->label) continue;
     if (posBagCount++ >= maxPosBags) break;
-    printf("B ");
+    line << "B ";
     for (; point < matrixEnd; point += valueCount) {
       Float sumNegMin = 0, sumPosMin = 0;
       bool allGood = true;
@@ -413,15 +413,15 @@ Float* cnBestPointByDiverseDensity(
       } cnEnd;
       // Print and check.
       if (sumPosMin + sumNegMin < bestSumYet) {
-        printf("(");
-        cnVectorPrint(stdout, valueCount, point);
-        printf(": %.4le) ", sumPosMin + sumNegMin);
+        line << "(";
+        vectorPrint(cout, valueCount, point);
+        line << ": " << (sumPosMin + sumNegMin);
         bestPoint = point;
         bestSumYet = sumPosMin + sumNegMin;
       }
     }
   } cnEnd;
-  printf("\n");
+  log(line);
   return bestPoint;
 }
 
@@ -537,10 +537,11 @@ bool cnBestPointByScore(
       )) cnErrTo(DONE, "Search failed.");
 
       if (logIt) {
+        Buf line;
         for (value = point; value < pointEnd; value++) {
-          out << *value << ' ';
+          line << *value << ' ';
         }
-        out << threshold << ' ' << score << ' ' << endl;
+        log(line << threshold << ' ' << score);
       }
 
       // Check if best. TODO Check if better than any of the list of best.
@@ -567,7 +568,7 @@ bool cnBestPointByScore(
         }
 
         printf("(");
-        cnVectorPrint(stdout, valueCount, distribution->mean);
+        vectorPrint(cout, valueCount, distribution->mean);
         printf(": %.4lg) ", score);
         bestScore = score;
 
@@ -594,7 +595,6 @@ bool cnBestPointByScore(
   result = true;
 
   DONE:
-  if (logIt) out.close();
   return result;
 }
 
@@ -1248,24 +1248,9 @@ RootNode* Learner::learnTree() {
 
 
 void cnLogPointBags(SplitNode* split, List<PointBag>* pointBags) {
-  // TODO More filled out name. Easiest way to allocate as building?
-  FILE *file;
-  String name;
-
   // Prepare file name, and open/create output file.
-  if (!cnStringPushStr(&name, split->function->name.c_str())) {
-    // TODO Error code.
-    return;
-  }
   // TODO Param indices.
-  if (!cnStringPushStr(&name, ".log")) {
-    // TODO Error code.
-    return;
-  }
-  file = fopen(cnStr(&name), "w");
-  if (!file) {
-    throw Error("Couldn't open file.");
-  }
+  ofstream file(str(Buf() << split->function->name << ".log").c_str());
 
   // Print out the data.
   cnListEachBegin(pointBags, PointBag, pointBag) {
@@ -1274,14 +1259,10 @@ void cnLogPointBags(SplitNode* split, List<PointBag>* pointBags) {
       point +
       pointBag->pointMatrix.pointCount * pointBag->pointMatrix.valueCount;
     for (; point < pointsEnd; point += pointBag->pointMatrix.valueCount) {
-      cnVectorPrint(file, pointBag->pointMatrix.valueCount, point);
-      fprintf(file, " %u", pointBag->bag->label);
-      fprintf(file, "\n");
+      vectorPrint(file, pointBag->pointMatrix.valueCount, point);
+      file << " " << pointBag->bag->label << endl;
     }
   } cnEnd;
-
-  // All done.
-  fclose(file);
 }
 
 

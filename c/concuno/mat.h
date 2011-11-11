@@ -43,11 +43,11 @@ void reframe(Count size, Float* origin, Float* target, Float* result);
 Float cnSquaredEuclideanDistance(Count size, Float* x, Float* y);
 
 
-void cnVectorPrint(FILE* file, Count size, Float* values);
+void vectorPrint(std::ostream& out, Count size, Float* values);
 
 
-void cnVectorPrintDelimited(
-  FILE* file, Count size, Float* values, const char* delimiter
+void vectorPrint(
+  std::ostream& out, Count size, Float* values, const char* delimiter
 );
 
 

@@ -1,8 +1,11 @@
+#include <fstream>
 #include <math.h>
 
 #include "cluster.h"
 #include "mat.h"
 #include "stats.h"
+
+using namespace std;
 
 
 namespace concuno {
@@ -26,7 +29,7 @@ bool cnCluster(Count size, Count count, Float* points) {
   cnDensityEstimate(size, count, points);
   for (point = points; point < pointsEnd; point += size) {
     printf("Starting at: ");
-    cnVectorPrint(stdout, size, point);
+    vectorPrint(cout, size, point);
     printf("\n");
     // TODO Mean shift or something.
     break;
@@ -98,7 +101,7 @@ bool cnDensityEstimate(Count size, Count count, Float* points) {
   // We could try to avoid this, but being discrete feels safer.
   Index* stepIndices = cnStackAllocOf(Index, size);
 
-  FILE *file = fopen("cnDensityEstimate.log", "w");
+  ofstream file("cnDensityEstimate.log");
 
   // Check okay, find bounds, and determine step size.
   if (!(max && stepIndices)) return false;
@@ -138,8 +141,9 @@ bool cnDensityEstimate(Count size, Count count, Float* points) {
         density += weight;
       }
     }
-    cnVectorPrint(file, size, point);
-    fprintf(file, " %.4le\n", density);
+    vectorPrint(file, size, point);
+    // TODO %.4le
+    file << " " << density << endl;
     // TODO Log the density to a file for now?
     // TODO Use a callback for when wanting just to use and not store a big
     // TODO matrix?
@@ -157,7 +161,7 @@ bool cnDensityEstimate(Count size, Count count, Float* points) {
         // Hit the limit before the earliest dim, so wrap around.
         printf(".");
         fflush(stdout);
-        fprintf(file, "\n");
+        file << endl;
         point[dim] = min[dim];
         stepIndices[dim] = 0;
       }
@@ -168,39 +172,24 @@ bool cnDensityEstimate(Count size, Count count, Float* points) {
   // Free and done.
   cnStackFree(max);
   cnStackFree(stepIndices);
-  fclose(file);
   return true;
 }
 
 
 void cnLogPoints(EntityFunction* function, Count count, Float* points) {
-  FILE *file;
   String name;
   Float* point;
   Count size = function->outCount;
   Float* pointsEnd = points + size * count;
 
   // Prepare file name, and open/create output file.
-  if (!cnStringPushStr(&name, function->name.c_str())) {
-    // TODO Error code.
-    return;
-  }
-  if (!cnStringPushStr(&name, ".log")) {
-    return;
-  }
-  file = fopen(cnStr(&name), "w");
-  if (!file) {
-    return;
-  }
+  ofstream file(str(Buf() << function->name << ".log").c_str());
 
   // Print out the data.
   for (point = points; point < pointsEnd; point += size) {
-    cnVectorPrint(file, size, point);
-    fprintf(file, "\n");
+    vectorPrint(file, size, point);
+    file << endl;
   }
-
-  // All done.
-  fclose(file);
 }
 
 

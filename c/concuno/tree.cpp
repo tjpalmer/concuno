@@ -1297,129 +1297,105 @@ void cnTreePropagateBags(
   } cnEnd;
 }
 
-bool cnTreeWrite_leaf(LeafNode* leaf, FILE* file, String* indent);
-bool cnTreeWrite_root(RootNode* root, FILE* file, String* indent);
-void cnTreeWrite_split(SplitNode* split, FILE* file, String* indent);
-bool cnTreeWrite_var(VarNode* var, FILE* file, String* indent);
+void cnTreeWrite_leaf(LeafNode* leaf, ostream& out, String* indent);
+void cnTreeWrite_root(RootNode* root, ostream& out, String* indent);
+void cnTreeWrite_split(SplitNode* split, ostream& out, String* indent);
+void cnTreeWrite_var(VarNode* var, ostream& out, String* indent);
 
-bool cnTreeWrite_any(Node* node, FILE* file, String* indent) {
-  Count kidCount;
-  bool result = false;
-
-  fprintf(file, "{\n");
-  if (!cnIndent(indent)) cnErrTo(DONE, "No indent.");
+void cnTreeWrite_any(Node* node, ostream& out, String* indent) {
+  out << "{" << endl;
+  if (!cnIndent(indent)) throw Error("No indent.");
 
   // Handle each node type.
   switch (node->type) {
   case Node::TypeLeaf:
-    if (!cnTreeWrite_leaf((LeafNode*)node, file, indent)) {
-      cnErrTo(DONE, "No leaf.");
-    }
+    cnTreeWrite_leaf((LeafNode*)node, out, indent);
     break;
   case Node::TypeRoot:
-    if (!cnTreeWrite_root((RootNode*)node, file, indent)) {
-      cnErrTo(DONE, "No root.");
-    }
+    cnTreeWrite_root((RootNode*)node, out, indent);
     break;
   case Node::TypeSplit:
-    cnTreeWrite_split((SplitNode*)node, file, indent);
+    cnTreeWrite_split((SplitNode*)node, out, indent);
     break;
   case Node::TypeVar:
-    if (!cnTreeWrite_var((VarNode*)node, file, indent)) {
-      cnErrTo(DONE, "No var.");
-    }
+    cnTreeWrite_var((VarNode*)node, out, indent);
     break;
   default:
-    cnErrTo(DONE, "No such type: %u", node->type);
+    throw Error(Buf() << "No such type: " << node->type);
   }
 
   // Handle the kids, if any.
-  kidCount = cnNodeKidCount(node);
+  Count kidCount = cnNodeKidCount(node);
   if (kidCount) {
     Index k;
     Node** kids = cnNodeKids(node);
     // TODO Check errors.
     // Wouldn't it be great if JSON didn't require quotation marks on keys?
-    fprintf(file, "%s\"kids\": [", cnStr(indent));
+    out << cnStr(indent) << "\"kids\": [";
     for (k = 0; k < kidCount; k++) {
-      if (!cnTreeWrite_any(kids[k], file, indent)) {
-        cnErrTo(CLOSE, "No kid write.");
-      }
+      cnTreeWrite_any(kids[k], out, indent);
       if (k < kidCount - 1) {
         // Stupid no trailing JSON commas.
-        fprintf(file, ", ");
+        out << ", ";
       }
     }
-    fprintf(file, "]\n");
+    out << "]" << endl;
   }
 
-  // Winned.
-  result = true;
-
-  CLOSE:
   // Need to dedent if indented.
+  // TODO RAII for dedent?
   cnDedent(indent);
   // Close the object.
-  fprintf(file, "%s}", cnStr(indent));
-
-  DONE:
-  return result;
+  cout << cnStr(indent) << "}";
 }
 
-bool cnTreeWrite_leaf(LeafNode* leaf, FILE* file, String* indent) {
-  // TODO Check error states?
-  fprintf(file, "%s\"type\": \"Leaf\",\n", cnStr(indent));
-  fprintf(file, "%s\"probability\": %lg,\n", cnStr(indent), leaf->probability);
-  fprintf(file, "%s\"strength\": %lg\n", cnStr(indent), leaf->strength);
-  return true;
+void cnTreeWrite_leaf(LeafNode* leaf, ostream& out, String* indent) {
+  out << cnStr(indent) << "\"type\": \"Leaf\"," << endl;
+  out << cnStr(indent)
+    << "\"probability\": " << leaf->probability << "," << endl;
+  out << cnStr(indent) << "\"strength\": " << leaf->strength << endl;
 }
 
-bool cnTreeWrite_root(RootNode* root, FILE* file, String* indent) {
-  // TODO Check error states?
-  fprintf(file, "%s\"type\": \"Root\",\n", cnStr(indent));
-  return true;
+void cnTreeWrite_root(RootNode* root, ostream& out, String* indent) {
+  out << cnStr(indent) << "\"type\": \"Root\"," << endl;
 }
 
-void cnTreeWrite_split(SplitNode* split, FILE* file, String* indent) {
+void cnTreeWrite_split(SplitNode* split, ostream& out, String* indent) {
   // TODO Check error states?
-  fprintf(file, "%s\"type\": \"Split\",\n", cnStr(indent));
+  out << cnStr(indent) << "\"type\": \"Split\"," << endl;
   if (split->function) {
     Count arity = split->function->inCount;
     Index i;
 
     // Function name.
+    // TODO Use yajl for everything?
     // TODO Escape strings (like function name)!!
-    fprintf(
-      file, "%s\"function\": \"%s\",\n",
-      cnStr(indent), split->function->name.c_str()
-    );
+    out << cnStr(indent)
+      << "\"function\": \"" << split->function->name.c_str() << "\"," << endl;
 
     // Var indices.
-    fprintf(file, "%s\"vars\": [", cnStr(indent));
+    out << cnStr(indent) << "\"vars\": [";
     for (i = 0; i < arity; i++) {
-      if (i) fprintf(file, ", ");
-      fprintf(file, "%ld", split->varIndices[i]);
+      if (i) out << ", ";
+      out << split->varIndices[i];
     }
-    fprintf(file, "],\n");
+    out << "]," << endl;
 
-    fprintf(file, "%s\"predicate\": ", cnStr(indent));
-    split->predicate->write(file, indent);
-    fprintf(file, ",\n");
+    out << cnStr(indent) << "\"predicate\": ";
+    split->predicate->write(out, indent);
+    out << "," << endl;
   }
 }
 
-bool cnTreeWrite_var(VarNode* var, FILE* file, String* indent) {
+void cnTreeWrite_var(VarNode* var, ostream& out, String* indent) {
   // TODO Check error states?
-  fprintf(file, "%s\"type\": \"Var\",\n", cnStr(indent));
-  return true;
+  out << cnStr(indent) << "\"type\": \"Var\"," << endl;
 }
 
-bool cnTreeWrite(RootNode* tree, FILE* file) {
+void cnTreeWrite(RootNode* tree, ostream& out) {
   String indent;
-  bool result = false;
   // TODO In future stream abstraction, store indent level directly.
-  result = cnTreeWrite_any(&tree->node, file, &indent);
-  return result;
+  cnTreeWrite_any(&tree->node, out, &indent);
 }
 
 

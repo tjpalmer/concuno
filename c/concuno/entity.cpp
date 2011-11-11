@@ -5,6 +5,8 @@
 #include "io.h"
 #include "mat.h"
 
+using namespace std;
+
 
 namespace concuno {
 
@@ -174,24 +176,22 @@ bool DistanceThresholdPredicate::evaluate(void* in) {
 }
 
 
-void DistanceThresholdPredicate::write(FILE* file, String* indent) {
+void DistanceThresholdPredicate::write(ostream& out, String* indent) {
   // TODO Check error state?
-  fprintf(file, "{\n");
+  out << "{" << endl;
   cnIndent(indent);
-  fprintf(file, "%s\"name\": \"DistanceThreshold\",\n", cnStr(indent));
+  out << cnStr(indent) << "\"name\": \"DistanceThreshold\"," << endl;
 
   // Distance function.
-  fprintf(file, "%s\"function\": ", cnStr(indent));
-  // TODO Check error!
-  distanceFunction->write(file, indent);
-  fprintf(file, ",\n");
+  out << cnStr(indent) << "\"function\": ";
+  distanceFunction->write(out, indent);
+  out << "," << endl;
 
   // Threshold.
-  fprintf(file, "%s\"threshold\": %lg\n", cnStr(indent), threshold);
+  out << cnStr(indent) << "\"threshold\": " << threshold << endl;
 
   cnDedent(indent);
-  // TODO The real work.
-  fprintf(file, "%s}", cnStr(indent));
+  out << cnStr(indent) << "}";
 }
 
 

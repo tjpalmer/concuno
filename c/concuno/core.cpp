@@ -469,8 +469,18 @@ bool cnStringPushStr(String* string, const char* str) {
 }
 
 
-ostream& Buf::operator<<(const char* message) {
-  return dynamic_cast<ostream&>(*this) << message;
+ostream& Buf::operator<<(const char* str) {
+  return dynamic_cast<ostream&>(*this) << str;
+}
+
+
+ostream& Buf::operator<<(Float $float) {
+  return dynamic_cast<ostream&>(*this) << $float;
+}
+
+
+ostream& Buf::operator<<(const std::string& str) {
+  return dynamic_cast<ostream&>(*this) << str;
 }
 
 
@@ -486,6 +496,11 @@ void log(const std::string& message) {
 
 void log(const std::basic_ostream<char>& buffer) {
   log(dynamic_cast<const stringstream&>(buffer).str());
+}
+
+
+std::string str(const std::basic_ostream<char>& buffer) {
+  return dynamic_cast<const stringstream&>(buffer).str();
 }
 
 

@@ -129,18 +129,18 @@ void MahalanobisDistanceFunction::evaluate(void* in, void* out) {
 }
 
 
-void MahalanobisDistanceFunction::write(FILE* file, String* indent) {
+void MahalanobisDistanceFunction::write(ostream& out, String* indent) {
   // TODO Check error state?
-  fprintf(file, "{\n");
+  out << "{" << endl;
   cnIndent(indent);
-  fprintf(file, "%s\"name\": \"MahalanobisDistance\",\n", cnStr(indent));
-  fprintf(file, "%s\"center\": [", cnStr(indent));
-  cnVectorPrintDelimited(file, gaussian->dims, gaussian->mean, ", ");
-  fprintf(file, "]\n");
+  out << cnStr(indent) << "\"name\": \"MahalanobisDistance\"," << endl;
+  out << cnStr(indent) << "\"center\": [";
+  vectorPrint(out, gaussian->dims, gaussian->mean, ", ");
+  out << "]" << endl;
   // TODO Covariance!
   // TODO Strength (for use as later prior)!
   cnDedent(indent);
-  fprintf(file, "%s}", cnStr(indent));
+  out << cnStr(indent) << "}";
 }
 
 

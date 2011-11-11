@@ -545,7 +545,7 @@ void treeMaxLeafBags(
  * Writes the tree to the given file, in a format readable by machines and
  * people.
  */
-bool cnTreeWrite(RootNode* tree, FILE* file);
+void cnTreeWrite(RootNode* tree, std::ostream& out);
 
 
 /**

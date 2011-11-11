@@ -43,7 +43,7 @@ void testVariance();
 
 
 int main() {
-  switch ('l') {
+  switch ('r') {
   case 'b':
     testBinomial();
     break;
@@ -305,8 +305,8 @@ void testPropagate() {
     virtual bool evaluate(void* in) {
       return !*(Float*)in;
     }
-    virtual void write(FILE* file, String* indent) {
-      fprintf(file, "{\"evaluate\": \"Equal\"}");
+    virtual void write(ostream& out, String* indent) {
+      out << "{\"evaluate\": \"Equal\"}";
     }
   };
 
@@ -344,7 +344,7 @@ void testPropagate() {
   split->predicate = new EqualPredicate;
 
   // Print the tree while we're at it.
-  cnTreeWrite(&tree, stdout);
+  cnTreeWrite(&tree, cout);
   printf("\n\n");
 
   // Prepare bogus data.

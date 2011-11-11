@@ -106,7 +106,7 @@ int main(int argc, char** argv) {
 
   // Display the learned tree.
   printf("\n");
-  cnTreeWrite(learnedTree, stdout);
+  cnTreeWrite(learnedTree, cout);
   printf("\n");
 
   result = EXIT_SUCCESS;

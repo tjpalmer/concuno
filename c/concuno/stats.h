@@ -93,7 +93,7 @@ struct MahalanobisDistanceFunction: Function {
 
   virtual void evaluate(void* in, void* out);
 
-  virtual void write(FILE* file, String* indent);
+  virtual void write(std::ostream& out, String* indent);
 
   Gaussian* gaussian;
 

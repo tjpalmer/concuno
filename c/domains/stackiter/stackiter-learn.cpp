@@ -198,7 +198,7 @@ bool learnConcept(
 
   // Display the learned tree.
   printf("\n");
-  cnTreeWrite(learnedTree, stdout);
+  cnTreeWrite(learnedTree, cout);
   printf("\n");
 
   // We made it!

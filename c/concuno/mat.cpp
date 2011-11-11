@@ -2,6 +2,8 @@
 
 #include "mat.h"
 
+using namespace std;
+
 
 namespace concuno {
 
@@ -124,21 +126,21 @@ Float cnSquaredEuclideanDistance(Count size, Float* x, Float* y) {
 }
 
 
-void cnVectorPrint(FILE* file, Count size, Float* values) {
-  cnVectorPrintDelimited(file, size, values, " ");
+void vectorPrint(ostream& out, Count size, Float* values) {
+  vectorPrint(out, size, values, " ");
 }
 
 
-void cnVectorPrintDelimited(
-  FILE* file, Count size, Float* values, const char* delimiter
+void vectorPrint(
+  ostream& out, Count size, Float* values, const char* delimiter
 ) {
   // TODO Awesomer printing a la Matlab or better?
   Float *value = values, *end = values + size;
   for (; value < end; value++) {
     if (value > values) {
-      fprintf(file, "%s", delimiter);
+      out << delimiter;
     }
-    fprintf(file, "%lg", *value);
+    out << *value;
   }
 }
 
