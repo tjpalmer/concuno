@@ -547,6 +547,32 @@ public:
 
 
 /**
+ * The default log topic.
+ */
+struct Info {
+
+  static bool logging();
+
+};
+
+
+/**
+ * Log an informational message.
+ */
+void logMessage(const char* message);
+
+
+void logMessage(const std::string& message);
+
+
+/**
+ * Assumes that the ostream represents a stringstream. Don't try calling this
+ * function otherwise.
+ */
+void logMessage(const std::basic_ostream<char>& buffer);
+
+
+/**
  * Log an informational message.
  */
 void log(const char* message);
@@ -560,6 +586,44 @@ void log(const std::string& message);
  * function otherwise.
  */
 void log(const std::basic_ostream<char>& buffer);
+
+
+/**
+ * Log an informational message.
+ */
+void log(const char* topic, const char* message);
+
+
+void log(const char* topic, const std::string& message);
+
+
+/**
+ * Assumes that the ostream represents a stringstream. Don't try calling this
+ * function otherwise.
+ */
+void log(const char* topic, const std::basic_ostream<char>& message);
+
+
+/**
+ * Log an informational message.
+ */
+void log(const char* message);
+
+
+void log(const std::string& message);
+
+
+/**
+ * Assumes that the ostream represents a stringstream. Don't try calling this
+ * function otherwise.
+ */
+void log(const std::basic_ostream<char>& message);
+
+
+/**
+ * Whether the given topic is being logged.
+ */
+bool logging(const char* topic);
 
 
 /**

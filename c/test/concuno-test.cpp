@@ -43,7 +43,7 @@ void testVariance();
 
 
 int main() {
-  switch ('r') {
+  switch ('l') {
   case 'b':
     testBinomial();
     break;
@@ -207,6 +207,9 @@ void testLog() {
   } catch (const exception& e) {
     log(Buf() << "Error says: " << e.what());
   }
+
+  log("crazy", "Logged to crazy.");
+
 }
 
 

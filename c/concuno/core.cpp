@@ -484,18 +484,38 @@ ostream& Buf::operator<<(const std::string& str) {
 }
 
 
+void log(const char* topic, const char* message) {
+  cout << topic << ": " << message << endl;
+}
+
+
+void log(const char* topic, const std::string& message) {
+  cout << topic << ": " << message << endl;
+}
+
+
+void log(const char* topic, const std::basic_ostream<char>& message) {
+  log(str(message));
+}
+
+
 void log(const char* message) {
-  cout << message << endl;
+  log("info", message);
 }
 
 
 void log(const std::string& message) {
-  cout << message << endl;
+  log("info", message);
 }
 
 
-void log(const std::basic_ostream<char>& buffer) {
-  log(dynamic_cast<const stringstream&>(buffer).str());
+void log(const std::basic_ostream<char>& message) {
+  log("info", message);
+}
+
+
+bool logging(const char* topic) {
+  return true;
 }
 
 

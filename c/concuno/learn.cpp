@@ -15,11 +15,6 @@ using namespace std;
 namespace concuno {
 
 
-bool logIt;
-
-string pointLogName;
-
-
 /**
  * Tracks the distance to a bag from some point.
  */
@@ -468,7 +463,6 @@ bool cnBestPointByScore(
   // No best yet.
   *bestFunction = NULL;
   *bestThreshold = cnNaN();
-  ofstream out; if (logIt) out.open(pointLogName.c_str());
 
   printf("Score-ish: ");
   cnListEachBegin(pointBags, PointBag, pointBag) {
@@ -536,7 +530,7 @@ bool cnBestPointByScore(
         distanceFunction, pointBags, &score, &threshold, &posPointsIn, NULL
       )) cnErrTo(DONE, "Search failed.");
 
-      if (logIt) {
+      if (true) {//logging("PointScore")) {
         Buf line;
         for (value = point; value < pointEnd; value++) {
           line << *value << ' ';
@@ -1412,30 +1406,17 @@ LeafNode* cnPickBestLeaf(RootNode* tree, List<Bag>* bags) {
 
 void cnPrintExpansion(Expansion* expansion) {
   Index i;
-  stringstream stream;
-  logIt = true;
-  //  logIt =
-  //    expansion->function->name == "DistanceLocation" &&
-  //    expansion->varIndices[0] == 0 &&
-  //    expansion->varIndices[1] == 1;
-  stream << expansion->function->name << "(";
   printf("%s(", expansion->function->name.c_str());
   for (i = 0; i < expansion->function->inCount; i++) {
     if (i > 0) {
-      stream << ", ";
       printf(", ");
     }
-    stream << expansion->varIndices[i];
     printf("%ld", expansion->varIndices[i]);
   }
-  stream
-    << "; " << expansion->newVarCount
-    << "; " << expansion->leaf->node.id << ")";
   printf(
     ") at node %ld with %ld new vars.\n",
     expansion->leaf->node.id, expansion->newVarCount
   );
-  pointLogName = stream.str();
 }
 
 
