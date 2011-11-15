@@ -469,6 +469,11 @@ bool cnStringPushStr(String* string, const char* str) {
 }
 
 
+ostream& Buf::operator<<(char $char) {
+  return dynamic_cast<ostream&>(*this) << $char;
+}
+
+
 ostream& Buf::operator<<(const char* str) {
   return dynamic_cast<ostream&>(*this) << str;
 }
@@ -495,7 +500,7 @@ void log(const char* topic, const std::string& message) {
 
 
 void log(const char* topic, const std::basic_ostream<char>& message) {
-  log(str(message));
+  log(topic, str(message));
 }
 
 
@@ -511,6 +516,29 @@ void log(const std::string& message) {
 
 void log(const std::basic_ostream<char>& message) {
   log("info", message);
+}
+
+
+Log::Log(const char* $topic): topic($topic) {}
+
+
+bool Log::on() {
+  return logging(topic);
+}
+
+
+void Log::operator()(const char* message) {
+  log(topic, message);
+}
+
+
+void Log::operator()(const std::string& message) {
+  log(topic, message);
+}
+
+
+void Log::operator()(const std::basic_ostream<char>& message) {
+  log(topic, message);
 }
 
 

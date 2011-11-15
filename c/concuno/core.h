@@ -532,6 +532,8 @@ bool cnStringPushStr(String* string, const char* str);
 class Buf: public std::stringstream {
 public:
 
+  std::ostream& operator<<(char $char);
+
   /**
    * The << with void* param seems to take over char* on newly constructed
    * stringstreams (as in for 'stringstream() << message'), so we put this in
@@ -624,6 +626,25 @@ void log(const std::basic_ostream<char>& message);
  * Whether the given topic is being logged.
  */
 bool logging(const char* topic);
+
+
+struct Log {
+
+  Log(const char* topic);
+
+  bool on();
+
+  void operator()(const char* message);
+
+  void operator()(const std::string& message);
+
+  void operator()(const std::basic_ostream<char>& message);
+
+private:
+
+  const char* topic;
+
+};
 
 
 /**

@@ -428,7 +428,9 @@ bool cnBestPointByScore(
 ) {
   Float bestScore = -HUGE_VAL, score = bestScore;
   // TODO Allow looking at negatives???
-  Count negBagsLeft = 0, posBagsLeft = 128;
+  Log log("scanByPointScore");
+  Log logEach("scanByPointScore/each");
+  Count negBagsLeft = 0, posBagsLeft = 8;
   bool result = false;
   Float threshold;
   Count valueCount = pointBags->count ?
@@ -464,7 +466,7 @@ bool cnBestPointByScore(
   *bestFunction = NULL;
   *bestThreshold = cnNaN();
 
-  printf("Score-ish: ");
+  log("Start");
   cnListEachBegin(pointBags, PointBag, pointBag) {
     Float* point = pointBag->pointMatrix.points;
     Float* matrixEnd = point + pointBag->pointMatrix.pointCount * valueCount;
@@ -480,9 +482,9 @@ bool cnBestPointByScore(
     }
 
     // Guess we're going to try this one out.
-    printf(
-      "B%c:%ld ",
-      pointBag->bag->label ? '+' : '-', pointBag->pointMatrix.pointCount
+    log(
+      Buf() << "Looking in bag labeled " << (pointBag->bag->label ? '+' : '-')
+      << " with " << pointBag->pointMatrix.pointCount << " points"
     );
     fflush(stdout);
     for (; point < matrixEnd; point += valueCount) {
@@ -528,14 +530,12 @@ bool cnBestPointByScore(
       if (!cnChooseThreshold(
         pointBag->bag->label,
         distanceFunction, pointBags, &score, &threshold, &posPointsIn, NULL
-      )) cnErrTo(DONE, "Search failed.");
+      )) throw Error("Search failed.");
 
-      if (true) {//logging("PointScore")) {
+      if (logEach.on()) {
         Buf line;
-        for (value = point; value < pointEnd; value++) {
-          line << *value << ' ';
-        }
-        log(line << threshold << ' ' << score);
+        vectorPrint(line, valueCount, point);
+        logEach(line << ' ' << threshold << ' ' << score);
       }
 
       // Check if best. TODO Check if better than any of the list of best.
@@ -558,12 +558,15 @@ bool cnBestPointByScore(
         )) cnErrTo(DONE, "Search failed.");
         if (fittedScore < score) {
           // TODO This happens frequently, even for better end results. Why?
-          printf("Fit worse (%.2lf < %.2lf)! ", fittedScore, score);
+          log(Buf() << "Fit worse (" << fittedScore << " < " << score << ")!");
         }
 
-        printf("(");
-        vectorPrint(cout, valueCount, distribution->mean);
-        printf(": %.4lg) ", score);
+        if (log.on()) {
+          Buf line;
+          line << "New best (";
+          vectorPrint(line, valueCount, distribution->mean);
+          log(line << "): " << score);
+        }
         bestScore = score;
 
         // TODO Track multiple bests.
@@ -574,16 +577,15 @@ bool cnBestPointByScore(
 
       SKIP_POINT:
       // Progress tracker.
-      if (
-        (1 + (point - (Float*)pointBag->pointMatrix.points) / valueCount)
-        % 100 == 0
-      ) {
-        printf(".");
-        fflush(stdout);
+      if (log.on()) {
+        Count pointsSoFar =
+          1 + (point - (Float*)pointBag->pointMatrix.points) / valueCount;
+        if (pointsSoFar % 100 == 0) {
+          log(Buf() << "Points so far: " << pointsSoFar);
+        }
       }
     }
   } cnEnd;
-  printf("\n");
 
   // Winned!
   result = true;
