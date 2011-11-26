@@ -3,5 +3,6 @@ subdirs(
   domains
   run
   test
+  viz
   yajl
 )
