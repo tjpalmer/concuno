@@ -10,10 +10,10 @@ if(NOT CMAKE_BUILD_TYPE)
   )
 endif(NOT CMAKE_BUILD_TYPE)
 
-#set(
-#  Eigen_INCLUDE_DIR "${concuno_SOURCE_DIR}/../eigen"
-#  CACHE STRING "The directory for Eigen header files."
-#)
+set(
+  Eigen_INCLUDE_DIR "${concuno_SOURCE_DIR}/../eigen"
+  CACHE STRING "The directory for Eigen header files."
+)
 
 #set(concuno_INCLUDE_DIR ${concuno_SOURCE_DIR}/include)
 
@@ -32,7 +32,7 @@ include_directories(
 if(CMAKE_COMPILER_IS_GNUCC)
   set(CMAKE_C_FLAGS "-Wall -Wdeclaration-after-statement")
   #set(CMAKE_C_FLAGS_DEBUG "-pg")
-  set(CMAKE_CXX_FLAGS "-Wall")
+  set(CMAKE_CXX_FLAGS "-Wall -std=c++11")
 endif(CMAKE_COMPILER_IS_GNUCC)
 
 subdirs(

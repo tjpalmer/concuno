@@ -1,5 +1,6 @@
 subdirs(
   concuno
+  covary
   domains
   run
   test
