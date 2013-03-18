@@ -4,7 +4,7 @@
 #include <Eigen/Cholesky>
 #include <Eigen/LU>
 
-namespace covary {
+namespace concuno {
 
 
 /**

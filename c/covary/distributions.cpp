@@ -3,7 +3,7 @@
 
 #include "distributions.h"
 
-namespace covary {
+namespace concuno {
 
 
 template<typename Scalar, int Size>
