@@ -35,6 +35,12 @@ if(CMAKE_COMPILER_IS_GNUCC)
   set(CMAKE_CXX_FLAGS "-Wall -std=c++11")
 endif(CMAKE_COMPILER_IS_GNUCC)
 
+if(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
+  # Clang uses C++11 by default, it seems, but warns about potential abuses.
+  # Turn off those warnings.
+  set(CMAKE_CXX_FLAGS "-Wall -Wno-c++11-extensions")
+endif(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
+
 subdirs(
   c
   #cpp

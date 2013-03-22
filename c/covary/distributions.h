@@ -1,14 +1,13 @@
 #ifndef concuno_distributions_h
 #define concuno_distributions_h
 
-#include <Eigen/Cholesky>
-#include <Eigen/LU>
+#include <Eigen/Core>
 
 namespace concuno {
 
 
 /**
- * Probability distribution over some vector space.
+ * Probability distribution over some possibly multivariate vector space.
  */
 template<typename Scalar = double, int Size = 1>
 struct Distribution {
@@ -40,7 +39,7 @@ struct Distribution {
 
 
 /**
- * TODO Multivariate!
+ * Multivariate Gaussian (normal) distribution.
  */
 template<typename Scalar = double, int Size = 1>
 struct Gaussian: virtual Distribution<Scalar, Size> {
@@ -72,7 +71,8 @@ private:
 
 
 /**
- * TODO Specialize for dynamic cases???
+ * Multivariate uniform distribution with different bounds available to
+ * different dimensions.
  */
 template<typename Scalar = double, int Size = 1>
 struct Uniform: virtual Distribution<Scalar, Size> {
@@ -104,9 +104,5 @@ private:
 
 
 }
-
-// TODO Any better way to get at these?
-// TODO What's proper C++ template awesomeness?
-#include "distributions.cpp"
 
 #endif

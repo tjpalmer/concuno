@@ -2,6 +2,7 @@
 #define concuno_distributions_cpp
 
 #include "distributions.h"
+#include <Eigen/Cholesky>
 
 namespace concuno {
 
