@@ -24,7 +24,7 @@ struct Distribution {
    *
    * TODO Does sampling a norm ever matter? Redefine this to that?
    */
-  Scalar sample1();
+  Scalar sample();
 
   /**
    * Samples repeatedly to fill the matrix.
@@ -33,7 +33,7 @@ struct Distribution {
    * TODO This should be independent of any particular distribution!
    */
   template<int Rows, int Cols>
-  void sampleRep(Eigen::Matrix<Scalar, Rows, Cols>& matrix);
+  void sample(Eigen::Matrix<Scalar, Rows, Cols>& matrix);
 
 };
 
@@ -46,6 +46,9 @@ struct Gaussian: virtual Distribution<Scalar, Size> {
 
   typedef Eigen::Matrix<Scalar, Size, Size> Square;
 
+  /**
+   * TODO GCC requires this to be a typedef instead of a using. Drop GCC?
+   */
   typedef typename Distribution<Scalar, Size>::Vector Vector;
 
   /**
@@ -58,6 +61,8 @@ struct Gaussian: virtual Distribution<Scalar, Size> {
   virtual ~Gaussian();
 
   virtual void sample(Vector& vector);
+
+  using Distribution<Scalar, Size>::sample;
 
 private:
 
@@ -77,6 +82,9 @@ private:
 template<typename Scalar = double, int Size = 1>
 struct Uniform: virtual Distribution<Scalar, Size> {
 
+  /**
+   * TODO GCC requires this to be a typedef instead of a using. Drop GCC?
+   */
   typedef typename Distribution<Scalar, Size>::Vector Vector;
 
   Uniform(Scalar begin = 0, Scalar end = 1);
@@ -86,6 +94,8 @@ struct Uniform: virtual Distribution<Scalar, Size> {
   virtual ~Uniform();
 
   virtual void sample(Vector& vector);
+
+  using Distribution<Scalar, Size>::sample;
 
 private:
 

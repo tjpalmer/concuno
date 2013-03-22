@@ -1,7 +1,7 @@
 #ifndef concuno_setclass_h
 #define concuno_bagclass_h
 
-#include <Eigen/Core>
+#include "distributions.h"
 #include <map>
 #include <vector>
 
@@ -44,7 +44,7 @@ struct BagBags {
 template<typename Scalar, int Size>
 struct LabeledPoint {
 
-  typedef Eigen::Matrix<Scalar, Size, 1> Point;
+  typedef typename Distribution<Scalar, Size>::Vector Point;
 
   bool label;
 

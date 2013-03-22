@@ -26,6 +26,15 @@ void testProblem(void (*buildProblem)(Problem& problem));
 
 int main() {
   switch (2) {
+    case 0: {
+      // Sample uniform scalars.
+      Uniform<> uniform;
+      for (int i = 0; i < 100; i++) {
+        cout << uniform.sample() << " ";
+      }
+      cout << endl;
+      break;
+    }
     case 1: {
       // Sample Gaussian.
       Vector2d mean;
@@ -34,7 +43,7 @@ int main() {
       covariance << 3, -1.6, -1.6, 1;
       Gaussian<double, 2> gaussian(mean, covariance);
       Matrix2Xd samples(2, 1000);
-      gaussian.sampleRep(samples);
+      gaussian.sample(samples);
       // Output is where lots of mallocs and frees happen.
       cout << samples << endl;
       break;
@@ -55,7 +64,7 @@ void addBags(BagBag& bagBag, int bagCount, Dist& key, Dist& spray) {
   Point point;
   for (int i = 0; i < bagCount; i++) {
     Bag bag(2, pointCount);
-    spray.sampleRep(bag);
+    spray.sample(bag);
     // TODO Randomize key index to avoid risks of bugs on that.
     // TODO Vary number of keys, too?
     int keyIndex = 0;

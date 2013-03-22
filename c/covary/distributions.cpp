@@ -2,6 +2,7 @@
 #define concuno_distributions_cpp
 
 #include "distributions.h"
+#include <cstdlib>
 #include <Eigen/Cholesky>
 
 namespace concuno {
@@ -12,7 +13,7 @@ Distribution<Scalar, Size>::~Distribution() {}
 
 
 template<typename Scalar, int Size>
-Scalar Distribution<Scalar, Size>::sample1() {
+Scalar Distribution<Scalar, Size>::sample() {
   Vector vector;
   sample(vector);
   return vector(0);
@@ -21,7 +22,7 @@ Scalar Distribution<Scalar, Size>::sample1() {
 
 template<typename Scalar, int Size>
 template<int Rows, int Cols>
-void Distribution<Scalar, Size>::sampleRep(
+void Distribution<Scalar, Size>::sample(
   Eigen::Matrix<Scalar, Rows, Cols>& matrix
 ) {
   // TODO Validate size!
@@ -55,7 +56,7 @@ Scalar gaussianSample() {
   Uniform<Scalar> uniform(-1, 1);
   Eigen::Matrix<Scalar, 2, 1> point;
   do {
-    uniform.sampleRep(point);
+    uniform.sample(point);
     squaredNorm = point.squaredNorm();
   } while (squaredNorm >= 1.0);
   // Got one. Convert to N(0, 1) sample.
@@ -128,7 +129,16 @@ Uniform<Scalar, Size>::~Uniform() {}
 
 template<typename Scalar, int Size>
 void Uniform<Scalar, Size>::sample(Vector& vector) {
-  vector = minRange.col(0) + minRange.col(1).cwiseProduct(Vector::Random());
+  // Pick values 0 to 1.
+  // Don't built-in Eigen Random(), because it goes -1 to 1 for doubles.
+  // We need 0 to 1.
+  // TODO What to do for ints?
+  for (typename Vector::Index i = 0; i < vector.rows(); i++) {
+    // TODO Do better than rand!
+    vector(i) = Scalar(std::rand()) / Scalar(RAND_MAX);
+  }
+  // Now scale.
+  vector = minRange.col(0) + minRange.col(1).cwiseProduct(vector);
 }
 
 
