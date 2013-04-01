@@ -21,6 +21,13 @@ void addBags(BagBag& bagBag, int bagCount, Dist& key, Dist& spray);
 void buildSqueezeProblem(Problem& problem);
 
 
+/**
+ * After a header row indicating bag membership, prints all points from all bags
+ * as if one large matrix.
+ */
+void printPointArray(ostream& out, const BagBag& bags);
+
+
 void testProblem(void (*buildProblem)(Problem& problem));
 
 
@@ -78,10 +85,10 @@ void addBags(BagBag& bagBag, int bagCount, Dist& key, Dist& spray) {
 
 void buildSqueezeProblem(Problem& problem) {
   Point mean = Point::Zero();
-  Square covariance = 2 * Square::Identity();
+  Square covariance = 1 * Square::Identity();
   Gaussian<double, 2> spray(mean, covariance);
   // All the others have the same mean y
-  mean(1) = 0.5;
+  mean(1) = 2;
   int totalBags = 500;
   /* Negatives */ {
     // Left side.
@@ -103,9 +110,32 @@ void buildSqueezeProblem(Problem& problem) {
   /* Positives */ {
     // Right between the negatives.
     mean(0) = 0;
-    covariance.setIdentity();
+    covariance = 0.25 * Square::Identity();
     Gaussian<double, 2> key(mean, covariance);
     addBags(problem.positives, totalBags / 2, key, spray);
+  }
+}
+
+
+void printPointArray(ostream& out, const BagBag& bags) {
+  // First the header row.
+  int ndims = 0;
+  for (int bb = 0; bb < bags.size(); bb++) {
+    auto& bag = bags[bb];
+    if (!ndims) {
+      ndims = bag.rows();
+    }
+    for (int j = 0; j < bag.cols(); j++) {
+      out << bb + 1 << " ";
+    }
+  }
+  out << endl;
+  // Now, for each row (dimension), go through each bag.
+  for (int i = 0; i < ndims; i++) {
+    for (auto& bag: bags) {
+      out << bag.row(i) << " ";
+    }
+    out << endl;
   }
 }
 
@@ -113,5 +143,6 @@ void buildSqueezeProblem(Problem& problem) {
 void testProblem(void (*buildProblem)(Problem& problem)) {
   Problem problem;
   buildProblem(problem);
+  //printPointArray(cout, problem.negatives);
   // TODO Learn decision volume.
 }
