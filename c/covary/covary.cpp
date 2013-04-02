@@ -1,6 +1,7 @@
 #include "bagclass.h"
 #include "distributions.h"
 #include <iostream>
+#include <limits>
 
 using namespace concuno;
 using namespace Eigen;
@@ -116,6 +117,61 @@ void buildSqueezeProblem(Problem& problem) {
   }
 }
 
+template<typename Scalar, int NDims>
+void growVolume(const BagBags<Scalar, NDims>& problem, int firstIndex) {
+  typedef Gaussian<Scalar, NDims> Model;
+  typedef Matrix<Scalar, NDims, 1> Point;
+  typedef Matrix<Scalar, NDims, Dynamic> Points;
+  typedef BagBags<Scalar, NDims> Problem;
+  typedef typename Problem::BagBag BagBag;
+  typedef typename Problem::Bag Bag;
+  typedef typename Model::Square Square;
+  Array<bool, 1, Dynamic> positivesContained(problem.positives.size());
+  positivesContained.fill(false);
+  positivesContained(firstIndex) = true;
+  const Bag& bag = problem.positives[firstIndex];
+  for (int p = 0; p < bag.cols(); p++) {
+    Point point(bag.col(p));
+    int ndims = point.rows();
+    Points containedPoints(point);
+    // TODO The covariance should be chosen such that distance 1 is half way to
+    // TODO nearest point among other bags.
+    Model model(point, Square::Identity(ndims, ndims));
+    while (!positivesContained.all()) {
+      // Look for the best next bag to add.
+      // We'll add the one point from the bag in question.
+      containedPoints.resize(ndims, containedPoints.cols() + 1);
+      // TODO Extract this to another function?
+      // TODO I've reused var names expecting this.
+      for (int b = 0; b < positivesContained.cols(); b++) {
+        if (!positivesContained(b)) {
+          // Find the nearest point in this bag.
+          const Bag& bag = problem.positives[b];
+          // Assume all bags have at least on point for now.
+          // TODO Always exclude bags with no points? Prefilter out?
+          Scalar minDistance = numeric_limits<Scalar>::infinity();
+          int minIndex = -1;
+          for (int p = 0; p < bag.cols(); p++) {
+            Point point(bag.col(p));
+            Scalar distance = model.distanceSquared(point);
+            if (distance < minDistance) {
+              minDistance = distance;
+              minIndex = p;
+            }
+          }
+          // We have the min. Add it, update model, and calculate score.
+          containedPoints.col(containedPoints.cols() - 1) = bag.col(p);
+          // TODO Abstract model finder (allowing iterative, too).
+          Model newModel(containedPoints);
+          // TODO Find max distance of contained points.
+          // TODO Calculate score, considering all bags with points no farther.
+        }
+      }
+      break;
+    }
+  }
+}
+
 
 void printPointArray(ostream& out, const BagBag& bags) {
   // First the header row.
@@ -143,6 +199,13 @@ void printPointArray(ostream& out, const BagBag& bags) {
 void testProblem(void (*buildProblem)(Problem& problem)) {
   Problem problem;
   buildProblem(problem);
+  growVolume(problem, 0);
   //printPointArray(cout, problem.negatives);
   // TODO Learn decision volume.
+  // TODO Iterative variance:
+  // TODO http://www.johndcook.com/standard_deviation.html
+  // TODO http://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Online_algorithm
+  // TODO Covariance:
+  // TODO http://en.wikipedia.org/wiki/Covariance_matrix
+  // TODO http://en.wikipedia.org/wiki/Computational_formula_for_the_variance
 }

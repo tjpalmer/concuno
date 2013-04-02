@@ -44,6 +44,11 @@ struct Distribution {
 template<typename Scalar = double, int Size = 1>
 struct Gaussian: virtual Distribution<Scalar, Size> {
 
+  /**
+   * TODO I sort of like Point more than Vector. Change throughout?
+   */
+  typedef Eigen::Matrix<Scalar, Size, Eigen::Dynamic> Points;
+
   typedef Eigen::Matrix<Scalar, Size, Size> Square;
 
   /**
@@ -58,7 +63,17 @@ struct Gaussian: virtual Distribution<Scalar, Size> {
 
   Gaussian(const Vector& mean, const Square& covariance);
 
+  /**
+   * Calculates a maximum likelihood estimate for the given points.
+   */
+  Gaussian(const Points& points);
+
   virtual ~Gaussian();
+
+  /**
+   * The squared Mahalanobis distance from the mean.
+   */
+  Scalar distanceSquared(Vector& vector);
 
   virtual void sample(Vector& vector);
 
@@ -66,11 +81,21 @@ struct Gaussian: virtual Distribution<Scalar, Size> {
 
 private:
 
+  /**
+   * Approximate square root of the (co)variance.
+   * A Cholesky decomposition is used for this, yielding odd results but still
+   * useful for sampling from the distribution.
+   */
   Square codeviation;
 
   Square covariance;
 
   Vector mean;
+
+  /**
+   * Inverse (co)variance.
+   */
+  Square precision;
 
 };
 

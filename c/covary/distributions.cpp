@@ -4,6 +4,7 @@
 #include "distributions.h"
 #include <cstdlib>
 #include <Eigen/Cholesky>
+#include <Eigen/LU>
 
 namespace concuno {
 
@@ -83,7 +84,10 @@ template<typename Scalar, int Size>
 Gaussian<Scalar, Size>::Gaussian(
   const Vector& mean_, const Square& covariance_
 ):
-  codeviation(mean_.rows(), mean_.rows()), covariance(covariance_), mean(mean_)
+  codeviation(mean_.rows(), mean_.rows()),
+  covariance(covariance_),
+  mean(mean_),
+  precision(mean_.rows(), mean_.rows())
 {
   // Square root via Cholesky.
   // See also LDLT::reconstructedMatrix for my example on how to use Eigen to
@@ -93,11 +97,33 @@ Gaussian<Scalar, Size>::Gaussian(
   codeviation = ldlt.vectorD().cwiseSqrt().asDiagonal() * codeviation;
   codeviation = ldlt.matrixL() * codeviation;
   codeviation = ldlt.transpositionsP().transpose() * codeviation;
+  // Precision.
+  precision = covariance.inverse();
+}
+
+
+template<typename Scalar, int Size>
+Gaussian<Scalar, Size>::Gaussian(const Points& points):
+  codeviation(points.rows(), points.rows()),
+  covariance(points.rows(), points.rows()),
+  mean(points.rowwise().mean()),
+  precision(points.rows(), points.rows())
+{
+  // TODO Covariance.
+  // TODO Update function for codeviation and precision.
 }
 
 
 template<typename Scalar, int Size>
 Gaussian<Scalar, Size>::~Gaussian() {}
+
+
+template<typename Scalar, int Size>
+Scalar Gaussian<Scalar, Size>::distanceSquared(Vector& vector) {
+  Vector diff = vector - mean;
+  Scalar distance = diff.transpose() * precision * diff;
+  return distance;
+}
 
 
 template<typename Scalar, int Size>
