@@ -64,16 +64,19 @@ struct Gaussian: virtual Distribution<Scalar, Size> {
   Gaussian(const Vector& mean, const Square& covariance);
 
   /**
-   * Calculates a maximum likelihood estimate for the given points.
+   * Calculates a maximum likelihood estimate for the given points, using an
+   * unbiased n-1 denominator.
    */
   Gaussian(const Points& points);
 
   virtual ~Gaussian();
 
+  const Square& covariance() const;
+
   /**
    * The squared Mahalanobis distance from the mean.
    */
-  Scalar distanceSquared(Vector& vector);
+  Scalar distanceSquared(Vector& vector) const;
 
   virtual void sample(Vector& vector);
 
@@ -86,16 +89,16 @@ private:
    * A Cholesky decomposition is used for this, yielding odd results but still
    * useful for sampling from the distribution.
    */
-  Square codeviation;
+  Square codeviation_;
 
-  Square covariance;
+  Square covariance_;
 
-  Vector mean;
+  Vector mean_;
 
   /**
    * Inverse (co)variance.
    */
-  Square precision;
+  Square precision_;
 
 };
 

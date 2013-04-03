@@ -163,10 +163,30 @@ void growVolume(const BagBags<Scalar, NDims>& problem, int firstIndex) {
           containedPoints.col(containedPoints.cols() - 1) = bag.col(p);
           // TODO Abstract model finder (allowing iterative, too).
           Model newModel(containedPoints);
+          //cout << containedPoints << endl;
+          //cout << newModel.covariance() << endl << endl;
           // TODO Find max distance of contained points.
           // TODO Calculate score, considering all bags with points no farther.
+          // TODO If best so far, record the model and the score.
         }
       }
+      // Got the best model for the latest round.
+
+      // TODO Mark all contained positive bags.
+      // TODO Add the nearest point for each contained positive bag to
+      // TODO contained points.
+      // TODO For iterative, we might want to mark which are the new points.
+      // TODO Maybe build a new next model immediately for speeding the next
+      // TODO round of computation?
+
+      // TODO If the best for the latest round is the best of all rounds, record
+      // TODO that (scaled model and score) here, too.
+      // TODO That's best across sampled points from first bag, too.
+
+      // TODO Any gains from quitting early if we can't beat our existing best
+      // TODO (say, even if we got all remaining positives and no negatives)?
+      // TODO Try it? Check stats?
+
       break;
     }
   }
@@ -176,7 +196,7 @@ void growVolume(const BagBags<Scalar, NDims>& problem, int firstIndex) {
 void printPointArray(ostream& out, const BagBag& bags) {
   // First the header row.
   int ndims = 0;
-  for (int bb = 0; bb < bags.size(); bb++) {
+  for (BagBag::size_type bb = 0; bb < bags.size(); bb++) {
     auto& bag = bags[bb];
     if (!ndims) {
       ndims = bag.rows();

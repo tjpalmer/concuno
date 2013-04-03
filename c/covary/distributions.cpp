@@ -10,6 +10,20 @@ namespace concuno {
 
 
 template<typename Scalar, int Size>
+void updateCodeviation(
+  const Eigen::Matrix<Scalar, Size, Size>& covariance,
+  Eigen::Matrix<Scalar, Size, Size>& codeviation
+);
+
+
+template<typename Scalar, int Size>
+void updatePrecision(
+  const Eigen::Matrix<Scalar, Size, Size>& covariance,
+  Eigen::Matrix<Scalar, Size, Size>& precision
+);
+
+
+template<typename Scalar, int Size>
 Distribution<Scalar, Size>::~Distribution() {}
 
 
@@ -72,45 +86,46 @@ Scalar gaussianSample() {
 
 
 template<typename Scalar, int Size>
-Gaussian<Scalar, Size>::Gaussian(Scalar mean_, Scalar variance) {
-  mean.fill(mean_);
-  covariance.setZero();
-  covariance.diagonal().fill(variance);
-  codeviation.diagonal().fill(sqrt(variance));
+Gaussian<Scalar, Size>::Gaussian(Scalar mean__, Scalar variance) {
+  mean_.fill(mean__);
+  covariance_.setZero();
+  covariance_.diagonal().fill(variance);
+  codeviation_.diagonal().fill(sqrt(variance));
 }
 
 
 template<typename Scalar, int Size>
 Gaussian<Scalar, Size>::Gaussian(
-  const Vector& mean_, const Square& covariance_
+  const Vector& mean__, const Square& covariance__
 ):
-  codeviation(mean_.rows(), mean_.rows()),
-  covariance(covariance_),
-  mean(mean_),
-  precision(mean_.rows(), mean_.rows())
+  codeviation_(mean__.rows(), mean__.rows()),
+  covariance_(covariance__),
+  mean_(mean__),
+  precision_(mean__.rows(), mean__.rows())
 {
-  // Square root via Cholesky.
-  // See also LDLT::reconstructedMatrix for my example on how to use Eigen to
-  // do this.
-  auto ldlt = covariance.ldlt();
-  codeviation.setIdentity();
-  codeviation = ldlt.vectorD().cwiseSqrt().asDiagonal() * codeviation;
-  codeviation = ldlt.matrixL() * codeviation;
-  codeviation = ldlt.transpositionsP().transpose() * codeviation;
-  // Precision.
-  precision = covariance.inverse();
+  updateCodeviation(covariance_, codeviation_);
+  updatePrecision(covariance_, precision_);
 }
 
 
 template<typename Scalar, int Size>
 Gaussian<Scalar, Size>::Gaussian(const Points& points):
-  codeviation(points.rows(), points.rows()),
-  covariance(points.rows(), points.rows()),
-  mean(points.rowwise().mean()),
-  precision(points.rows(), points.rows())
+  codeviation_(points.rows(), points.rows()),
+  covariance_(points.rows(), points.rows()),
+  mean_(points.rowwise().mean()),
+  precision_(points.rows(), points.rows())
 {
-  // TODO Covariance.
-  // TODO Update function for codeviation and precision.
+  // Covariance.
+  covariance_.setZero();
+  for (int j = 0; j < points.cols(); j++) {
+    Vector diff(points.col(j) - mean_);
+    covariance_ += diff * diff.transpose();
+  }
+  // - 1 for unbiased.
+  covariance_ /= points.cols() - 1;
+  // Update codeviation and precision.
+  updateCodeviation(covariance_, codeviation_);
+  updatePrecision(covariance_, precision_);
 }
 
 
@@ -119,9 +134,16 @@ Gaussian<Scalar, Size>::~Gaussian() {}
 
 
 template<typename Scalar, int Size>
-Scalar Gaussian<Scalar, Size>::distanceSquared(Vector& vector) {
-  Vector diff = vector - mean;
-  Scalar distance = diff.transpose() * precision * diff;
+const typename Gaussian<Scalar, Size>::Square&
+Gaussian<Scalar, Size>::covariance() const {
+  return covariance_;
+}
+
+
+template<typename Scalar, int Size>
+Scalar Gaussian<Scalar, Size>::distanceSquared(Vector& vector) const {
+  Vector diff = vector - mean_;
+  Scalar distance = diff.transpose() * precision_ * diff;
   return distance;
 }
 
@@ -131,7 +153,7 @@ void Gaussian<Scalar, Size>::sample(Vector& vector) {
   for (typename Vector::Index i = 0; i < Size; i++) {
     vector(i) = gaussianSample<Scalar>();
   }
-  vector = mean + codeviation * vector;
+  vector = mean_ + codeviation_ * vector;
 }
 
 
@@ -165,6 +187,32 @@ void Uniform<Scalar, Size>::sample(Vector& vector) {
   }
   // Now scale.
   vector = minRange.col(0) + minRange.col(1).cwiseProduct(vector);
+}
+
+
+template<typename Scalar, int Size>
+void updateCodeviation(
+  const Eigen::Matrix<Scalar, Size, Size>& covariance,
+  Eigen::Matrix<Scalar, Size, Size>& codeviation
+) {
+  // Square root via Cholesky.
+  // See also LDLT::reconstructedMatrix for my example on how to use Eigen to
+  // do this.
+  auto ldlt = covariance.ldlt();
+  codeviation.setIdentity();
+  codeviation = ldlt.vectorD().cwiseSqrt().asDiagonal() * codeviation;
+  codeviation = ldlt.matrixL() * codeviation;
+  codeviation = ldlt.transpositionsP().transpose() * codeviation;
+}
+
+
+template<typename Scalar, int Size>
+void updatePrecision(
+  const Eigen::Matrix<Scalar, Size, Size>& covariance,
+  Eigen::Matrix<Scalar, Size, Size>& precision
+) {
+  // TODO Condition covariance if (near) singular?
+  precision = covariance.inverse();
 }
 
 
