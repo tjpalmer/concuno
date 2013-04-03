@@ -1,5 +1,6 @@
 #include "bagclass.h"
 #include "distributions.h"
+#include "matrices.h"
 #include <iostream>
 #include <limits>
 
@@ -20,6 +21,22 @@ void addBags(BagBag& bagBag, int bagCount, Dist& key, Dist& spray);
 
 
 void buildSqueezeProblem(Problem& problem);
+
+
+template<typename Scalar, int NDims>
+void growVolume(const BagBags<Scalar, NDims>& problem, int firstIndex);
+
+
+template<typename Scalar>
+Scalar logScore(Scalar probability, int positive, int negative);
+
+
+template<typename Scalar, int NDims>
+Scalar minDistanceSquared(
+  const Gaussian<Scalar, NDims>& model,
+  const Matrix<Scalar, NDims, Dynamic>& bag,
+  int* index = 0 // nullptr not accepted -- Need newer clang or some setting?
+);
 
 
 /**
@@ -140,7 +157,9 @@ void growVolume(const BagBags<Scalar, NDims>& problem, int firstIndex) {
     while (!positivesContained.all()) {
       // Look for the best next bag to add.
       // We'll add the one point from the bag in question.
-      containedPoints.resize(ndims, containedPoints.cols() + 1);
+      // TODO Preallocate for all bags, then use a view of leftmost n?
+      Points newContainedPoints(ndims, containedPoints.cols() + 1);
+      newContainedPoints.leftCols(containedPoints.cols()) = containedPoints;
       // TODO Extract this to another function?
       // TODO I've reused var names expecting this.
       for (int b = 0; b < positivesContained.cols(); b++) {
@@ -149,25 +168,70 @@ void growVolume(const BagBags<Scalar, NDims>& problem, int firstIndex) {
           const Bag& bag = problem.positives[b];
           // Assume all bags have at least on point for now.
           // TODO Always exclude bags with no points? Prefilter out?
-          Scalar minDistance = numeric_limits<Scalar>::infinity();
-          int minIndex = -1;
-          for (int p = 0; p < bag.cols(); p++) {
-            Point point(bag.col(p));
-            Scalar distance = model.distanceSquared(point);
-            if (distance < minDistance) {
-              minDistance = distance;
-              minIndex = p;
+          int minIndex;
+          minDistanceSquared(model, bag, &minIndex);
+          // We have the min. Add it, update model, and calculate score.
+          newContainedPoints.col(containedPoints.cols()) = bag.col(p);
+          // TODO Abstract model finder (allowing iterative, too).
+          Model newModel(newContainedPoints);
+          Square covariance(newModel.covariance());
+
+          // TODO What condition number is equivalent to what kinds of evidence
+          // TODO vs. what kind of prior?
+          Scalar maxWantedCondition(newContainedPoints.cols());
+          // Eigenvalues of covariance are squared units, so square the
+          // wanted condition, too.
+          // This gives axis ratios proportional to evidence.
+          // TODO Reduce allowance based on dimensionality?
+          // TODO That is, higher dimensional systems need stronger evidence.
+          maxWantedCondition *= maxWantedCondition;
+          // Diagonal conditioning changes both the axis sizes and the axes
+          // themselves, making it more isotropic.
+          // TODO Is this what we want?
+          condition(covariance, maxWantedCondition);
+          newModel.covariance_put(covariance);
+
+          // Find max distance of contained points.
+          //cout << newModel.mean() << endl << covariance << endl << newContainedPoints << endl;
+          Scalar maxDistance = 0;
+          for (int p = 0; p < newContainedPoints.cols(); p++) {
+            Point point(newContainedPoints.col(p));
+            Scalar distance = newModel.distanceSquared(point);
+            cout << distance << " ";
+            if (distance > maxDistance) {
+              maxDistance = distance;
             }
           }
-          // We have the min. Add it, update model, and calculate score.
-          containedPoints.col(containedPoints.cols() - 1) = bag.col(p);
-          // TODO Abstract model finder (allowing iterative, too).
-          Model newModel(containedPoints);
-          //cout << containedPoints << endl;
-          //cout << newModel.covariance() << endl << endl;
-          // TODO Find max distance of contained points.
-          // TODO Calculate score, considering all bags with points no farther.
+          //cout << "-> " << maxDistance << endl << endl;
+
+          // Calculate score, considering all bags with points no farther.
           // TODO If best so far, record the model and the score.
+          int insidePositive = 0;
+          for (auto& bag: problem.positives) {
+            Scalar distance = minDistanceSquared(newModel, bag);
+            if (distance <= maxDistance) {
+              insidePositive++;
+            }
+          }
+          int insideNegative = 0;
+          for (auto& bag: problem.negatives) {
+            Scalar distance = minDistanceSquared(newModel, bag);
+            if (distance <= maxDistance) {
+              insideNegative++;
+            }
+          }
+          // Now calculate grand metric (log likelihood).
+          // TODO Allow option higher prob outside than in?
+          int insideTotal = insidePositive + insideNegative;
+          int outsideNegative = problem.negatives.size() - insideNegative;
+          int outsidePositive = problem.positives.size() - insidePositive;
+          int outsideTotal = outsidePositive + outsideNegative;
+          double insideProbability = insidePositive / Scalar(insideTotal);
+          double outsideProbability = outsidePositive / Scalar(outsideTotal);
+          double score =
+            logScore(insideProbability, insidePositive, insideNegative) +
+            logScore(outsideProbability, outsidePositive, outsideNegative);
+          cout << insidePositive << " " << insideNegative << " " << insideProbability << " " << outsideProbability << ": " << score << endl;
         }
       }
       // Got the best model for the latest round.
@@ -190,6 +254,37 @@ void growVolume(const BagBags<Scalar, NDims>& problem, int firstIndex) {
       break;
     }
   }
+}
+
+
+template<typename Scalar>
+Scalar logScore(Scalar probability, int positive, int negative) {
+  Scalar scorePositive = log(probability) * positive;
+  Scalar scoreNegative = log(1 - probability) * negative;
+  return scorePositive + scoreNegative;
+}
+
+
+template<typename Scalar, int NDims>
+Scalar minDistanceSquared(
+  const Gaussian<Scalar, NDims>& model,
+  const Matrix<Scalar, NDims, Dynamic>& bag,
+  int* index
+) {
+  Scalar minDistance = numeric_limits<Scalar>::infinity();
+  int minIndex = -1;
+  for (int p = 0; p < bag.cols(); p++) {
+    Matrix<Scalar, NDims, 1> point(bag.col(p));
+    Scalar distance = model.distanceSquared(point);
+    if (distance < minDistance) {
+      minDistance = distance;
+      minIndex = p;
+    }
+  }
+  if (index) {
+    *index = minIndex;
+  }
+  return minDistance;
 }
 
 

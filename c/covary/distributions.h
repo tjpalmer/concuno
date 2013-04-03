@@ -56,6 +56,8 @@ struct Gaussian: virtual Distribution<Scalar, Size> {
    */
   typedef typename Distribution<Scalar, Size>::Vector Vector;
 
+  Gaussian(const Gaussian& other);
+
   /**
    * Presumes the same mean and isotropic covariance in all dimensions.
    */
@@ -73,10 +75,14 @@ struct Gaussian: virtual Distribution<Scalar, Size> {
 
   const Square& covariance() const;
 
+  void covariance_put(const Square& covariance);
+
   /**
    * The squared Mahalanobis distance from the mean.
    */
   Scalar distanceSquared(Vector& vector) const;
+
+  const Vector& mean() const;
 
   virtual void sample(Vector& vector);
 

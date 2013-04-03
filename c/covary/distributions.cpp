@@ -86,6 +86,15 @@ Scalar gaussianSample() {
 
 
 template<typename Scalar, int Size>
+Gaussian<Scalar, Size>::Gaussian(const Gaussian& other):
+  codeviation_(other.codeviation_),
+  covariance_(other.covariance_),
+  mean_(other.mean_),
+  precision_(other.precision_)
+{}
+
+
+template<typename Scalar, int Size>
 Gaussian<Scalar, Size>::Gaussian(Scalar mean__, Scalar variance) {
   mean_.fill(mean__);
   covariance_.setZero();
@@ -141,10 +150,25 @@ Gaussian<Scalar, Size>::covariance() const {
 
 
 template<typename Scalar, int Size>
+void Gaussian<Scalar, Size>::covariance_put(const Square& covariance) {
+  covariance_ = covariance;
+  updateCodeviation(covariance_, codeviation_);
+  updatePrecision(covariance_, precision_);
+}
+
+
+template<typename Scalar, int Size>
 Scalar Gaussian<Scalar, Size>::distanceSquared(Vector& vector) const {
   Vector diff = vector - mean_;
   Scalar distance = diff.transpose() * precision_ * diff;
   return distance;
+}
+
+
+template<typename Scalar, int Size>
+const typename Gaussian<Scalar, Size>::Vector&
+Gaussian<Scalar, Size>::mean() const {
+  return mean_;
 }
 
 

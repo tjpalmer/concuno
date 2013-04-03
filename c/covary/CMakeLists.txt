@@ -8,6 +8,7 @@ add_executable(
   covary
   covary.cpp
   distributions-covary.cpp
+  matrices-covary.cpp
   ${math_LIBRARY}
 )
 
