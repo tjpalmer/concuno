@@ -9,13 +9,14 @@ using namespace concuno;
 using namespace Eigen;
 using namespace std;
 
-
-typedef Distribution<double, 2> Dist;
-typedef BagBags<double, 2> Problem;
+#define COVARY_TEST_NDIMS Dynamic
+typedef Distribution<double, COVARY_TEST_NDIMS> Dist;
+typedef BagBags<double, COVARY_TEST_NDIMS> Problem;
 typedef Problem::Bag Bag;
 typedef Problem::BagBag BagBag;
-typedef Gaussian<double, 2>::Vector Point;
-typedef Gaussian<double, 2>::Square Square;
+typedef Gaussian<double, COVARY_TEST_NDIMS> Model;
+typedef Model::Vector Point;
+typedef Model::Square Square;
 
 
 void addBags(BagBag& bagBag, int bagCount, Dist& key, Dist& spray);
@@ -87,7 +88,7 @@ int main() {
 void addBags(BagBag& bagBag, int bagCount, Dist& key, Dist& spray) {
   // TODO Randomize 1 to X total points on a per bag basis.
   int pointCount = 5;
-  Point point;
+  Point point(2, 1);
   for (int i = 0; i < bagCount; i++) {
     Bag bag(2, pointCount);
     spray.sample(bag);
@@ -103,9 +104,9 @@ void addBags(BagBag& bagBag, int bagCount, Dist& key, Dist& spray) {
 
 
 void buildSqueezeProblem(Problem& problem) {
-  Point mean = Point::Zero();
-  Square covariance = 1 * Square::Identity();
-  Gaussian<double, 2> spray(mean, covariance);
+  Point mean = Point::Zero(2);
+  Square covariance = 1 * Square::Identity(2, 2);
+  Model spray(mean, covariance);
   // All the others have the same mean y
   mean(1) = 2;
   int totalBags = 500;
@@ -115,22 +116,22 @@ void buildSqueezeProblem(Problem& problem) {
     // Most volume within 0.5 of 0.
     covariance << 0.25, 0, 0, 1;
     {
-      Gaussian<double, 2> key(mean, covariance);
+      Model key(mean, covariance);
       addBags(problem.negatives, totalBags / 4, key, spray);
     }
     // Right side.
     mean(0) = 1;
     // Retain variance.
     {
-      Gaussian<double, 2> key(mean, covariance);
+      Model key(mean, covariance);
       addBags(problem.negatives, totalBags / 4, key, spray);
     }
   }
   /* Positives */ {
     // Right between the negatives.
     mean(0) = 0;
-    covariance = 0.25 * Square::Identity();
-    Gaussian<double, 2> key(mean, covariance);
+    covariance = 0.25 * Square::Identity(2, 2);
+    Model key(mean, covariance);
     addBags(problem.positives, totalBags / 2, key, spray);
   }
 }
@@ -147,6 +148,7 @@ void growVolume(const BagBags<Scalar, NDims>& problem, int firstIndex) {
   Array<bool, 1, Dynamic> positivesContained(problem.positives.size());
   const Bag& bag = problem.positives[firstIndex];
   for (int p = 0; p < bag.cols(); p++) {
+    cout << p << endl;
     Point point(bag.col(p));
     int ndims = point.rows();
     Points containedPoints(point);
@@ -376,7 +378,7 @@ void printPointArray(ostream& out, const BagBag& bags) {
 void testProblem(void (*buildProblem)(Problem& problem)) {
   Problem problem;
   buildProblem(problem);
-  for (int i = 0; i < 25; i++) {
+  for (int i = 0; i < 2; i++) {
     growVolume(problem, i);
   }
   //printPointArray(cout, problem.negatives);

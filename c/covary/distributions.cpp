@@ -40,9 +40,9 @@ template<int Rows, int Cols>
 void Distribution<Scalar, Size>::sample(
   Eigen::Matrix<Scalar, Rows, Cols>& matrix
 ) {
-  // TODO Validate size!
-  Vector vector;
-  typename Vector::Index rowRep = matrix.rows() / Size;
+  typename Vector::Index size = this->size();
+  Vector vector(size);
+  typename Vector::Index rowRep = matrix.rows() / size;
   typename Vector::Index cols = matrix.cols();
   for (typename Vector::Index i = 0; i < rowRep; i++) {
     for (typename Vector::Index j = 0; j < cols; j++) {
@@ -51,7 +51,7 @@ void Distribution<Scalar, Size>::sample(
       sample(vector);
       // TODO Again, <.
       // matrix.block<Size, 1>(i * Size, j) = vector;
-      matrix.block(i * Size, j, Size, 1) = vector;
+      matrix.block(i * size, j, size, 1) = vector;
     }
   }
 }
@@ -86,22 +86,31 @@ Scalar gaussianSample() {
 
 
 template<typename Scalar, int Size>
-Gaussian<Scalar, Size>::Gaussian(Scalar mean__, Scalar variance) {
-  mean_.fill(mean__);
+Gaussian<Scalar, Size>::Gaussian(
+  Scalar mean, Scalar variance, typename Vector::Index size_
+) {
+  if (Size == Eigen::Dynamic) {
+    typename Vector::Index size = size_;
+    mean_.resize(size, 1);
+    covariance_.resize(size, size);
+    codeviation_.resize(size, size);
+    precision_.resize(size, size);
+  }
+  mean_.fill(mean);
   covariance_.setZero();
   covariance_.diagonal().fill(variance);
+  // To easy to worry about official techniques here.
   codeviation_.diagonal().fill(sqrt(variance));
+  precision_.diagonal().fill(1 / variance);
 }
 
 
 template<typename Scalar, int Size>
-Gaussian<Scalar, Size>::Gaussian(
-  const Vector& mean__, const Square& covariance__
-):
-  codeviation_(mean__.rows(), mean__.rows()),
-  covariance_(covariance__),
-  mean_(mean__),
-  precision_(mean__.rows(), mean__.rows())
+Gaussian<Scalar, Size>::Gaussian(const Vector& mean, const Square& covariance):
+  codeviation_(mean.rows(), mean.rows()),
+  covariance_(covariance),
+  mean_(mean),
+  precision_(mean.rows(), mean.rows())
 {
   updateCodeviation(covariance_, codeviation_);
   updatePrecision(covariance_, precision_);
@@ -165,7 +174,7 @@ Gaussian<Scalar, Size>::mean() const {
 
 template<typename Scalar, int Size>
 void Gaussian<Scalar, Size>::sample(Vector& vector) {
-  for (typename Vector::Index i = 0; i < Size; i++) {
+  for (typename Vector::Index i = 0; i < vector.rows(); i++) {
     vector(i) = gaussianSample<Scalar>();
   }
   vector = mean_ + codeviation_ * vector;
@@ -173,14 +182,29 @@ void Gaussian<Scalar, Size>::sample(Vector& vector) {
 
 
 template<typename Scalar, int Size>
-Uniform<Scalar, Size>::Uniform(Scalar begin, Scalar end) {
+typename Gaussian<Scalar, Size>::Vector::Index
+Gaussian<Scalar, Size>::size() const {
+  return mean_.rows();
+}
+
+
+template<typename Scalar, int Size>
+Uniform<Scalar, Size>::Uniform(
+  Scalar begin, Scalar end, typename Vector::Index size_
+) {
+  if (Size == Eigen::Dynamic) {
+    typename Vector::Index size = size_;
+    minRange.resize(size, 2);
+  }
   minRange.col(0).fill(begin);
   minRange.col(1).fill(end - begin);
 }
 
 
 template<typename Scalar, int Size>
-Uniform<Scalar, Size>::Uniform(const Vector& begin, const Vector& end) {
+Uniform<Scalar, Size>::Uniform(const Vector& begin, const Vector& end):
+  minRange(begin.rows(), 2)
+{
   minRange.col(0) = begin;
   minRange.col(1) = end - begin;
 }
@@ -202,6 +226,13 @@ void Uniform<Scalar, Size>::sample(Vector& vector) {
   }
   // Now scale.
   vector = minRange.col(0) + minRange.col(1).cwiseProduct(vector);
+}
+
+
+template<typename Scalar, int Size>
+typename Uniform<Scalar, Size>::Vector::Index
+Uniform<Scalar, Size>::size() const {
+  return minRange.rows();
 }
 
 

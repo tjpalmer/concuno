@@ -6,6 +6,11 @@ using namespace Eigen;
 
 namespace concuno {
 
-template double condition<double, 2, 2>(Eigen::Matrix<double, 2, 2>&, double);
+// TODO Move to some header.
+#define COVARY_TEST_NDIMS Dynamic
+
+template double condition<double, COVARY_TEST_NDIMS, COVARY_TEST_NDIMS>(
+  Eigen::Matrix<double, COVARY_TEST_NDIMS, COVARY_TEST_NDIMS>&, double
+);
 
 }

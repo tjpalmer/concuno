@@ -35,6 +35,8 @@ struct Distribution {
   template<int Rows, int Cols>
   void sample(Eigen::Matrix<Scalar, Rows, Cols>& matrix);
 
+  virtual typename Vector::Index size() const = 0;
+
 };
 
 
@@ -58,8 +60,13 @@ struct Gaussian: virtual Distribution<Scalar, Size> {
 
   /**
    * Presumes the same mean and isotropic covariance in all dimensions.
+   *
+   * The size parameter is used only when Size is Dynamic, when it defaults to
+   * 1 if unspecified.
    */
-  Gaussian(Scalar mean = 0, Scalar variance = 1);
+  Gaussian(
+    Scalar mean = 0, Scalar variance = 1, typename Vector::Index size = 1
+  );
 
   Gaussian(const Vector& mean, const Square& covariance);
 
@@ -83,6 +90,8 @@ struct Gaussian: virtual Distribution<Scalar, Size> {
   const Vector& mean() const;
 
   virtual void sample(Vector& vector);
+
+  virtual typename Vector::Index size() const;
 
   using Distribution<Scalar, Size>::sample;
 
@@ -119,13 +128,18 @@ struct Uniform: virtual Distribution<Scalar, Size> {
    */
   typedef typename Distribution<Scalar, Size>::Vector Vector;
 
-  Uniform(Scalar begin = 0, Scalar end = 1);
+  /**
+   * The size is only used when Size is Dynamic.
+   */
+  Uniform(Scalar begin = 0, Scalar end = 1, typename Vector::Index size = 1);
 
   Uniform(const Vector& begin, const Vector& end);
 
   virtual ~Uniform();
 
   virtual void sample(Vector& vector);
+
+  virtual typename Vector::Index size() const;
 
   using Distribution<Scalar, Size>::sample;
 
