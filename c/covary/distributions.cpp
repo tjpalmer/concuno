@@ -86,15 +86,6 @@ Scalar gaussianSample() {
 
 
 template<typename Scalar, int Size>
-Gaussian<Scalar, Size>::Gaussian(const Gaussian& other):
-  codeviation_(other.codeviation_),
-  covariance_(other.covariance_),
-  mean_(other.mean_),
-  precision_(other.precision_)
-{}
-
-
-template<typename Scalar, int Size>
 Gaussian<Scalar, Size>::Gaussian(Scalar mean__, Scalar variance) {
   mean_.fill(mean__);
   covariance_.setZero();

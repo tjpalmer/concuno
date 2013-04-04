@@ -3,6 +3,7 @@
 #include "matrices.h"
 #include <iostream>
 #include <limits>
+#include <stdexcept>
 
 using namespace concuno;
 using namespace Eigen;
@@ -144,13 +145,13 @@ void growVolume(const BagBags<Scalar, NDims>& problem, int firstIndex) {
   typedef typename Problem::Bag Bag;
   typedef typename Model::Square Square;
   Array<bool, 1, Dynamic> positivesContained(problem.positives.size());
-  positivesContained.fill(false);
-  positivesContained(firstIndex) = true;
   const Bag& bag = problem.positives[firstIndex];
   for (int p = 0; p < bag.cols(); p++) {
     Point point(bag.col(p));
     int ndims = point.rows();
     Points containedPoints(point);
+    positivesContained.fill(false);
+    positivesContained(firstIndex) = true;
     // TODO The covariance should be chosen such that distance 1 is half way to
     // TODO nearest point among other bags.
     Model model(point, Square::Identity(ndims, ndims));
@@ -160,6 +161,10 @@ void growVolume(const BagBags<Scalar, NDims>& problem, int firstIndex) {
       // TODO Preallocate for all bags, then use a view of leftmost n?
       Points newContainedPoints(ndims, containedPoints.cols() + 1);
       newContainedPoints.leftCols(containedPoints.cols()) = containedPoints;
+      // We need to find the best point for this next round.
+      Scalar bestScoreStep = -numeric_limits<Scalar>::infinity();
+      Model bestModelStep(model);
+      Scalar bestMaxDistanceStep;
       // TODO Extract this to another function?
       // TODO I've reused var names expecting this.
       for (int b = 0; b < positivesContained.cols(); b++) {
@@ -192,22 +197,29 @@ void growVolume(const BagBags<Scalar, NDims>& problem, int firstIndex) {
           newModel.covariance_put(covariance);
 
           // Find max distance of contained points.
+          // TODO Instead of assuming including all current points, could choose
+          // TODO the radius that maximizes our score, given the current shape
+          // TODO and mean.
+          // TODO For that, we'd likely want to sort.
+          //cout << newModel.mean().transpose() << ", " << covariance.row(0) << " " << covariance.row(1) << "; ";
           //cout << newModel.mean() << endl << covariance << endl << newContainedPoints << endl;
           Scalar maxDistance = 0;
           for (int p = 0; p < newContainedPoints.cols(); p++) {
             Point point(newContainedPoints.col(p));
             Scalar distance = newModel.distanceSquared(point);
-            cout << distance << " ";
+            //cout << distance << " ";
             if (distance > maxDistance) {
               maxDistance = distance;
             }
           }
+          // TODO Actually, go half way between this and nearest negative bag?
           //cout << "-> " << maxDistance << endl << endl;
 
           // Calculate score, considering all bags with points no farther.
-          // TODO If best so far, record the model and the score.
           int insidePositive = 0;
           for (auto& bag: problem.positives) {
+            // TODO By index, could look at positivesContained to see if we
+            // TODO need to bother with this calculation.
             Scalar distance = minDistanceSquared(newModel, bag);
             if (distance <= maxDistance) {
               insidePositive++;
@@ -231,17 +243,55 @@ void growVolume(const BagBags<Scalar, NDims>& problem, int firstIndex) {
           double score =
             logScore(insideProbability, insidePositive, insideNegative) +
             logScore(outsideProbability, outsidePositive, outsideNegative);
-          cout << insidePositive << " " << insideNegative << " " << insideProbability << " " << outsideProbability << ": " << score << endl;
+          // If best so far, record the model and the score.
+          if (score > bestScoreStep) {
+            bestScoreStep = score;
+            bestModelStep = newModel;
+            // TODO Alternatively, could scale the covariance for this.
+            bestMaxDistanceStep = maxDistance;
+          }
         }
       }
       // Got the best model for the latest round.
+      //if (bestScoreStep > -310) {
+      //cout << bestScoreStep << ": " << bestPosContained << " " << bestNegContained << endl << bestModelStep.mean().transpose() << endl << bestModelStep.covariance() << endl << endl;
+      //}
 
-      // TODO Mark all contained positive bags.
-      // TODO Add the nearest point for each contained positive bag to
-      // TODO contained points.
-      // TODO For iterative, we might want to mark which are the new points.
-      // TODO Maybe build a new next model immediately for speeding the next
-      // TODO round of computation?
+      // Mark all contained positive bags.
+      std::vector<int> nearestIndices;
+      for (int b = 0; b < problem.positives.size(); b++) {
+        // TODO By index, could look at positivesContained to see if we
+        // TODO need to bother with this calculation.
+        const Bag& bag = problem.positives[b];
+        int index;
+        Scalar distance = minDistanceSquared(bestModelStep, bag, &index);
+        if (distance <= bestMaxDistanceStep) {
+          positivesContained[b] = true;
+          nearestIndices.push_back(index);
+        } else if (positivesContained[b]) {
+          // TODO This would be okay if we are allowed to optimize radius on
+          // TODO each iteration.
+          throw runtime_error("Supposedly got a positive we didn't have.");
+        }
+      }
+      // Add the nearest point for each contained positive bag to contained
+      // points.
+      containedPoints.resize(ndims, nearestIndices.size());
+      for (int b = 0, p = 0; b < problem.positives.size(); b++) {
+        if (positivesContained[b]) {
+          const Bag& bag = problem.positives[b];
+          containedPoints.col(p) = bag.col(nearestIndices[p]);
+          p++;
+        }
+      }
+      // TODO Iterative might be hard, since the nearest point for each bag
+      // TODO could change.
+      // TODO Maybe still build a new next model immediately for speeding the
+      // TODO next round of computation?
+      Model nextModel(containedPoints);
+      if (bestScoreStep > -310) {
+        cout << bestScoreStep << ": " << nextModel.mean().transpose() << endl << nextModel.covariance() << endl << containedPoints << endl << endl;
+      }
 
       // TODO If the best for the latest round is the best of all rounds, record
       // TODO that (scaled model and score) here, too.
@@ -253,14 +303,20 @@ void growVolume(const BagBags<Scalar, NDims>& problem, int firstIndex) {
 
       break;
     }
+
+    // TODO Again, keep best model and score.
   }
 }
 
 
 template<typename Scalar>
 Scalar logScore(Scalar probability, int positive, int negative) {
-  Scalar scorePositive = log(probability) * positive;
-  Scalar scoreNegative = log(1 - probability) * negative;
+  // Instead of probability ^ p * (1 - probability) ^ n, use log.
+  // I probability is 1 for no negatives, we get 0 ^ 0, or -inf * 0, but really
+  // the exponent is a product loop on negatives, for which there are none, so
+  // check these conditions and + 0 for log space (* 1 for common).
+  Scalar scorePositive = positive ? log(probability) * positive : 0;
+  Scalar scoreNegative = negative ? log(1 - probability) * negative : 0;
   return scorePositive + scoreNegative;
 }
 
@@ -314,7 +370,9 @@ void printPointArray(ostream& out, const BagBag& bags) {
 void testProblem(void (*buildProblem)(Problem& problem)) {
   Problem problem;
   buildProblem(problem);
-  growVolume(problem, 0);
+  for (int i = 0; i < 25; i++) {
+    growVolume(problem, i);
+  }
   //printPointArray(cout, problem.negatives);
   // TODO Learn decision volume.
   // TODO Iterative variance:

@@ -56,8 +56,6 @@ struct Gaussian: virtual Distribution<Scalar, Size> {
    */
   typedef typename Distribution<Scalar, Size>::Vector Vector;
 
-  Gaussian(const Gaussian& other);
-
   /**
    * Presumes the same mean and isotropic covariance in all dimensions.
    */
