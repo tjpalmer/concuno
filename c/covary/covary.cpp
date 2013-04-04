@@ -290,8 +290,14 @@ void growVolume(const BagBags<Scalar, NDims>& problem, int firstIndex) {
       // TODO next round of computation?
       Model nextModel(containedPoints);
       if (bestScoreStep > -310) {
-        cout << bestScoreStep << ": " << nextModel.mean().transpose() << endl << nextModel.covariance() << endl << containedPoints << endl << endl;
+        cout << bestScoreStep << ": " << nextModel.mean().transpose() << endl << nextModel.covariance() << endl;
+        cout << "Was: " << bestModelStep.mean().transpose() << endl << bestModelStep.covariance() << endl;
+        //cout << containedPoints << endl;
+        cout << endl;
       }
+      // TODO Immediately update our main model to reassess radius and score?
+      // TODO Do this earlier when calculating score?
+      // TODO Could do a new "tiny loop", but maybe that's overdoing it?
 
       // TODO If the best for the latest round is the best of all rounds, record
       // TODO that (scaled model and score) here, too.
